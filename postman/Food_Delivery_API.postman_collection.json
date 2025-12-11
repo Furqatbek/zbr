@@ -1042,6 +1042,136 @@
       ]
     },
     {
+      "name": "Analytics",
+      "description": "Business analytics and metrics endpoints. Requires ADMIN or PLATFORM role.",
+      "item": [
+        {
+          "name": "Get User Activity Metrics (DAU/WAU/MAU)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/analytics/activity",
+              "host": ["{{base_url}}"],
+              "path": ["analytics", "activity"]
+            },
+            "description": "Returns Daily Active Users (DAU), Weekly Active Users (WAU), Monthly Active Users (MAU), and related ratios like DAU/MAU stickiness.\n\nCache TTL: 5 minutes"
+          }
+        },
+        {
+          "name": "Get Order Volume Metrics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/analytics/orders",
+              "host": ["{{base_url}}"],
+              "path": ["analytics", "orders"]
+            },
+            "description": "Returns order counts by period (day/week/month), hourly distribution, peak hours, first-time vs repeat orders, and success/cancellation rates.\n\nCache TTL: 1 minute"
+          }
+        },
+        {
+          "name": "Get Conversion Funnel Metrics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/analytics/conversion?days=7",
+              "host": ["{{base_url}}"],
+              "path": ["analytics", "conversion"],
+              "query": [
+                {
+                  "key": "days",
+                  "value": "7",
+                  "description": "Number of days to analyze (1-30)"
+                }
+              ]
+            },
+            "description": "Returns conversion rates through the funnel: Restaurant View → Add to Cart → Checkout → Payment. Includes drop-off analysis at each step.\n\nCache TTL: 30 seconds"
+          }
+        },
+        {
+          "name": "Get AOV Metrics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/analytics/aov",
+              "host": ["{{base_url}}"],
+              "path": ["analytics", "aov"]
+            },
+            "description": "Returns Average Order Value (AOV) for today/week/month, total revenue, min/max/median order values, average items per order, and daily trends.\n\nCache TTL: 1 minute"
+          }
+        },
+        {
+          "name": "Get User Activation Metrics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/analytics/activation",
+              "host": ["{{base_url}}"],
+              "path": ["analytics", "activation"]
+            },
+            "description": "Returns first delivery completion counts, average time to first order, referral signup rates, and activation time distribution.\n\nCache TTL: 5 minutes"
+          }
+        },
+        {
+          "name": "Get Churn Metrics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/analytics/churn",
+              "host": ["{{base_url}}"],
+              "path": ["analytics", "churn"]
+            },
+            "description": "Returns churn rates and counts for users (30-day inactivity), restaurants (zero orders in 30 days), and couriers (14-day inactivity). Includes at-risk entities and retention cohort analysis.\n\nCache TTL: 10 minutes"
+          }
+        },
+        {
+          "name": "Get Analytics Summary",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/analytics/summary",
+              "host": ["{{base_url}}"],
+              "path": ["analytics", "summary"]
+            },
+            "description": "Returns a quick summary of key metrics from all categories: DAU, orders today, conversion rate, AOV, and churn rates."
+          }
+        },
+        {
+          "name": "Refresh Analytics Cache (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/analytics/cache/refresh",
+              "host": ["{{base_url}}"],
+              "path": ["analytics", "cache", "refresh"]
+            },
+            "description": "Evicts all analytics caches to force fresh data on next request. Requires ADMIN role."
+          }
+        },
+        {
+          "name": "Refresh Specific Cache (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/analytics/cache/refresh/dau_wau_mau",
+              "host": ["{{base_url}}"],
+              "path": ["analytics", "cache", "refresh", "dau_wau_mau"]
+            },
+            "description": "Evicts a specific analytics cache. Available caches: dau_wau_mau, order_volume, conversion, aov, activation, churn"
+          }
+        }
+      ]
+    },
+    {
       "name": "Admin",
       "description": "Platform administration endpoints",
       "item": [

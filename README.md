@@ -14,6 +14,7 @@ A production-ready food delivery aggregator backend service built with Java 17 a
 - **Payment Integration**: Payment intent creation, confirmation, and refunds (Stripe-ready)
 - **Kitchen Display System**: Real-time WebSocket notifications for kitchen orders
 - **Referral Program**: User referral tracking with rewards
+- **Business Analytics**: DAU/WAU/MAU, conversion funnel, AOV, churn metrics with Redis caching
 - **Observability**: Prometheus metrics, alerting rules, and Grafana dashboards
 - **API Documentation**: OpenAPI/Swagger documentation
 
@@ -42,7 +43,8 @@ src/main/java/com/fooddelivery/
 ├── kitchen/        # Kitchen display system
 ├── notification/   # Notifications
 ├── sms/            # SMS integration (Eskiz.uz)
-├── platform/       # Platform features (referrals, analytics)
+├── analytics/      # Business analytics and metrics
+├── platform/       # Platform features (referrals)
 ├── webhook/        # External integrations
 └── common/         # Shared utilities, config, exceptions
 ```
@@ -165,6 +167,20 @@ docker-compose up -d postgres redis rabbitmq
 | GET | `/api/v1/couriers/orders/available` | Get available orders |
 | POST | `/api/v1/couriers/orders/{id}/accept` | Accept order |
 
+### Analytics Endpoints (Admin/Platform only)
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/v1/analytics/activity` | User activity metrics (DAU/WAU/MAU) |
+| GET | `/api/v1/analytics/orders` | Order volume metrics |
+| GET | `/api/v1/analytics/conversion` | Conversion funnel metrics |
+| GET | `/api/v1/analytics/aov` | Average Order Value metrics |
+| GET | `/api/v1/analytics/activation` | User activation metrics |
+| GET | `/api/v1/analytics/churn` | Churn metrics (users, restaurants, couriers) |
+| GET | `/api/v1/analytics/summary` | Summary of all key metrics |
+| POST | `/api/v1/analytics/cache/refresh` | Refresh all analytics caches |
+| POST | `/api/v1/analytics/cache/refresh/{name}` | Refresh specific cache |
+
 ## Order State Machine
 
 Orders follow a strict state machine for status transitions:
@@ -237,7 +253,8 @@ src/main/resources/db/migration/
 ├── V1__initial_schema.sql
 ├── V2__seed_data.sql
 ├── V3__add_menu_item_image.sql
-└── V4__add_otp_and_consumer_fields.sql
+├── V4__add_otp_and_consumer_fields.sql
+└── V5__add_activity_logs_table.sql
 ```
 
 ### OTP Table Schema
@@ -313,6 +330,7 @@ food-delivery-backend/
 │   │   │   ├── order/
 │   │   │   ├── courier/
 │   │   │   ├── kitchen/
+│   │   │   ├── analytics/
 │   │   │   ├── notification/
 │   │   │   ├── platform/
 │   │   │   ├── webhook/
