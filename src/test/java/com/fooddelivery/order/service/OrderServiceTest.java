@@ -1,7 +1,7 @@
 package com.fooddelivery.order.service;
 
+import com.fooddelivery.auth.entity.Role;
 import com.fooddelivery.auth.entity.User;
-import com.fooddelivery.auth.entity.UserRole;
 import com.fooddelivery.auth.repository.UserRepository;
 import com.fooddelivery.common.event.EventPublisher;
 import com.fooddelivery.common.exception.BadRequestException;
@@ -74,7 +74,7 @@ class OrderServiceTest {
                 .id(1L)
                 .email("customer@example.com")
                 .fullName("Test Customer")
-                .role(UserRole.CONSUMER)
+                .role(Role.CONSUMER)
                 .build();
 
         testRestaurant = Restaurant.builder()

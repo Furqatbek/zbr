@@ -1,11 +1,11 @@
 package com.fooddelivery.auth.service;
 
+import com.fooddelivery.auth.dto.AuthResponse;
 import com.fooddelivery.auth.dto.LoginRequest;
 import com.fooddelivery.auth.dto.RegisterRequest;
-import com.fooddelivery.auth.dto.TokenResponse;
 import com.fooddelivery.auth.entity.RefreshToken;
+import com.fooddelivery.auth.entity.Role;
 import com.fooddelivery.auth.entity.User;
-import com.fooddelivery.auth.entity.UserRole;
 import com.fooddelivery.auth.entity.UserStatus;
 import com.fooddelivery.auth.repository.RefreshTokenRepository;
 import com.fooddelivery.auth.repository.UserRepository;
@@ -61,7 +61,7 @@ class AuthServiceTest {
                 .passwordHash("hashedPassword")
                 .fullName("Test User")
                 .phone("+1234567890")
-                .role(UserRole.CONSUMER)
+                .role(Role.CONSUMER)
                 .status(UserStatus.ACTIVE)
                 .emailVerified(true)
                 .failedLoginAttempts(0)
@@ -80,7 +80,7 @@ class AuthServiceTest {
                     .password("Password123!")
                     .fullName("New User")
                     .phone("+1234567890")
-                    .role(UserRole.CONSUMER)
+                    .role(Role.CONSUMER)
                     .build();
 
             when(userRepository.existsByEmail(anyString())).thenReturn(false);
@@ -94,7 +94,7 @@ class AuthServiceTest {
             when(jwtService.generateRefreshToken(any(User.class))).thenReturn("refreshToken");
             when(refreshTokenRepository.save(any(RefreshToken.class))).thenAnswer(i -> i.getArgument(0));
 
-            TokenResponse response = authService.register(request);
+            AuthResponse response = authService.register(request);
 
             assertThat(response).isNotNull();
             assertThat(response.getAccessToken()).isEqualTo("accessToken");
@@ -140,7 +140,7 @@ class AuthServiceTest {
             when(jwtService.generateRefreshToken(any(User.class))).thenReturn("refreshToken");
             when(refreshTokenRepository.save(any(RefreshToken.class))).thenAnswer(i -> i.getArgument(0));
 
-            TokenResponse response = authService.login(request);
+            AuthResponse response = authService.login(request);
 
             assertThat(response).isNotNull();
             assertThat(response.getAccessToken()).isEqualTo("accessToken");
@@ -232,7 +232,7 @@ class AuthServiceTest {
             when(jwtService.generateRefreshToken(any(User.class))).thenReturn("newRefreshToken");
             when(refreshTokenRepository.save(any(RefreshToken.class))).thenAnswer(i -> i.getArgument(0));
 
-            TokenResponse response = authService.refreshToken("validRefreshToken");
+            AuthResponse response = authService.refreshToken("validRefreshToken");
 
             assertThat(response).isNotNull();
             assertThat(response.getAccessToken()).isEqualTo("newAccessToken");

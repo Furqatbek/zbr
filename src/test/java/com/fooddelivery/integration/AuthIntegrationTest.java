@@ -3,7 +3,7 @@ package com.fooddelivery.integration;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fooddelivery.auth.dto.LoginRequest;
 import com.fooddelivery.auth.dto.RegisterRequest;
-import com.fooddelivery.auth.entity.UserRole;
+import com.fooddelivery.auth.entity.Role;
 import com.fooddelivery.auth.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -69,7 +69,7 @@ class AuthIntegrationTest {
                 .password("SecurePass123!")
                 .fullName("New User")
                 .phone("+1234567890")
-                .role(UserRole.CONSUMER)
+                .role(Role.CONSUMER)
                 .build();
 
         mockMvc.perform(post("/api/v1/auth/register")
@@ -90,7 +90,7 @@ class AuthIntegrationTest {
                 .email("duplicate@example.com")
                 .password("SecurePass123!")
                 .fullName("First User")
-                .role(UserRole.CONSUMER)
+                .role(Role.CONSUMER)
                 .build();
 
         // First registration
@@ -116,7 +116,7 @@ class AuthIntegrationTest {
                 .email("logintest@example.com")
                 .password("SecurePass123!")
                 .fullName("Login Test User")
-                .role(UserRole.CONSUMER)
+                .role(Role.CONSUMER)
                 .build();
 
         mockMvc.perform(post("/api/v1/auth/register")
@@ -147,7 +147,7 @@ class AuthIntegrationTest {
                 .email("invalidlogin@example.com")
                 .password("SecurePass123!")
                 .fullName("Test User")
-                .role(UserRole.CONSUMER)
+                .role(Role.CONSUMER)
                 .build();
 
         mockMvc.perform(post("/api/v1/auth/register")
@@ -176,7 +176,7 @@ class AuthIntegrationTest {
                 .email("refresh@example.com")
                 .password("SecurePass123!")
                 .fullName("Refresh Test User")
-                .role(UserRole.CONSUMER)
+                .role(Role.CONSUMER)
                 .build();
 
         MvcResult result = mockMvc.perform(post("/api/v1/auth/register")
@@ -204,7 +204,7 @@ class AuthIntegrationTest {
                 .email("invalid-email")
                 .password("SecurePass123!")
                 .fullName("Test User")
-                .role(UserRole.CONSUMER)
+                .role(Role.CONSUMER)
                 .build();
 
         mockMvc.perform(post("/api/v1/auth/register")
@@ -221,7 +221,7 @@ class AuthIntegrationTest {
                 .email("test@example.com")
                 .password("weak")
                 .fullName("Test User")
-                .role(UserRole.CONSUMER)
+                .role(Role.CONSUMER)
                 .build();
 
         mockMvc.perform(post("/api/v1/auth/register")
