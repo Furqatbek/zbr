@@ -1,7 +1,8 @@
 {
   "info": {
+    "_postman_id": "food-delivery-api-collection",
     "name": "Food Delivery API",
-    "description": "Food Delivery Platform API Collection - All endpoints for authentication, restaurants, orders, couriers, and platform management.",
+    "description": "Food Delivery Platform API Collection - All endpoints for authentication (email/password + phone/OTP), restaurants, orders, couriers, consumer profiles, and platform management.\n\nIncludes:\n- Email/Password Authentication\n- Phone-based OTP Authentication for Consumers\n- Consumer Profile Management\n- Restaurant & Menu Management\n- Order Management\n- Courier Operations\n- Referral Program\n- Admin Analytics",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -202,6 +203,156 @@
               "host": ["{{base_url}}"],
               "path": ["auth", "logout"]
             }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Phone Authentication (OTP)",
+      "description": "Phone-based authentication using OTP for consumers. Supports login and automatic signup.",
+      "item": [
+        {
+          "name": "Send OTP",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"phone\": \"998901234567\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/phone/send-otp",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "phone", "send-otp"]
+            },
+            "description": "Send OTP verification code to phone number.\n\nPhone format: Uzbekistan format (998XXXXXXXXX)\n\nRate limited: 5 OTPs per hour per phone number.\n\nThe response includes:\n- expiresInSeconds: Time until OTP expires (default: 300s)\n- isNewUser: Whether this phone number is already registered"
+          }
+        },
+        {
+          "name": "Verify OTP",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('access_token', jsonData.data.accessToken);",
+                  "    pm.collectionVariables.set('refresh_token', jsonData.data.refreshToken);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"phone\": \"998901234567\",\n    \"code\": \"123456\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/phone/verify",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "phone", "verify"]
+            },
+            "description": "Verify OTP code and authenticate.\n\nIf the phone number is new, a new user account is automatically created with CONSUMER role.\n\nReturns JWT access and refresh tokens on success.\n\nMax 3 verification attempts per OTP."
+          }
+        },
+        {
+          "name": "Resend OTP",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"phone\": \"998901234567\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/phone/resend-otp",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "phone", "resend-otp"]
+            },
+            "description": "Resend OTP verification code.\n\nSubject to rate limiting (5 per hour per phone).\n\nPrevious OTP codes are invalidated when a new one is sent."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Consumer Profile",
+      "description": "Consumer profile management endpoints. Requires CONSUMER role.",
+      "item": [
+        {
+          "name": "Get My Profile",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/consumers/profile",
+              "host": ["{{base_url}}"],
+              "path": ["consumers", "profile"]
+            },
+            "description": "Get current consumer's profile.\n\nReturns profile information including:\n- Personal info (name, email, phone)\n- Delivery address and coordinates\n- Account status"
+          }
+        },
+        {
+          "name": "Update My Profile",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"firstName\": \"John\",\n    \"lastName\": \"Doe\",\n    \"email\": \"john.doe@example.com\",\n    \"address\": \"123 Main Street, Tashkent\",\n    \"latitude\": 41.2995,\n    \"longitude\": 69.2401\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/consumers/profile",
+              "host": ["{{base_url}}"],
+              "path": ["consumers", "profile"]
+            },
+            "description": "Update current consumer's profile.\n\nAll fields are optional - only provided fields will be updated.\n\nFields that can be updated:\n- firstName, lastName\n- email (optional for phone-only users)\n- address (delivery address)\n- latitude, longitude (delivery coordinates)"
+          }
+        },
+        {
+          "name": "Get Consumer by ID (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/consumers/1",
+              "host": ["{{base_url}}"],
+              "path": ["consumers", "1"]
+            },
+            "description": "Get consumer profile by ID.\n\nRequires ADMIN or RESTAURANT_OWNER role.\n\nUseful for restaurants to view customer information for orders."
           }
         }
       ]

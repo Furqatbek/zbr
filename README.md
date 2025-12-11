@@ -6,13 +6,15 @@ A production-ready food delivery aggregator backend service built with Java 17 a
 
 - **Multi-tenant Support**: Restaurant owners, couriers, consumers, and platform admins
 - **JWT Authentication**: Secure access/refresh token-based authentication with role-based authorization
+- **Phone-based OTP Authentication**: SMS verification for consumer login/signup with rate limiting
+- **SMS Integration**: Eskiz.uz SMS broker integration via RabbitMQ message queue
 - **Order Management**: Complete order lifecycle with state machine for status transitions
 - **Restaurant Management**: Onboarding, menu management, and operating hours
 - **Courier System**: Real-time location tracking and order assignment
 - **Payment Integration**: Payment intent creation, confirmation, and refunds (Stripe-ready)
 - **Kitchen Display System**: Real-time WebSocket notifications for kitchen orders
 - **Referral Program**: User referral tracking with rewards
-- **Observability**: Prometheus metrics and Grafana dashboards
+- **Observability**: Prometheus metrics, alerting rules, and Grafana dashboards
 - **API Documentation**: OpenAPI/Swagger documentation
 
 ## Tech Stack
@@ -33,16 +35,25 @@ The application follows a modular monolith architecture with package-by-feature 
 
 ```
 src/main/java/com/fooddelivery/
-├── auth/           # Authentication & authorization
+├── auth/           # Authentication & authorization (JWT + OTP)
 ├── restaurant/     # Restaurant management
 ├── order/          # Order processing
 ├── courier/        # Courier management
 ├── kitchen/        # Kitchen display system
 ├── notification/   # Notifications
+├── sms/            # SMS integration (Eskiz.uz)
 ├── platform/       # Platform features (referrals, analytics)
 ├── webhook/        # External integrations
 └── common/         # Shared utilities, config, exceptions
 ```
+
+### SMS Message Flow
+
+```
+[Application] → [RabbitMQ Queue] → [SMS Consumer] → [Eskiz.uz API] → [User Phone]
+```
+
+The SMS integration uses RabbitMQ for async message delivery with retry and dead-letter queue support.
 
 ## Getting Started
 
@@ -95,11 +106,28 @@ docker-compose up -d postgres redis rabbitmq
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| POST | `/api/v1/auth/register` | Register new user |
-| POST | `/api/v1/auth/login` | Login with credentials |
+| POST | `/api/v1/auth/register` | Register new user with email/password |
+| POST | `/api/v1/auth/login` | Login with email/phone and password |
 | POST | `/api/v1/auth/refresh` | Refresh access token |
 | POST | `/api/v1/auth/logout` | Logout (revoke tokens) |
-| GET | `/api/v1/auth/me` | Get current user |
+| POST | `/api/v1/auth/password-reset` | Request password reset |
+| POST | `/api/v1/auth/password-reset/confirm` | Confirm password reset |
+
+### Phone Authentication Endpoints (OTP)
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/v1/auth/phone/send-otp` | Send OTP to phone number |
+| POST | `/api/v1/auth/phone/verify` | Verify OTP and authenticate |
+| POST | `/api/v1/auth/phone/resend-otp` | Resend OTP code |
+
+### Consumer Profile Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/v1/consumers/profile` | Get current consumer profile |
+| PUT | `/api/v1/consumers/profile` | Update consumer profile |
+| GET | `/api/v1/consumers/{id}` | Get consumer by ID (Admin/Restaurant) |
 
 ### Restaurant Endpoints
 
@@ -171,6 +199,13 @@ CANCELLED CANCELLED   CANCELLED
 | `JWT_SECRET` | JWT signing key | - |
 | `JWT_EXPIRATION` | Access token TTL (ms) | `3600000` |
 | `JWT_REFRESH_EXPIRATION` | Refresh token TTL (ms) | `604800000` |
+| `SMS_ENABLED` | Enable SMS sending | `true` |
+| `SMS_EMAIL` | Eskiz.uz account email | - |
+| `SMS_PASSWORD` | Eskiz.uz account password | - |
+| `SMS_FROM` | SMS sender ID | `4546` |
+| `OTP_EXPIRY_MINUTES` | OTP expiration time | `5` |
+| `OTP_MAX_ATTEMPTS` | Max OTP verification attempts | `3` |
+| `OTP_RATE_LIMIT` | Max OTPs per hour per phone | `5` |
 
 ## Testing
 
@@ -200,7 +235,26 @@ Flyway handles database migrations automatically. Migration files are located in
 ```
 src/main/resources/db/migration/
 ├── V1__initial_schema.sql
-└── V2__seed_data.sql
+├── V2__seed_data.sql
+├── V3__add_menu_item_image.sql
+└── V4__add_otp_and_consumer_fields.sql
+```
+
+### OTP Table Schema
+
+```sql
+CREATE TABLE otp_codes (
+    id BIGSERIAL PRIMARY KEY,
+    phone VARCHAR(20) NOT NULL,
+    code VARCHAR(6) NOT NULL,
+    expires_at TIMESTAMP NOT NULL,
+    verified_at TIMESTAMP,
+    attempts INTEGER DEFAULT 0,
+    max_attempts INTEGER DEFAULT 3,
+    is_used BOOLEAN DEFAULT FALSE,
+    purpose VARCHAR(20) DEFAULT 'LOGIN',  -- LOGIN, SIGNUP, PASSWORD_RESET, PHONE_VERIFICATION
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 ```
 
 ## Demo Users
@@ -214,6 +268,13 @@ After starting the application with seed data:
 | owner@pizzapalace.com | Owner@123 | RESTAURANT_OWNER |
 | john.doe@example.com | Consumer@123 | CONSUMER |
 | courier@fooddelivery.com | Courier@123 | COURIER |
+
+### Phone-based Consumer Login
+
+Consumers can also login/signup using phone number with OTP verification:
+1. Send OTP to phone: `POST /api/v1/auth/phone/send-otp` with `{"phone": "998901234567"}`
+2. Verify OTP: `POST /api/v1/auth/phone/verify` with `{"phone": "998901234567", "code": "123456"}`
+3. New users are automatically created with CONSUMER role
 
 ## Monitoring
 
