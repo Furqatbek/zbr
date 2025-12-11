@@ -1,0 +1,1004 @@
+{
+  "info": {
+    "name": "Food Delivery API",
+    "description": "Food Delivery Platform API Collection - All endpoints for authentication, restaurants, orders, couriers, and platform management.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{access_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8080/api/v1"
+    },
+    {
+      "key": "access_token",
+      "value": ""
+    },
+    {
+      "key": "refresh_token",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "description": "Authentication endpoints",
+      "item": [
+        {
+          "name": "Register Consumer",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('access_token', jsonData.data.accessToken);",
+                  "    pm.collectionVariables.set('refresh_token', jsonData.data.refreshToken);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"consumer@example.com\",\n    \"password\": \"Consumer123!\",\n    \"fullName\": \"John Consumer\",\n    \"phone\": \"+1234567890\",\n    \"role\": \"CONSUMER\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/register",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "register"]
+            }
+          }
+        },
+        {
+          "name": "Register Restaurant Owner",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"owner@restaurant.com\",\n    \"password\": \"Owner123!\",\n    \"fullName\": \"Restaurant Owner\",\n    \"phone\": \"+1234567891\",\n    \"role\": \"RESTAURANT_OWNER\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/register",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "register"]
+            }
+          }
+        },
+        {
+          "name": "Register Courier",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"courier@delivery.com\",\n    \"password\": \"Courier123!\",\n    \"fullName\": \"Fast Courier\",\n    \"phone\": \"+1234567892\",\n    \"role\": \"COURIER\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/register",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "register"]
+            }
+          }
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('access_token', jsonData.data.accessToken);",
+                  "    pm.collectionVariables.set('refresh_token', jsonData.data.refreshToken);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"consumer@example.com\",\n    \"password\": \"Consumer123!\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "Refresh Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('access_token', jsonData.data.accessToken);",
+                  "    pm.collectionVariables.set('refresh_token', jsonData.data.refreshToken);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/auth/refresh?refreshToken={{refresh_token}}",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "refresh"],
+              "query": [
+                {
+                  "key": "refreshToken",
+                  "value": "{{refresh_token}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Current User",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/auth/me",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "me"]
+            }
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/auth/logout",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "logout"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Restaurants",
+      "description": "Restaurant management endpoints",
+      "item": [
+        {
+          "name": "List All Restaurants",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/restaurants?page=0&size=10",
+              "host": ["{{base_url}}"],
+              "path": ["restaurants"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "10"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Restaurant by Slug",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/restaurants/slug/pizza-palace",
+              "host": ["{{base_url}}"],
+              "path": ["restaurants", "slug", "pizza-palace"]
+            }
+          }
+        },
+        {
+          "name": "Search Restaurants",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/restaurants/search?query=pizza&cuisine=Italian",
+              "host": ["{{base_url}}"],
+              "path": ["restaurants", "search"],
+              "query": [
+                {
+                  "key": "query",
+                  "value": "pizza"
+                },
+                {
+                  "key": "cuisine",
+                  "value": "Italian"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Nearby Restaurants",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/restaurants/nearby?lat=40.7128&lng=-74.0060&radius=10",
+              "host": ["{{base_url}}"],
+              "path": ["restaurants", "nearby"],
+              "query": [
+                {
+                  "key": "lat",
+                  "value": "40.7128"
+                },
+                {
+                  "key": "lng",
+                  "value": "-74.0060"
+                },
+                {
+                  "key": "radius",
+                  "value": "10"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Restaurant (Owner)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"My New Restaurant\",\n    \"description\": \"A great place to eat\",\n    \"cuisineType\": \"American\",\n    \"addressLine1\": \"456 Food Street\",\n    \"city\": \"New York\",\n    \"state\": \"NY\",\n    \"postalCode\": \"10002\",\n    \"phone\": \"+1234567800\",\n    \"email\": \"contact@myrestaurant.com\",\n    \"minimumOrder\": 15.00,\n    \"deliveryFee\": 4.99,\n    \"deliveryRadiusKm\": 8.0,\n    \"acceptsPickup\": true,\n    \"acceptsDelivery\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/restaurants",
+              "host": ["{{base_url}}"],
+              "path": ["restaurants"]
+            }
+          }
+        },
+        {
+          "name": "Get My Restaurants (Owner)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/restaurants/my",
+              "host": ["{{base_url}}"],
+              "path": ["restaurants", "my"]
+            }
+          }
+        },
+        {
+          "name": "Update Restaurant",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Updated Restaurant Name\",\n    \"description\": \"Updated description\",\n    \"avgPrepTime\": 30\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/restaurants/1",
+              "host": ["{{base_url}}"],
+              "path": ["restaurants", "1"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Menu",
+      "description": "Menu management endpoints",
+      "item": [
+        {
+          "name": "Get Restaurant Menu",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/restaurants/1/menu",
+              "host": ["{{base_url}}"],
+              "path": ["restaurants", "1", "menu"]
+            }
+          }
+        },
+        {
+          "name": "Create Category",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Specials\",\n    \"description\": \"Chef's special dishes\",\n    \"displayOrder\": 1\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/restaurants/1/menu/categories",
+              "host": ["{{base_url}}"],
+              "path": ["restaurants", "1", "menu", "categories"]
+            }
+          }
+        },
+        {
+          "name": "Create Menu Item",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"categoryId\": 1,\n    \"name\": \"Grilled Salmon\",\n    \"description\": \"Fresh Atlantic salmon grilled to perfection\",\n    \"basePrice\": 24.99,\n    \"isAvailable\": true,\n    \"isFeatured\": true,\n    \"prepTimeMinutes\": 20\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/restaurants/1/menu/items",
+              "host": ["{{base_url}}"],
+              "path": ["restaurants", "1", "menu", "items"]
+            }
+          }
+        },
+        {
+          "name": "Update Menu Item",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Grilled Salmon (Updated)\",\n    \"basePrice\": 26.99,\n    \"isAvailable\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/restaurants/1/menu/items/1",
+              "host": ["{{base_url}}"],
+              "path": ["restaurants", "1", "menu", "items", "1"]
+            }
+          }
+        },
+        {
+          "name": "Toggle Item Availability",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/restaurants/1/menu/items/1/availability?available=false",
+              "host": ["{{base_url}}"],
+              "path": ["restaurants", "1", "menu", "items", "1", "availability"],
+              "query": [
+                {
+                  "key": "available",
+                  "value": "false"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Orders",
+      "description": "Order management endpoints",
+      "item": [
+        {
+          "name": "Create Order",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"restaurantId\": 1,\n    \"orderType\": \"DELIVERY\",\n    \"items\": [\n        {\n            \"menuItemId\": 1,\n            \"quantity\": 2,\n            \"variantId\": 1,\n            \"optionIds\": [1],\n            \"specialInstructions\": \"Extra cheese please\"\n        },\n        {\n            \"menuItemId\": 2,\n            \"quantity\": 1\n        }\n    ],\n    \"deliveryAddressLine1\": \"789 Customer Street\",\n    \"deliveryCity\": \"New York\",\n    \"deliveryState\": \"NY\",\n    \"deliveryPostalCode\": \"10003\",\n    \"deliveryLatitude\": 40.7282,\n    \"deliveryLongitude\": -73.9942,\n    \"deliveryInstructions\": \"Ring doorbell twice\",\n    \"tipAmount\": 5.00\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/orders",
+              "host": ["{{base_url}}"],
+              "path": ["orders"]
+            }
+          }
+        },
+        {
+          "name": "Get My Orders (Consumer)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/orders/my?page=0&size=10",
+              "host": ["{{base_url}}"],
+              "path": ["orders", "my"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "10"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Order by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/orders/1",
+              "host": ["{{base_url}}"],
+              "path": ["orders", "1"]
+            }
+          }
+        },
+        {
+          "name": "Get Order by Number",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/orders/number/ORD-2024-001",
+              "host": ["{{base_url}}"],
+              "path": ["orders", "number", "ORD-2024-001"]
+            }
+          }
+        },
+        {
+          "name": "Accept Order (Restaurant)",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/orders/1/status?status=ACCEPTED",
+              "host": ["{{base_url}}"],
+              "path": ["orders", "1", "status"],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "ACCEPTED"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Start Preparing Order",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/orders/1/status?status=PREPARING",
+              "host": ["{{base_url}}"],
+              "path": ["orders", "1", "status"],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "PREPARING"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Mark Order Ready",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/orders/1/status?status=READY",
+              "host": ["{{base_url}}"],
+              "path": ["orders", "1", "status"],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "READY"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Cancel Order",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/orders/1/cancel?reason=Customer%20requested%20cancellation",
+              "host": ["{{base_url}}"],
+              "path": ["orders", "1", "cancel"],
+              "query": [
+                {
+                  "key": "reason",
+                  "value": "Customer requested cancellation"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Restaurant Orders",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/orders/restaurant/1?status=CREATED",
+              "host": ["{{base_url}}"],
+              "path": ["orders", "restaurant", "1"],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "CREATED"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Payments",
+      "description": "Payment endpoints",
+      "item": [
+        {
+          "name": "Create Payment Intent",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/payments/intent?orderId=1",
+              "host": ["{{base_url}}"],
+              "path": ["payments", "intent"],
+              "query": [
+                {
+                  "key": "orderId",
+                  "value": "1"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Confirm Payment",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/payments/1/confirm?paymentMethodId=pm_card_visa",
+              "host": ["{{base_url}}"],
+              "path": ["payments", "1", "confirm"],
+              "query": [
+                {
+                  "key": "paymentMethodId",
+                  "value": "pm_card_visa"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Payment by Order",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/payments/order/1",
+              "host": ["{{base_url}}"],
+              "path": ["payments", "order", "1"]
+            }
+          }
+        },
+        {
+          "name": "Process Refund",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/payments/1/refund?reason=Order%20cancelled",
+              "host": ["{{base_url}}"],
+              "path": ["payments", "1", "refund"],
+              "query": [
+                {
+                  "key": "reason",
+                  "value": "Order cancelled"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Couriers",
+      "description": "Courier management endpoints",
+      "item": [
+        {
+          "name": "Register as Courier",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"vehicleType\": \"BICYCLE\",\n    \"licensePlate\": null\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/couriers/register",
+              "host": ["{{base_url}}"],
+              "path": ["couriers", "register"]
+            }
+          }
+        },
+        {
+          "name": "Get My Profile (Courier)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/couriers/me",
+              "host": ["{{base_url}}"],
+              "path": ["couriers", "me"]
+            }
+          }
+        },
+        {
+          "name": "Go Online",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/couriers/status?status=ONLINE",
+              "host": ["{{base_url}}"],
+              "path": ["couriers", "status"],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "ONLINE"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Location",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/couriers/location?lat=40.7128&lng=-74.0060",
+              "host": ["{{base_url}}"],
+              "path": ["couriers", "location"],
+              "query": [
+                {
+                  "key": "lat",
+                  "value": "40.7128"
+                },
+                {
+                  "key": "lng",
+                  "value": "-74.0060"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Available Orders",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/couriers/orders/available",
+              "host": ["{{base_url}}"],
+              "path": ["couriers", "orders", "available"]
+            }
+          }
+        },
+        {
+          "name": "Accept Order",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/couriers/orders/1/accept",
+              "host": ["{{base_url}}"],
+              "path": ["couriers", "orders", "1", "accept"]
+            }
+          }
+        },
+        {
+          "name": "Pick Up Order",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/couriers/orders/1/pickup",
+              "host": ["{{base_url}}"],
+              "path": ["couriers", "orders", "1", "pickup"]
+            }
+          }
+        },
+        {
+          "name": "Start Delivery",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/couriers/orders/1/transit",
+              "host": ["{{base_url}}"],
+              "path": ["couriers", "orders", "1", "transit"]
+            }
+          }
+        },
+        {
+          "name": "Complete Delivery",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/couriers/orders/1/deliver",
+              "host": ["{{base_url}}"],
+              "path": ["couriers", "orders", "1", "deliver"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Referrals",
+      "description": "Referral program endpoints",
+      "item": [
+        {
+          "name": "Generate Referral Code",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/referrals/generate",
+              "host": ["{{base_url}}"],
+              "path": ["referrals", "generate"]
+            }
+          }
+        },
+        {
+          "name": "Get My Referrals",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/referrals/my",
+              "host": ["{{base_url}}"],
+              "path": ["referrals", "my"]
+            }
+          }
+        },
+        {
+          "name": "Get Referral Stats",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/referrals/my/stats",
+              "host": ["{{base_url}}"],
+              "path": ["referrals", "my", "stats"]
+            }
+          }
+        },
+        {
+          "name": "Get Referral by Code",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/referrals/ADMIN2024",
+              "host": ["{{base_url}}"],
+              "path": ["referrals", "ADMIN2024"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin",
+      "description": "Platform administration endpoints",
+      "item": [
+        {
+          "name": "Get Order Analytics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/admin/analytics/orders?days=7",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "analytics", "orders"],
+              "query": [
+                {
+                  "key": "days",
+                  "value": "7"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get All Referrals",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/admin/referrals",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "referrals"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Webhooks",
+      "description": "Webhook endpoints for external integrations",
+      "item": [
+        {
+          "name": "Payment Webhook (Stripe)",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Stripe-Signature",
+                "value": "test_signature"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"type\": \"payment_intent.succeeded\",\n    \"data\": {\n        \"object\": {\n            \"id\": \"pi_test123\",\n            \"amount\": 3257,\n            \"currency\": \"usd\",\n            \"status\": \"succeeded\",\n            \"metadata\": {\n                \"orderId\": \"1\"\n            }\n        }\n    }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/webhooks/payments/stripe",
+              "host": ["{{base_url}}"],
+              "path": ["webhooks", "payments", "stripe"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Health",
+      "description": "Application health endpoints",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8080/actuator/health",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["actuator", "health"]
+            }
+          }
+        },
+        {
+          "name": "Prometheus Metrics",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8080/actuator/prometheus",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["actuator", "prometheus"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
