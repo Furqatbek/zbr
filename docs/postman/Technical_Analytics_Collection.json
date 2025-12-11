@@ -1,0 +1,283 @@
+{
+  "info": {
+    "name": "Technical Analytics API",
+    "description": "Collection for Technical Analytics endpoints - Platform health and performance monitoring",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080",
+      "type": "string"
+    },
+    {
+      "key": "authToken",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{authToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "Summary & Health",
+      "item": [
+        {
+          "name": "Get Technical Summary",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/analytics/technical/summary?startDate=2024-01-01T00:00:00&endDate=2024-01-01T23:59:59",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "analytics", "technical", "summary"],
+              "query": [
+                {
+                  "key": "startDate",
+                  "value": "2024-01-01T00:00:00"
+                },
+                {
+                  "key": "endDate",
+                  "value": "2024-01-01T23:59:59"
+                }
+              ]
+            },
+            "description": "Get high-level summary of all technical metrics with health scores"
+          }
+        },
+        {
+          "name": "Get Health Scores",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/analytics/technical/health-scores?startDate=2024-01-01T00:00:00&endDate=2024-01-01T23:59:59",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "analytics", "technical", "health-scores"],
+              "query": [
+                {
+                  "key": "startDate",
+                  "value": "2024-01-01T00:00:00"
+                },
+                {
+                  "key": "endDate",
+                  "value": "2024-01-01T23:59:59"
+                }
+              ]
+            },
+            "description": "Get health scores (0-100) for all subsystems"
+          }
+        },
+        {
+          "name": "Refresh Metrics Cache",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/analytics/technical/refresh",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "analytics", "technical", "refresh"]
+            },
+            "description": "Force refresh of all cached technical metrics"
+          }
+        }
+      ]
+    },
+    {
+      "name": "API Performance",
+      "item": [
+        {
+          "name": "Get API Performance Metrics",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"startDate\": \"2024-01-01T00:00:00\",\n  \"endDate\": \"2024-01-01T23:59:59\",\n  \"topEndpointsLimit\": 10,\n  \"includeHourlyDistribution\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/analytics/technical/api-performance",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "analytics", "technical", "api-performance"]
+            },
+            "description": "Get detailed API performance metrics including response times, error rates, and endpoint analysis"
+          }
+        },
+        {
+          "name": "Get Real-time API Metrics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/analytics/technical/api-performance/realtime",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "analytics", "technical", "api-performance", "realtime"]
+            },
+            "description": "Get current API performance from Micrometer metrics"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Backend Resources",
+      "item": [
+        {
+          "name": "Get Backend Resource Metrics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/analytics/technical/backend-resources",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "analytics", "technical", "backend-resources"]
+            },
+            "description": "Get current backend resource usage (CPU, memory, JVM, DB pool, Redis)"
+          }
+        },
+        {
+          "name": "Get Historical Backend Metrics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/analytics/technical/backend-resources/historical?startDate=2024-01-01T00:00:00&endDate=2024-01-01T23:59:59",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "analytics", "technical", "backend-resources", "historical"],
+              "query": [
+                {
+                  "key": "startDate",
+                  "value": "2024-01-01T00:00:00"
+                },
+                {
+                  "key": "endDate",
+                  "value": "2024-01-01T23:59:59"
+                }
+              ]
+            },
+            "description": "Get averaged backend metrics for a time period"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Database Performance",
+      "item": [
+        {
+          "name": "Get Database Performance Metrics",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"startDate\": \"2024-01-01T00:00:00\",\n  \"endDate\": \"2024-01-01T23:59:59\",\n  \"slowQueryThresholdMs\": 1000,\n  \"topSlowQueriesLimit\": 10,\n  \"includeTableStats\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/analytics/technical/database-performance",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "analytics", "technical", "database-performance"]
+            },
+            "description": "Get database performance metrics including slow queries, index usage, and backup status"
+          }
+        }
+      ]
+    },
+    {
+      "name": "WebSocket",
+      "item": [
+        {
+          "name": "Get WebSocket Metrics",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"startDate\": \"2024-01-01T00:00:00\",\n  \"endDate\": \"2024-01-01T23:59:59\",\n  \"includeHourlyDistribution\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/analytics/technical/websocket",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "analytics", "technical", "websocket"]
+            },
+            "description": "Get WebSocket connection and message delivery metrics"
+          }
+        },
+        {
+          "name": "Get Real-time WebSocket Metrics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/analytics/technical/websocket/realtime",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "analytics", "technical", "websocket", "realtime"]
+            },
+            "description": "Get current WebSocket connection status"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Storage",
+      "item": [
+        {
+          "name": "Get Storage Metrics",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"startDate\": \"2024-01-01T00:00:00\",\n  \"endDate\": \"2024-01-01T23:59:59\",\n  \"includeDailyTrend\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/analytics/technical/storage",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "analytics", "technical", "storage"]
+            },
+            "description": "Get storage and file upload metrics"
+          }
+        },
+        {
+          "name": "Get Storage Summary",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/analytics/technical/storage/summary",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "analytics", "technical", "storage", "summary"]
+            },
+            "description": "Get current storage totals"
+          }
+        }
+      ]
+    }
+  ]
+}

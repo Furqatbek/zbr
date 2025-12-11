@@ -17,6 +17,7 @@ A production-ready food delivery aggregator backend service built with Java 17 a
 - **Business Analytics**: DAU/WAU/MAU, conversion funnel, AOV, churn metrics with Redis caching
 - **Operations Analytics**: Order fulfillment time, restaurant/courier performance, ETA accuracy
 - **Financial Analytics**: GMV, commission revenue, delivery fees, promotions, payouts, contribution margin
+- **Technical Analytics**: API performance, backend resources, database health, WebSocket metrics, storage monitoring
 - **Observability**: Prometheus metrics, alerting rules, and Grafana dashboards
 - **API Documentation**: OpenAPI/Swagger documentation
 
@@ -209,6 +210,23 @@ docker-compose up -d postgres redis rabbitmq
 | GET | `/api/v1/analytics/financial/summary` | Financial summary |
 | GET | `/api/v1/analytics/financial/restaurants/{id}/payouts` | Restaurant payout details |
 | GET | `/api/v1/analytics/financial/couriers/{id}/payouts` | Courier payout details |
+
+### Technical Analytics Endpoints (Admin/Platform only)
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/v1/analytics/technical/summary` | Technical health summary with scores |
+| POST | `/api/v1/analytics/technical/api-performance` | API performance metrics (latency, error rates) |
+| GET | `/api/v1/analytics/technical/api-performance/realtime` | Real-time API metrics from Micrometer |
+| GET | `/api/v1/analytics/technical/backend-resources` | Backend resource usage (CPU, memory, JVM) |
+| GET | `/api/v1/analytics/technical/backend-resources/historical` | Historical backend metrics |
+| POST | `/api/v1/analytics/technical/database-performance` | Database performance (slow queries, index usage) |
+| POST | `/api/v1/analytics/technical/websocket` | WebSocket connection & message metrics |
+| GET | `/api/v1/analytics/technical/websocket/realtime` | Real-time WebSocket connection status |
+| POST | `/api/v1/analytics/technical/storage` | Storage and upload metrics |
+| GET | `/api/v1/analytics/technical/storage/summary` | Current storage summary |
+| GET | `/api/v1/analytics/technical/health-scores` | Health scores for all subsystems (0-100) |
+| POST | `/api/v1/analytics/technical/refresh` | Refresh all technical metrics caches |
 
 ## Order State Machine
 

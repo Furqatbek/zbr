@@ -1,0 +1,358 @@
+package com.fooddelivery.analytics.technical.dto;
+
+import com.fasterxml.jackson.annotation.JsonFormat;
+import lombok.*;
+
+import java.time.LocalDateTime;
+import java.util.List;
+
+/**
+ * DTO for Backend Resource metrics.
+ */
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class BackendResourceMetricsDto {
+
+    /**
+     * CPU metrics.
+     */
+    private CpuMetricsDto cpu;
+
+    /**
+     * Memory metrics.
+     */
+    private MemoryMetricsDto memory;
+
+    /**
+     * JVM metrics.
+     */
+    private JvmMetricsDto jvm;
+
+    /**
+     * Database connection pool metrics.
+     */
+    private DatabasePoolMetricsDto databasePool;
+
+    /**
+     * Redis metrics.
+     */
+    private RedisMetricsDto redis;
+
+    /**
+     * Message queue metrics.
+     */
+    private List<MessageQueueMetricsDto> messageQueues;
+
+    /**
+     * Overall health status.
+     */
+    private HealthStatus overallHealth;
+
+    /**
+     * Timestamp when metrics were collected.
+     */
+    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
+    private LocalDateTime collectedAt;
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    public static class CpuMetricsDto {
+        /**
+         * System CPU usage (0.0 - 1.0).
+         */
+        private Double systemCpuUsage;
+
+        /**
+         * Process CPU usage (0.0 - 1.0).
+         */
+        private Double processCpuUsage;
+
+        /**
+         * Available processors.
+         */
+        private Integer availableProcessors;
+
+        /**
+         * System load average (1 minute).
+         */
+        private Double systemLoadAverage;
+
+        /**
+         * Health status based on CPU usage.
+         */
+        private HealthStatus status;
+    }
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    public static class MemoryMetricsDto {
+        /**
+         * Total system memory in bytes.
+         */
+        private Long totalMemoryBytes;
+
+        /**
+         * Used system memory in bytes.
+         */
+        private Long usedMemoryBytes;
+
+        /**
+         * Free system memory in bytes.
+         */
+        private Long freeMemoryBytes;
+
+        /**
+         * Memory usage percentage.
+         */
+        private Double memoryUsagePercent;
+
+        /**
+         * Health status based on memory usage.
+         */
+        private HealthStatus status;
+    }
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    public static class JvmMetricsDto {
+        /**
+         * Heap memory used in bytes.
+         */
+        private Long heapUsedBytes;
+
+        /**
+         * Heap memory committed in bytes.
+         */
+        private Long heapCommittedBytes;
+
+        /**
+         * Heap memory max in bytes.
+         */
+        private Long heapMaxBytes;
+
+        /**
+         * Heap usage percentage.
+         */
+        private Double heapUsagePercent;
+
+        /**
+         * Non-heap memory used in bytes.
+         */
+        private Long nonHeapUsedBytes;
+
+        /**
+         * Number of live threads.
+         */
+        private Integer liveThreads;
+
+        /**
+         * Peak thread count.
+         */
+        private Integer peakThreads;
+
+        /**
+         * Daemon thread count.
+         */
+        private Integer daemonThreads;
+
+        /**
+         * Total GC pause time in ms.
+         */
+        private Long gcPauseTimeMs;
+
+        /**
+         * GC count.
+         */
+        private Long gcCount;
+
+        /**
+         * JVM uptime in seconds.
+         */
+        private Long uptimeSeconds;
+
+        /**
+         * Health status based on JVM metrics.
+         */
+        private HealthStatus status;
+    }
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    public static class DatabasePoolMetricsDto {
+        /**
+         * Active connections.
+         */
+        private Integer activeConnections;
+
+        /**
+         * Idle connections.
+         */
+        private Integer idleConnections;
+
+        /**
+         * Total connections.
+         */
+        private Integer totalConnections;
+
+        /**
+         * Max connections allowed.
+         */
+        private Integer maxConnections;
+
+        /**
+         * Pending connection requests.
+         */
+        private Integer pendingRequests;
+
+        /**
+         * Connection acquire time (avg) in ms.
+         */
+        private Double avgAcquireTimeMs;
+
+        /**
+         * Connection usage time (avg) in ms.
+         */
+        private Double avgUsageTimeMs;
+
+        /**
+         * Connection pool utilization (0.0 - 1.0).
+         */
+        private Double poolUtilization;
+
+        /**
+         * Health status based on pool metrics.
+         */
+        private HealthStatus status;
+    }
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    public static class RedisMetricsDto {
+        /**
+         * Redis ping latency in ms.
+         */
+        private Long pingLatencyMs;
+
+        /**
+         * Connected clients.
+         */
+        private Integer connectedClients;
+
+        /**
+         * Used memory in bytes.
+         */
+        private Long usedMemoryBytes;
+
+        /**
+         * Max memory in bytes.
+         */
+        private Long maxMemoryBytes;
+
+        /**
+         * Memory usage percentage.
+         */
+        private Double memoryUsagePercent;
+
+        /**
+         * Total keys.
+         */
+        private Long totalKeys;
+
+        /**
+         * Expired keys.
+         */
+        private Long expiredKeys;
+
+        /**
+         * Evicted keys.
+         */
+        private Long evictedKeys;
+
+        /**
+         * Cache hit rate (0.0 - 1.0).
+         */
+        private Double hitRate;
+
+        /**
+         * Operations per second.
+         */
+        private Double operationsPerSecond;
+
+        /**
+         * Is Redis connected.
+         */
+        private Boolean isConnected;
+
+        /**
+         * Health status based on Redis metrics.
+         */
+        private HealthStatus status;
+    }
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    public static class MessageQueueMetricsDto {
+        /**
+         * Queue name.
+         */
+        private String queueName;
+
+        /**
+         * Broker type (RABBITMQ, KAFKA).
+         */
+        private String brokerType;
+
+        /**
+         * Queue depth / backlog.
+         */
+        private Long queueDepth;
+
+        /**
+         * Consumer lag (Kafka).
+         */
+        private Long consumerLag;
+
+        /**
+         * Number of consumers.
+         */
+        private Integer consumerCount;
+
+        /**
+         * Publish rate (messages/sec).
+         */
+        private Double publishRate;
+
+        /**
+         * Consume rate (messages/sec).
+         */
+        private Double consumeRate;
+
+        /**
+         * Is queue healthy.
+         */
+        private Boolean isHealthy;
+
+        /**
+         * Health status.
+         */
+        private HealthStatus status;
+    }
+
+    public enum HealthStatus {
+        HEALTHY, DEGRADED, CRITICAL, UNKNOWN
+    }
+}
