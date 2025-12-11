@@ -15,6 +15,8 @@ A production-ready food delivery aggregator backend service built with Java 17 a
 - **Kitchen Display System**: Real-time WebSocket notifications for kitchen orders
 - **Referral Program**: User referral tracking with rewards
 - **Business Analytics**: DAU/WAU/MAU, conversion funnel, AOV, churn metrics with Redis caching
+- **Operations Analytics**: Order fulfillment time, restaurant/courier performance, ETA accuracy
+- **Financial Analytics**: GMV, commission revenue, delivery fees, promotions, payouts, contribution margin
 - **Observability**: Prometheus metrics, alerting rules, and Grafana dashboards
 - **API Documentation**: OpenAPI/Swagger documentation
 
@@ -193,6 +195,21 @@ docker-compose up -d postgres redis rabbitmq
 | GET | `/api/v1/analytics/operations/summary` | Operations summary |
 | POST | `/api/v1/analytics/operations/cache/refresh` | Refresh operations caches |
 
+### Financial Analytics Endpoints (Admin/Platform only)
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/v1/analytics/financial/gmv` | GMV (Gross Merchandise Value) metrics |
+| POST | `/api/v1/analytics/financial/commission` | Commission revenue metrics |
+| POST | `/api/v1/analytics/financial/delivery-fees` | Delivery fee metrics |
+| POST | `/api/v1/analytics/financial/promotions` | Promotion/discount metrics |
+| POST | `/api/v1/analytics/financial/restaurant-payouts` | Restaurant payout metrics |
+| POST | `/api/v1/analytics/financial/courier-payouts` | Courier payout metrics |
+| POST | `/api/v1/analytics/financial/contribution-margin` | Contribution margin & unit economics |
+| GET | `/api/v1/analytics/financial/summary` | Financial summary |
+| GET | `/api/v1/analytics/financial/restaurants/{id}/payouts` | Restaurant payout details |
+| GET | `/api/v1/analytics/financial/couriers/{id}/payouts` | Courier payout details |
+
 ## Order State Machine
 
 Orders follow a strict state machine for status transitions:
@@ -267,7 +284,8 @@ src/main/resources/db/migration/
 ├── V3__add_menu_item_image.sql
 ├── V4__add_otp_and_consumer_fields.sql
 ├── V5__add_activity_logs_table.sql
-└── V6__add_operations_analytics_tables.sql
+├── V6__add_operations_analytics_tables.sql
+└── V7__add_financial_analytics_tables.sql
 ```
 
 ### OTP Table Schema

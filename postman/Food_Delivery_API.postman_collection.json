@@ -1410,6 +1410,214 @@
           }
         }
       ]
+    },
+    {
+      "name": "Financial Analytics",
+      "description": "Financial analytics endpoints for GMV, commission revenue, delivery fees, promotions, payouts, and contribution margin. Requires ADMIN or PLATFORM role.",
+      "item": [
+        {
+          "name": "Get GMV Metrics",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"startDate\": \"2024-01-01T00:00:00\",\n    \"endDate\": \"2024-01-31T23:59:59\",\n    \"includeDailyTrend\": true,\n    \"includeRestaurantBreakdown\": true,\n    \"topN\": 10\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/analytics/financial/gmv",
+              "host": ["{{base_url}}"],
+              "path": ["analytics", "financial", "gmv"]
+            },
+            "description": "Calculate GMV (Gross Merchandise Value) metrics. GMV = Sum of all order values before deductions. Cache TTL: 60 seconds."
+          }
+        },
+        {
+          "name": "Get Commission Metrics",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"startDate\": \"2024-01-01T00:00:00\",\n    \"endDate\": \"2024-01-31T23:59:59\",\n    \"includeDailyTrend\": true,\n    \"includeRestaurantBreakdown\": true,\n    \"topN\": 10\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/analytics/financial/commission",
+              "host": ["{{base_url}}"],
+              "path": ["analytics", "financial", "commission"]
+            },
+            "description": "Calculate commission revenue metrics. Commission = Platform fee charged to restaurants per order. Cache TTL: 300 seconds."
+          }
+        },
+        {
+          "name": "Get Delivery Fee Metrics",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"startDate\": \"2024-01-01T00:00:00\",\n    \"endDate\": \"2024-01-31T23:59:59\",\n    \"includeDailyTrend\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/analytics/financial/delivery-fees",
+              "host": ["{{base_url}}"],
+              "path": ["analytics", "financial", "delivery-fees"]
+            },
+            "description": "Calculate delivery fee metrics. Tracks fees collected from customers and paid to couriers. Cache TTL: 120 seconds."
+          }
+        },
+        {
+          "name": "Get Promotion Metrics",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"startDate\": \"2024-01-01T00:00:00\",\n    \"endDate\": \"2024-01-31T23:59:59\",\n    \"includeDailyTrend\": true,\n    \"topN\": 10\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/analytics/financial/promotions",
+              "host": ["{{base_url}}"],
+              "path": ["analytics", "financial", "promotions"]
+            },
+            "description": "Calculate promotion and discount metrics. Tracks promotional costs and their effectiveness. Cache TTL: 300 seconds."
+          }
+        },
+        {
+          "name": "Get Restaurant Payout Metrics",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"startDate\": \"2024-01-01T00:00:00\",\n    \"endDate\": \"2024-01-31T23:59:59\",\n    \"includeDailyTrend\": true,\n    \"includeRestaurantBreakdown\": true,\n    \"topN\": 10\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/analytics/financial/restaurant-payouts",
+              "host": ["{{base_url}}"],
+              "path": ["analytics", "financial", "restaurant-payouts"]
+            },
+            "description": "Calculate restaurant payout metrics. Net Payout = Gross - Commission - Subsidies - Promo Costs + Adjustments - Fees. Cache TTL: 300 seconds."
+          }
+        },
+        {
+          "name": "Get Courier Payout Metrics",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"startDate\": \"2024-01-01T00:00:00\",\n    \"endDate\": \"2024-01-31T23:59:59\",\n    \"includeDailyTrend\": true,\n    \"includeCourierBreakdown\": true,\n    \"topN\": 10\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/analytics/financial/courier-payouts",
+              "host": ["{{base_url}}"],
+              "path": ["analytics", "financial", "courier-payouts"]
+            },
+            "description": "Calculate courier payout metrics. Courier Payout = Base Pay + Distance Bonus + Tips + Peak Bonus + Incentives. Cache TTL: 300 seconds."
+          }
+        },
+        {
+          "name": "Get Contribution Margin",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"startDate\": \"2024-01-01T00:00:00\",\n    \"endDate\": \"2024-01-31T23:59:59\",\n    \"includeDailyTrend\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/analytics/financial/contribution-margin",
+              "host": ["{{base_url}}"],
+              "path": ["analytics", "financial", "contribution-margin"]
+            },
+            "description": "Calculate contribution margin and unit economics. CM = Commission Revenue + Delivery Fee Revenue - Courier Costs - Promotion Costs. Cache TTL: 60 seconds."
+          }
+        },
+        {
+          "name": "Get Financial Summary",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/analytics/financial/summary?startDate=2024-01-01T00:00:00&endDate=2024-01-31T23:59:59",
+              "host": ["{{base_url}}"],
+              "path": ["analytics", "financial", "summary"],
+              "query": [
+                {"key": "startDate", "value": "2024-01-01T00:00:00"},
+                {"key": "endDate", "value": "2024-01-31T23:59:59"}
+              ]
+            },
+            "description": "Get high-level financial summary with key metrics. Cache TTL: 60 seconds."
+          }
+        },
+        {
+          "name": "Get GMV by Restaurants",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/analytics/financial/gmv/restaurants?startDate=2024-01-01T00:00:00&endDate=2024-01-31T23:59:59&restaurantIds=1,2,3",
+              "host": ["{{base_url}}"],
+              "path": ["analytics", "financial", "gmv", "restaurants"],
+              "query": [
+                {"key": "startDate", "value": "2024-01-01T00:00:00"},
+                {"key": "endDate", "value": "2024-01-31T23:59:59"},
+                {"key": "restaurantIds", "value": "1,2,3"}
+              ]
+            },
+            "description": "Get GMV metrics for specific restaurants."
+          }
+        },
+        {
+          "name": "Get Restaurant Payout Details",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/analytics/financial/restaurants/1/payouts?startDate=2024-01-01T00:00:00&endDate=2024-01-31T23:59:59",
+              "host": ["{{base_url}}"],
+              "path": ["analytics", "financial", "restaurants", "1", "payouts"],
+              "query": [
+                {"key": "startDate", "value": "2024-01-01T00:00:00"},
+                {"key": "endDate", "value": "2024-01-31T23:59:59"}
+              ]
+            },
+            "description": "Get detailed payout information for a specific restaurant."
+          }
+        },
+        {
+          "name": "Get Courier Payout Details",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/analytics/financial/couriers/1/payouts?startDate=2024-01-01T00:00:00&endDate=2024-01-31T23:59:59",
+              "host": ["{{base_url}}"],
+              "path": ["analytics", "financial", "couriers", "1", "payouts"],
+              "query": [
+                {"key": "startDate", "value": "2024-01-01T00:00:00"},
+                {"key": "endDate", "value": "2024-01-31T23:59:59"}
+              ]
+            },
+            "description": "Get detailed payout information for a specific courier."
+          }
+        }
+      ]
     }
   ]
 }
