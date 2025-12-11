@@ -13,7 +13,8 @@ alerting:
         - targets: []
 
 # Load rules once and periodically evaluate them
-rule_files: []
+rule_files:
+  - /etc/prometheus/alerts.yml
 
 # Scrape configurations
 scrape_configs:
