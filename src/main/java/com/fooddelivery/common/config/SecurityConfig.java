@@ -107,6 +107,10 @@ public class SecurityConfig {
                         // Courier endpoints
                         .requestMatchers("/api/v1/couriers/**").hasAnyRole("COURIER", "PLATFORM", "ADMIN")
 
+                        // Consumer profile endpoints
+                        .requestMatchers("/api/v1/consumers/profile").hasRole("CONSUMER")
+                        .requestMatchers("/api/v1/consumers/**").hasAnyRole("ADMIN", "RESTAURANT_OWNER", "CONSUMER")
+
                         // Referral endpoints
                         .requestMatchers("/api/v1/referrals/**").authenticated()
 

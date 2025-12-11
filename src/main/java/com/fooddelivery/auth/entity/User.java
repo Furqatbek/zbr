@@ -29,13 +29,13 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, unique = true, length = 255)
+    @Column(unique = true, length = 255)
     private String email;
 
-    @Column(length = 20)
+    @Column(unique = true, length = 20)
     private String phone;
 
-    @Column(name = "password_hash", nullable = false)
+    @Column(name = "password_hash")
     private String passwordHash;
 
     @Column(name = "first_name", length = 100)
@@ -46,6 +46,18 @@ public class User {
 
     @Column(name = "profile_image_url")
     private String profileImageUrl;
+
+    @Column(length = 500)
+    private String address;
+
+    private Double latitude;
+
+    private Double longitude;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    @Builder.Default
+    private Role role = Role.CONSUMER;
 
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "user_roles", joinColumns = @JoinColumn(name = "user_id"))
@@ -91,11 +103,25 @@ public class User {
     // Helper methods
     public String getFullName() {
         if (firstName == null && lastName == null) {
-            return email;
+            if (email != null) {
+                return email;
+            }
+            if (phone != null) {
+                return "User " + phone.substring(Math.max(0, phone.length() - 4));
+            }
+            return "User";
         }
         return String.format("%s %s",
                 firstName != null ? firstName : "",
                 lastName != null ? lastName : "").trim();
+    }
+
+    public Role getRole() {
+        // Return the single role field, or first role from set if not set
+        if (role != null) {
+            return role;
+        }
+        return roles.isEmpty() ? Role.CONSUMER : roles.iterator().next();
     }
 
     public boolean hasRole(Role role) {

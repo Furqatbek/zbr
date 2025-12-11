@@ -1,5 +1,6 @@
 package com.fooddelivery.auth.security;
 
+import com.fooddelivery.auth.entity.User;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
@@ -67,6 +68,20 @@ public class JwtService {
         Map<String, Object> claims = new HashMap<>();
         claims.put("type", "refresh");
         return buildToken(claims, userDetails, refreshTokenExpiration);
+    }
+
+    /**
+     * Generate access token for User entity.
+     */
+    public String generateToken(User user) {
+        return generateAccessToken(UserPrincipal.create(user));
+    }
+
+    /**
+     * Generate refresh token for User entity.
+     */
+    public String generateRefreshToken(User user) {
+        return generateRefreshToken(UserPrincipal.create(user));
     }
 
     /**

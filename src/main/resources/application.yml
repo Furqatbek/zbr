@@ -171,6 +171,13 @@ app:
   notification:
     enabled: ${NOTIFICATION_ENABLED:true}
 
+  # OTP Configuration
+  otp:
+    expiry-minutes: ${OTP_EXPIRY_MINUTES:5}
+    max-attempts: ${OTP_MAX_ATTEMPTS:3}
+    rate-limit-per-hour: ${OTP_RATE_LIMIT:5}
+    code-length: 6
+
 # OpenAPI/Swagger Configuration
 springdoc:
   api-docs:

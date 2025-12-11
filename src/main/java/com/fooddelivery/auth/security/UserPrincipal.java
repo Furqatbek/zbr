@@ -20,9 +20,11 @@ public class UserPrincipal implements UserDetails {
 
     private final Long id;
     private final String email;
+    private final String phone;
     private final String password;
     private final String firstName;
     private final String lastName;
+    private final Role role;
     private final Set<Role> roles;
     private final UserStatus status;
     private final boolean accountLocked;
@@ -31,15 +33,20 @@ public class UserPrincipal implements UserDetails {
     public UserPrincipal(User user) {
         this.id = user.getId();
         this.email = user.getEmail();
+        this.phone = user.getPhone();
         this.password = user.getPasswordHash();
         this.firstName = user.getFirstName();
         this.lastName = user.getLastName();
+        this.role = user.getRole();
         this.roles = user.getRoles();
         this.status = user.getStatus();
         this.accountLocked = user.isAccountLocked();
-        this.authorities = user.getRoles().stream()
-                .map(role -> new SimpleGrantedAuthority("ROLE_" + role.name()))
-                .collect(Collectors.toSet());
+
+        // Build authorities from both single role and roles set
+        Set<GrantedAuthority> auths = new java.util.HashSet<>();
+        auths.add(new SimpleGrantedAuthority("ROLE_" + user.getRole().name()));
+        user.getRoles().forEach(r -> auths.add(new SimpleGrantedAuthority("ROLE_" + r.name())));
+        this.authorities = auths;
     }
 
     public static UserPrincipal create(User user) {
@@ -58,7 +65,8 @@ public class UserPrincipal implements UserDetails {
 
     @Override
     public String getUsername() {
-        return email;
+        // Use email if available, otherwise use phone
+        return email != null ? email : phone;
     }
 
     @Override
