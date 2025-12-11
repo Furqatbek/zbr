@@ -23,6 +23,11 @@ services:
       - JWT_SECRET=your-super-secret-jwt-key-that-should-be-at-least-256-bits-long-for-security
       - JWT_EXPIRATION=3600000
       - JWT_REFRESH_EXPIRATION=604800000
+      - IMAGE_STORAGE_PATH=/app/images
+      - IMAGE_BASE_URL=http://localhost:8080/api/v1/images
+    volumes:
+      - images-data:/app/images
+      - ./data/images:/app/images
     depends_on:
       postgres:
         condition: service_healthy
@@ -146,3 +151,5 @@ volumes:
   rabbitmq-data:
   prometheus-data:
   grafana-data:
+  images-data:
+    driver: local

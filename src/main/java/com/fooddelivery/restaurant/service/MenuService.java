@@ -4,6 +4,8 @@ import com.fooddelivery.common.annotation.Auditable;
 import com.fooddelivery.common.dto.PagedResponse;
 import com.fooddelivery.common.exception.DuplicateResourceException;
 import com.fooddelivery.common.exception.ResourceNotFoundException;
+import com.fooddelivery.common.service.ImageStorageService;
+import com.fooddelivery.common.service.ImageStorageService.ImageInfo;
 import com.fooddelivery.restaurant.dto.*;
 import com.fooddelivery.restaurant.entity.*;
 import com.fooddelivery.restaurant.mapper.RestaurantMapper;
@@ -17,6 +19,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -33,6 +36,7 @@ public class MenuService {
     private final MenuItemRepository itemRepository;
     private final RestaurantService restaurantService;
     private final RestaurantMapper mapper;
+    private final ImageStorageService imageStorageService;
 
     // Platform margin percentage (could be configurable)
     private static final BigDecimal PLATFORM_MARGIN = new BigDecimal("0.10"); // 10%
@@ -328,8 +332,80 @@ public class MenuService {
         log.info("Menu item deleted (soft): {}", itemId);
     }
 
+    /**
+     * Upload and update menu item image.
+     */
+    @Transactional
+    @CacheEvict(value = {"menus", "menuItems"}, allEntries = true)
+    @Auditable(action = "UPDATE_ITEM_IMAGE", entityType = "MenuItem")
+    public MenuItemDto updateItemImage(Long itemId, MultipartFile imageFile) {
+        MenuItem item = itemRepository.findById(itemId)
+                .orElseThrow(() -> new ResourceNotFoundException("MenuItem", "id", itemId));
+
+        // Delete old image if exists
+        if (item.getImagePath() != null) {
+            String relativePath = extractRelativePath(item.getImagePath());
+            if (relativePath != null) {
+                imageStorageService.deleteImage(relativePath);
+            }
+        }
+
+        // Store new image
+        ImageInfo imageInfo = imageStorageService.storeImage(imageFile, "menu-items");
+
+        // Update item with image info
+        item.setImageUrl(imageInfo.getUrl());
+        item.setImagePath(imageInfo.getPath());
+        item.setImageName(imageInfo.getOriginalName());
+        item.setImageSize(imageInfo.getSize());
+        item.setImageContentType(imageInfo.getContentType());
+
+        item = itemRepository.save(item);
+        log.info("Menu item {} image updated: {}", itemId, imageInfo.getUrl());
+
+        return mapper.toItemDto(item);
+    }
+
+    /**
+     * Delete menu item image.
+     */
+    @Transactional
+    @CacheEvict(value = {"menus", "menuItems"}, allEntries = true)
+    @Auditable(action = "DELETE_ITEM_IMAGE", entityType = "MenuItem")
+    public MenuItemDto deleteItemImage(Long itemId) {
+        MenuItem item = itemRepository.findById(itemId)
+                .orElseThrow(() -> new ResourceNotFoundException("MenuItem", "id", itemId));
+
+        if (item.getImagePath() != null) {
+            String relativePath = extractRelativePath(item.getImagePath());
+            if (relativePath != null) {
+                imageStorageService.deleteImage(relativePath);
+            }
+        }
+
+        item.setImageUrl(null);
+        item.setImagePath(null);
+        item.setImageName(null);
+        item.setImageSize(null);
+        item.setImageContentType(null);
+
+        item = itemRepository.save(item);
+        log.info("Menu item {} image deleted", itemId);
+
+        return mapper.toItemDto(item);
+    }
+
     private BigDecimal calculatePriceWithMargin(BigDecimal basePrice) {
         return basePrice.add(basePrice.multiply(PLATFORM_MARGIN))
                 .setScale(2, java.math.RoundingMode.HALF_UP);
+    }
+
+    private String extractRelativePath(String fullPath) {
+        if (fullPath == null) return null;
+        int menuItemsIndex = fullPath.indexOf("menu-items");
+        if (menuItemsIndex >= 0) {
+            return fullPath.substring(menuItemsIndex);
+        }
+        return null;
     }
 }

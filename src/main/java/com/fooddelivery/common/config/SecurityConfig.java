@@ -41,6 +41,7 @@ public class SecurityConfig {
             "/api/v1/restaurants/*/menu",
             "/api/v1/restaurants/*",
             "/api/v1/webhooks/**",
+            "/api/v1/images/**",
             "/swagger-ui/**",
             "/swagger-ui.html",
             "/api-docs/**",

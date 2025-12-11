@@ -55,6 +55,18 @@ public class MenuItemDto {
     @Schema(description = "Image URL")
     private String imageUrl;
 
+    @Schema(description = "Image file path on server")
+    private String imagePath;
+
+    @Schema(description = "Original image filename")
+    private String imageName;
+
+    @Schema(description = "Image file size in bytes")
+    private Long imageSize;
+
+    @Schema(description = "Image content type (MIME type)")
+    private String imageContentType;
+
     @Schema(description = "Is in stock")
     private Boolean inStock;
 

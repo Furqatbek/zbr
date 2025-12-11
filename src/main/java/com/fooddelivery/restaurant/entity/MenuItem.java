@@ -52,6 +52,18 @@ public class MenuItem {
     @Column(name = "image_url")
     private String imageUrl;
 
+    @Column(name = "image_path", length = 500)
+    private String imagePath;
+
+    @Column(name = "image_name", length = 255)
+    private String imageName;
+
+    @Column(name = "image_size")
+    private Long imageSize;
+
+    @Column(name = "image_content_type", length = 100)
+    private String imageContentType;
+
     @Column(name = "in_stock", nullable = false)
     @Builder.Default
     private Boolean inStock = true;

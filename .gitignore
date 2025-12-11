@@ -68,3 +68,5 @@ temp/
 # Application specific
 upload/
 uploads/
+data/
+images/
