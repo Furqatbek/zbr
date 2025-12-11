@@ -153,6 +153,24 @@ app:
       max-size-mb: 5
       allowed-types: image/jpeg,image/png,image/gif,image/webp
 
+  # SMS Configuration (Eskiz.uz)
+  sms:
+    eskiz:
+      enabled: ${SMS_ENABLED:true}
+      base-url: ${SMS_BASE_URL:https://notify.eskiz.uz/api}
+      email: ${SMS_EMAIL:}
+      password: ${SMS_PASSWORD:}
+      from: ${SMS_FROM:4546}
+      token-ttl-seconds: 2505600  # 29 days
+      connect-timeout: 5000
+      read-timeout: 30000
+      max-retries: 3
+      callback-url: ${SMS_CALLBACK_URL:}
+
+  # Notification settings
+  notification:
+    enabled: ${NOTIFICATION_ENABLED:true}
+
 # OpenAPI/Swagger Configuration
 springdoc:
   api-docs:

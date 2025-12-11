@@ -23,6 +23,12 @@ services:
       - JWT_REFRESH_EXPIRATION=604800000
       - IMAGE_STORAGE_PATH=/app/images
       - IMAGE_BASE_URL=http://localhost:8080/api/v1/images
+      # SMS Configuration (Eskiz.uz)
+      - SMS_ENABLED=${SMS_ENABLED:-true}
+      - SMS_EMAIL=${SMS_EMAIL:-}
+      - SMS_PASSWORD=${SMS_PASSWORD:-}
+      - SMS_FROM=${SMS_FROM:-4546}
+      - SMS_CALLBACK_URL=${SMS_CALLBACK_URL:-}
     volumes:
       - images-data:/app/images
       - ./data/images:/app/images
