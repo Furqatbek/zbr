@@ -1280,6 +1280,136 @@
           }
         }
       ]
+    },
+    {
+      "name": "Operations Analytics",
+      "description": "Operations analytics endpoints for order fulfillment, restaurant performance, courier metrics, and ETA accuracy. Requires ADMIN or PLATFORM role.",
+      "item": [
+        {
+          "name": "Get Order Fulfillment Metrics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/analytics/operations/order/1",
+              "host": ["{{base_url}}"],
+              "path": ["analytics", "operations", "order", "1"]
+            },
+            "description": "Get order fulfillment timing breakdown for a specific order. Cache TTL: 60 seconds."
+          }
+        },
+        {
+          "name": "Get Restaurant Performance",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/analytics/operations/restaurant/1?startDate=2024-01-01&endDate=2024-01-31",
+              "host": ["{{base_url}}"],
+              "path": ["analytics", "operations", "restaurant", "1"],
+              "query": [
+                {"key": "startDate", "value": "2024-01-01"},
+                {"key": "endDate", "value": "2024-01-31"}
+              ]
+            },
+            "description": "Get restaurant performance metrics including acceptance rate, prep time, uptime. Cache TTL: 5 minutes."
+          }
+        },
+        {
+          "name": "Get Courier Performance",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/analytics/operations/courier/1?startDate=2024-01-01&endDate=2024-01-31",
+              "host": ["{{base_url}}"],
+              "path": ["analytics", "operations", "courier", "1"],
+              "query": [
+                {"key": "startDate", "value": "2024-01-01"},
+                {"key": "endDate", "value": "2024-01-31"}
+              ]
+            },
+            "description": "Get courier performance metrics including acceptance rate, delivery time, utilization. Cache TTL: 1 minute."
+          }
+        },
+        {
+          "name": "Get Delivery Success Rate",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/analytics/operations/delivery-success?startDate=2024-01-01&endDate=2024-01-31",
+              "host": ["{{base_url}}"],
+              "path": ["analytics", "operations", "delivery-success"],
+              "query": [
+                {"key": "startDate", "value": "2024-01-01"},
+                {"key": "endDate", "value": "2024-01-31"}
+              ]
+            },
+            "description": "Get delivery success rate with cancellation breakdown. Cache TTL: 2 minutes."
+          }
+        },
+        {
+          "name": "Get ETA Accuracy Metrics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/analytics/operations/eta-accuracy?startDate=2024-01-01&endDate=2024-01-31",
+              "host": ["{{base_url}}"],
+              "path": ["analytics", "operations", "eta-accuracy"],
+              "query": [
+                {"key": "startDate", "value": "2024-01-01"},
+                {"key": "endDate", "value": "2024-01-31"}
+              ]
+            },
+            "description": "Get ETA accuracy metrics with over/under estimation analysis. Cache TTL: 30 seconds."
+          }
+        },
+        {
+          "name": "Get Operations Summary",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/analytics/operations/summary?startDate=2024-01-01&endDate=2024-01-31",
+              "host": ["{{base_url}}"],
+              "path": ["analytics", "operations", "summary"],
+              "query": [
+                {"key": "startDate", "value": "2024-01-01"},
+                {"key": "endDate", "value": "2024-01-31"}
+              ]
+            },
+            "description": "Get high-level operations summary dashboard. Cache TTL: 2 minutes."
+          }
+        },
+        {
+          "name": "Refresh Operations Cache",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/analytics/operations/cache/refresh",
+              "host": ["{{base_url}}"],
+              "path": ["analytics", "operations", "cache", "refresh"]
+            },
+            "description": "Force refresh all operations analytics caches. Requires ADMIN role."
+          }
+        },
+        {
+          "name": "Refresh Specific Cache",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/analytics/operations/cache/refresh/eta_accuracy",
+              "host": ["{{base_url}}"],
+              "path": ["analytics", "operations", "cache", "refresh", "eta_accuracy"]
+            },
+            "description": "Refresh specific cache (order_fulfillment, restaurant_performance, courier_performance, delivery_success, eta_accuracy, summary). Requires ADMIN role."
+          }
+        }
+      ]
     }
   ]
 }

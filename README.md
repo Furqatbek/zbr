@@ -181,6 +181,18 @@ docker-compose up -d postgres redis rabbitmq
 | POST | `/api/v1/analytics/cache/refresh` | Refresh all analytics caches |
 | POST | `/api/v1/analytics/cache/refresh/{name}` | Refresh specific cache |
 
+### Operations Analytics Endpoints (Admin/Platform only)
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/v1/analytics/operations/order/{orderId}` | Order fulfillment metrics |
+| GET | `/api/v1/analytics/operations/restaurant/{id}` | Restaurant performance metrics |
+| GET | `/api/v1/analytics/operations/courier/{id}` | Courier performance metrics |
+| GET | `/api/v1/analytics/operations/delivery-success` | Delivery success rate |
+| GET | `/api/v1/analytics/operations/eta-accuracy` | ETA accuracy metrics |
+| GET | `/api/v1/analytics/operations/summary` | Operations summary |
+| POST | `/api/v1/analytics/operations/cache/refresh` | Refresh operations caches |
+
 ## Order State Machine
 
 Orders follow a strict state machine for status transitions:
@@ -254,7 +266,8 @@ src/main/resources/db/migration/
 ├── V2__seed_data.sql
 ├── V3__add_menu_item_image.sql
 ├── V4__add_otp_and_consumer_fields.sql
-└── V5__add_activity_logs_table.sql
+├── V5__add_activity_logs_table.sql
+└── V6__add_operations_analytics_tables.sql
 ```
 
 ### OTP Table Schema
