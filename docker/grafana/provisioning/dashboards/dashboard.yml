@@ -1,11 +1,13 @@
 apiVersion: 1
 
 providers:
-  - name: 'default'
+  - name: 'Food Delivery Dashboards'
     orgId: 1
-    folder: ''
+    folder: 'Food Delivery'
+    folderUid: 'food-delivery'
     type: file
     disableDeletion: false
     editable: true
+    updateIntervalSeconds: 30
     options:
       path: /etc/grafana/provisioning/dashboards

@@ -103,6 +103,36 @@ services:
       timeout: 5s
       retries: 5
 
+  # PostgreSQL Exporter for Database Metrics
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:v0.15.0
+    container_name: food-delivery-postgres-exporter
+    ports:
+      - "9187:9187"
+    environment:
+      - DATA_SOURCE_NAME=postgresql://postgres:postgres@postgres:5432/fooddelivery?sslmode=disable
+    networks:
+      - food-delivery-network
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # Redis Exporter for Cache Metrics
+  redis-exporter:
+    image: oliver006/redis_exporter:v1.55.0
+    container_name: food-delivery-redis-exporter
+    ports:
+      - "9121:9121"
+    environment:
+      - REDIS_ADDR=redis://redis:6379
+    networks:
+      - food-delivery-network
+    restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
+
   # Prometheus for Metrics
   prometheus:
     image: prom/prometheus:v2.47.0
@@ -138,6 +168,8 @@ services:
     restart: unless-stopped
     depends_on:
       - prometheus
+      - postgres-exporter
+      - redis-exporter
 
 networks:
   food-delivery-network:
