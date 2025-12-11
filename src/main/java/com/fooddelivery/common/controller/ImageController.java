@@ -39,7 +39,7 @@ public class ImageController {
 
         ImageInfo imageInfo = imageStorageService.storeImage(file, category);
 
-        return ResponseEntity.ok(ApiResponse.success(imageInfo, "Image uploaded successfully"));
+        return ResponseEntity.ok(ApiResponse.success("Image uploaded successfully", imageInfo));
     }
 
     @PostMapping(value = "/menu-items/{menuItemId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -53,7 +53,7 @@ public class ImageController {
 
         ImageInfo imageInfo = imageStorageService.storeImage(file, "menu-items");
 
-        return ResponseEntity.ok(ApiResponse.success(imageInfo, "Menu item image uploaded successfully"));
+        return ResponseEntity.ok(ApiResponse.success("Menu item image uploaded successfully", imageInfo));
     }
 
     @GetMapping("/{category}/{filename:.+}")
@@ -84,7 +84,7 @@ public class ImageController {
         boolean deleted = imageStorageService.deleteImage(relativePath);
 
         if (deleted) {
-            return ResponseEntity.ok(ApiResponse.success(null, "Image deleted successfully"));
+            return ResponseEntity.ok(ApiResponse.<Void>success("Image deleted successfully"));
         } else {
             return ResponseEntity.notFound().build();
         }

@@ -40,13 +40,14 @@ public interface OrderMapper {
 
     List<PaymentDto> toPaymentDtoList(List<Payment> payments);
 
+    @SuppressWarnings("unchecked")
     default List<OrderItemDto.ModifierDto> parseModifiers(String modifiersJson) {
         if (modifiersJson == null || modifiersJson.isBlank()) {
             return null;
         }
         try {
-            List<Map<String, Object>> modifiers = JsonUtils.fromJsonToList(modifiersJson, Map.class);
-            return modifiers.stream()
+            List<Map> rawModifiers = JsonUtils.fromJsonToList(modifiersJson, Map.class);
+            return rawModifiers.stream()
                     .map(m -> OrderItemDto.ModifierDto.builder()
                             .id(((Number) m.get("id")).longValue())
                             .name((String) m.get("name"))

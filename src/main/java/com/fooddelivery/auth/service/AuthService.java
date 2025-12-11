@@ -305,7 +305,7 @@ public class AuthService {
                 .deviceInfo(request != null ? request.getHeader("User-Agent") : null)
                 .ipAddress(request != null ? getClientIp(request) : null)
                 .userAgent(request != null ? request.getHeader("User-Agent") : null)
-                .expiresAt(LocalDateTime.now().plusMillis(jwtService.getRefreshTokenExpiration()))
+                .expiresAt(LocalDateTime.now().plusSeconds(jwtService.getRefreshTokenExpiration() / 1000))
                 .build();
 
         refreshTokenRepository.save(refreshToken);
