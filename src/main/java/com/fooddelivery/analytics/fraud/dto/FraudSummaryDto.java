@@ -33,6 +33,10 @@ public class FraudSummaryDto {
     private Long bruteForceAttempts;
     private Long circularReferrals;
 
+    // Totals used by mapper
+    private Long totalFlaggedUsers;
+    private Long totalSecurityIncidents;
+
     // Financial impact
     private FinancialImpactDto financialImpact;
 
@@ -42,6 +46,11 @@ public class FraudSummaryDto {
     private CategorySummaryDto accountFraudSummary;
     private CategorySummaryDto referralFraudSummary;
     private CategorySummaryDto securitySummary;
+
+    // Used by FraudSummaryMapper
+    private List<FraudCategorySummaryDto> categorySummaries;
+    private FraudTrendDto trendAnalysis;
+    private List<FraudAlertDto> activeAlerts;
 
     // Active security flags
     private Long activeSecurityFlags;
@@ -73,6 +82,12 @@ public class FraudSummaryDto {
         private BigDecimal promoAbuseAmount;
         private BigDecimal chargebackAmount;
         private BigDecimal refundAbuseAmount;
+        // Additional fields used by FraudSummaryMapper
+        private BigDecimal totalEstimatedLoss;
+        private BigDecimal failedPaymentLoss;
+        private BigDecimal refundAbuseLoss;
+        private BigDecimal promoAbuseLoss;
+        private BigDecimal referralFraudLoss;
     }
 
     @Data
@@ -127,5 +142,48 @@ public class FraudSummaryDto {
         private BigDecimal potentialImpact;
         private String recommendedAction;
         private Integer priority;
+        // Additional fields used by FraudSummaryMapper
+        private Integer riskScore;
+        private String affectedEntity;
+        private String category;
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class FraudCategorySummaryDto {
+        private String category;
+        private Integer riskScore;
+        private String riskLevel;
+        private Long incidentCount;
+        private List<String> topIndicators;
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class FraudTrendDto {
+        private String trendDirection;
+        private Double percentageChange;
+        private String comparisonPeriod;
+        private String paymentTrend;
+        private String behavioralTrend;
+        private String securityTrend;
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class FraudAlertDto {
+        private String alertId;
+        private String severity;
+        private String title;
+        private String description;
+        private String category;
+        private LocalDateTime createdAt;
+        private Boolean acknowledged;
     }
 }
