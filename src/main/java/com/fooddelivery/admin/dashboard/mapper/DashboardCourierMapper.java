@@ -19,23 +19,18 @@ public interface DashboardCourierMapper {
     @Mapping(target = "courierId", source = "courierId")
     @Mapping(target = "name", source = "name")
     @Mapping(target = "status", source = "status")
-    @Mapping(target = "isActive", source = "isActive")
-    @Mapping(target = "rating", source = "rating")
     @Mapping(target = "deliveriesToday", source = "deliveriesToday")
-    @Mapping(target = "avgDeliveryTimeMinutes", source = "avgDeliveryTime")
-    @Mapping(target = "onTimeDeliveryRate", source = "onTimeRate")
+    @Mapping(target = "avgDeliveryTimeToday", source = "avgDeliveryTime")
     @Mapping(target = "vehicleType", source = "vehicleType")
-    @Mapping(target = "currentLatitude", source = "latitude")
-    @Mapping(target = "currentLongitude", source = "longitude")
-    @Mapping(target = "lastLocationPingAt", source = "lastPingAt")
-    @Mapping(target = "currentOrderId", source = "currentOrderId")
-    @Mapping(target = "performanceScore", expression = "java(calculatePerformanceScore(rating, onTimeRate, avgDeliveryTime))")
+    @Mapping(target = "currentLat", source = "latitude")
+    @Mapping(target = "currentLng", source = "longitude")
+    @Mapping(target = "locationUpdatedAt", source = "lastPingAt")
+    @Mapping(target = "avgRating", source = "rating")
+    @Mapping(target = "acceptanceRate", source = "onTimeRate")
     CourierDetailDto toCourierDetail(
             Long courierId,
             String name,
             String status,
-            Boolean isActive,
-            Double rating,
             Long deliveriesToday,
             Double avgDeliveryTime,
             Double onTimeRate,
@@ -43,18 +38,18 @@ public interface DashboardCourierMapper {
             Double latitude,
             Double longitude,
             LocalDateTime lastPingAt,
-            Long currentOrderId
+            Double rating
     );
 
     /**
      * Map to CourierLocationDto.
      */
     @Mapping(target = "courierId", source = "courierId")
-    @Mapping(target = "courierName", source = "name")
+    @Mapping(target = "name", source = "name")
     @Mapping(target = "latitude", source = "latitude")
     @Mapping(target = "longitude", source = "longitude")
     @Mapping(target = "status", source = "status")
-    @Mapping(target = "currentOrderId", source = "currentOrderId")
+    @Mapping(target = "activeOrders", source = "activeOrders")
     @Mapping(target = "lastPingAt", source = "lastPingAt")
     CourierLocationDto toCourierLocation(
             Long courierId,
@@ -62,7 +57,7 @@ public interface DashboardCourierMapper {
             Double latitude,
             Double longitude,
             String status,
-            Long currentOrderId,
+            Integer activeOrders,
             LocalDateTime lastPingAt
     );
 
