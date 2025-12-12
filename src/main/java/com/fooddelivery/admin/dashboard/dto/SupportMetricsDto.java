@@ -29,6 +29,14 @@ public class SupportMetricsDto {
     private Long waitingCourierTickets;
     private Long resolvedToday;
     private Long closedToday;
+    private Long resolvedTickets;
+    private Long closedTickets;
+
+    // Type breakdown counts
+    private Long complaintCount;
+    private Long refundRequestCount;
+    private Long inquiryCount;
+    private Long feedbackCount;
 
     // Priority breakdown
     private Long urgentTickets;
@@ -38,9 +46,13 @@ public class SupportMetricsDto {
 
     // Performance metrics
     private Double avgResolutionTimeHours;
+    private Double avgResolutionTimeMinutes;
+    private String avgResolutionTimeFormatted;
     private Double avgFirstResponseTimeMinutes;
+    private String avgFirstResponseTimeFormatted;
     private Double firstContactResolutionRate;
     private Double customerSatisfactionScore; // CSAT average
+    private Double resolutionRate;
 
     // SLA compliance
     private Long slaBreach;
@@ -91,6 +103,7 @@ public class SupportMetricsDto {
         private Long ticketId;
         private String ticketNumber;
         private String ticketType;
+        private String category;
         private String status;
         private String priority;
         private String channel;
@@ -98,6 +111,8 @@ public class SupportMetricsDto {
         // Related entities
         private Long userId;
         private String userName;
+        private Long customerId;
+        private String customerName;
         private Long orderId;
         private String orderNumber;
         private Long restaurantId;
@@ -112,18 +127,26 @@ public class SupportMetricsDto {
         // Assignment
         private Long assignedToId;
         private String assignedToName;
+        private Long assignedAgentId;
+        private String assignedAgentName;
         private LocalDateTime assignedAt;
 
         // Timing
         private LocalDateTime createdAt;
+        private LocalDateTime updatedAt;
         private LocalDateTime firstResponseAt;
         private LocalDateTime resolvedAt;
         private Long ageMinutes;
+        private String ageFormatted;
         private Long responseTimeMinutes;
+        private Long waitTimeMinutes;
+        private String waitTimeFormatted;
 
         // Flags
         private Boolean slaBreach;
+        private Boolean slaBreached;
         private Boolean escalated;
+        private Boolean isEscalated;
         private Integer reopenCount;
 
         // Refund info

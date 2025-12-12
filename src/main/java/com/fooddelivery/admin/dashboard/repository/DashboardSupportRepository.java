@@ -46,6 +46,77 @@ public interface DashboardSupportRepository extends JpaRepository<SupportTicket,
     Long countOpenTickets();
 
     /**
+     * Count open tickets within date range.
+     */
+    @Query("SELECT COUNT(t) FROM SupportTicket t WHERE t.status NOT IN ('RESOLVED', 'CLOSED') " +
+            "AND t.createdAt BETWEEN :startDate AND :endDate")
+    Long countOpenTickets(@Param("startDate") LocalDateTime startDate,
+                          @Param("endDate") LocalDateTime endDate);
+
+    /**
+     * Count total tickets within date range.
+     */
+    @Query("SELECT COUNT(t) FROM SupportTicket t WHERE t.createdAt BETWEEN :startDate AND :endDate")
+    Long countTotalTickets(@Param("startDate") LocalDateTime startDate,
+                           @Param("endDate") LocalDateTime endDate);
+
+    /**
+     * Count in-progress tickets within date range.
+     */
+    @Query("SELECT COUNT(t) FROM SupportTicket t WHERE t.status = 'IN_PROGRESS' " +
+            "AND t.createdAt BETWEEN :startDate AND :endDate")
+    Long countInProgressTickets(@Param("startDate") LocalDateTime startDate,
+                                 @Param("endDate") LocalDateTime endDate);
+
+    /**
+     * Count resolved tickets within date range.
+     */
+    @Query("SELECT COUNT(t) FROM SupportTicket t WHERE t.status = 'RESOLVED' " +
+            "AND t.createdAt BETWEEN :startDate AND :endDate")
+    Long countResolvedTickets(@Param("startDate") LocalDateTime startDate,
+                               @Param("endDate") LocalDateTime endDate);
+
+    /**
+     * Count closed tickets within date range.
+     */
+    @Query("SELECT COUNT(t) FROM SupportTicket t WHERE t.status = 'CLOSED' " +
+            "AND t.createdAt BETWEEN :startDate AND :endDate")
+    Long countClosedTickets(@Param("startDate") LocalDateTime startDate,
+                             @Param("endDate") LocalDateTime endDate);
+
+    /**
+     * Count escalated tickets within date range.
+     */
+    @Query("SELECT COUNT(t) FROM SupportTicket t WHERE t.escalated = true " +
+            "AND t.createdAt BETWEEN :startDate AND :endDate")
+    Long countEscalatedTickets(@Param("startDate") LocalDateTime startDate,
+                                @Param("endDate") LocalDateTime endDate);
+
+    /**
+     * Count complaints within date range.
+     */
+    @Query("SELECT COUNT(t) FROM SupportTicket t WHERE t.ticketType = 'COMPLAINT' " +
+            "AND t.createdAt BETWEEN :startDate AND :endDate")
+    Long countComplaints(@Param("startDate") LocalDateTime startDate,
+                          @Param("endDate") LocalDateTime endDate);
+
+    /**
+     * Count inquiries within date range.
+     */
+    @Query("SELECT COUNT(t) FROM SupportTicket t WHERE t.ticketType = 'INQUIRY' " +
+            "AND t.createdAt BETWEEN :startDate AND :endDate")
+    Long countInquiries(@Param("startDate") LocalDateTime startDate,
+                         @Param("endDate") LocalDateTime endDate);
+
+    /**
+     * Count feedback within date range.
+     */
+    @Query("SELECT COUNT(t) FROM SupportTicket t WHERE t.ticketType = 'FEEDBACK' " +
+            "AND t.createdAt BETWEEN :startDate AND :endDate")
+    Long countFeedback(@Param("startDate") LocalDateTime startDate,
+                        @Param("endDate") LocalDateTime endDate);
+
+    /**
      * Count tickets within date range.
      */
     @Query("SELECT COUNT(t) FROM SupportTicket t WHERE t.createdAt BETWEEN :startDate AND :endDate")
@@ -123,6 +194,15 @@ public interface DashboardSupportRepository extends JpaRepository<SupportTicket,
                                    @Param("endDate") LocalDateTime endDate);
 
     /**
+     * Average resolution time in minutes.
+     */
+    @Query("SELECT COALESCE(AVG(TIMESTAMPDIFF(MINUTE, t.createdAt, t.resolvedAt)), 0) " +
+            "FROM SupportTicket t WHERE t.resolvedAt IS NOT NULL " +
+            "AND t.createdAt BETWEEN :startDate AND :endDate")
+    Double avgResolutionTimeMinutes(@Param("startDate") LocalDateTime startDate,
+                                     @Param("endDate") LocalDateTime endDate);
+
+    /**
      * Average first response time in minutes.
      */
     @Query("SELECT COALESCE(AVG(TIMESTAMPDIFF(MINUTE, t.createdAt, t.firstResponseAt)), 0) " +
@@ -139,6 +219,15 @@ public interface DashboardSupportRepository extends JpaRepository<SupportTicket,
             "AND t.createdAt BETWEEN :startDate AND :endDate")
     Double avgCsatScore(@Param("startDate") LocalDateTime startDate,
                          @Param("endDate") LocalDateTime endDate);
+
+    /**
+     * Average customer satisfaction score.
+     */
+    @Query("SELECT COALESCE(AVG(t.customerSatisfactionScore), 0) FROM SupportTicket t " +
+            "WHERE t.customerSatisfactionScore IS NOT NULL " +
+            "AND t.createdAt BETWEEN :startDate AND :endDate")
+    Double avgCustomerSatisfactionScore(@Param("startDate") LocalDateTime startDate,
+                                         @Param("endDate") LocalDateTime endDate);
 
     // ==================== Refund Queries ====================
 
@@ -237,4 +326,24 @@ public interface DashboardSupportRepository extends JpaRepository<SupportTicket,
             "ORDER BY HOUR(t.createdAt)")
     List<Object[]> ticketCountByHour(@Param("startDate") LocalDateTime startDate,
                                       @Param("endDate") LocalDateTime endDate);
+
+    // ==================== Ticket Details ====================
+
+    /**
+     * Find ticket details for dashboard display.
+     */
+    @Query("SELECT t.id, t.ticketNumber, t.customerId, " +
+            "CONCAT(COALESCE(u.firstName, ''), ' ', COALESCE(u.lastName, '')), " +
+            "t.orderId, t.ticketType, t.priority, t.status, t.subject, " +
+            "t.createdAt, t.updatedAt, t.assignedTo, " +
+            "CONCAT(COALESCE(a.firstName, ''), ' ', COALESCE(a.lastName, '')), " +
+            "t.firstResponseAt, t.resolvedAt, t.escalated, t.refundAmount " +
+            "FROM SupportTicket t " +
+            "LEFT JOIN t.customer u " +
+            "LEFT JOIN t.assignedAgent a " +
+            "WHERE t.createdAt BETWEEN :startDate AND :endDate " +
+            "ORDER BY t.createdAt DESC")
+    List<Object[]> findTicketDetails(@Param("startDate") LocalDateTime startDate,
+                                      @Param("endDate") LocalDateTime endDate,
+                                      Pageable pageable);
 }
