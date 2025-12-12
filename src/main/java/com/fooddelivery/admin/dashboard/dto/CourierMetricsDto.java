@@ -149,6 +149,8 @@ public class CourierMetricsDto {
         private String status;
         private BigDecimal latitude;
         private BigDecimal longitude;
+        private Double latitudeDouble;
+        private Double longitudeDouble;
         private LocalDateTime lastPingAt;
         private Integer activeOrders;
         private Long currentOrderId;
@@ -168,6 +170,7 @@ public class CourierMetricsDto {
         private Double avgDeliveryTimeMinutes;
         private Double acceptanceRate;
         private BigDecimal avgRating;
+        private Double avgRatingDouble;
         private Long totalDeliveries;
         private Long totalDeliveriesToday;
         private Double onTimeDeliveryRate;

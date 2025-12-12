@@ -15,15 +15,19 @@ public class CxSummaryDto {
 
     // NPS Summary
     private NpsSummary nps;
+    private NpsSummary npsSummary;
 
     // Ratings Summary
     private RatingsSummary ratings;
+    private RatingsSummary ratingsSummary;
 
     // Support Summary
     private SupportSummary support;
+    private SupportSummary supportSummary;
 
     // Overall CX Score (composite)
     private Double cxScore; // 0-100
+    private Double overallCxScore;
     private String cxStatus; // EXCELLENT, GOOD, FAIR, POOR
 
     // Period info
@@ -48,6 +52,7 @@ public class CxSummaryDto {
         private Double promotersPercentage;
         private Double detractorsPercentage;
         private Double npsChange;
+        private String trend;
     }
 
     /**
@@ -59,10 +64,15 @@ public class CxSummaryDto {
     @AllArgsConstructor
     public static class RatingsSummary {
         private Double avgRestaurantRating;
+        private Double restaurantAverageRating;
         private Long restaurantRatingCount;
         private Double avgCourierRating;
+        private Double courierAverageRating;
         private Long courierRatingCount;
         private Double avgAppStoreRating;
+        private Double overallAverageRating;
+        private Double appStoreIosRating;
+        private Double appStoreAndroidRating;
         private Long appStoreReviewCount;
         private Double overallRatingChange;
     }
@@ -79,6 +89,7 @@ public class CxSummaryDto {
         private Long openTickets;
         private Double avgResolutionTimeHours;
         private Double slaComplianceRate;
+        private Long slaBreaches;
         private Double csatScore;
         private Double ticketVolumeChange;
     }

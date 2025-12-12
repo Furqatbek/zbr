@@ -34,8 +34,9 @@ public class RatingCollector {
      * Collect restaurant rating metrics.
      */
     public RestaurantRatingMetricsDto collectRestaurantRatings(Long restaurantId, LocalDateTime startDate,
-                                                               LocalDateTime endDate, boolean includeTrend,
-                                                               boolean includeTopPerformers, int topN) {
+                                                               LocalDateTime endDate, boolean includeDistribution,
+                                                               boolean includeTrend, boolean includeTopPerformers) {
+        int topN = includeTopPerformers ? 10 : 0;
         log.debug("Collecting restaurant rating metrics for restaurantId={} from {} to {}",
                 restaurantId, startDate, endDate);
 
@@ -168,8 +169,9 @@ public class RatingCollector {
      * Collect courier rating metrics.
      */
     public CourierRatingMetricsDto collectCourierRatings(Long courierId, LocalDateTime startDate,
-                                                         LocalDateTime endDate, boolean includeTrend,
-                                                         boolean includeTopPerformers, int topN) {
+                                                         LocalDateTime endDate, boolean includeDistribution,
+                                                         boolean includeTrend, boolean includeTopPerformers) {
+        int topN = includeTopPerformers ? 10 : 0;
         log.debug("Collecting courier rating metrics for courierId={} from {} to {}", courierId, startDate, endDate);
 
         CourierRatingMetricsDto.CourierRatingMetricsDtoBuilder builder = CourierRatingMetricsDto.builder()
@@ -324,6 +326,8 @@ public class RatingCollector {
      * Collect app store rating metrics.
      */
     public AppStoreRatingMetricsDto collectAppStoreRatings(LocalDateTime startDate, LocalDateTime endDate,
+                                                           boolean includeVersionBreakdown,
+                                                           boolean includeCountryBreakdown,
                                                            boolean includeTrend) {
         log.debug("Collecting app store rating metrics from {} to {}", startDate, endDate);
 

@@ -285,7 +285,7 @@ public class BackendResourceCollector {
 
             // Try to get Redis info
             Long usedMemory = null;
-            Long connectedClients = null;
+            Integer connectedClients = null;
             Double hitRate = null;
             Long keyCount = null;
 
@@ -293,27 +293,24 @@ public class BackendResourceCollector {
                 var connection = connectionFactory.getConnection();
                 var info = connection.serverCommands().info("memory");
                 if (info != null) {
-                    var props = info.getProperties();
-                    if (props.containsKey("used_memory")) {
-                        usedMemory = Long.parseLong(props.getProperty("used_memory"));
+                    if (info.containsKey("used_memory")) {
+                        usedMemory = Long.parseLong(info.getProperty("used_memory"));
                     }
                 }
 
                 var clientInfo = connection.serverCommands().info("clients");
                 if (clientInfo != null) {
-                    var props = clientInfo.getProperties();
-                    if (props.containsKey("connected_clients")) {
-                        connectedClients = Long.parseLong(props.getProperty("connected_clients"));
+                    if (clientInfo.containsKey("connected_clients")) {
+                        connectedClients = Integer.parseInt(clientInfo.getProperty("connected_clients"));
                     }
                 }
 
                 var statsInfo = connection.serverCommands().info("stats");
                 if (statsInfo != null) {
-                    var props = statsInfo.getProperties();
-                    long hits = props.containsKey("keyspace_hits") ?
-                            Long.parseLong(props.getProperty("keyspace_hits")) : 0;
-                    long misses = props.containsKey("keyspace_misses") ?
-                            Long.parseLong(props.getProperty("keyspace_misses")) : 0;
+                    long hits = statsInfo.containsKey("keyspace_hits") ?
+                            Long.parseLong(statsInfo.getProperty("keyspace_hits")) : 0;
+                    long misses = statsInfo.containsKey("keyspace_misses") ?
+                            Long.parseLong(statsInfo.getProperty("keyspace_misses")) : 0;
                     if (hits + misses > 0) {
                         hitRate = (double) hits / (hits + misses);
                     }
