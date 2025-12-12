@@ -491,8 +491,8 @@ public class SupportCollector {
      * Create pageable from filter.
      */
     private Pageable createPageable(DashboardFilterRequest filter) {
-        int page = filter.getPage() != null ? filter.getPage() : 0;
-        int size = filter.getPageSize() != null ? filter.getPageSize() : 50;
+        int page = filter.getPageNumber();
+        int size = filter.getPageSize();
         String sortBy = filter.getSortBy() != null ? filter.getSortBy() : "createdAt";
         String sortDir = filter.getSortDirection() != null ? filter.getSortDirection() : "DESC";
 

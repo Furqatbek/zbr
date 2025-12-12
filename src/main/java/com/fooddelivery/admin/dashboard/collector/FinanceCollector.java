@@ -98,8 +98,8 @@ public class FinanceCollector {
                 .deliveryFeeRevenue(deliveryFeeRevenue)
                 .totalRevenue(totalRevenue)
                 .netRevenue(netRevenue)
-                .restaurantPayouts(restaurantPayouts)
-                .courierPayouts(courierPayouts)
+                .restaurantPayoutsAmount(restaurantPayouts)
+                .courierPayoutsAmount(courierPayouts)
                 .discountsUsed(discountsUsed)
                 .refundsPaid(refundsPaid)
                 .unsettledRestaurantPayouts(unsettledRestaurantPayouts)
@@ -204,7 +204,7 @@ public class FinanceCollector {
                 .discountUsageRate(roundToTwoDecimals(discountUsageRate))
                 .avgDiscountPerOrder(avgDiscountPerOrder)
                 .discountByType(discountByType)
-                .topPromoCodes(topPromoCodes)
+                .topPromoCodesMap(topPromoCodes)
                 .build();
     }
 
