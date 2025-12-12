@@ -71,6 +71,11 @@ public class OrderNotificationRequest {
     private BigDecimal orderTotal;
 
     /**
+     * Total amount (alias for orderTotal).
+     */
+    private BigDecimal totalAmount;
+
+    /**
      * Event type that triggered this notification.
      */
     private NotificationType eventType;
@@ -99,4 +104,9 @@ public class OrderNotificationRequest {
      * Additional context metadata.
      */
     private Map<String, Object> additionalData;
+
+    /**
+     * Metadata (alias for additionalData).
+     */
+    private Map<String, Object> metadata;
 }

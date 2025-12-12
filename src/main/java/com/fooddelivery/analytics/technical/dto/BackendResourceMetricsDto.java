@@ -46,9 +46,19 @@ public class BackendResourceMetricsDto {
     private List<MessageQueueMetricsDto> messageQueues;
 
     /**
+     * Message queue metrics (single summary).
+     */
+    private MessageQueueMetricsDto messageQueue;
+
+    /**
      * Overall health status.
      */
     private HealthStatus overallHealth;
+
+    /**
+     * Overall status (alias for overallHealth).
+     */
+    private HealthStatus overallStatus;
 
     /**
      * Timestamp when metrics were collected.
@@ -82,6 +92,11 @@ public class BackendResourceMetricsDto {
         private Double systemLoadAverage;
 
         /**
+         * Load per processor (systemLoadAverage / availableProcessors).
+         */
+        private Double loadPerProcessor;
+
+        /**
          * Health status based on CPU usage.
          */
         private HealthStatus status;
@@ -111,6 +126,11 @@ public class BackendResourceMetricsDto {
          * Memory usage percentage.
          */
         private Double memoryUsagePercent;
+
+        /**
+         * Usage percentage (alias for memoryUsagePercent).
+         */
+        private Double usagePercentage;
 
         /**
          * Health status based on memory usage.
@@ -144,9 +164,24 @@ public class BackendResourceMetricsDto {
         private Double heapUsagePercent;
 
         /**
+         * Heap usage percentage (alias).
+         */
+        private Double heapUsagePercentage;
+
+        /**
          * Non-heap memory used in bytes.
          */
         private Long nonHeapUsedBytes;
+
+        /**
+         * Non-heap memory max in bytes.
+         */
+        private Long nonHeapMaxBytes;
+
+        /**
+         * Non-heap memory committed in bytes.
+         */
+        private Long nonHeapCommittedBytes;
 
         /**
          * Number of live threads.
@@ -169,9 +204,24 @@ public class BackendResourceMetricsDto {
         private Long gcPauseTimeMs;
 
         /**
+         * GC time in ms (alias for gcPauseTimeMs).
+         */
+        private Double gcTimeMs;
+
+        /**
          * GC count.
          */
         private Long gcCount;
+
+        /**
+         * Thread count (alias for liveThreads).
+         */
+        private Integer threadCount;
+
+        /**
+         * Peak thread count (alias for peakThreads).
+         */
+        private Integer peakThreadCount;
 
         /**
          * JVM uptime in seconds.
@@ -210,9 +260,24 @@ public class BackendResourceMetricsDto {
         private Integer maxConnections;
 
         /**
+         * Max pool size (alias for maxConnections).
+         */
+        private Integer maxPoolSize;
+
+        /**
          * Pending connection requests.
          */
         private Integer pendingRequests;
+
+        /**
+         * Pending connections (alias for pendingRequests).
+         */
+        private Integer pendingConnections;
+
+        /**
+         * Usage percentage (active / maxPoolSize).
+         */
+        private Double usagePercentage;
 
         /**
          * Connection acquire time (avg) in ms.
@@ -296,6 +361,11 @@ public class BackendResourceMetricsDto {
         private Boolean isConnected;
 
         /**
+         * Key count (alias for totalKeys).
+         */
+        private Long keyCount;
+
+        /**
          * Health status based on Redis metrics.
          */
         private HealthStatus status;
@@ -350,6 +420,26 @@ public class BackendResourceMetricsDto {
          * Health status.
          */
         private HealthStatus status;
+
+        /**
+         * Total queue depth across all queues.
+         */
+        private Long totalQueueDepth;
+
+        /**
+         * Total consumer lag across all queues.
+         */
+        private Long totalConsumerLag;
+
+        /**
+         * Dead letter queue message count.
+         */
+        private Long deadLetterQueueCount;
+
+        /**
+         * Queue depths by queue name.
+         */
+        private java.util.Map<String, Long> queueDepths;
     }
 
     public enum HealthStatus {

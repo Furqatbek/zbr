@@ -134,6 +134,11 @@ public class Restaurant {
     @Builder.Default
     private BigDecimal commissionRate = new BigDecimal("15.00");
 
+    // Currency for pricing
+    @Column(name = "currency", length = 3)
+    @Builder.Default
+    private String currency = "USD";
+
     // Ratings
     @Column(name = "average_rating", precision = 3, scale = 2)
     @Builder.Default
