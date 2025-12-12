@@ -78,6 +78,24 @@ public class SupportMetricsDto {
     // Hourly ticket volume
     private Map<Integer, Long> ticketsByHour;
 
+    // Status breakdown
+    private Map<String, Long> statusBreakdown;
+
+    // Priority breakdown
+    private Map<String, Long> priorityBreakdown;
+
+    // Category breakdown
+    private Map<String, Long> categoryBreakdown;
+
+    // Hourly distribution
+    private Map<Integer, Long> hourlyDistribution;
+
+    // SLA metrics
+    private Map<String, Object> slaMetrics;
+
+    // Pending attention tickets
+    private List<SupportTicketItemDto> pendingAttentionTickets;
+
     // Ticket list
     private List<SupportTicketItemDto> tickets;
 
@@ -163,12 +181,17 @@ public class SupportMetricsDto {
         private Long agentId;
         private String agentName;
         private Long ticketsAssigned;
+        private Long ticketsHandled;
         private Long ticketsResolved;
+        private Double resolutionRate;
         private Double avgResolutionTimeHours;
+        private Double avgResolutionTimeMinutes;
         private Double avgFirstResponseTimeMinutes;
+        private Double avgSatisfactionScore;
         private Double csatScore;
         private Double slaComplianceRate;
         private Long currentOpenTickets;
+        private Double performanceScore;
     }
 
     @Data
@@ -177,10 +200,16 @@ public class SupportMetricsDto {
     @AllArgsConstructor
     public static class CommonIssueDto {
         private String issueType;
+        private String category;
+        private String subcategory;
         private Long ticketCount;
+        private Long count;
         private Double percentageOfTotal;
+        private Double percentage;
         private Double avgResolutionTimeHours;
+        private Double avgResolutionTimeMinutes;
         private BigDecimal avgRefundAmount;
         private String suggestedAction;
+        private String trend;
     }
 }

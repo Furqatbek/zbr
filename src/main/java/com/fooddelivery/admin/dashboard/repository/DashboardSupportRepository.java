@@ -346,4 +346,154 @@ public interface DashboardSupportRepository extends JpaRepository<SupportTicket,
     List<Object[]> findTicketDetails(@Param("startDate") LocalDateTime startDate,
                                       @Param("endDate") LocalDateTime endDate,
                                       Pageable pageable);
+
+    // ==================== Additional Queries for Collectors ====================
+
+    /**
+     * Count waiting customer tickets within date range.
+     */
+    @Query("SELECT COUNT(t) FROM SupportTicket t WHERE t.status = 'WAITING_CUSTOMER' " +
+            "AND t.createdAt BETWEEN :startDate AND :endDate")
+    Long countWaitingCustomerTickets(@Param("startDate") LocalDateTime startDate,
+                                      @Param("endDate") LocalDateTime endDate);
+
+    /**
+     * Count by priority within date range (returns list for breakdown).
+     */
+    @Query("SELECT CAST(t.priority AS string), COUNT(t) FROM SupportTicket t " +
+            "WHERE t.createdAt BETWEEN :startDate AND :endDate " +
+            "GROUP BY t.priority")
+    List<Object[]> countByPriority(@Param("startDate") LocalDateTime startDate,
+                                    @Param("endDate") LocalDateTime endDate);
+
+    /**
+     * Count by category/type within date range.
+     */
+    @Query("SELECT CAST(t.ticketType AS string), COUNT(t) FROM SupportTicket t " +
+            "WHERE t.createdAt BETWEEN :startDate AND :endDate " +
+            "GROUP BY t.ticketType")
+    List<Object[]> countByCategory(@Param("startDate") LocalDateTime startDate,
+                                    @Param("endDate") LocalDateTime endDate);
+
+    /**
+     * Count by specific category within date range.
+     */
+    @Query("SELECT COUNT(t) FROM SupportTicket t WHERE CAST(t.ticketType AS string) = :category " +
+            "AND t.createdAt BETWEEN :startDate AND :endDate")
+    Long countByCategory(@Param("category") String category,
+                          @Param("startDate") LocalDateTime startDate,
+                          @Param("endDate") LocalDateTime endDate);
+
+    /**
+     * Get agent performance with pagination.
+     */
+    @Query("SELECT t.assignedTo, " +
+            "CONCAT(COALESCE(a.firstName, ''), ' ', COALESCE(a.lastName, '')), " +
+            "COUNT(t), " +
+            "SUM(CASE WHEN t.status IN ('RESOLVED', 'CLOSED') THEN 1 ELSE 0 END), " +
+            "COALESCE(AVG(TIMESTAMPDIFF(MINUTE, t.createdAt, t.resolvedAt)), 0), " +
+            "COALESCE(AVG(TIMESTAMPDIFF(MINUTE, t.createdAt, t.firstResponseAt)), 0), " +
+            "COALESCE(AVG(t.customerSatisfactionScore), 0), " +
+            "SUM(CASE WHEN t.status NOT IN ('RESOLVED', 'CLOSED') THEN 1 ELSE 0 END) " +
+            "FROM SupportTicket t " +
+            "LEFT JOIN t.assignedAgent a " +
+            "WHERE t.assignedTo IS NOT NULL " +
+            "AND t.createdAt BETWEEN :startDate AND :endDate " +
+            "GROUP BY t.assignedTo, a.firstName, a.lastName " +
+            "ORDER BY COUNT(t) DESC")
+    List<Object[]> getAgentPerformance(@Param("startDate") LocalDateTime startDate,
+                                        @Param("endDate") LocalDateTime endDate,
+                                        Pageable pageable);
+
+    /**
+     * Get common issues by category.
+     */
+    @Query("SELECT CAST(t.ticketType AS string), t.subject, COUNT(t), " +
+            "COALESCE(AVG(TIMESTAMPDIFF(MINUTE, t.createdAt, t.resolvedAt)), 0) " +
+            "FROM SupportTicket t " +
+            "WHERE t.createdAt BETWEEN :startDate AND :endDate " +
+            "GROUP BY t.ticketType, t.subject " +
+            "ORDER BY COUNT(t) DESC")
+    List<Object[]> getCommonIssues(@Param("startDate") LocalDateTime startDate,
+                                    @Param("endDate") LocalDateTime endDate,
+                                    @Param("limit") int limit);
+
+    /**
+     * Get hourly ticket distribution.
+     */
+    @Query("SELECT HOUR(t.createdAt), COUNT(t) FROM SupportTicket t " +
+            "WHERE t.createdAt BETWEEN :startDate AND :endDate " +
+            "GROUP BY HOUR(t.createdAt) " +
+            "ORDER BY HOUR(t.createdAt)")
+    List<Object[]> getHourlyDistribution(@Param("startDate") LocalDateTime startDate,
+                                          @Param("endDate") LocalDateTime endDate);
+
+    /**
+     * Get SLA compliance rate by priority.
+     */
+    @Query("SELECT COALESCE(" +
+            "CAST(SUM(CASE WHEN t.slaBreach = false THEN 1 ELSE 0 END) AS double) / " +
+            "NULLIF(CAST(COUNT(t) AS double), 0) * 100, 100.0) " +
+            "FROM SupportTicket t WHERE CAST(t.priority AS string) = :priority " +
+            "AND t.createdAt BETWEEN :startDate AND :endDate")
+    Double getSlaComplianceByPriority(@Param("priority") String priority,
+                                       @Param("startDate") LocalDateTime startDate,
+                                       @Param("endDate") LocalDateTime endDate);
+
+    /**
+     * Find pending attention tickets (open, high priority, or SLA breached).
+     */
+    @Query("SELECT t.id, t.ticketNumber, t.customerId, " +
+            "CONCAT(COALESCE(u.firstName, ''), ' ', COALESCE(u.lastName, '')), " +
+            "t.orderId, t.ticketType, t.priority, t.status, t.subject, " +
+            "t.createdAt, t.updatedAt, t.assignedTo, " +
+            "CONCAT(COALESCE(a.firstName, ''), ' ', COALESCE(a.lastName, '')), " +
+            "t.firstResponseAt, t.resolvedAt, t.escalated, t.refundAmount " +
+            "FROM SupportTicket t " +
+            "LEFT JOIN t.customer u " +
+            "LEFT JOIN t.assignedAgent a " +
+            "WHERE t.status NOT IN ('RESOLVED', 'CLOSED') " +
+            "AND (t.priority IN ('URGENT', 'HIGH', 'CRITICAL') OR t.slaBreach = true) " +
+            "AND t.createdAt BETWEEN :startDate AND :endDate " +
+            "ORDER BY t.priority DESC, t.createdAt ASC")
+    List<Object[]> findPendingAttentionTickets(@Param("startDate") LocalDateTime startDate,
+                                                @Param("endDate") LocalDateTime endDate,
+                                                Pageable pageable);
+
+    /**
+     * Calculate total refunds within date range.
+     */
+    @Query("SELECT COALESCE(SUM(t.refundAmount), 0) FROM SupportTicket t " +
+            "WHERE t.isRefunded = true " +
+            "AND t.createdAt BETWEEN :startDate AND :endDate")
+    BigDecimal calculateTotalRefunds(@Param("startDate") LocalDateTime startDate,
+                                      @Param("endDate") LocalDateTime endDate);
+
+    /**
+     * Count pending refunds.
+     */
+    @Query("SELECT COUNT(t) FROM SupportTicket t WHERE t.ticketType = 'REFUND_REQUEST' " +
+            "AND t.status NOT IN ('RESOLVED', 'CLOSED') " +
+            "AND t.createdAt BETWEEN :startDate AND :endDate")
+    Long countPendingRefunds(@Param("startDate") LocalDateTime startDate,
+                              @Param("endDate") LocalDateTime endDate);
+
+    /**
+     * Count rejected refunds.
+     */
+    @Query("SELECT COUNT(t) FROM SupportTicket t WHERE t.ticketType = 'REFUND_REQUEST' " +
+            "AND t.isRefunded = false AND t.status IN ('RESOLVED', 'CLOSED') " +
+            "AND t.createdAt BETWEEN :startDate AND :endDate")
+    Long countRejectedRefunds(@Param("startDate") LocalDateTime startDate,
+                               @Param("endDate") LocalDateTime endDate);
+
+    /**
+     * Get refunds breakdown by reason/category.
+     */
+    @Query("SELECT COALESCE(t.cancellationReason, 'OTHER'), COUNT(t) FROM SupportTicket t " +
+            "WHERE t.ticketType = 'REFUND_REQUEST' " +
+            "AND t.createdAt BETWEEN :startDate AND :endDate " +
+            "GROUP BY t.cancellationReason")
+    List<Object[]> getRefundsByReason(@Param("startDate") LocalDateTime startDate,
+                                       @Param("endDate") LocalDateTime endDate);
 }

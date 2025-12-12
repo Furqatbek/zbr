@@ -22,48 +22,69 @@ import java.util.Map;
 public class FinanceMetricsDto {
 
     // Gross Merchandise Value (GMV)
+    private BigDecimal gmv;
     private BigDecimal gmvToday;
     private BigDecimal gmvThisWeek;
     private BigDecimal gmvThisMonth;
     private BigDecimal gmvYtd;
 
     // Platform Revenue
+    private BigDecimal commissionRevenue;
     private BigDecimal commissionRevenueToday;
     private BigDecimal commissionRevenueThisWeek;
     private BigDecimal commissionRevenueThisMonth;
+    private BigDecimal deliveryFeeRevenue;
     private BigDecimal deliveryFeeRevenueToday;
+    private BigDecimal totalRevenue;
+    private BigDecimal netRevenue;
     private BigDecimal totalPlatformRevenueToday;
 
     // Order breakdown
+    private Long totalOrders;
     private Long totalOrdersToday;
     private BigDecimal avgOrderValue;
     private BigDecimal avgCommissionPerOrder;
+    private BigDecimal commissionRate;
 
-    // Payouts
+    // Payouts (BigDecimal values)
+    private BigDecimal restaurantPayoutsAmount;
+    private BigDecimal courierPayoutsAmount;
+    private BigDecimal unsettledRestaurantPayouts;
+    private BigDecimal unsettledCourierPayouts;
+    private BigDecimal discountsUsed;
+    private BigDecimal refundsPaid;
+
+    // Payouts (summary DTOs)
     private PayoutSummaryDto restaurantPayouts;
     private PayoutSummaryDto courierPayouts;
+    private PayoutSummaryDto payoutSummary;
 
     // Discounts & Promotions
     private DiscountSummaryDto discounts;
+    private DiscountSummaryDto discountSummary;
 
     // Refunds
     private RefundSummaryDto refunds;
+    private RefundSummaryDto refundSummary;
 
     // Unsettled amounts
     private BigDecimal totalUnsettledAmount;
     private Long unsettledPayoutsCount;
 
     // Daily revenue trend
+    private List<DailyRevenueDto> dailyRevenue;
     private List<DailyRevenueDto> dailyRevenueTrend;
 
     // Revenue by category
     private Map<String, BigDecimal> revenueByCategory;
+    private Map<String, BigDecimal> paymentMethodBreakdown;
 
     // Top performing restaurants by revenue
     private List<EntityRevenueDto> topRestaurantsByRevenue;
 
     // Comparison
     private FinanceComparisonDto comparison;
+    private Map<String, Object> periodComparison;
 
     private LocalDateTime generatedAt;
 
@@ -86,6 +107,16 @@ public class FinanceMetricsDto {
         private BigDecimal unsettledAmount;
         private Long overdueCount; // Past scheduled payout date
         private BigDecimal overdueAmount;
+
+        // Additional fields for collector
+        private BigDecimal totalRestaurantPayouts;
+        private BigDecimal totalCourierPayouts;
+        private Long pendingRestaurantPayouts;
+        private Long pendingCourierPayouts;
+        private BigDecimal unsettledRestaurantAmount;
+        private BigDecimal unsettledCourierAmount;
+        private Long completedPayoutsCount;
+        private Double avgSettlementTimeHours;
     }
 
     @Data
@@ -93,17 +124,22 @@ public class FinanceMetricsDto {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class DiscountSummaryDto {
+        private BigDecimal totalDiscounts;
         private BigDecimal totalDiscountsToday;
         private BigDecimal totalDiscountsThisWeek;
         private BigDecimal totalDiscountsThisMonth;
         private Long discountUsageCountToday;
+        private Long ordersWithDiscount;
+        private Double discountUsageRate;
         private Double avgDiscountPercent;
+        private BigDecimal avgDiscountPerOrder;
 
         // By type
         private BigDecimal promoCodeDiscounts;
         private BigDecimal loyaltyDiscounts;
         private BigDecimal firstOrderDiscounts;
         private BigDecimal referralDiscounts;
+        private Map<String, BigDecimal> discountByType;
 
         // Platform funded vs restaurant funded
         private BigDecimal platformFundedDiscounts;
@@ -111,6 +147,7 @@ public class FinanceMetricsDto {
 
         // Top promo codes
         private List<PromoCodeUsageDto> topPromoCodes;
+        private List<Map<String, Object>> topPromoCodesMap;
     }
 
     @Data
@@ -118,16 +155,23 @@ public class FinanceMetricsDto {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class RefundSummaryDto {
+        private BigDecimal totalRefundAmount;
         private BigDecimal totalRefundsToday;
         private BigDecimal totalRefundsThisWeek;
         private BigDecimal totalRefundsThisMonth;
+        private Long refundCount;
         private Long refundCountToday;
         private Long refundCountThisWeek;
+        private Long approvedRefunds;
+        private Long pendingRefunds;
+        private Long rejectedRefunds;
+        private Double approvalRate;
         private BigDecimal avgRefundAmount;
         private Double refundRate; // percentage of orders refunded
 
         // By reason
         private Map<String, BigDecimal> refundsByReason;
+        private Map<String, Long> refundByReason;
 
         // Pending refunds
         private Long pendingRefundCount;
@@ -144,6 +188,7 @@ public class FinanceMetricsDto {
         private BigDecimal platformRevenue;
         private BigDecimal commissionRevenue;
         private BigDecimal deliveryFeeRevenue;
+        private BigDecimal discounts;
         private Long orderCount;
         private BigDecimal avgOrderValue;
     }
