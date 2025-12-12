@@ -28,6 +28,11 @@ public class BehavioralFraudMetricsDto {
     // Refund abuse metrics
     private RefundAbuseMetricsDto refundAbuse;
 
+    // Alias fields for mapper compatibility
+    private VelocityMetricsDto velocityMetrics;
+    private OrderValueAnomaliesDto orderValueMetrics;
+    private RefundAbuseMetricsDto refundMetrics;
+
     // Address fraud metrics
     private AddressFraudMetricsDto addressFraud;
 
@@ -51,8 +56,10 @@ public class BehavioralFraudMetricsDto {
         private Double maxOrdersPerUserPerDay;
         private Long usersExceedingVelocityThreshold;
         private Integer velocityThresholdPerHour;
-        private List<VelocityViolationDto> velocityViolations;
+        private List<VelocityViolationDto> velocityViolationList;
         private Map<Integer, Long> ordersPerHourDistribution;
+        // Count field for mapper compatibility (replaces list for arithmetic operations)
+        private Long velocityViolations;
     }
 
     @Data
@@ -82,6 +89,8 @@ public class BehavioralFraudMetricsDto {
         private Double anomalyRate;
         private List<OrderValueAnomalyDto> anomalies;
         private Double zScoreThreshold;
+        // Count field for mapper compatibility
+        private Long anomalousOrderCount;
     }
 
     @Data
@@ -110,6 +119,9 @@ public class BehavioralFraudMetricsDto {
         private List<RefundAbuserDto> topRefundAbusers;
         private Map<String, Long> refundsByReason;
         private Map<String, Double> refundRateByReason;
+        // Alias fields for mapper compatibility
+        private Long highRefundUsers;
+        private List<RefundAbuserDto> refundAbusersList;
     }
 
     @Data

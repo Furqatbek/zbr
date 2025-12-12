@@ -49,7 +49,7 @@ public class BehavioralFraudCollector {
 
         // Count total anomalies
         long totalFlags = 0;
-        if (velocity.getVelocityViolations() != null) totalFlags += velocity.getVelocityViolations().size();
+        if (velocity.getVelocityViolationList() != null) totalFlags += velocity.getVelocityViolationList().size();
         if (orderValueAnomalies.getAnomalies() != null) totalFlags += orderValueAnomalies.getAnomalies().size();
         if (refundAbuse.getTopRefundAbusers() != null) totalFlags += refundAbuse.getTopRefundAbusers().size();
         if (addressFraud.getSuspiciousAddressList() != null) totalFlags += addressFraud.getSuspiciousAddressList().size();
@@ -68,6 +68,9 @@ public class BehavioralFraudCollector {
                 .orderVelocity(velocity)
                 .orderValueAnomalies(orderValueAnomalies)
                 .refundAbuse(refundAbuse)
+                .velocityMetrics(velocity)
+                .orderValueMetrics(orderValueAnomalies)
+                .refundMetrics(refundAbuse)
                 .addressFraud(addressFraud)
                 .restaurantAnomalies(restaurantAnomalies)
                 .usersWithAbnormalPatterns(flagsByType.values().stream().mapToLong(Long::longValue).sum())
@@ -82,8 +85,8 @@ public class BehavioralFraudCollector {
             LocalDateTime startDate, LocalDateTime endDate, int threshold, int windowMinutes,
             boolean includeDetails, int maxSize) {
 
-        Double avgOrders = orderHistoryRepository.getAvgOrdersPerUser(startDate, endDate);
-        if (avgOrders == null) avgOrders = 0.0;
+        Double avgOrdersRaw = orderHistoryRepository.getAvgOrdersPerUser(startDate, endDate);
+        final Double avgOrders = avgOrdersRaw != null ? avgOrdersRaw : 0.0;
 
         // Get hourly distribution
         Map<Integer, Long> hourlyDist = new LinkedHashMap<>();
@@ -118,7 +121,8 @@ public class BehavioralFraudCollector {
                 .maxOrdersPerUserPerDay(round(maxOrders))
                 .usersExceedingVelocityThreshold((long) violations.size())
                 .velocityThresholdPerHour(threshold)
-                .velocityViolations(violationList)
+                .velocityViolationList(violationList)
+                .velocityViolations((long) violations.size())
                 .ordersPerHourDistribution(hourlyDist)
                 .build();
     }
@@ -185,6 +189,7 @@ public class BehavioralFraudCollector {
                 .ordersBelowThreshold(belowThreshold)
                 .anomalyRate(round(anomalyRate))
                 .anomalies(anomalyList)
+                .anomalousOrderCount((long) abnormalOrders.size())
                 .zScoreThreshold(zScoreThreshold)
                 .build();
     }
@@ -242,8 +247,10 @@ public class BehavioralFraudCollector {
                 .totalRefunds(refundedOrders)
                 .totalRefundAmount(totalRefundAmount)
                 .usersWithHighRefundRate((long) highRefundUsers.size())
+                .highRefundUsers((long) highRefundUsers.size())
                 .highRefundRateThreshold(refundRateThreshold)
                 .topRefundAbusers(abuserList)
+                .refundAbusersList(abuserList)
                 .refundsByReason(refundsByReason)
                 .refundRateByReason(refundRateByReason)
                 .build();

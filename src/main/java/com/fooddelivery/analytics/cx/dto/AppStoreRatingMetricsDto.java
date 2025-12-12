@@ -23,6 +23,10 @@ public class AppStoreRatingMetricsDto {
     private PlatformRatingDto iosRatings;
     private PlatformRatingDto androidRatings;
 
+    // Alias getters for mapper compatibility
+    private PlatformRatingDto iosPlatform;
+    private PlatformRatingDto androidPlatform;
+
     // Distribution (1-5 stars) - combined
     private Map<Integer, Long> distribution;
     private Map<Integer, Double> distributionPercentage;
