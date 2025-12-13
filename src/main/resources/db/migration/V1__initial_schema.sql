@@ -153,7 +153,7 @@ CREATE TABLE item_options (
     price_delta DECIMAL(10,2) NOT NULL DEFAULT 0,
     is_default BOOLEAN DEFAULT FALSE,
     max_selections INT DEFAULT 1,
-    required BOOLEAN DEFAULT FALSE,
+    is_required BOOLEAN DEFAULT FALSE,
     in_stock BOOLEAN NOT NULL DEFAULT TRUE,
     sort_order INT DEFAULT 0,
     active BOOLEAN NOT NULL DEFAULT TRUE,
