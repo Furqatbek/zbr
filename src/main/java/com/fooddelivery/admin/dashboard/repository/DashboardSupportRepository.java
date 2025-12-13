@@ -484,12 +484,12 @@ public interface DashboardSupportRepository extends JpaRepository<SupportTicket,
                                @Param("endDate") LocalDateTime endDate);
 
     /**
-     * Get refunds breakdown by reason/category.
+     * Get refunds breakdown by ticket type (for refund-related tickets).
      */
-    @Query("SELECT COALESCE(t.cancellationReason, 'OTHER'), COUNT(t) FROM SupportTicket t " +
-            "WHERE t.ticketType = 'REFUND_REQUEST' " +
+    @Query("SELECT CAST(t.ticketType AS string), COUNT(t) FROM SupportTicket t " +
+            "WHERE t.ticketType IN ('REFUND_REQUEST', 'PAYMENT_ISSUE', 'MISSING_ITEMS', 'WRONG_ORDER') " +
             "AND t.createdAt BETWEEN :startDate AND :endDate " +
-            "GROUP BY t.cancellationReason")
+            "GROUP BY t.ticketType")
     List<Object[]> getRefundsByReason(@Param("startDate") LocalDateTime startDate,
                                        @Param("endDate") LocalDateTime endDate);
 }
