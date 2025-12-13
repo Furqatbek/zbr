@@ -161,8 +161,17 @@ public class Order {
     @Column(name = "courier_paid_at")
     private LocalDateTime courierPaidAt;
 
+    @Column(name = "courier_payout", precision = 10, scale = 2)
+    private BigDecimal courierPayout;
+
     @Column(name = "discount_type", length = 50)
     private String discountType;
+
+    @Column(name = "promo_code", length = 50)
+    private String promoCode;
+
+    @Column(name = "payment_method", length = 50)
+    private String paymentMethod;
 
     // Rejection fields
     @Column(name = "rejected_at")
