@@ -62,6 +62,21 @@ public class ApiPerformanceMetricsDto {
     private Long totalTimeouts;
 
     /**
+     * Total errors (4xx + 5xx).
+     */
+    private Long totalErrors;
+
+    /**
+     * Overall error rate (0.0 - 1.0).
+     */
+    private Double errorRate;
+
+    /**
+     * API health status (HEALTHY, DEGRADED, CRITICAL).
+     */
+    private BackendResourceMetricsDto.HealthStatus status;
+
+    /**
      * Average response time in ms.
      */
     private Double avgResponseTimeMs;
@@ -148,5 +163,6 @@ public class ApiPerformanceMetricsDto {
         private Long requestCount;
         private Double avgResponseTimeMs;
         private Double errorRate;
+        private Long errorCount;
     }
 }
