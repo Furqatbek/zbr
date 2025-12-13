@@ -14,7 +14,6 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
@@ -55,7 +54,7 @@ class AdminDashboardControllerTest {
                     .andExpect(jsonPath("$.ordersToday").value(150))
                     .andExpect(jsonPath("$.revenueToday").value(15000))
                     .andExpect(jsonPath("$.activeCouriers").value(25))
-                    .andExpect(jsonPath("$.systemStatus.status").value("HEALTHY"));
+                    .andExpect(jsonPath("$.systemStatus.overallStatus").value("HEALTHY"));
         }
 
         @Test
@@ -146,7 +145,7 @@ class AdminDashboardControllerTest {
             mockMvc.perform(get(BASE_PATH + "/orders/stuck"))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.totalStuckOrders").value(5))
-                    .andExpect(jsonPath("$.criticalCount").value(2));
+                    .andExpect(jsonPath("$.stuckPending").value(2));
         }
     }
 
@@ -278,11 +277,11 @@ class AdminDashboardControllerTest {
                 .revenueToday(BigDecimal.valueOf(15000))
                 .activeCouriers(25L)
                 .activeRestaurants(50L)
-                .avgDeliveryTimeMinutes(32.5)
+                .avgDeliveryTimeToday(32.5)
                 .systemStatus(DashboardOverviewDto.SystemStatusDto.builder()
-                        .status("HEALTHY")
-                        .apiLatencyMs(150.0)
-                        .dbLoadPercent(45.0)
+                        .overallStatus("HEALTHY")
+                        .apiLatencyP50(150)
+                        .dbLoad(45)
                         .build())
                 .generatedAt(LocalDateTime.now())
                 .build();
@@ -292,7 +291,9 @@ class AdminDashboardControllerTest {
         return ActiveOrdersDto.builder()
                 .totalActiveOrders(45L)
                 .orders(List.of())
-                .statusBreakdown(Map.of("PENDING", 15L, "PREPARING", 20L, "IN_TRANSIT", 10L))
+                .pendingOrders(15L)
+                .preparingOrders(20L)
+                .inTransitOrders(10L)
                 .generatedAt(LocalDateTime.now())
                 .build();
     }
@@ -300,9 +301,10 @@ class AdminDashboardControllerTest {
     private StuckOrdersDto createMockStuckOrders() {
         return StuckOrdersDto.builder()
                 .totalStuckOrders(5L)
-                .criticalCount(2L)
-                .highCount(2L)
-                .mediumCount(1L)
+                .stuckPending(2L)
+                .stuckAccepted(1L)
+                .stuckPreparing(1L)
+                .stuckReady(1L)
                 .orders(List.of())
                 .generatedAt(LocalDateTime.now())
                 .build();

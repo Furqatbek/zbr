@@ -101,13 +101,13 @@ class AdminDashboardIntegrationTest {
             // Arrange - Create system health snapshot
             SystemHealthSnapshot snapshot = SystemHealthSnapshot.builder()
                     .component("api")
-                    .apiLatencyP50(150.0)
-                    .apiLatencyP90(250.0)
+                    .apiLatencyP50(150)
+                    .apiLatencyP90(250)
                     .dbActiveConnections(25)
-                    .redisLatencyMs(5.0)
+                    .redisLatencyMs(5)
                     .cpuUsagePercent(45.0)
                     .memoryUsagePercent(60.0)
-                    .status("HEALTHY")
+                    .healthStatus(SystemHealthSnapshot.HealthStatus.HEALTHY)
                     .capturedAt(LocalDateTime.now())
                     .build();
             systemHealthRepository.save(snapshot);
@@ -419,11 +419,11 @@ class AdminDashboardIntegrationTest {
             // Arrange
             SystemHealthSnapshot snapshot = SystemHealthSnapshot.builder()
                     .component("database")
-                    .apiLatencyP50(100.0)
-                    .apiLatencyP90(200.0)
+                    .apiLatencyP50(100)
+                    .apiLatencyP90(200)
                     .dbActiveConnections(30)
-                    .redisLatencyMs(3.0)
-                    .status("HEALTHY")
+                    .redisLatencyMs(3)
+                    .healthStatus(SystemHealthSnapshot.HealthStatus.HEALTHY)
                     .capturedAt(LocalDateTime.now())
                     .build();
 

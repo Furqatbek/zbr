@@ -375,7 +375,7 @@ class TechnicalAnalyticsIntegrationTest {
                     .messageId(UUID.randomUUID().toString())
                     .sessionId("session_" + (i % 50))
                     .messageType(i % 3 == 0 ? "LOCATION_UPDATE" : (i % 3 == 1 ? "ORDER_STATUS" : "CHAT"))
-                    .payloadSizeBytes(100 + (int) (Math.random() * 900))
+                    .payloadSizeBytes((long) (100 + (int) (Math.random() * 900)))
                     .publishedAt(testStart.plusMinutes(i % 60))
                     .deliveredAt(i < 195 ? testStart.plusMinutes(i % 60).plusNanos((long) (Math.random() * 100_000_000)) : null)
                     .isDelivered(i < 195)

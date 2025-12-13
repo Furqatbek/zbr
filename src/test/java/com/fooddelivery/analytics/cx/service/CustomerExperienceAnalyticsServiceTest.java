@@ -286,14 +286,14 @@ class CustomerExperienceAnalyticsServiceTest {
                     AppStoreRatingMetricsDto.PlatformRatingDto.builder()
                             .platform("IOS")
                             .averageRating(4.6)
-                            .ratingCount(25000L)
+                            .reviewCount(25000L)
                             .build();
 
             AppStoreRatingMetricsDto.PlatformRatingDto androidPlatform =
                     AppStoreRatingMetricsDto.PlatformRatingDto.builder()
                             .platform("ANDROID")
                             .averageRating(4.4)
-                            .ratingCount(35000L)
+                            .reviewCount(35000L)
                             .build();
 
             AppStoreRatingMetricsDto expectedMetrics = AppStoreRatingMetricsDto.builder()

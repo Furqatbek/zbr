@@ -18,6 +18,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.*;
@@ -93,7 +94,7 @@ class FraudAnalyticsServiceTest {
 
             when(paymentFraudCollector.collect(any(), any(), anyInt(), anyInt(), anyBoolean(), anyInt()))
                     .thenReturn(paymentMetrics);
-            when(behavioralFraudCollector.collect(any(), any(), anyInt(), anyInt(), anyDouble(), anyDouble(), anyInt(), anyInt(), anyBoolean(), anyInt()))
+            when(behavioralFraudCollector.collect(any(), any(), anyInt(), anyDouble(), anyDouble(), anyInt(), anyBoolean(), anyInt()))
                     .thenReturn(behavioralMetrics);
             when(accountIntegrityCollector.collect(any(), any(), anyInt(), anyInt(), anyInt(), anyBoolean(), anyInt()))
                     .thenReturn(accountMetrics);
@@ -120,7 +121,7 @@ class FraudAnalyticsServiceTest {
             assertThat(result.getRiskLevel()).isEqualTo("MEDIUM");
 
             verify(paymentFraudCollector).collect(any(), any(), anyInt(), anyInt(), anyBoolean(), anyInt());
-            verify(behavioralFraudCollector).collect(any(), any(), anyInt(), anyInt(), anyDouble(), anyDouble(), anyInt(), anyInt(), anyBoolean(), anyInt());
+            verify(behavioralFraudCollector).collect(any(), any(), anyInt(), anyDouble(), anyDouble(), anyInt(), anyBoolean(), anyInt());
             verify(accountIntegrityCollector).collect(any(), any(), anyInt(), anyInt(), anyInt(), anyBoolean(), anyInt());
             verify(referralFraudCollector).collect(any(), any(), anyInt(), anyInt(), anyInt(), anyBoolean(), anyInt());
             verify(securityLogCollector).collect(any(), any(), anyInt(), anyInt(), anyInt(), anyBoolean(), anyInt());
@@ -185,19 +186,19 @@ class FraudAnalyticsServiceTest {
         void shouldReturnBehavioralFraudMetrics() {
             // Arrange
             BehavioralFraudMetricsDto expectedMetrics = createMockBehavioralMetrics();
-            when(behavioralFraudCollector.collect(any(), any(), anyInt(), anyInt(), anyDouble(), anyDouble(), anyInt(), anyInt(), anyBoolean(), anyInt()))
+            when(behavioralFraudCollector.collect(any(), any(), anyInt(), anyDouble(), anyDouble(), anyInt(), anyBoolean(), anyInt()))
                     .thenReturn(expectedMetrics);
 
             // Act
             BehavioralFraudMetricsDto result = fraudAnalyticsService.getBehavioralFraudMetrics(
-                    startDate, endDate, 5, 60, 3.0, 30.0, 3, 5, true, 100);
+                    startDate, endDate, 5, 30.0, 3.0, 3, true, 100);
 
             // Assert
             assertThat(result).isNotNull();
             assertThat(result.getVelocityMetrics()).isNotNull();
-            assertThat(result.getRefundMetrics()).isNotNull();
+            assertThat(result.getRefundAbuse()).isNotNull();
 
-            verify(behavioralFraudCollector).collect(startDate, endDate, 5, 60, 3.0, 30.0, 3, 5, true, 100);
+            verify(behavioralFraudCollector).collect(startDate, endDate, 5, 30.0, 3.0, 3, true, 100);
         }
     }
 
@@ -296,7 +297,7 @@ class FraudAnalyticsServiceTest {
             List<Object[]> orderStats = new ArrayList<>();
             orderStats.add(new Object[]{100L, 5L, BigDecimal.valueOf(25.00)});
             when(orderHistoryRepository.getUserOrderStats(eq(userId), any(), any()))
-                    .thenReturn(orderStats);
+                    .thenReturn(Optional.of(orderStats.get(0)));
 
             when(deviceFingerprintRepository.countUserDevices(eq(userId), any(), any()))
                     .thenReturn(2L);
@@ -360,7 +361,7 @@ class FraudAnalyticsServiceTest {
             List<Object[]> orderStats = new ArrayList<>();
             orderStats.add(new Object[]{50L, 25L, BigDecimal.valueOf(30.00)});
             when(orderHistoryRepository.getUserOrderStats(eq(userId), any(), any()))
-                    .thenReturn(orderStats);
+                    .thenReturn(Optional.of(orderStats.get(0)));
 
             when(deviceFingerprintRepository.countUserDevices(eq(userId), any(), any()))
                     .thenReturn(8L);
@@ -423,12 +424,12 @@ class FraudAnalyticsServiceTest {
     private BehavioralFraudMetricsDto createMockBehavioralMetrics() {
         return BehavioralFraudMetricsDto.builder()
                 .velocityMetrics(BehavioralFraudMetricsDto.VelocityMetricsDto.builder()
-                        .totalOrdersAnalyzed(5000L)
                         .velocityViolations(15L)
+                        .usersExceedingVelocityThreshold(5L)
                         .build())
-                .refundMetrics(BehavioralFraudMetricsDto.RefundMetricsDto.builder()
+                .refundAbuse(BehavioralFraudMetricsDto.RefundAbuseMetricsDto.builder()
                         .totalRefunds(100L)
-                        .highRefundUsers(8L)
+                        .usersWithHighRefundRate(8L)
                         .totalRefundAmount(BigDecimal.valueOf(5000.00))
                         .build())
                 .build();
@@ -460,19 +461,19 @@ class FraudAnalyticsServiceTest {
 
     private SecurityLogMetricsDto createMockSecurityMetrics() {
         return SecurityLogMetricsDto.builder()
-                .loginMetrics(SecurityLogMetricsDto.LoginMetricsDto.builder()
-                        .totalLogins(10000L)
+                .loginMetrics(SecurityLogMetricsDto.LoginSecurityMetricsDto.builder()
+                        .totalLoginAttempts(10000L)
                         .failedLogins(200L)
-                        .failedLoginRate(2.0)
+                        .loginFailureRate(2.0)
                         .build())
                 .ipSecurityMetrics(SecurityLogMetricsDto.IpSecurityMetricsDto.builder()
                         .suspiciousIpCount(15L)
-                        .vpnUsageCount(50L)
-                        .torUsageCount(5L)
+                        .vpnIps(50L)
+                        .torIps(5L)
                         .build())
                 .bruteForceMetrics(SecurityLogMetricsDto.BruteForceMetricsDto.builder()
                         .detectedAttacks(2L)
-                        .blockedAttempts(150L)
+                        .blockedAttacks(150L)
                         .build())
                 .build();
     }

@@ -186,12 +186,12 @@ class FraudAnalyticsControllerTest {
             // Arrange
             BehavioralFraudMetricsDto metrics = BehavioralFraudMetricsDto.builder()
                     .velocityMetrics(BehavioralFraudMetricsDto.VelocityMetricsDto.builder()
-                            .totalOrdersAnalyzed(5000L)
                             .velocityViolations(15L)
+                            .usersExceedingVelocityThreshold(5L)
                             .build())
-                    .refundMetrics(BehavioralFraudMetricsDto.RefundMetricsDto.builder()
+                    .refundAbuse(BehavioralFraudMetricsDto.RefundAbuseMetricsDto.builder()
                             .totalRefunds(100L)
-                            .highRefundUsers(8L)
+                            .usersWithHighRefundRate(8L)
                             .build())
                     .build();
 
@@ -206,7 +206,6 @@ class FraudAnalyticsControllerTest {
                             .param("velocityThreshold", "5")
                             .param("refundRateThreshold", "30.0"))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.velocityMetrics.totalOrdersAnalyzed").value(5000))
                     .andExpect(jsonPath("$.velocityMetrics.velocityViolations").value(15));
         }
     }
@@ -259,7 +258,7 @@ class FraudAnalyticsControllerTest {
                     .build();
 
             when(fraudAnalyticsService.getReferralFraudMetrics(
-                    any(), any(), anyInt(), anyInt(), anyDouble(), anyBoolean(), anyInt()))
+                    any(), any(), anyInt(), anyInt(), anyInt(), anyBoolean(), anyInt()))
                     .thenReturn(metrics);
 
             // Act & Assert
@@ -282,10 +281,10 @@ class FraudAnalyticsControllerTest {
         void shouldAllowSecurityAnalystAccess() throws Exception {
             // Arrange
             SecurityLogMetricsDto metrics = SecurityLogMetricsDto.builder()
-                    .loginMetrics(SecurityLogMetricsDto.LoginMetricsDto.builder()
-                            .totalLogins(10000L)
+                    .loginMetrics(SecurityLogMetricsDto.LoginSecurityMetricsDto.builder()
+                            .totalLoginAttempts(10000L)
                             .failedLogins(200L)
-                            .failedLoginRate(2.0)
+                            .loginFailureRate(2.0)
                             .build())
                     .bruteForceMetrics(SecurityLogMetricsDto.BruteForceMetricsDto.builder()
                             .detectedAttacks(2L)
@@ -301,7 +300,7 @@ class FraudAnalyticsControllerTest {
                             .param("startDate", startDate.toString())
                             .param("endDate", endDate.toString()))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.loginMetrics.totalLogins").value(10000))
+                    .andExpect(jsonPath("$.loginMetrics.totalLoginAttempts").value(10000))
                     .andExpect(jsonPath("$.bruteForceMetrics.detectedAttacks").value(2));
         }
     }
