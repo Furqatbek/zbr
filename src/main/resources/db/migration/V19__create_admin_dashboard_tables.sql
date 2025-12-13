@@ -82,10 +82,10 @@ SELECT
     COUNT(CASE WHEN status = 'DELIVERED' THEN 1 END) as delivered_orders,
     COUNT(CASE WHEN status = 'CANCELLED' THEN 1 END) as cancelled_orders,
     COUNT(CASE WHEN status = 'REJECTED' THEN 1 END) as rejected_orders,
-    SUM(CASE WHEN status = 'DELIVERED' THEN total_amount ELSE 0 END) as total_gmv,
-    AVG(CASE WHEN status = 'DELIVERED' THEN total_amount END) as avg_order_value,
-    AVG(CASE WHEN delivery_time IS NOT NULL AND created_at IS NOT NULL
-        THEN EXTRACT(EPOCH FROM (delivery_time - created_at))/60 END) as avg_delivery_time_minutes
+    SUM(CASE WHEN status = 'DELIVERED' THEN total ELSE 0 END) as total_gmv,
+    AVG(CASE WHEN status = 'DELIVERED' THEN total END) as avg_order_value,
+    AVG(CASE WHEN delivered_at IS NOT NULL AND created_at IS NOT NULL
+        THEN EXTRACT(EPOCH FROM (delivered_at - created_at))/60 END) as avg_delivery_time_minutes
 FROM orders
 WHERE created_at >= CURRENT_DATE - INTERVAL '90 days'
 GROUP BY DATE(created_at);
@@ -99,7 +99,7 @@ SELECT
     DATE(created_at) as order_date,
     EXTRACT(HOUR FROM created_at) as hour_of_day,
     COUNT(*) as order_count,
-    SUM(total_amount) as total_amount
+    SUM(total) as total_amount
 FROM orders
 WHERE created_at >= CURRENT_DATE - INTERVAL '30 days'
 GROUP BY DATE(created_at), EXTRACT(HOUR FROM created_at);
@@ -116,28 +116,27 @@ SELECT
     COUNT(o.id) as total_orders,
     COUNT(CASE WHEN o.status = 'DELIVERED' THEN 1 END) as delivered_orders,
     COUNT(CASE WHEN o.status = 'REJECTED' THEN 1 END) as rejected_orders,
-    AVG(CASE WHEN o.status = 'DELIVERED' THEN o.total_amount END) as avg_order_value,
-    r.rating as current_rating,
-    r.is_online as is_online
+    AVG(CASE WHEN o.status = 'DELIVERED' THEN o.total END) as avg_order_value,
+    r.average_rating as current_rating,
+    r.is_open as is_online
 FROM restaurants r
 LEFT JOIN orders o ON r.id = o.restaurant_id AND o.created_at >= CURRENT_DATE - INTERVAL '30 days'
-GROUP BY r.id, r.name, DATE(o.created_at), r.rating, r.is_online;
+GROUP BY r.id, r.name, DATE(o.created_at), r.average_rating, r.is_open;
 
 -- Courier Performance Summary Materialized View
 CREATE MATERIALIZED VIEW IF NOT EXISTS mv_courier_performance_daily AS
 SELECT
     c.id as courier_id,
-    c.name as courier_name,
     DATE(o.created_at) as delivery_date,
     COUNT(o.id) as total_deliveries,
-    AVG(EXTRACT(EPOCH FROM (o.delivery_time - o.pickup_time))/60) as avg_delivery_time_minutes,
-    c.rating as current_rating,
+    AVG(EXTRACT(EPOCH FROM (o.delivered_at - o.picked_up_at))/60) as avg_delivery_time_minutes,
+    c.average_rating as current_rating,
     c.vehicle_type
 FROM couriers c
 LEFT JOIN orders o ON c.id = o.courier_id
     AND o.status = 'DELIVERED'
     AND o.created_at >= CURRENT_DATE - INTERVAL '30 days'
-GROUP BY c.id, c.name, DATE(o.created_at), c.rating, c.vehicle_type;
+GROUP BY c.id, DATE(o.created_at), c.average_rating, c.vehicle_type;
 
 -- =====================================================
 -- Functions for Refreshing Materialized Views
