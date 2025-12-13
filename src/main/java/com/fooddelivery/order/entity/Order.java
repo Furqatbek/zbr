@@ -154,6 +154,16 @@ public class Order {
     @Column(name = "cancellation_reason", length = 500)
     private String cancellationReason;
 
+    // Payment/Payout tracking
+    @Column(name = "restaurant_paid_at")
+    private LocalDateTime restaurantPaidAt;
+
+    @Column(name = "courier_paid_at")
+    private LocalDateTime courierPaidAt;
+
+    @Column(name = "discount_type", length = 50)
+    private String discountType;
+
     // Rejection fields
     @Column(name = "rejected_at")
     private LocalDateTime rejectedAt;
