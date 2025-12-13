@@ -50,6 +50,8 @@ public class DashboardFilterRequest {
     // Pagination
     private Integer page;
     private Integer size;
+    // Alias for pageSize builder compatibility
+    private Integer pageSize;
     private String sortBy;
     private String sortDirection; // ASC, DESC
 

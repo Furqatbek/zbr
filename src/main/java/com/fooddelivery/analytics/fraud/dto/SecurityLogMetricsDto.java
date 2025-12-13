@@ -54,6 +54,8 @@ public class SecurityLogMetricsDto {
         private Long successfulLogins;
         private Long failedLogins;
         private Double loginFailureRate;
+        // Alias for mapper compatibility
+        private Double failedLoginRate;
         private Long uniqueUsersWithFailedLogins;
         private Long uniqueIpsWithFailedLogins;
         private Long accountsLocked;
@@ -116,6 +118,8 @@ public class SecurityLogMetricsDto {
     @AllArgsConstructor
     public static class RateLimitMetricsDto {
         private Long totalRateLimitedRequests;
+        // Alias for mapper compatibility
+        private Long totalRateLimitViolations;
         private Long uniqueRateLimitedUsers;
         private Long uniqueRateLimitedIps;
         private List<RateLimitedEntityDto> topRateLimitedUsers;

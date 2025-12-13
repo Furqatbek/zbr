@@ -458,4 +458,42 @@ public interface DashboardOrderRepository extends JpaRepository<Order, Long> {
             "GROUP BY o.paymentMethod")
     List<Object[]> getRevenueByPaymentMethod(@Param("startDate") LocalDateTime startDate,
                                               @Param("endDate") LocalDateTime endDate);
+
+    // ==================== Rejected Orders Queries ====================
+
+    /**
+     * Count rejected orders within date range.
+     */
+    @Query("SELECT COUNT(o) FROM Order o WHERE o.status = 'REJECTED' " +
+            "AND o.createdAt BETWEEN :startDate AND :endDate")
+    Long countRejectedOrders(@Param("startDate") LocalDateTime startDate,
+                              @Param("endDate") LocalDateTime endDate);
+
+    /**
+     * Count orders rejected by restaurant.
+     */
+    @Query("SELECT COUNT(o) FROM Order o WHERE o.status = 'REJECTED' " +
+            "AND o.rejectedBy = 'RESTAURANT' " +
+            "AND o.createdAt BETWEEN :startDate AND :endDate")
+    Long countRejectedByRestaurant(@Param("startDate") LocalDateTime startDate,
+                                    @Param("endDate") LocalDateTime endDate);
+
+    /**
+     * Count orders rejected by courier.
+     */
+    @Query("SELECT COUNT(o) FROM Order o WHERE o.status = 'REJECTED' " +
+            "AND o.rejectedBy = 'COURIER' " +
+            "AND o.createdAt BETWEEN :startDate AND :endDate")
+    Long countRejectedByCourier(@Param("startDate") LocalDateTime startDate,
+                                 @Param("endDate") LocalDateTime endDate);
+
+    /**
+     * Find rejected orders within date range.
+     */
+    @Query("SELECT o FROM Order o WHERE o.status = 'REJECTED' " +
+            "AND o.createdAt BETWEEN :startDate AND :endDate " +
+            "ORDER BY o.createdAt DESC")
+    Page<Order> findRejectedOrders(@Param("startDate") LocalDateTime startDate,
+                                    @Param("endDate") LocalDateTime endDate,
+                                    Pageable pageable);
 }

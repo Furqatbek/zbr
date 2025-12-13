@@ -246,7 +246,76 @@ public class OrdersCollector {
                 .build();
     }
 
+    /**
+     * Collect rejected orders.
+     */
+    public RejectedOrdersDto collectRejectedOrders(DashboardFilterRequest filter) {
+        log.debug("Collecting rejected orders from {} to {}", filter.getEffectiveStartDate(), filter.getEffectiveEndDate());
+
+        LocalDateTime startDate = filter.getEffectiveStartDate();
+        LocalDateTime endDate = filter.getEffectiveEndDate();
+
+        PageRequest pageRequest = PageRequest.of(
+                filter.getPageNumber(),
+                filter.getPageSize(),
+                Sort.by(Sort.Direction.DESC, "createdAt")
+        );
+
+        Page<Order> rejectedPage = orderRepository.findRejectedOrders(startDate, endDate, pageRequest);
+
+        // Count totals
+        Long totalRejected = orderRepository.countRejectedOrders(startDate, endDate);
+        Long rejectedByRestaurant = orderRepository.countRejectedByRestaurant(startDate, endDate);
+        Long rejectedByCourier = orderRepository.countRejectedByCourier(startDate, endDate);
+
+        // Calculate period totals
+        LocalDateTime todayStart = LocalDateTime.now().toLocalDate().atStartOfDay();
+        LocalDateTime weekStart = todayStart.minusDays(7);
+        LocalDateTime monthStart = todayStart.minusDays(30);
+
+        Long rejectedToday = orderRepository.countRejectedOrders(todayStart, LocalDateTime.now());
+        Long rejectedThisWeek = orderRepository.countRejectedOrders(weekStart, LocalDateTime.now());
+        Long rejectedThisMonth = orderRepository.countRejectedOrders(monthStart, LocalDateTime.now());
+
+        // Map orders to DTOs
+        List<RejectedOrdersDto.RejectedOrderItemDto> orderItems = rejectedPage.getContent().stream()
+                .map(this::mapToRejectedOrderItem)
+                .collect(Collectors.toList());
+
+        return RejectedOrdersDto.builder()
+                .totalRejectedOrders(totalRejected)
+                .rejectedByRestaurant(rejectedByRestaurant)
+                .rejectedByCourier(rejectedByCourier)
+                .rejectedToday(rejectedToday)
+                .rejectedThisWeek(rejectedThisWeek)
+                .rejectedThisMonth(rejectedThisMonth)
+                .orders(orderItems)
+                .currentPage(rejectedPage.getNumber())
+                .pageSize(rejectedPage.getSize())
+                .totalElements(rejectedPage.getTotalElements())
+                .totalPages(rejectedPage.getTotalPages())
+                .generatedAt(LocalDateTime.now())
+                .build();
+    }
+
     // ==================== Helper Methods ====================
+
+    private RejectedOrdersDto.RejectedOrderItemDto mapToRejectedOrderItem(Order order) {
+        return RejectedOrdersDto.RejectedOrderItemDto.builder()
+                .orderId(order.getId())
+                .externalOrderNo(order.getExternalOrderNo())
+                .rejectedBy(order.getRejectedBy() != null ? order.getRejectedBy() : "UNKNOWN")
+                .restaurantId(order.getRestaurant() != null ? order.getRestaurant().getId() : null)
+                .restaurantName(order.getRestaurant() != null ? order.getRestaurant().getName() : null)
+                .customerId(order.getConsumer() != null ? order.getConsumer().getId() : null)
+                .customerName(order.getCustomerName())
+                .customerPhone(order.getCustomerPhone())
+                .rejectionReason(order.getRejectionReason())
+                .rejectedAt(order.getRejectedAt())
+                .total(order.getTotal())
+                .createdAt(order.getCreatedAt())
+                .build();
+    }
 
     private ActiveOrdersDto.ActiveOrderItemDto mapToActiveOrderItem(Order order, long waitMinutes) {
         LocalDateTime now = LocalDateTime.now();

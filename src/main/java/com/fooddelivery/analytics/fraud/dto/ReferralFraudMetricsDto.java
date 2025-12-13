@@ -26,6 +26,7 @@ public class ReferralFraudMetricsDto {
     private Double fraudulentReferralRate;
     // Alias for mapper compatibility
     private Double overallReferralFraudRate;
+    private Long totalFraudulentReferrals;
 
     // Device-based fraud
     private DeviceReferralFraudDto deviceFraud;
@@ -149,6 +150,7 @@ public class ReferralFraudMetricsDto {
         private Integer minOrdersForPromoAbuse;
         // Alias for mapper compatibility
         private Long promoOnlyUsersCount;
+        private BigDecimal estimatedPromoLoss;
     }
 
     @Data
