@@ -435,7 +435,7 @@ public interface DashboardOrderRepository extends JpaRepository<Order, Long> {
             "ORDER BY COUNT(o) DESC")
     List<Object[]> getTopPromoCodes(@Param("startDate") LocalDateTime startDate,
                                      @Param("endDate") LocalDateTime endDate,
-                                     @Param("limit") int limit);
+                                     Pageable pageable);
 
     /**
      * Get daily revenue breakdown.

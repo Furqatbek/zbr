@@ -228,7 +228,7 @@ public class FinanceCollector {
      * Collect top promo codes by usage.
      */
     private List<Map<String, Object>> collectTopPromoCodes(LocalDateTime startDate, LocalDateTime endDate, int limit) {
-        List<Object[]> promoData = orderRepository.getTopPromoCodes(startDate, endDate, limit);
+        List<Object[]> promoData = orderRepository.getTopPromoCodes(startDate, endDate, org.springframework.data.domain.PageRequest.of(0, limit));
 
         return promoData.stream()
                 .map(row -> {
