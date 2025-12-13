@@ -186,16 +186,17 @@ class FraudAnalyticsServiceTest {
             when(behavioralFraudCollector.collect(any(), any(), anyInt(), anyInt(), anyDouble(), anyDouble(), anyInt(), anyInt(), anyBoolean(), anyInt()))
                     .thenReturn(expectedMetrics);
 
-            // Act
+            // Act - service method takes 8 params (velocityThreshold, refundRateThreshold, orderValueZScore, addressUserThreshold, includeDetails, maxListSize)
             BehavioralFraudMetricsDto result = fraudAnalyticsService.getBehavioralFraudMetrics(
-                    startDate, endDate, 5, 30, 3.0, 0.3, 3, 5, true, 100);
+                    startDate, endDate, 5, 0.3, 3.0, 5, true, 100);
 
             // Assert
             assertThat(result).isNotNull();
             assertThat(result.getVelocityMetrics()).isNotNull();
             assertThat(result.getRefundAbuse()).isNotNull();
 
-            verify(behavioralFraudCollector).collect(startDate, endDate, 5, 30, 3.0, 0.3, 3, 5, true, 100);
+            // Collector is called with 10 params internally (service adds velocityWindowMinutes=60 and minOrdersForRefund=5)
+            verify(behavioralFraudCollector).collect(eq(startDate), eq(endDate), eq(5), eq(60), eq(3.0), eq(0.3), eq(5), eq(5), eq(true), eq(100));
         }
     }
 
