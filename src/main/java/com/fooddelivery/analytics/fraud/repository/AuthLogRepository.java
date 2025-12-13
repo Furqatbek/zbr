@@ -252,4 +252,10 @@ public interface AuthLogRepository extends JpaRepository<AuthLog, Long> {
     Boolean hasRateLimitViolations(@Param("userId") Long userId,
                                     @Param("start") LocalDateTime start,
                                     @Param("end") LocalDateTime end);
+
+    @Query("SELECT COUNT(a) FROM AuthLog a WHERE a.userId = :userId " +
+            "AND a.authType = 'LOGIN' AND a.status = 'FAILED' AND a.createdAt BETWEEN :start AND :end")
+    Long countFailedLoginsByUser(@Param("userId") Long userId,
+                                  @Param("start") LocalDateTime start,
+                                  @Param("end") LocalDateTime end);
 }

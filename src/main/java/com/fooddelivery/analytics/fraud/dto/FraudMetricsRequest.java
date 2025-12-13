@@ -49,6 +49,8 @@ public class FraudMetricsRequest {
     private Integer multiAccountDeviceThreshold = 2;
     @Builder.Default
     private Integer multiAccountIpThreshold = 3;
+    @Builder.Default
+    private Integer ipShareThreshold = 3;
 
     // Referral thresholds
     @Builder.Default
@@ -57,6 +59,12 @@ public class FraudMetricsRequest {
     private Integer signupsPerIpThreshold = 3;
     @Builder.Default
     private Integer minOrdersForPromoAbuse = 3;
+    @Builder.Default
+    private Integer deviceSignupThreshold = 2;
+    @Builder.Default
+    private Integer ipSignupThreshold = 3;
+    @Builder.Default
+    private Double promoAbuseRateThreshold = 0.5; // 50%
 
     // Security thresholds
     @Builder.Default
@@ -65,6 +73,8 @@ public class FraudMetricsRequest {
     private Integer bruteForceTimeWindowMinutes = 5;
     @Builder.Default
     private Integer failedLoginThreshold = 5;
+    @Builder.Default
+    private Integer rateLimitThreshold = 10;
 
     // Address thresholds
     @Builder.Default

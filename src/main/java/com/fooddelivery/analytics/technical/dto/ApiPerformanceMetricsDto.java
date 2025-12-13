@@ -37,6 +37,16 @@ public class ApiPerformanceMetricsDto {
     private Double errorRate4xx;
 
     /**
+     * Client error rate (alias for 4xx error rate).
+     */
+    private Double clientErrorRate;
+
+    /**
+     * Server error rate (alias for 5xx error rate).
+     */
+    private Double serverErrorRate;
+
+    /**
      * 5xx error rate (0.0 - 1.0).
      */
     private Double errorRate5xx;
@@ -60,6 +70,11 @@ public class ApiPerformanceMetricsDto {
      * Total timeouts.
      */
     private Long totalTimeouts;
+
+    /**
+     * Timeout count (alias for totalTimeouts).
+     */
+    private Long timeoutCount;
 
     /**
      * Total errors (4xx + 5xx).
@@ -102,9 +117,19 @@ public class ApiPerformanceMetricsDto {
     private Map<String, Long> requestsByStatusRange;
 
     /**
+     * Requests breakdown by status (alias).
+     */
+    private Map<String, Long> requestsByStatus;
+
+    /**
      * Top slowest endpoints.
      */
     private List<EndpointMetricsDto> slowestEndpoints;
+
+    /**
+     * Most requested endpoints.
+     */
+    private List<EndpointMetricsDto> mostRequestedEndpoints;
 
     /**
      * Top endpoints by error rate.
