@@ -243,7 +243,7 @@ $$ LANGUAGE plpgsql;
 CREATE OR REPLACE VIEW vw_index_usage_stats AS
 SELECT
     schemaname,
-    tablename,
+    relname AS table_name,
     indexrelname AS index_name,
     idx_scan AS index_scans,
     idx_tup_read AS tuples_read,
