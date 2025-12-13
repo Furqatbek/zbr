@@ -384,7 +384,6 @@ public interface DashboardSupportRepository extends JpaRepository<SupportTicket,
      * Get agent performance with pagination.
      */
     @Query("SELECT t.assignedTo, " +
-            "CONCAT(COALESCE(a.firstName, ''), ' ', COALESCE(a.lastName, '')), " +
             "COUNT(t), " +
             "SUM(CASE WHEN t.status IN ('RESOLVED', 'CLOSED') THEN 1 ELSE 0 END), " +
             "COALESCE(AVG(TIMESTAMPDIFF(MINUTE, t.createdAt, t.resolvedAt)), 0), " +
@@ -392,10 +391,9 @@ public interface DashboardSupportRepository extends JpaRepository<SupportTicket,
             "COALESCE(AVG(t.customerSatisfactionScore), 0), " +
             "SUM(CASE WHEN t.status NOT IN ('RESOLVED', 'CLOSED') THEN 1 ELSE 0 END) " +
             "FROM SupportTicket t " +
-            "LEFT JOIN t.assignedAgent a " +
             "WHERE t.assignedTo IS NOT NULL " +
             "AND t.createdAt BETWEEN :startDate AND :endDate " +
-            "GROUP BY t.assignedTo, a.firstName, a.lastName " +
+            "GROUP BY t.assignedTo " +
             "ORDER BY COUNT(t) DESC")
     List<Object[]> getAgentPerformance(@Param("startDate") LocalDateTime startDate,
                                         @Param("endDate") LocalDateTime endDate,
@@ -439,17 +437,13 @@ public interface DashboardSupportRepository extends JpaRepository<SupportTicket,
     /**
      * Find pending attention tickets (open, high priority, or SLA breached).
      */
-    @Query("SELECT t.id, t.ticketNumber, t.customerId, " +
-            "CONCAT(COALESCE(u.firstName, ''), ' ', COALESCE(u.lastName, '')), " +
+    @Query("SELECT t.id, t.ticketNumber, t.userId, " +
             "t.orderId, t.ticketType, t.priority, t.status, t.subject, " +
             "t.createdAt, t.updatedAt, t.assignedTo, " +
-            "CONCAT(COALESCE(a.firstName, ''), ' ', COALESCE(a.lastName, '')), " +
             "t.firstResponseAt, t.resolvedAt, t.escalated, t.refundAmount " +
             "FROM SupportTicket t " +
-            "LEFT JOIN t.customer u " +
-            "LEFT JOIN t.assignedAgent a " +
             "WHERE t.status NOT IN ('RESOLVED', 'CLOSED') " +
-            "AND (t.priority IN ('URGENT', 'HIGH', 'CRITICAL') OR t.slaBreach = true) " +
+            "AND (t.priority IN ('URGENT', 'HIGH') OR t.slaBreach = true) " +
             "AND t.createdAt BETWEEN :startDate AND :endDate " +
             "ORDER BY t.priority DESC, t.createdAt ASC")
     List<Object[]> findPendingAttentionTickets(@Param("startDate") LocalDateTime startDate,
