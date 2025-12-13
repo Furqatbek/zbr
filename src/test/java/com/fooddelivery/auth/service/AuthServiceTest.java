@@ -2,17 +2,22 @@ package com.fooddelivery.auth.service;
 
 import com.fooddelivery.auth.dto.AuthResponse;
 import com.fooddelivery.auth.dto.LoginRequest;
+import com.fooddelivery.auth.dto.RefreshTokenRequest;
 import com.fooddelivery.auth.dto.RegisterRequest;
 import com.fooddelivery.auth.entity.RefreshToken;
 import com.fooddelivery.auth.entity.Role;
 import com.fooddelivery.auth.entity.User;
 import com.fooddelivery.auth.entity.UserStatus;
+import com.fooddelivery.auth.repository.PasswordResetTokenRepository;
 import com.fooddelivery.auth.repository.RefreshTokenRepository;
 import com.fooddelivery.auth.repository.UserRepository;
 import com.fooddelivery.auth.security.JwtService;
-import com.fooddelivery.common.exception.BadRequestException;
-import com.fooddelivery.common.exception.ResourceNotFoundException;
-import com.fooddelivery.common.exception.UnauthorizedException;
+import com.fooddelivery.auth.security.UserPrincipal;
+import com.fooddelivery.common.exception.BusinessException;
+import com.fooddelivery.common.exception.DuplicateResourceException;
+import com.fooddelivery.notification.service.NotificationService;
+import com.fooddelivery.platform.service.ReferralService;
+import jakarta.servlet.http.HttpServletRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -21,10 +26,17 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.LockedException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.time.LocalDateTime;
+import java.util.HashSet;
 import java.util.Optional;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -43,10 +55,25 @@ class AuthServiceTest {
     private RefreshTokenRepository refreshTokenRepository;
 
     @Mock
+    private PasswordResetTokenRepository passwordResetTokenRepository;
+
+    @Mock
     private PasswordEncoder passwordEncoder;
 
     @Mock
     private JwtService jwtService;
+
+    @Mock
+    private AuthenticationManager authenticationManager;
+
+    @Mock
+    private NotificationService notificationService;
+
+    @Mock
+    private ReferralService referralService;
+
+    @Mock
+    private HttpServletRequest httpServletRequest;
 
     @InjectMocks
     private AuthService authService;
@@ -55,13 +82,17 @@ class AuthServiceTest {
 
     @BeforeEach
     void setUp() {
+        Set<Role> roles = new HashSet<>();
+        roles.add(Role.CONSUMER);
+
         testUser = User.builder()
                 .id(1L)
                 .email("test@example.com")
                 .passwordHash("hashedPassword")
-                .fullName("Test User")
+                .firstName("Test")
+                .lastName("User")
                 .phone("+1234567890")
-                .role(Role.CONSUMER)
+                .roles(roles)
                 .status(UserStatus.ACTIVE)
                 .emailVerified(true)
                 .failedLoginAttempts(0)
@@ -78,7 +109,8 @@ class AuthServiceTest {
             RegisterRequest request = RegisterRequest.builder()
                     .email("new@example.com")
                     .password("Password123!")
-                    .fullName("New User")
+                    .firstName("New")
+                    .lastName("User")
                     .phone("+1234567890")
                     .role(Role.CONSUMER)
                     .build();
@@ -90,11 +122,12 @@ class AuthServiceTest {
                 user.setId(1L);
                 return user;
             });
-            when(jwtService.generateAccessToken(any(User.class))).thenReturn("accessToken");
-            when(jwtService.generateRefreshToken(any(User.class))).thenReturn("refreshToken");
+            when(jwtService.generateAccessToken(any(UserPrincipal.class))).thenReturn("accessToken");
+            when(jwtService.generateRefreshToken(any(UserPrincipal.class))).thenReturn("refreshToken");
+            when(jwtService.getRefreshTokenExpiration()).thenReturn(604800000L);
             when(refreshTokenRepository.save(any(RefreshToken.class))).thenAnswer(i -> i.getArgument(0));
 
-            AuthResponse response = authService.register(request);
+            AuthResponse response = authService.register(request, httpServletRequest);
 
             assertThat(response).isNotNull();
             assertThat(response.getAccessToken()).isEqualTo("accessToken");
@@ -109,14 +142,14 @@ class AuthServiceTest {
             RegisterRequest request = RegisterRequest.builder()
                     .email("existing@example.com")
                     .password("Password123!")
-                    .fullName("Existing User")
+                    .firstName("Existing")
+                    .lastName("User")
                     .build();
 
             when(userRepository.existsByEmail(anyString())).thenReturn(true);
 
-            assertThatThrownBy(() -> authService.register(request))
-                    .isInstanceOf(BadRequestException.class)
-                    .hasMessageContaining("Email already registered");
+            assertThatThrownBy(() -> authService.register(request, httpServletRequest))
+                    .isInstanceOf(DuplicateResourceException.class);
 
             verify(userRepository, never()).save(any(User.class));
         }
@@ -130,17 +163,22 @@ class AuthServiceTest {
         @DisplayName("Should login user successfully")
         void shouldLoginUserSuccessfully() {
             LoginRequest request = LoginRequest.builder()
-                    .email("test@example.com")
+                    .emailOrPhone("test@example.com")
                     .password("correctPassword")
                     .build();
 
-            when(userRepository.findByEmail(anyString())).thenReturn(Optional.of(testUser));
-            when(passwordEncoder.matches(anyString(), anyString())).thenReturn(true);
-            when(jwtService.generateAccessToken(any(User.class))).thenReturn("accessToken");
-            when(jwtService.generateRefreshToken(any(User.class))).thenReturn("refreshToken");
+            UserPrincipal userPrincipal = UserPrincipal.create(testUser);
+            Authentication authentication = mock(Authentication.class);
+
+            when(userRepository.findByEmailOrPhone(anyString(), anyString())).thenReturn(Optional.of(testUser));
+            when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class))).thenReturn(authentication);
+            when(authentication.getPrincipal()).thenReturn(userPrincipal);
+            when(jwtService.generateAccessToken(any(UserPrincipal.class))).thenReturn("accessToken");
+            when(jwtService.generateRefreshToken(any(UserPrincipal.class))).thenReturn("refreshToken");
+            when(jwtService.getRefreshTokenExpiration()).thenReturn(604800000L);
             when(refreshTokenRepository.save(any(RefreshToken.class))).thenAnswer(i -> i.getArgument(0));
 
-            AuthResponse response = authService.login(request);
+            AuthResponse response = authService.login(request, httpServletRequest);
 
             assertThat(response).isNotNull();
             assertThat(response.getAccessToken()).isEqualTo("accessToken");
@@ -151,16 +189,16 @@ class AuthServiceTest {
         @DisplayName("Should throw exception for invalid credentials")
         void shouldThrowExceptionForInvalidCredentials() {
             LoginRequest request = LoginRequest.builder()
-                    .email("test@example.com")
+                    .emailOrPhone("test@example.com")
                     .password("wrongPassword")
                     .build();
 
-            when(userRepository.findByEmail(anyString())).thenReturn(Optional.of(testUser));
-            when(passwordEncoder.matches(anyString(), anyString())).thenReturn(false);
+            when(userRepository.findByEmailOrPhone(anyString(), anyString())).thenReturn(Optional.of(testUser));
+            when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
+                    .thenThrow(new BadCredentialsException("Bad credentials"));
 
-            assertThatThrownBy(() -> authService.login(request))
-                    .isInstanceOf(UnauthorizedException.class)
-                    .hasMessageContaining("Invalid credentials");
+            assertThatThrownBy(() -> authService.login(request, httpServletRequest))
+                    .isInstanceOf(BadCredentialsException.class);
         }
 
         @Test
@@ -168,15 +206,15 @@ class AuthServiceTest {
         void shouldThrowExceptionForInactiveUser() {
             testUser.setStatus(UserStatus.SUSPENDED);
             LoginRequest request = LoginRequest.builder()
-                    .email("test@example.com")
+                    .emailOrPhone("test@example.com")
                     .password("correctPassword")
                     .build();
 
-            when(userRepository.findByEmail(anyString())).thenReturn(Optional.of(testUser));
+            when(userRepository.findByEmailOrPhone(anyString(), anyString())).thenReturn(Optional.of(testUser));
 
-            assertThatThrownBy(() -> authService.login(request))
-                    .isInstanceOf(UnauthorizedException.class)
-                    .hasMessageContaining("Account is not active");
+            assertThatThrownBy(() -> authService.login(request, httpServletRequest))
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessageContaining("not active");
         }
 
         @Test
@@ -184,30 +222,29 @@ class AuthServiceTest {
         void shouldThrowExceptionForLockedUser() {
             testUser.setLockedUntil(LocalDateTime.now().plusHours(1));
             LoginRequest request = LoginRequest.builder()
-                    .email("test@example.com")
+                    .emailOrPhone("test@example.com")
                     .password("correctPassword")
                     .build();
 
-            when(userRepository.findByEmail(anyString())).thenReturn(Optional.of(testUser));
+            when(userRepository.findByEmailOrPhone(anyString(), anyString())).thenReturn(Optional.of(testUser));
 
-            assertThatThrownBy(() -> authService.login(request))
-                    .isInstanceOf(UnauthorizedException.class)
-                    .hasMessageContaining("Account is temporarily locked");
+            assertThatThrownBy(() -> authService.login(request, httpServletRequest))
+                    .isInstanceOf(LockedException.class)
+                    .hasMessageContaining("locked");
         }
 
         @Test
         @DisplayName("Should throw exception for non-existent user")
         void shouldThrowExceptionForNonExistentUser() {
             LoginRequest request = LoginRequest.builder()
-                    .email("nonexistent@example.com")
+                    .emailOrPhone("nonexistent@example.com")
                     .password("password")
                     .build();
 
-            when(userRepository.findByEmail(anyString())).thenReturn(Optional.empty());
+            when(userRepository.findByEmailOrPhone(anyString(), anyString())).thenReturn(Optional.empty());
 
-            assertThatThrownBy(() -> authService.login(request))
-                    .isInstanceOf(ResourceNotFoundException.class)
-                    .hasMessageContaining("User not found");
+            assertThatThrownBy(() -> authService.login(request, httpServletRequest))
+                    .isInstanceOf(BadCredentialsException.class);
         }
     }
 
@@ -226,27 +263,34 @@ class AuthServiceTest {
                     .revoked(false)
                     .build();
 
+            RefreshTokenRequest request = RefreshTokenRequest.builder()
+                    .refreshToken("validRefreshToken")
+                    .build();
+
             when(refreshTokenRepository.findByTokenAndRevokedFalse(anyString()))
                     .thenReturn(Optional.of(refreshToken));
-            when(jwtService.generateAccessToken(any(User.class))).thenReturn("newAccessToken");
-            when(jwtService.generateRefreshToken(any(User.class))).thenReturn("newRefreshToken");
-            when(refreshTokenRepository.save(any(RefreshToken.class))).thenAnswer(i -> i.getArgument(0));
+            when(jwtService.isTokenValid(anyString(), any(UserPrincipal.class))).thenReturn(true);
+            when(jwtService.generateAccessToken(any(UserPrincipal.class))).thenReturn("newAccessToken");
+            when(jwtService.getAccessTokenExpiration()).thenReturn(3600000L);
 
-            AuthResponse response = authService.refreshToken("validRefreshToken");
+            AuthResponse response = authService.refreshToken(request);
 
             assertThat(response).isNotNull();
             assertThat(response.getAccessToken()).isEqualTo("newAccessToken");
-            verify(refreshTokenRepository).save(argThat(token -> token.isRevoked()));
         }
 
         @Test
         @DisplayName("Should throw exception for invalid refresh token")
         void shouldThrowExceptionForInvalidRefreshToken() {
+            RefreshTokenRequest request = RefreshTokenRequest.builder()
+                    .refreshToken("invalidToken")
+                    .build();
+
             when(refreshTokenRepository.findByTokenAndRevokedFalse(anyString()))
                     .thenReturn(Optional.empty());
 
-            assertThatThrownBy(() -> authService.refreshToken("invalidToken"))
-                    .isInstanceOf(UnauthorizedException.class)
+            assertThatThrownBy(() -> authService.refreshToken(request))
+                    .isInstanceOf(BusinessException.class)
                     .hasMessageContaining("Invalid refresh token");
         }
 
@@ -261,12 +305,16 @@ class AuthServiceTest {
                     .revoked(false)
                     .build();
 
+            RefreshTokenRequest request = RefreshTokenRequest.builder()
+                    .refreshToken("expiredToken")
+                    .build();
+
             when(refreshTokenRepository.findByTokenAndRevokedFalse(anyString()))
                     .thenReturn(Optional.of(refreshToken));
 
-            assertThatThrownBy(() -> authService.refreshToken("expiredToken"))
-                    .isInstanceOf(UnauthorizedException.class)
-                    .hasMessageContaining("Refresh token expired");
+            assertThatThrownBy(() -> authService.refreshToken(request))
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessageContaining("expired");
         }
     }
 }
