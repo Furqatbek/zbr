@@ -202,8 +202,6 @@ public interface DashboardRestaurantRepository extends JpaRepository<Restaurant,
             "FROM Restaurant r WHERE r.id IN :restaurantIds " +
             "ORDER BY r.name")
     List<Object[]> findRestaurantDetailsFiltered(@Param("restaurantIds") List<Long> restaurantIds,
-                                                  @Param("startDate") LocalDateTime startDate,
-                                                  @Param("endDate") LocalDateTime endDate,
                                                   Pageable pageable);
 
     /**
@@ -213,9 +211,7 @@ public interface DashboardRestaurantRepository extends JpaRepository<Restaurant,
             "0, r.totalOrders, 0, r.cuisineType, r.city, r.updatedAt, r.isOpen " +
             "FROM Restaurant r WHERE r.status = 'ACTIVE' " +
             "ORDER BY r.name")
-    List<Object[]> findAllRestaurantDetails(@Param("startDate") LocalDateTime startDate,
-                                             @Param("endDate") LocalDateTime endDate,
-                                             Pageable pageable);
+    List<Object[]> findAllRestaurantDetails(Pageable pageable);
 
     /**
      * Count restaurants by cuisine type.
@@ -231,9 +227,7 @@ public interface DashboardRestaurantRepository extends JpaRepository<Restaurant,
             "0, r.totalOrders, 0, r.cuisineType, r.city, r.updatedAt, r.isOpen " +
             "FROM Restaurant r WHERE r.status = 'ACTIVE' " +
             "ORDER BY r.averageRating DESC, r.totalOrders DESC")
-    List<Object[]> findTopPerformingRestaurants(@Param("startDate") LocalDateTime startDate,
-                                                 @Param("endDate") LocalDateTime endDate,
-                                                 Pageable pageable);
+    List<Object[]> findTopPerformingRestaurants(Pageable pageable);
 
     /**
      * Find underperforming restaurants.
@@ -243,9 +237,7 @@ public interface DashboardRestaurantRepository extends JpaRepository<Restaurant,
             "FROM Restaurant r WHERE r.status = 'ACTIVE' " +
             "AND (r.averageRating < :minRating OR r.totalOrders < :minOrders) " +
             "ORDER BY r.averageRating ASC")
-    List<Object[]> findUnderperformingRestaurants(@Param("startDate") LocalDateTime startDate,
-                                                   @Param("endDate") LocalDateTime endDate,
-                                                   @Param("minRating") Double minRating,
+    List<Object[]> findUnderperformingRestaurants(@Param("minRating") Double minRating,
                                                    @Param("minOrders") Double minOrders,
                                                    Pageable pageable);
 

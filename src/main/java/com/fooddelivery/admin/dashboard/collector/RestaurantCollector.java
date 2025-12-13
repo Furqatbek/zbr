@@ -120,9 +120,9 @@ public class RestaurantCollector {
 
         if (filter.getRestaurantIds() != null && !filter.getRestaurantIds().isEmpty()) {
             restaurantData = restaurantRepository.findRestaurantDetailsFiltered(
-                    filter.getRestaurantIds(), startDate, endDate, pageable);
+                    filter.getRestaurantIds(), pageable);
         } else {
-            restaurantData = restaurantRepository.findAllRestaurantDetails(startDate, endDate, pageable);
+            restaurantData = restaurantRepository.findAllRestaurantDetails(pageable);
         }
 
         return restaurantData.stream()
@@ -246,8 +246,7 @@ public class RestaurantCollector {
     private List<RestaurantDetailDto> collectTopPerformers(LocalDateTime startDate,
                                                            LocalDateTime endDate, int limit) {
         Pageable pageable = PageRequest.of(0, limit);
-        List<Object[]> topPerformers = restaurantRepository.findTopPerformingRestaurants(
-                startDate, endDate, pageable);
+        List<Object[]> topPerformers = restaurantRepository.findTopPerformingRestaurants(pageable);
 
         return topPerformers.stream()
                 .map(this::mapToRestaurantDetail)
@@ -261,7 +260,7 @@ public class RestaurantCollector {
                                                               LocalDateTime endDate, int limit) {
         Pageable pageable = PageRequest.of(0, limit);
         List<Object[]> underperformers = restaurantRepository.findUnderperformingRestaurants(
-                startDate, endDate, 3.0, 70.0, pageable); // rating < 3.0 or acceptance < 70%
+                3.0, 70.0, pageable); // rating < 3.0 or orders < 70
 
         return underperformers.stream()
                 .map(this::mapToRestaurantDetail)
