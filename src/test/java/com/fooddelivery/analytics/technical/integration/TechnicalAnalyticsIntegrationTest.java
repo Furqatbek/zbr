@@ -311,7 +311,7 @@ class TechnicalAnalyticsIntegrationTest {
                     .responseSizeBytes(5000L)
                     .clientIp("192.168.1." + (i % 256))
                     .isTimeout(false)
-                    .requestTimestamp(testStart.plusMinutes(i % 60))
+                    .timestamp(testStart.plusMinutes(i % 60))
                     .build();
             httpRequestLogRepository.save(log);
         }
@@ -330,7 +330,7 @@ class TechnicalAnalyticsIntegrationTest {
                     .rowsAffected((long) (Math.random() * 100))
                     .tableName(tables[i % 3])
                     .isUsingIndex(i % 4 != 0)
-                    .executedAt(testStart.plusMinutes(i * 2))
+                    .timestamp(testStart.plusMinutes(i * 2))
                     .build();
             slowQueryLogRepository.save(log);
         }
@@ -344,7 +344,6 @@ class TechnicalAnalyticsIntegrationTest {
                     .backupType(i % 2 == 0 ? BackupLog.BackupType.FULL : BackupLog.BackupType.INCREMENTAL)
                     .status(i < 6 ? BackupLog.BackupStatus.COMPLETED : BackupLog.BackupStatus.FAILED)
                     .backupSizeBytes(1_000_000_000L + (long) (Math.random() * 500_000_000))
-                    .isVerified(i < 6)
                     .startedAt(testStart.minusDays(6 - i))
                     .completedAt(i < 6 ? testStart.minusDays(6 - i).plusHours(1) : null)
                     .errorMessage(i >= 6 ? "Disk full" : null)
@@ -364,7 +363,7 @@ class TechnicalAnalyticsIntegrationTest {
                     .clientIp("192.168.1." + (i % 256))
                     .connectedAt(testStart.plusMinutes(i))
                     .disconnectedAt(i < 40 ? testStart.plusMinutes(i + 30) : null)
-                    .isGracefulClose(i < 45)
+                    .isGracefulDisconnect(i < 45)
                     .messagesSent((long) (Math.random() * 100))
                     .messagesReceived((long) (Math.random() * 50))
                     .build();
@@ -404,8 +403,7 @@ class TechnicalAnalyticsIntegrationTest {
                     .uploadedBy((long) ((i % 50) + 1))
                     .uploadDurationMs(200L + (long) (Math.random() * 2000))
                     .isUploadSuccessful(i < 97)
-                    .uploadErrorReason(i >= 97 ? "Timeout" : null)
-                    .isDeleted(false)
+                    .errorMessage(i >= 97 ? "Timeout" : null)
                     .uploadedAt(testStart.plusMinutes(i % 60))
                     .build();
             storageMetadataRepository.save(metadata);

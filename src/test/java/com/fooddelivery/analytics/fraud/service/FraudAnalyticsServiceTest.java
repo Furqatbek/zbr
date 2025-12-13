@@ -93,11 +93,11 @@ class FraudAnalyticsServiceTest {
 
             when(paymentFraudCollector.collect(any(), any(), anyInt(), anyInt(), anyBoolean(), anyInt()))
                     .thenReturn(paymentMetrics);
-            when(behavioralFraudCollector.collect(any(), any(), anyInt(), anyDouble(), anyDouble(), anyInt(), anyBoolean(), anyInt()))
+            when(behavioralFraudCollector.collect(any(), any(), anyInt(), anyInt(), anyDouble(), anyDouble(), anyInt(), anyInt(), anyBoolean(), anyInt()))
                     .thenReturn(behavioralMetrics);
             when(accountIntegrityCollector.collect(any(), any(), anyInt(), anyInt(), anyInt(), anyBoolean(), anyInt()))
                     .thenReturn(accountMetrics);
-            when(referralFraudCollector.collect(any(), any(), anyInt(), anyInt(), anyDouble(), anyBoolean(), anyInt()))
+            when(referralFraudCollector.collect(any(), any(), anyInt(), anyInt(), anyInt(), anyBoolean(), anyInt()))
                     .thenReturn(referralMetrics);
             when(securityLogCollector.collect(any(), any(), anyInt(), anyInt(), anyInt(), anyBoolean(), anyInt()))
                     .thenReturn(securityMetrics);
@@ -120,9 +120,9 @@ class FraudAnalyticsServiceTest {
             assertThat(result.getRiskLevel()).isEqualTo("MEDIUM");
 
             verify(paymentFraudCollector).collect(any(), any(), anyInt(), anyInt(), anyBoolean(), anyInt());
-            verify(behavioralFraudCollector).collect(any(), any(), anyInt(), anyDouble(), anyDouble(), anyInt(), anyBoolean(), anyInt());
+            verify(behavioralFraudCollector).collect(any(), any(), anyInt(), anyInt(), anyDouble(), anyDouble(), anyInt(), anyInt(), anyBoolean(), anyInt());
             verify(accountIntegrityCollector).collect(any(), any(), anyInt(), anyInt(), anyInt(), anyBoolean(), anyInt());
-            verify(referralFraudCollector).collect(any(), any(), anyInt(), anyInt(), anyDouble(), anyBoolean(), anyInt());
+            verify(referralFraudCollector).collect(any(), any(), anyInt(), anyInt(), anyInt(), anyBoolean(), anyInt());
             verify(securityLogCollector).collect(any(), any(), anyInt(), anyInt(), anyInt(), anyBoolean(), anyInt());
         }
     }
@@ -185,19 +185,19 @@ class FraudAnalyticsServiceTest {
         void shouldReturnBehavioralFraudMetrics() {
             // Arrange
             BehavioralFraudMetricsDto expectedMetrics = createMockBehavioralMetrics();
-            when(behavioralFraudCollector.collect(any(), any(), anyInt(), anyDouble(), anyDouble(), anyInt(), anyBoolean(), anyInt()))
+            when(behavioralFraudCollector.collect(any(), any(), anyInt(), anyInt(), anyDouble(), anyDouble(), anyInt(), anyInt(), anyBoolean(), anyInt()))
                     .thenReturn(expectedMetrics);
 
             // Act
             BehavioralFraudMetricsDto result = fraudAnalyticsService.getBehavioralFraudMetrics(
-                    startDate, endDate, 5, 30.0, 3.0, 3, true, 100);
+                    startDate, endDate, 5, 60, 3.0, 30.0, 3, 5, true, 100);
 
             // Assert
             assertThat(result).isNotNull();
             assertThat(result.getVelocityMetrics()).isNotNull();
             assertThat(result.getRefundMetrics()).isNotNull();
 
-            verify(behavioralFraudCollector).collect(startDate, endDate, 5, 30.0, 3.0, 3, true, 100);
+            verify(behavioralFraudCollector).collect(startDate, endDate, 5, 60, 3.0, 30.0, 3, 5, true, 100);
         }
     }
 
@@ -235,19 +235,19 @@ class FraudAnalyticsServiceTest {
         void shouldReturnReferralFraudMetrics() {
             // Arrange
             ReferralFraudMetricsDto expectedMetrics = createMockReferralMetrics();
-            when(referralFraudCollector.collect(any(), any(), anyInt(), anyInt(), anyDouble(), anyBoolean(), anyInt()))
+            when(referralFraudCollector.collect(any(), any(), anyInt(), anyInt(), anyInt(), anyBoolean(), anyInt()))
                     .thenReturn(expectedMetrics);
 
             // Act
             ReferralFraudMetricsDto result = fraudAnalyticsService.getReferralFraudMetrics(
-                    startDate, endDate, 2, 5, 80.0, true, 100);
+                    startDate, endDate, 2, 5, 3, true, 100);
 
             // Assert
             assertThat(result).isNotNull();
             assertThat(result.getTotalReferrals()).isEqualTo(500L);
-            assertThat(result.getTotalFraudulentReferrals()).isEqualTo(25L);
+            assertThat(result.getSuspiciousReferrals()).isEqualTo(25L);
 
-            verify(referralFraudCollector).collect(startDate, endDate, 2, 5, 80.0, true, 100);
+            verify(referralFraudCollector).collect(startDate, endDate, 2, 5, 3, true, 100);
         }
     }
 
@@ -452,9 +452,9 @@ class FraudAnalyticsServiceTest {
     private ReferralFraudMetricsDto createMockReferralMetrics() {
         return ReferralFraudMetricsDto.builder()
                 .totalReferrals(500L)
-                .successfulReferrals(450L)
-                .totalFraudulentReferrals(25L)
-                .overallReferralFraudRate(5.0)
+                .completedReferrals(450L)
+                .suspiciousReferrals(25L)
+                .fraudulentReferralRate(5.0)
                 .build();
     }
 

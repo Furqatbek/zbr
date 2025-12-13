@@ -182,11 +182,11 @@ class AdminDashboardIntegrationTest {
             DashboardFilterRequest filter = DashboardFilterRequest.builder()
                     .startDate(startDate)
                     .endDate(endDate)
-                    .stuckThresholdPending(5)
-                    .stuckThresholdAccepted(10)
-                    .stuckThresholdPreparing(20)
-                    .stuckThresholdReady(10)
-                    .stuckThresholdInTransit(30)
+                    .pendingThresholdMinutes(5)
+                    .acceptedThresholdMinutes(10)
+                    .preparingThresholdMinutes(20)
+                    .readyThresholdMinutes(10)
+                    .inTransitThresholdMinutes(30)
                     .build();
 
             // Act

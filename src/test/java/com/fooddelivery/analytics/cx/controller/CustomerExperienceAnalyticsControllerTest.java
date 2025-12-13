@@ -157,9 +157,9 @@ class CustomerExperienceAnalyticsControllerTest {
                     .restaurantId(123L)
                     .averageRating(4.5)
                     .ratingCount(1000L)
-                    .foodQualityAvg(4.6)
-                    .portionSizeAvg(4.3)
-                    .valueForMoneyAvg(4.4)
+                    .averageFoodQualityRating(4.6)
+                    .averagePortionSizeRating(4.3)
+                    .averageValueForMoneyRating(4.4)
                     .build();
 
             when(cxAnalyticsService.getRestaurantRatingMetrics(
@@ -174,7 +174,7 @@ class CustomerExperienceAnalyticsControllerTest {
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.restaurantId").value(123))
                     .andExpect(jsonPath("$.averageRating").value(4.5))
-                    .andExpect(jsonPath("$.foodQualityAvg").value(4.6));
+                    .andExpect(jsonPath("$.averageFoodQualityRating").value(4.6));
         }
     }
 
@@ -215,9 +215,9 @@ class CustomerExperienceAnalyticsControllerTest {
                     .courierId(456L)
                     .averageRating(4.9)
                     .ratingCount(500L)
-                    .professionalismAvg(5.0)
-                    .communicationAvg(4.8)
-                    .timelinessAvg(4.9)
+                    .averageProfessionalismRating(5.0)
+                    .averageCommunicationRating(4.8)
+                    .averageTimelinessRating(4.9)
                     .build();
 
             when(cxAnalyticsService.getCourierRatingMetrics(
@@ -232,7 +232,7 @@ class CustomerExperienceAnalyticsControllerTest {
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.courierId").value(456))
                     .andExpect(jsonPath("$.averageRating").value(4.9))
-                    .andExpect(jsonPath("$.professionalismAvg").value(5.0));
+                    .andExpect(jsonPath("$.averageProfessionalismRating").value(5.0));
         }
     }
 

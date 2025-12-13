@@ -416,9 +416,9 @@ class PersistentNotificationServiceTest {
             when(notificationRepository.countByUserId(1L)).thenReturn(10L);
             when(notificationRepository.countUnreadByUserId(1L)).thenReturn(5L);
             when(notificationRepository.countUnreadByCategoryForUser(1L)).thenReturn(
-                    List.of(new Object[]{NotificationCategory.ORDER, 3L}));
+                    Collections.singletonList(new Object[]{NotificationCategory.ORDER, 3L}));
             when(notificationRepository.countUnreadByPriorityForUser(1L)).thenReturn(
-                    List.of(new Object[]{NotificationPriority.HIGH, 2L}));
+                    Collections.singletonList(new Object[]{NotificationPriority.HIGH, 2L}));
 
             // Act
             NotificationCountDto result = notificationService.getNotificationCounts(1L, null);

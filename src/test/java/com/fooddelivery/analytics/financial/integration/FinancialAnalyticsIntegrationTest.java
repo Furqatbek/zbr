@@ -120,8 +120,7 @@ class FinancialAnalyticsIntegrationTest {
                     .tipAmount(new BigDecimal("2.00"))
                     .peakBonus(new BigDecimal("0.50"))
                     .totalPayment(new BigDecimal("8.50"))
-                    .deliveryDistanceKm(new BigDecimal("3.5"))
-                    .paymentType(CourierPaymentType.PER_DELIVERY)
+                    .paymentType(CourierPaymentType.DELIVERY)
                     .paymentStatus(PaymentStatus.COMPLETED)
                     .paymentDate(startDate.plusDays(i))
                     .build();
@@ -133,18 +132,16 @@ class FinancialAnalyticsIntegrationTest {
         for (int i = 1; i <= 5; i++) {
             PromotionUsage usage = PromotionUsage.builder()
                     .promotionId((long) i)
-                    .promotionCode("PROMO" + i)
+                    .promoCode("PROMO" + i)
                     .orderId((long) (i * 100))
                     .userId((long) i)
-                    .restaurantId((long) i)
                     .promotionType(PromotionType.PERCENTAGE_DISCOUNT)
                     .discountAmount(new BigDecimal("10.00"))
                     .originalOrderValue(new BigDecimal("100.00"))
-                    .finalOrderValue(new BigDecimal("90.00"))
                     .fundedBy(PromotionFunder.PLATFORM)
                     .platformCost(new BigDecimal("10.00"))
                     .restaurantCost(BigDecimal.ZERO)
-                    .appliedAt(startDate.plusDays(i))
+                    .usedAt(startDate.plusDays(i))
                     .build();
             promotionUsageRepository.save(usage);
         }

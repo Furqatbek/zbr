@@ -371,11 +371,11 @@ class FraudAnalyticsIntegrationTest {
 
             // Act
             ReferralFraudMetricsDto metrics = fraudAnalyticsService.getReferralFraudMetrics(
-                    startDate, endDate, 2, 5, 80.0, true, 100);
+                    startDate, endDate, 2, 5, 80, true, 100);
 
             // Assert
             assertThat(metrics).isNotNull();
-            assertThat(metrics.getDeviceFraudMetrics()).isNotNull();
+            assertThat(metrics.getDeviceFraud()).isNotNull();
         }
     }
 

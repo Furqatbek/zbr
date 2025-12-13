@@ -103,7 +103,7 @@ class AdminDashboardServiceTest {
 
             // Assert
             assertThat(result.getSystemStatus()).isNotNull();
-            assertThat(result.getSystemStatus().getStatus()).isEqualTo("HEALTHY");
+            assertThat(result.getSystemStatus().getOverallStatus()).isEqualTo("HEALTHY");
         }
     }
 
@@ -142,8 +142,9 @@ class AdminDashboardServiceTest {
             ActiveOrdersDto result = dashboardService.getActiveOrders(filter);
 
             // Assert
-            assertThat(result.getStatusBreakdown()).isNotNull();
-            assertThat(result.getStatusBreakdown()).containsKeys("PENDING", "PREPARING", "IN_TRANSIT");
+            assertThat(result.getPendingOrders()).isNotNull();
+            assertThat(result.getPreparingOrders()).isNotNull();
+            assertThat(result.getInTransitOrders()).isNotNull();
         }
     }
 
@@ -165,7 +166,7 @@ class AdminDashboardServiceTest {
             // Assert
             assertThat(result).isNotNull();
             assertThat(result.getTotalStuckOrders()).isEqualTo(5L);
-            assertThat(result.getCriticalCount()).isEqualTo(2L);
+            assertThat(result.getStuckPending()).isNotNull();
 
             verify(ordersCollector).collectStuckOrders(filter);
         }
@@ -310,11 +311,11 @@ class AdminDashboardServiceTest {
                 .revenueToday(BigDecimal.valueOf(15000))
                 .activeCouriers(25L)
                 .activeRestaurants(50L)
-                .avgDeliveryTimeMinutes(32.5)
+                .avgDeliveryTimeToday(32.5)
                 .systemStatus(DashboardOverviewDto.SystemStatusDto.builder()
-                        .status("HEALTHY")
-                        .apiLatencyMs(150.0)
-                        .dbLoadPercent(45.0)
+                        .overallStatus("HEALTHY")
+                        .apiLatencyP50(150)
+                        .dbLoad(45)
                         .build())
                 .generatedAt(LocalDateTime.now())
                 .build();
@@ -326,21 +327,23 @@ class AdminDashboardServiceTest {
                 .orders(List.of(
                         ActiveOrdersDto.ActiveOrderItemDto.builder()
                                 .orderId(1L)
-                                .orderNumber("ORD-001")
+                                .externalOrderNo("ORD-001")
                                 .status("PENDING")
                                 .build(),
                         ActiveOrdersDto.ActiveOrderItemDto.builder()
                                 .orderId(2L)
-                                .orderNumber("ORD-002")
+                                .externalOrderNo("ORD-002")
                                 .status("PREPARING")
                                 .build(),
                         ActiveOrdersDto.ActiveOrderItemDto.builder()
                                 .orderId(3L)
-                                .orderNumber("ORD-003")
+                                .externalOrderNo("ORD-003")
                                 .status("IN_TRANSIT")
                                 .build()
                 ))
-                .statusBreakdown(Map.of("PENDING", 15L, "PREPARING", 20L, "IN_TRANSIT", 10L))
+                .pendingOrders(15L)
+                .preparingOrders(20L)
+                .inTransitOrders(10L)
                 .generatedAt(LocalDateTime.now())
                 .build();
     }
@@ -348,9 +351,10 @@ class AdminDashboardServiceTest {
     private StuckOrdersDto createMockStuckOrders() {
         return StuckOrdersDto.builder()
                 .totalStuckOrders(5L)
-                .criticalCount(2L)
-                .highCount(2L)
-                .mediumCount(1L)
+                .stuckPending(2L)
+                .stuckAccepted(1L)
+                .stuckPreparing(1L)
+                .stuckReady(1L)
                 .orders(List.of())
                 .generatedAt(LocalDateTime.now())
                 .build();
@@ -386,8 +390,14 @@ class AdminDashboardServiceTest {
                 .deliveryFeeRevenue(BigDecimal.valueOf(5000))
                 .totalRevenue(BigDecimal.valueOf(20000))
                 .netRevenue(BigDecimal.valueOf(18000))
-                .restaurantPayouts(BigDecimal.valueOf(85000))
-                .courierPayouts(BigDecimal.valueOf(10000))
+                .restaurantPayouts(FinanceMetricsDto.PayoutSummaryDto.builder()
+                        .totalRestaurantPayouts(BigDecimal.valueOf(85000))
+                        .pendingPayouts(BigDecimal.valueOf(5000))
+                        .build())
+                .courierPayouts(FinanceMetricsDto.PayoutSummaryDto.builder()
+                        .totalCourierPayouts(BigDecimal.valueOf(10000))
+                        .pendingPayouts(BigDecimal.valueOf(1000))
+                        .build())
                 .discountsUsed(BigDecimal.valueOf(1500))
                 .refundsPaid(BigDecimal.valueOf(500))
                 .generatedAt(LocalDateTime.now())
