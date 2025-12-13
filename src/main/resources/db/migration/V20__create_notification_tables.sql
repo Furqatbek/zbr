@@ -150,40 +150,52 @@ CREATE TABLE IF NOT EXISTS notification_templates (
 -- =====================================================
 -- Notification Preferences Table (per-user preferences)
 -- =====================================================
-CREATE TABLE IF NOT EXISTS notification_preferences (
-    id BIGSERIAL PRIMARY KEY,
+-- Note: notification_preferences table was created in V1 with basic columns.
+-- This migration adds new columns to extend the existing table.
 
-    user_id BIGINT NOT NULL,
-    role VARCHAR(50) NOT NULL,
+-- Add role column (required for multi-role support)
+ALTER TABLE notification_preferences ADD COLUMN IF NOT EXISTS role VARCHAR(50);
+UPDATE notification_preferences SET role = 'CUSTOMER' WHERE role IS NULL;
+ALTER TABLE notification_preferences ALTER COLUMN role SET NOT NULL;
+ALTER TABLE notification_preferences ALTER COLUMN role SET DEFAULT 'CUSTOMER';
 
-    -- Per-category preferences (enabled/disabled)
-    order_notifications BOOLEAN NOT NULL DEFAULT TRUE,
-    finance_notifications BOOLEAN NOT NULL DEFAULT TRUE,
-    support_notifications BOOLEAN NOT NULL DEFAULT TRUE,
-    system_notifications BOOLEAN NOT NULL DEFAULT TRUE,
-    promotion_notifications BOOLEAN NOT NULL DEFAULT TRUE,
-    account_notifications BOOLEAN NOT NULL DEFAULT TRUE,
-    delivery_notifications BOOLEAN NOT NULL DEFAULT TRUE,
-    alert_notifications BOOLEAN NOT NULL DEFAULT TRUE,
+-- Add per-category notification preferences
+ALTER TABLE notification_preferences ADD COLUMN IF NOT EXISTS order_notifications BOOLEAN NOT NULL DEFAULT TRUE;
+ALTER TABLE notification_preferences ADD COLUMN IF NOT EXISTS finance_notifications BOOLEAN NOT NULL DEFAULT TRUE;
+ALTER TABLE notification_preferences ADD COLUMN IF NOT EXISTS support_notifications BOOLEAN NOT NULL DEFAULT TRUE;
+ALTER TABLE notification_preferences ADD COLUMN IF NOT EXISTS system_notifications BOOLEAN NOT NULL DEFAULT TRUE;
+ALTER TABLE notification_preferences ADD COLUMN IF NOT EXISTS promotion_notifications BOOLEAN NOT NULL DEFAULT TRUE;
+ALTER TABLE notification_preferences ADD COLUMN IF NOT EXISTS account_notifications BOOLEAN NOT NULL DEFAULT TRUE;
+ALTER TABLE notification_preferences ADD COLUMN IF NOT EXISTS delivery_notifications BOOLEAN NOT NULL DEFAULT TRUE;
+ALTER TABLE notification_preferences ADD COLUMN IF NOT EXISTS alert_notifications BOOLEAN NOT NULL DEFAULT TRUE;
 
-    -- Channel preferences
-    in_app_enabled BOOLEAN NOT NULL DEFAULT TRUE,
-    push_enabled BOOLEAN NOT NULL DEFAULT TRUE,
-    email_enabled BOOLEAN NOT NULL DEFAULT TRUE,
-    sms_enabled BOOLEAN NOT NULL DEFAULT FALSE,
+-- Add in_app_enabled (other channel prefs already exist from V1)
+ALTER TABLE notification_preferences ADD COLUMN IF NOT EXISTS in_app_enabled BOOLEAN NOT NULL DEFAULT TRUE;
 
-    -- Quiet hours
-    quiet_hours_enabled BOOLEAN NOT NULL DEFAULT FALSE,
-    quiet_hours_start TIME,
-    quiet_hours_end TIME,
+-- Add quiet hours columns
+ALTER TABLE notification_preferences ADD COLUMN IF NOT EXISTS quiet_hours_enabled BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE notification_preferences ADD COLUMN IF NOT EXISTS quiet_hours_start TIME;
+ALTER TABLE notification_preferences ADD COLUMN IF NOT EXISTS quiet_hours_end TIME;
 
-    -- Audit fields
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+-- Add audit timestamps if not present
+ALTER TABLE notification_preferences ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+ALTER TABLE notification_preferences ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
 
-    -- Unique constraint per user per role
-    CONSTRAINT uk_notification_preferences_user_role UNIQUE (user_id, role)
-);
+-- Drop old unique constraint on user_id only (from V1) if it exists
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'notification_preferences_user_id_key') THEN
+        ALTER TABLE notification_preferences DROP CONSTRAINT notification_preferences_user_id_key;
+    END IF;
+END $$;
+
+-- Add new unique constraint for user_id + role combination
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'uk_notification_preferences_user_role') THEN
+        ALTER TABLE notification_preferences ADD CONSTRAINT uk_notification_preferences_user_role UNIQUE (user_id, role);
+    END IF;
+END $$;
 
 -- =====================================================
 -- Notification Read Status Table (for broadcast notifications)
