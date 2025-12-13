@@ -44,6 +44,7 @@ CREATE TABLE restaurants (
     name VARCHAR(200) NOT NULL,
     slug VARCHAR(250) UNIQUE,
     description VARCHAR(1000),
+    cuisine_type VARCHAR(100),
     logo_url VARCHAR(255),
     cover_image_url VARCHAR(255),
     phone VARCHAR(50),

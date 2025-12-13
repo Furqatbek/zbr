@@ -43,6 +43,9 @@ public class Restaurant {
     @Column(length = 1000)
     private String description;
 
+    @Column(name = "cuisine_type", length = 100)
+    private String cuisineType;
+
     @Column(name = "logo_url")
     private String logoUrl;
 
