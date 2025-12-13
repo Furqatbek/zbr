@@ -344,7 +344,7 @@ public class SupportCollector {
      * Collect common issues.
      */
     private List<CommonIssueDto> collectCommonIssues(LocalDateTime startDate, LocalDateTime endDate, int limit) {
-        List<Object[]> issueData = supportRepository.getCommonIssues(startDate, endDate, limit);
+        List<Object[]> issueData = supportRepository.getCommonIssues(startDate, endDate, PageRequest.of(0, limit));
 
         Long totalTickets = supportRepository.countTotalTickets(startDate, endDate);
 

@@ -410,7 +410,7 @@ public interface DashboardSupportRepository extends JpaRepository<SupportTicket,
             "ORDER BY COUNT(t) DESC")
     List<Object[]> getCommonIssues(@Param("startDate") LocalDateTime startDate,
                                     @Param("endDate") LocalDateTime endDate,
-                                    @Param("limit") int limit);
+                                    Pageable pageable);
 
     /**
      * Get hourly ticket distribution.
