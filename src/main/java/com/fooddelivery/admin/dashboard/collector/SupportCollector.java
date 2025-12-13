@@ -130,6 +130,8 @@ public class SupportCollector {
 
     /**
      * Map raw query result to SupportTicketItemDto.
+     * Query returns: id, ticketNumber, userId, orderId, ticketType, priority, status, subject,
+     *                createdAt, updatedAt, assignedTo, firstResponseAt, resolvedAt, escalated, refundAmount
      */
     private SupportTicketItemDto mapToTicketItem(Object[] row) {
         int idx = 0;
@@ -137,26 +139,29 @@ public class SupportCollector {
         String ticketNumber = (String) row[idx++];
         Long customerId = row[idx] != null ? ((Number) row[idx]).longValue() : null;
         idx++;
-        String customerName = (String) row[idx++];
+        String customerName = null; // User names not joined in query
         Long orderId = row[idx] != null ? ((Number) row[idx]).longValue() : null;
         idx++;
-        String category = (String) row[idx++];
-        String priority = (String) row[idx++];
-        String status = (String) row[idx++];
+        String category = row[idx] != null ? row[idx].toString() : null;
+        idx++;
+        String priority = row[idx] != null ? row[idx].toString() : null;
+        idx++;
+        String status = row[idx] != null ? row[idx].toString() : null;
+        idx++;
         String subject = (String) row[idx++];
         LocalDateTime createdAt = (LocalDateTime) row[idx++];
         LocalDateTime updatedAt = row[idx] != null ? (LocalDateTime) row[idx] : null;
         idx++;
         Long assignedAgentId = row[idx] != null ? ((Number) row[idx]).longValue() : null;
         idx++;
-        String assignedAgentName = (String) row[idx++];
+        String assignedAgentName = null; // Agent names not joined in query
         LocalDateTime firstResponseAt = row[idx] != null ? (LocalDateTime) row[idx] : null;
         idx++;
         LocalDateTime resolvedAt = row[idx] != null ? (LocalDateTime) row[idx] : null;
         idx++;
         Boolean isEscalated = row[idx] != null ? (Boolean) row[idx] : false;
         idx++;
-        BigDecimal refundAmount = row[idx] != null ? (BigDecimal) row[idx] : null;
+        BigDecimal refundAmount = row[idx] != null ? new BigDecimal(row[idx].toString()) : null;
 
         // Calculate wait time
         Long waitTimeMinutes = calculateWaitTime(createdAt, firstResponseAt, status);

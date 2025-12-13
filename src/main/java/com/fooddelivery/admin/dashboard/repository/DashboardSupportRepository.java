@@ -332,15 +332,11 @@ public interface DashboardSupportRepository extends JpaRepository<SupportTicket,
     /**
      * Find ticket details for dashboard display.
      */
-    @Query("SELECT t.id, t.ticketNumber, t.customerId, " +
-            "CONCAT(COALESCE(u.firstName, ''), ' ', COALESCE(u.lastName, '')), " +
+    @Query("SELECT t.id, t.ticketNumber, t.userId, " +
             "t.orderId, t.ticketType, t.priority, t.status, t.subject, " +
             "t.createdAt, t.updatedAt, t.assignedTo, " +
-            "CONCAT(COALESCE(a.firstName, ''), ' ', COALESCE(a.lastName, '')), " +
             "t.firstResponseAt, t.resolvedAt, t.escalated, t.refundAmount " +
             "FROM SupportTicket t " +
-            "LEFT JOIN t.customer u " +
-            "LEFT JOIN t.assignedAgent a " +
             "WHERE t.createdAt BETWEEN :startDate AND :endDate " +
             "ORDER BY t.createdAt DESC")
     List<Object[]> findTicketDetails(@Param("startDate") LocalDateTime startDate,
