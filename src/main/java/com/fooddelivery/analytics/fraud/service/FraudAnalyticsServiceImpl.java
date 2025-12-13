@@ -83,7 +83,7 @@ public class FraudAnalyticsServiceImpl implements FraudAnalyticsService {
                 startDate, endDate,
                 request.getDeviceSignupThreshold(),
                 request.getIpSignupThreshold(),
-                request.getPromoAbuseRateThreshold(),
+                request.getMinOrdersForPromoAbuse(),
                 request.getIncludeDetailedLists(),
                 request.getMaxListSize());
 
@@ -124,8 +124,12 @@ public class FraudAnalyticsServiceImpl implements FraudAnalyticsService {
             double orderValueZScore, int addressUserThreshold,
             boolean includeDetails, int maxListSize) {
         log.debug("Collecting behavioral fraud metrics from {} to {}", startDate, endDate);
+        // Use default values for missing parameters
+        int velocityWindowMinutes = 60;
+        int minOrdersForRefund = 5;
         return behavioralFraudCollector.collect(startDate, endDate, velocityThreshold,
-                refundRateThreshold, orderValueZScore, addressUserThreshold,
+                velocityWindowMinutes, orderValueZScore, refundRateThreshold,
+                minOrdersForRefund, addressUserThreshold,
                 includeDetails, maxListSize);
     }
 
@@ -149,10 +153,10 @@ public class FraudAnalyticsServiceImpl implements FraudAnalyticsService {
     public ReferralFraudMetricsDto getReferralFraudMetrics(
             LocalDateTime startDate, LocalDateTime endDate,
             int deviceSignupThreshold, int ipSignupThreshold,
-            double promoAbuseRate, boolean includeDetails, int maxListSize) {
+            int minOrdersForPromoAbuse, boolean includeDetails, int maxListSize) {
         log.debug("Collecting referral fraud metrics from {} to {}", startDate, endDate);
         return referralFraudCollector.collect(startDate, endDate, deviceSignupThreshold,
-                ipSignupThreshold, promoAbuseRate, includeDetails, maxListSize);
+                ipSignupThreshold, minOrdersForPromoAbuse, includeDetails, maxListSize);
     }
 
     @Override

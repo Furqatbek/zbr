@@ -93,7 +93,7 @@ public interface FraudAnalyticsService {
      * @param endDate End of analysis period
      * @param deviceSignupThreshold Threshold for signups per device
      * @param ipSignupThreshold Threshold for signups per IP
-     * @param promoAbuseRate Threshold for promo abuse rate
+     * @param minOrdersForPromoAbuse Minimum orders threshold for promo abuse detection
      * @param includeDetails Whether to include detailed lists
      * @param maxListSize Maximum size for detailed lists
      * @return Referral fraud metrics
@@ -103,7 +103,7 @@ public interface FraudAnalyticsService {
             LocalDateTime endDate,
             int deviceSignupThreshold,
             int ipSignupThreshold,
-            double promoAbuseRate,
+            int minOrdersForPromoAbuse,
             boolean includeDetails,
             int maxListSize);
 

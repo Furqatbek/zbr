@@ -154,6 +154,16 @@ public class Order {
     @Column(name = "cancellation_reason", length = 500)
     private String cancellationReason;
 
+    // Rejection fields
+    @Column(name = "rejected_at")
+    private LocalDateTime rejectedAt;
+
+    @Column(name = "rejected_by", length = 50)
+    private String rejectedBy; // RESTAURANT, COURIER
+
+    @Column(name = "rejection_reason", length = 500)
+    private String rejectionReason;
+
     // Rating
     @Column(name = "consumer_rating")
     private Integer consumerRating;

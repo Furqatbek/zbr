@@ -413,8 +413,8 @@ public class AdminDashboardController {
         if (filter.getPage() == null) {
             filter.setPage(DashboardConstants.DEFAULT_PAGE);
         }
-        if (filter.getPageSize() == null) {
-            filter.setPageSize(DashboardConstants.DEFAULT_PAGE_SIZE);
+        if (filter.getSize() == null) {
+            filter.setSize(DashboardConstants.DEFAULT_PAGE_SIZE);
         }
 
         return filter;

@@ -153,7 +153,10 @@ public class RestaurantMetricsDto {
         private Double acceptanceRate;
         private Double avgAcceptanceRate;
         private Double rejectionRate;
-        private BigDecimal avgRating;
+        // Original BigDecimal field
+        private BigDecimal avgRatingDecimal;
+        // Double alias for collector compatibility
+        private Double avgRating;
         private Long totalOrders;
         private Long totalOrdersProcessed;
         private List<String> improvementSuggestions;

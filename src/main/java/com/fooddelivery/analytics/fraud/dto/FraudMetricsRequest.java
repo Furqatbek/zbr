@@ -31,6 +31,9 @@ public class FraudMetricsRequest {
     private Integer orderVelocityThresholdPerHour = 5;
     @Builder.Default
     private Integer velocityTimeWindowMinutes = 60;
+    // Alias for service compatibility
+    @Builder.Default
+    private Integer velocityThreshold = 5;
 
     // Order value thresholds
     @Builder.Default
@@ -39,18 +42,30 @@ public class FraudMetricsRequest {
     // Refund thresholds
     @Builder.Default
     private Double highRefundRateThreshold = 0.3; // 30%
+    // Alias for service compatibility
+    @Builder.Default
+    private Double refundRateThreshold = 0.3;
     @Builder.Default
     private Integer minOrdersForRefundAnalysis = 5;
 
     // Account thresholds
     @Builder.Default
     private Integer fakeAccountAgeThresholdHours = 24;
+    // Alias for service compatibility
+    @Builder.Default
+    private Integer fakeAccountAgeThreshold = 24;
     @Builder.Default
     private Integer multiAccountDeviceThreshold = 2;
+    // Alias for service compatibility
+    @Builder.Default
+    private Integer deviceShareThreshold = 2;
     @Builder.Default
     private Integer multiAccountIpThreshold = 3;
     @Builder.Default
     private Integer ipShareThreshold = 3;
+    // Alias for service compatibility
+    @Builder.Default
+    private Integer addressUserThreshold = 3;
 
     // Referral thresholds
     @Builder.Default
@@ -75,6 +90,9 @@ public class FraudMetricsRequest {
     private Integer failedLoginThreshold = 5;
     @Builder.Default
     private Integer rateLimitThreshold = 10;
+    // Alias for service compatibility
+    @Builder.Default
+    private Integer loginTimeWindowMinutes = 60;
 
     // Address thresholds
     @Builder.Default
