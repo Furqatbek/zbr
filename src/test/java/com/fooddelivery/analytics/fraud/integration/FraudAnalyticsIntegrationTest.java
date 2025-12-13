@@ -113,7 +113,7 @@ class FraudAnalyticsIntegrationTest {
                 PaymentAttempt attempt = PaymentAttempt.builder()
                         .userId(userId)
                         .amount(BigDecimal.valueOf(1.00))
-                        .paymentMethod("CARD")
+                        .paymentMethod(PaymentAttempt.PaymentMethod.CREDIT_CARD)
                         .status(PaymentAttempt.PaymentStatus.DECLINED)
                         .failureReason("CARD_DECLINED")
                         .createdAt(LocalDateTime.now().minusMinutes(i))
@@ -134,7 +134,7 @@ class FraudAnalyticsIntegrationTest {
                 PaymentAttempt attempt = PaymentAttempt.builder()
                         .userId(userId)
                         .amount(BigDecimal.valueOf(25.00 + i))
-                        .paymentMethod("CARD")
+                        .paymentMethod(PaymentAttempt.PaymentMethod.CREDIT_CARD)
                         .status(i < failed ? PaymentAttempt.PaymentStatus.FAILED : PaymentAttempt.PaymentStatus.SUCCESS)
                         .failureReason(i < failed ? "INSUFFICIENT_FUNDS" : null)
                         .createdAt(LocalDateTime.now().minusHours(i))
@@ -159,7 +159,8 @@ class FraudAnalyticsIntegrationTest {
                         .orderId((long) (3000 + i))
                         .userId(userId)
                         .restaurantId(100L)
-                        .orderTotal(BigDecimal.valueOf(30.00))
+                        .amount(BigDecimal.valueOf(30.00))
+                        .status(FraudOrderHistory.OrderStatus.DELIVERED)
                         .createdAt(LocalDateTime.now().minusMinutes(i * 5)) // 15 orders in 75 minutes
                         .build();
                 orderHistoryRepository.save(order);
@@ -185,7 +186,8 @@ class FraudAnalyticsIntegrationTest {
                         .orderId((long) (4000 + i))
                         .userId(userId)
                         .restaurantId(101L)
-                        .orderTotal(BigDecimal.valueOf(40.00))
+                        .amount(BigDecimal.valueOf(40.00))
+                        .status(FraudOrderHistory.OrderStatus.DELIVERED)
                         .isRefunded(i < 7) // 7 out of 10 refunded = 70%
                         .refundAmount(i < 7 ? BigDecimal.valueOf(40.00) : BigDecimal.ZERO)
                         .refundReason(i < 7 ? "CUSTOMER_REQUEST" : null)
@@ -218,7 +220,7 @@ class FraudAnalyticsIntegrationTest {
                 DeviceFingerprint device = DeviceFingerprint.builder()
                         .deviceId(sharedDeviceId)
                         .userId(userId)
-                        .deviceType(DeviceFingerprint.DeviceType.MOBILE_ANDROID)
+                        .deviceType("MOBILE_ANDROID")
                         .trustScore(80)
                         .firstSeenAt(LocalDateTime.now().minusDays(1))
                         .lastSeenAt(LocalDateTime.now())
@@ -244,7 +246,7 @@ class FraudAnalyticsIntegrationTest {
             DeviceFingerprint emulator = DeviceFingerprint.builder()
                     .deviceId("EMULATOR-001")
                     .userId(3010L)
-                    .deviceType(DeviceFingerprint.DeviceType.MOBILE_ANDROID)
+                    .deviceType("MOBILE_ANDROID")
                     .isEmulator(true)
                     .trustScore(20)
                     .firstSeenAt(LocalDateTime.now().minusHours(2))
@@ -255,7 +257,7 @@ class FraudAnalyticsIntegrationTest {
             DeviceFingerprint rooted = DeviceFingerprint.builder()
                     .deviceId("ROOTED-001")
                     .userId(3011L)
-                    .deviceType(DeviceFingerprint.DeviceType.MOBILE_ANDROID)
+                    .deviceType("MOBILE_ANDROID")
                     .isRooted(true)
                     .trustScore(30)
                     .firstSeenAt(LocalDateTime.now().minusHours(1))
@@ -337,8 +339,8 @@ class FraudAnalyticsIntegrationTest {
 
             // Assert
             assertThat(metrics.getIpSecurityMetrics()).isNotNull();
-            assertThat(metrics.getIpSecurityMetrics().getVpnUsageCount()).isGreaterThanOrEqualTo(1L);
-            assertThat(metrics.getIpSecurityMetrics().getTorUsageCount()).isGreaterThanOrEqualTo(1L);
+            assertThat(metrics.getIpSecurityMetrics().getVpnIps()).isGreaterThanOrEqualTo(1L);
+            assertThat(metrics.getIpSecurityMetrics().getTorIps()).isGreaterThanOrEqualTo(1L);
         }
     }
 
@@ -358,10 +360,10 @@ class FraudAnalyticsIntegrationTest {
                         .referrerId(referrerId)
                         .referredUserId(referredId)
                         .referralCode("REF-" + referrerId)
-                        .signupDeviceId(fraudDevice)
-                        .signupIpAddress("192.168.1." + (referredId % 256))
-                        .rewardEarned(BigDecimal.valueOf(5.00))
-                        .rewardType(ReferralEvent.RewardType.CREDIT)
+                        .deviceId(fraudDevice)
+                        .ipAddress("192.168.1." + (referredId % 256))
+                        .referrerBonus(BigDecimal.valueOf(5.00))
+                        .status(ReferralEvent.ReferralStatus.COMPLETED)
                         .createdAt(LocalDateTime.now().minusDays((int)(referredId - 5002)))
                         .build();
                 referralEventRepository.save(event);
@@ -412,7 +414,7 @@ class FraudAnalyticsIntegrationTest {
             PaymentAttempt payment = PaymentAttempt.builder()
                     .userId(userId)
                     .amount(BigDecimal.valueOf(50.00))
-                    .paymentMethod("CARD")
+                    .paymentMethod(PaymentAttempt.PaymentMethod.CREDIT_CARD)
                     .status(PaymentAttempt.PaymentStatus.SUCCESS)
                     .createdAt(LocalDateTime.now().minusHours(1))
                     .build();
