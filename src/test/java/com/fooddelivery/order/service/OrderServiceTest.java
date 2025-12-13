@@ -6,9 +6,11 @@ import com.fooddelivery.auth.repository.UserRepository;
 import com.fooddelivery.common.event.EventPublisher;
 import com.fooddelivery.common.exception.BadRequestException;
 import com.fooddelivery.common.exception.ResourceNotFoundException;
+import com.fooddelivery.order.dto.CancelOrderRequest;
 import com.fooddelivery.order.dto.CreateOrderRequest;
 import com.fooddelivery.order.dto.OrderDto;
 import com.fooddelivery.order.dto.OrderItemRequest;
+import com.fooddelivery.order.dto.UpdateOrderStatusRequest;
 import com.fooddelivery.order.entity.Order;
 import com.fooddelivery.order.entity.OrderStatus;
 import com.fooddelivery.order.entity.OrderType;
@@ -34,8 +36,7 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -73,7 +74,8 @@ class OrderServiceTest {
         testCustomer = User.builder()
                 .id(1L)
                 .email("customer@example.com")
-                .fullName("Test Customer")
+                .firstName("Test")
+                .lastName("Customer")
                 .role(Role.CONSUMER)
                 .build();
 
@@ -88,23 +90,22 @@ class OrderServiceTest {
 
         testMenuItem = MenuItem.builder()
                 .id(1L)
-                .restaurant(testRestaurant)
                 .name("Test Item")
-                .basePrice(new BigDecimal("12.99"))
-                .isAvailable(true)
+                .price(new BigDecimal("12.99"))
+                .inStock(true)
                 .build();
 
         testOrder = Order.builder()
                 .id(1L)
-                .orderNumber("ORD-2024-001")
-                .customer(testCustomer)
+                .externalOrderNo("ORD-2024-001")
+                .consumer(testCustomer)
                 .restaurant(testRestaurant)
                 .status(OrderStatus.CREATED)
                 .orderType(OrderType.DELIVERY)
                 .subtotal(new BigDecimal("25.98"))
-                .taxAmount(new BigDecimal("2.60"))
+                .tax(new BigDecimal("2.60"))
                 .deliveryFee(new BigDecimal("3.99"))
-                .totalAmount(new BigDecimal("32.57"))
+                .total(new BigDecimal("32.57"))
                 .build();
     }
 
@@ -124,15 +125,12 @@ class OrderServiceTest {
                                     .quantity(2)
                                     .build()
                     ))
-                    .deliveryAddressLine1("123 Test St")
-                    .deliveryCity("Test City")
-                    .deliveryState("TS")
-                    .deliveryPostalCode("12345")
+                    .deliveryAddress("123 Test St, Test City, TS 12345")
                     .build();
 
             OrderDto expectedDto = OrderDto.builder()
                     .id(1L)
-                    .orderNumber("ORD-2024-001")
+                    .externalOrderNo("ORD-2024-001")
                     .status(OrderStatus.CREATED)
                     .build();
 
@@ -145,9 +143,9 @@ class OrderServiceTest {
             OrderDto result = orderService.createOrder(1L, request);
 
             assertThat(result).isNotNull();
-            assertThat(result.getOrderNumber()).isEqualTo("ORD-2024-001");
+            assertThat(result.getExternalOrderNo()).isEqualTo("ORD-2024-001");
             verify(orderRepository).save(any(Order.class));
-            verify(eventPublisher).publishOrderCreated(any(Order.class));
+            verify(eventPublisher).publishAsync(anyString(), anyString(), any());
         }
 
         @Test
@@ -196,15 +194,18 @@ class OrderServiceTest {
                     .status(OrderStatus.ACCEPTED)
                     .build();
 
-            when(orderRepository.findById(anyLong())).thenReturn(Optional.of(testOrder));
+            when(orderRepository.findByIdWithLock(anyLong())).thenReturn(Optional.of(testOrder));
             when(orderRepository.save(any(Order.class))).thenReturn(testOrder);
             when(orderMapper.toDto(any(Order.class))).thenReturn(expectedDto);
 
-            OrderDto result = orderService.updateOrderStatus(1L, OrderStatus.ACCEPTED);
+            UpdateOrderStatusRequest statusRequest = UpdateOrderStatusRequest.builder()
+                    .status(OrderStatus.ACCEPTED)
+                    .build();
+            OrderDto result = orderService.updateOrderStatus(1L, statusRequest);
 
             assertThat(result).isNotNull();
             assertThat(result.getStatus()).isEqualTo(OrderStatus.ACCEPTED);
-            verify(eventPublisher).publishOrderStatusChanged(any(Order.class), eq(OrderStatus.CREATED));
+            verify(eventPublisher).publishAsync(anyString(), anyString(), any());
         }
 
         @Test
@@ -212,19 +213,25 @@ class OrderServiceTest {
         void shouldThrowExceptionForInvalidStatusTransition() {
             testOrder.setStatus(OrderStatus.DELIVERED);
 
-            when(orderRepository.findById(anyLong())).thenReturn(Optional.of(testOrder));
+            when(orderRepository.findByIdWithLock(anyLong())).thenReturn(Optional.of(testOrder));
 
-            assertThatThrownBy(() -> orderService.updateOrderStatus(1L, OrderStatus.PREPARING))
-                    .isInstanceOf(BadRequestException.class)
+            UpdateOrderStatusRequest statusRequest = UpdateOrderStatusRequest.builder()
+                    .status(OrderStatus.PREPARING)
+                    .build();
+            assertThatThrownBy(() -> orderService.updateOrderStatus(1L, statusRequest))
+                    .isInstanceOf(com.fooddelivery.common.exception.InvalidOperationException.class)
                     .hasMessageContaining("Cannot transition");
         }
 
         @Test
         @DisplayName("Should throw exception when order not found")
         void shouldThrowExceptionWhenOrderNotFound() {
-            when(orderRepository.findById(anyLong())).thenReturn(Optional.empty());
+            when(orderRepository.findByIdWithLock(anyLong())).thenReturn(Optional.empty());
 
-            assertThatThrownBy(() -> orderService.updateOrderStatus(999L, OrderStatus.ACCEPTED))
+            UpdateOrderStatusRequest statusRequest = UpdateOrderStatusRequest.builder()
+                    .status(OrderStatus.ACCEPTED)
+                    .build();
+            assertThatThrownBy(() -> orderService.updateOrderStatus(999L, statusRequest))
                     .isInstanceOf(ResourceNotFoundException.class)
                     .hasMessageContaining("Order not found");
         }
@@ -243,11 +250,14 @@ class OrderServiceTest {
                     .status(OrderStatus.CANCELLED)
                     .build();
 
-            when(orderRepository.findById(anyLong())).thenReturn(Optional.of(testOrder));
+            when(orderRepository.findByIdWithLock(anyLong())).thenReturn(Optional.of(testOrder));
             when(orderRepository.save(any(Order.class))).thenReturn(testOrder);
             when(orderMapper.toDto(any(Order.class))).thenReturn(expectedDto);
 
-            OrderDto result = orderService.cancelOrder(1L, "Customer requested cancellation");
+            CancelOrderRequest cancelRequest = CancelOrderRequest.builder()
+                    .reason("Customer requested cancellation")
+                    .build();
+            OrderDto result = orderService.cancelOrder(1L, cancelRequest, 1L);
 
             assertThat(result).isNotNull();
             verify(orderRepository).save(any(Order.class));
@@ -258,11 +268,14 @@ class OrderServiceTest {
         void shouldThrowExceptionWhenCancellingDeliveredOrder() {
             testOrder.setStatus(OrderStatus.DELIVERED);
 
-            when(orderRepository.findById(anyLong())).thenReturn(Optional.of(testOrder));
+            when(orderRepository.findByIdWithLock(anyLong())).thenReturn(Optional.of(testOrder));
 
-            assertThatThrownBy(() -> orderService.cancelOrder(1L, "Too late"))
-                    .isInstanceOf(BadRequestException.class)
-                    .hasMessageContaining("Cannot cancel");
+            CancelOrderRequest cancelRequest = CancelOrderRequest.builder()
+                    .reason("Too late")
+                    .build();
+            assertThatThrownBy(() -> orderService.cancelOrder(1L, cancelRequest, 1L))
+                    .isInstanceOf(com.fooddelivery.common.exception.InvalidOperationException.class)
+                    .hasMessageContaining("cannot be cancelled");
         }
     }
 }

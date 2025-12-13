@@ -67,7 +67,8 @@ class AuthIntegrationTest {
         RegisterRequest request = RegisterRequest.builder()
                 .email("newuser@example.com")
                 .password("SecurePass123!")
-                .fullName("New User")
+                .firstName("New")
+                .lastName("User")
                 .phone("+1234567890")
                 .role(Role.CONSUMER)
                 .build();
@@ -89,7 +90,8 @@ class AuthIntegrationTest {
         RegisterRequest request = RegisterRequest.builder()
                 .email("duplicate@example.com")
                 .password("SecurePass123!")
-                .fullName("First User")
+                .firstName("First")
+                .lastName("User")
                 .role(Role.CONSUMER)
                 .build();
 
@@ -115,7 +117,8 @@ class AuthIntegrationTest {
         RegisterRequest registerRequest = RegisterRequest.builder()
                 .email("logintest@example.com")
                 .password("SecurePass123!")
-                .fullName("Login Test User")
+                .firstName("Login")
+                .lastName("Test User")
                 .role(Role.CONSUMER)
                 .build();
 
@@ -126,7 +129,7 @@ class AuthIntegrationTest {
 
         // Then login
         LoginRequest loginRequest = LoginRequest.builder()
-                .email("logintest@example.com")
+                .emailOrPhone("logintest@example.com")
                 .password("SecurePass123!")
                 .build();
 
@@ -146,7 +149,8 @@ class AuthIntegrationTest {
         RegisterRequest registerRequest = RegisterRequest.builder()
                 .email("invalidlogin@example.com")
                 .password("SecurePass123!")
-                .fullName("Test User")
+                .firstName("Test")
+                .lastName("User")
                 .role(Role.CONSUMER)
                 .build();
 
@@ -157,7 +161,7 @@ class AuthIntegrationTest {
 
         // Try login with wrong password
         LoginRequest loginRequest = LoginRequest.builder()
-                .email("invalidlogin@example.com")
+                .emailOrPhone("invalidlogin@example.com")
                 .password("WrongPassword!")
                 .build();
 
@@ -175,7 +179,8 @@ class AuthIntegrationTest {
         RegisterRequest registerRequest = RegisterRequest.builder()
                 .email("refresh@example.com")
                 .password("SecurePass123!")
-                .fullName("Refresh Test User")
+                .firstName("Refresh")
+                .lastName("Test User")
                 .role(Role.CONSUMER)
                 .build();
 
@@ -203,7 +208,8 @@ class AuthIntegrationTest {
         RegisterRequest request = RegisterRequest.builder()
                 .email("invalid-email")
                 .password("SecurePass123!")
-                .fullName("Test User")
+                .firstName("Test")
+                .lastName("User")
                 .role(Role.CONSUMER)
                 .build();
 
@@ -220,7 +226,8 @@ class AuthIntegrationTest {
         RegisterRequest request = RegisterRequest.builder()
                 .email("test@example.com")
                 .password("weak")
-                .fullName("Test User")
+                .firstName("Test")
+                .lastName("User")
                 .role(Role.CONSUMER)
                 .build();
 
