@@ -16,9 +16,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.*;
@@ -94,7 +91,7 @@ class FraudAnalyticsServiceTest {
 
             when(paymentFraudCollector.collect(any(), any(), anyInt(), anyInt(), anyBoolean(), anyInt()))
                     .thenReturn(paymentMetrics);
-            when(behavioralFraudCollector.collect(any(), any(), anyInt(), anyDouble(), anyDouble(), anyInt(), anyBoolean(), anyInt()))
+            when(behavioralFraudCollector.collect(any(), any(), anyInt(), anyInt(), anyDouble(), anyDouble(), anyInt(), anyInt(), anyBoolean(), anyInt()))
                     .thenReturn(behavioralMetrics);
             when(accountIntegrityCollector.collect(any(), any(), anyInt(), anyInt(), anyInt(), anyBoolean(), anyInt()))
                     .thenReturn(accountMetrics);
@@ -121,7 +118,7 @@ class FraudAnalyticsServiceTest {
             assertThat(result.getRiskLevel()).isEqualTo("MEDIUM");
 
             verify(paymentFraudCollector).collect(any(), any(), anyInt(), anyInt(), anyBoolean(), anyInt());
-            verify(behavioralFraudCollector).collect(any(), any(), anyInt(), anyDouble(), anyDouble(), anyInt(), anyBoolean(), anyInt());
+            verify(behavioralFraudCollector).collect(any(), any(), anyInt(), anyInt(), anyDouble(), anyDouble(), anyInt(), anyInt(), anyBoolean(), anyInt());
             verify(accountIntegrityCollector).collect(any(), any(), anyInt(), anyInt(), anyInt(), anyBoolean(), anyInt());
             verify(referralFraudCollector).collect(any(), any(), anyInt(), anyInt(), anyInt(), anyBoolean(), anyInt());
             verify(securityLogCollector).collect(any(), any(), anyInt(), anyInt(), anyInt(), anyBoolean(), anyInt());
@@ -186,19 +183,19 @@ class FraudAnalyticsServiceTest {
         void shouldReturnBehavioralFraudMetrics() {
             // Arrange
             BehavioralFraudMetricsDto expectedMetrics = createMockBehavioralMetrics();
-            when(behavioralFraudCollector.collect(any(), any(), anyInt(), anyDouble(), anyDouble(), anyInt(), anyBoolean(), anyInt()))
+            when(behavioralFraudCollector.collect(any(), any(), anyInt(), anyInt(), anyDouble(), anyDouble(), anyInt(), anyInt(), anyBoolean(), anyInt()))
                     .thenReturn(expectedMetrics);
 
             // Act
             BehavioralFraudMetricsDto result = fraudAnalyticsService.getBehavioralFraudMetrics(
-                    startDate, endDate, 5, 30.0, 3.0, 3, true, 100);
+                    startDate, endDate, 5, 30, 3.0, 0.3, 3, 5, true, 100);
 
             // Assert
             assertThat(result).isNotNull();
             assertThat(result.getVelocityMetrics()).isNotNull();
             assertThat(result.getRefundAbuse()).isNotNull();
 
-            verify(behavioralFraudCollector).collect(startDate, endDate, 5, 30.0, 3.0, 3, true, 100);
+            verify(behavioralFraudCollector).collect(startDate, endDate, 5, 30, 3.0, 0.3, 3, 5, true, 100);
         }
     }
 
@@ -294,10 +291,9 @@ class FraudAnalyticsServiceTest {
             when(paymentAttemptRepository.getUserTotalFailedAmount(eq(userId), any(), any()))
                     .thenReturn(BigDecimal.valueOf(50.00));
 
-            List<Object[]> orderStats = new ArrayList<>();
-            orderStats.add(new Object[]{100L, 5L, BigDecimal.valueOf(25.00)});
+            Object[] orderStats = new Object[]{100L, 5L, BigDecimal.valueOf(25.00)};
             when(orderHistoryRepository.getUserOrderStats(eq(userId), any(), any()))
-                    .thenReturn(Optional.of(orderStats.get(0)));
+                    .thenReturn(orderStats);
 
             when(deviceFingerprintRepository.countUserDevices(eq(userId), any(), any()))
                     .thenReturn(2L);
@@ -358,10 +354,9 @@ class FraudAnalyticsServiceTest {
             when(paymentAttemptRepository.getUserTotalFailedAmount(eq(userId), any(), any()))
                     .thenReturn(BigDecimal.valueOf(500.00));
 
-            List<Object[]> orderStats = new ArrayList<>();
-            orderStats.add(new Object[]{50L, 25L, BigDecimal.valueOf(30.00)});
+            Object[] orderStats = new Object[]{50L, 25L, BigDecimal.valueOf(30.00)};
             when(orderHistoryRepository.getUserOrderStats(eq(userId), any(), any()))
-                    .thenReturn(Optional.of(orderStats.get(0)));
+                    .thenReturn(orderStats);
 
             when(deviceFingerprintRepository.countUserDevices(eq(userId), any(), any()))
                     .thenReturn(8L);

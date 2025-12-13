@@ -380,7 +380,7 @@ class TechnicalAnalyticsIntegrationTest {
                     .deliveredAt(i < 195 ? testStart.plusMinutes(i % 60).plusNanos((long) (Math.random() * 100_000_000)) : null)
                     .isDelivered(i < 195)
                     .deliveryAttempts(i < 190 ? 1 : 2)
-                    .failureReason(i >= 195 ? "Connection closed" : null)
+                    .errorMessage(i >= 195 ? "Connection closed" : null)
                     .build();
             wsMessageLogRepository.save(msgLog);
         }
