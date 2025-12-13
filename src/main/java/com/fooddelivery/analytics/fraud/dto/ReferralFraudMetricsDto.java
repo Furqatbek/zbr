@@ -24,6 +24,8 @@ public class ReferralFraudMetricsDto {
     private Long completedReferrals;
     private Long suspiciousReferrals;
     private Double fraudulentReferralRate;
+    // Alias for mapper compatibility
+    private Double overallReferralFraudRate;
 
     // Device-based fraud
     private DeviceReferralFraudDto deviceFraud;
@@ -33,9 +35,13 @@ public class ReferralFraudMetricsDto {
 
     // Circular referral detection
     private CircularReferralMetricsDto circularReferrals;
+    // Alias for mapper compatibility
+    private CircularReferralMetricsDto circularReferralMetrics;
 
     // Promo abuse metrics
     private PromoAbuseMetricsDto promoAbuse;
+    // Alias for mapper compatibility
+    private PromoAbuseMetricsDto promoAbuseMetrics;
 
     // Top fraudulent referrers
     private List<FraudulentReferrerDto> topFraudulentReferrers;
@@ -110,6 +116,8 @@ public class ReferralFraudMetricsDto {
         private Long usersInCircularChains;
         private BigDecimal bonusesInCircularChains;
         private List<CircularChainDto> detectedChains;
+        // Alias for mapper compatibility
+        private Long circularChainCount;
     }
 
     @Data
@@ -139,6 +147,8 @@ public class ReferralFraudMetricsDto {
         private List<PromoAbuserDto> topPromoAbusers;
         private Map<String, Long> abuseByPromoType;
         private Integer minOrdersForPromoAbuse;
+        // Alias for mapper compatibility
+        private Long promoOnlyUsersCount;
     }
 
     @Data
