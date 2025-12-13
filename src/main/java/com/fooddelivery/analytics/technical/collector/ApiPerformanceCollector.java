@@ -79,10 +79,10 @@ public class ApiPerformanceCollector {
         httpRequestLogRepository.getRequestCountByMethod(startDate, endDate)
                 .forEach(row -> requestsByMethod.put((String) row[0], ((Number) row[1]).longValue()));
 
-        // Get request count by status
-        Map<Integer, Long> requestsByStatus = new HashMap<>();
+        // Get request count by status (converting status codes to String for DTO compatibility)
+        Map<String, Long> requestsByStatus = new HashMap<>();
         httpRequestLogRepository.getRequestCountByStatusCode(startDate, endDate)
-                .forEach(row -> requestsByStatus.put(((Number) row[0]).intValue(), ((Number) row[1]).longValue()));
+                .forEach(row -> requestsByStatus.put(String.valueOf(((Number) row[0]).intValue()), ((Number) row[1]).longValue()));
 
         // Get slowest endpoints
         List<ApiPerformanceMetricsDto.EndpointMetricsDto> slowestEndpoints =

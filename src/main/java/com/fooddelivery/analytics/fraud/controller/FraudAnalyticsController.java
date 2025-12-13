@@ -191,8 +191,8 @@ public class FraudAnalyticsController {
             @Parameter(description = "Threshold for signups per IP")
             @RequestParam(defaultValue = "5") int ipSignupThreshold,
 
-            @Parameter(description = "Promo abuse rate threshold (percentage)")
-            @RequestParam(defaultValue = "80.0") double promoAbuseRate,
+            @Parameter(description = "Minimum orders for promo abuse detection")
+            @RequestParam(defaultValue = "3") int minOrdersForPromoAbuse,
 
             @Parameter(description = "Include detailed lists")
             @RequestParam(defaultValue = "false") boolean includeDetails,
@@ -203,7 +203,7 @@ public class FraudAnalyticsController {
         log.info("Received request for referral fraud metrics from {} to {}", startDate, endDate);
         ReferralFraudMetricsDto metrics = fraudAnalyticsService.getReferralFraudMetrics(
                 startDate, endDate, deviceSignupThreshold, ipSignupThreshold,
-                promoAbuseRate, includeDetails, maxListSize);
+                minOrdersForPromoAbuse, includeDetails, maxListSize);
         return ResponseEntity.ok(metrics);
     }
 

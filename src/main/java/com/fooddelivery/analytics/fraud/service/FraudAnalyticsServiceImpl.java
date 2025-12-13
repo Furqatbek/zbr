@@ -308,17 +308,16 @@ public class FraudAnalyticsServiceImpl implements FraudAnalyticsService {
 
     private UserFraudRiskDto.BehavioralRiskSummaryDto collectUserBehavioralRisk(
             Long userId, LocalDateTime startDate, LocalDateTime endDate) {
-        List<Object[]> stats = orderHistoryRepository.getUserOrderStats(userId, startDate, endDate);
+        Object[] stats = orderHistoryRepository.getUserOrderStats(userId, startDate, endDate);
 
         long totalOrders = 0;
         long refundedOrders = 0;
         BigDecimal avgOrderValue = BigDecimal.ZERO;
 
-        if (!stats.isEmpty() && stats.get(0) != null) {
-            Object[] row = stats.get(0);
-            totalOrders = row[0] != null ? ((Number) row[0]).longValue() : 0;
-            refundedOrders = row[1] != null ? ((Number) row[1]).longValue() : 0;
-            avgOrderValue = row[2] != null ? new BigDecimal(row[2].toString()) : BigDecimal.ZERO;
+        if (stats != null) {
+            totalOrders = stats[0] != null ? ((Number) stats[0]).longValue() : 0;
+            refundedOrders = stats[1] != null ? ((Number) stats[1]).longValue() : 0;
+            avgOrderValue = stats[2] != null ? new BigDecimal(stats[2].toString()) : BigDecimal.ZERO;
         }
 
         double refundRate = totalOrders > 0 ? refundedOrders * 100.0 / totalOrders : 0.0;
