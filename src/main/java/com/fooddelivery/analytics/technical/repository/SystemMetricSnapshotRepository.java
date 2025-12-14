@@ -20,15 +20,15 @@ public interface SystemMetricSnapshotRepository extends JpaRepository<SystemMetr
     /**
      * Get latest snapshot for a metric.
      */
-    @Query("SELECT s FROM SystemMetricSnapshot s WHERE s.metricName = :metricName " +
-           "ORDER BY s.collectedAt DESC LIMIT 1")
+    @Query(value = "SELECT * FROM system_metric_snapshots s WHERE s.metric_name = :metricName " +
+           "ORDER BY s.recorded_at DESC LIMIT 1", nativeQuery = true)
     Optional<SystemMetricSnapshot> findLatestByMetricName(@Param("metricName") String metricName);
 
     /**
      * Get latest snapshots for a metric type.
      */
     @Query("SELECT s FROM SystemMetricSnapshot s WHERE s.metricType = :metricType " +
-           "AND s.collectedAt = (SELECT MAX(s2.collectedAt) FROM SystemMetricSnapshot s2 " +
+           "AND s.recordedAt = (SELECT MAX(s2.recordedAt) FROM SystemMetricSnapshot s2 " +
            "WHERE s2.metricName = s.metricName AND s2.metricType = :metricType)")
     List<SystemMetricSnapshot> findLatestByMetricType(@Param("metricType") SystemMetricSnapshot.MetricType metricType);
 
@@ -36,7 +36,7 @@ public interface SystemMetricSnapshotRepository extends JpaRepository<SystemMetr
      * Get metric history.
      */
     @Query("SELECT s FROM SystemMetricSnapshot s WHERE s.metricName = :metricName " +
-           "AND s.collectedAt BETWEEN :start AND :end ORDER BY s.collectedAt ASC")
+           "AND s.recordedAt BETWEEN :start AND :end ORDER BY s.recordedAt ASC")
     List<SystemMetricSnapshot> getMetricHistory(@Param("metricName") String metricName,
                                                 @Param("start") LocalDateTime start,
                                                 @Param("end") LocalDateTime end);
@@ -45,7 +45,7 @@ public interface SystemMetricSnapshotRepository extends JpaRepository<SystemMetr
      * Get average metric value.
      */
     @Query("SELECT AVG(s.metricValue) FROM SystemMetricSnapshot s WHERE s.metricName = :metricName " +
-           "AND s.collectedAt BETWEEN :start AND :end")
+           "AND s.recordedAt BETWEEN :start AND :end")
     Double getAverageValue(@Param("metricName") String metricName,
                           @Param("start") LocalDateTime start,
                           @Param("end") LocalDateTime end);
@@ -54,7 +54,7 @@ public interface SystemMetricSnapshotRepository extends JpaRepository<SystemMetr
      * Get max metric value.
      */
     @Query("SELECT MAX(s.metricValue) FROM SystemMetricSnapshot s WHERE s.metricName = :metricName " +
-           "AND s.collectedAt BETWEEN :start AND :end")
+           "AND s.recordedAt BETWEEN :start AND :end")
     Double getMaxValue(@Param("metricName") String metricName,
                       @Param("start") LocalDateTime start,
                       @Param("end") LocalDateTime end);
@@ -63,7 +63,7 @@ public interface SystemMetricSnapshotRepository extends JpaRepository<SystemMetr
      * Get min metric value.
      */
     @Query("SELECT MIN(s.metricValue) FROM SystemMetricSnapshot s WHERE s.metricName = :metricName " +
-           "AND s.collectedAt BETWEEN :start AND :end")
+           "AND s.recordedAt BETWEEN :start AND :end")
     Double getMinValue(@Param("metricName") String metricName,
                       @Param("start") LocalDateTime start,
                       @Param("end") LocalDateTime end);
@@ -72,35 +72,35 @@ public interface SystemMetricSnapshotRepository extends JpaRepository<SystemMetr
      * Get CPU usage metrics.
      */
     @Query("SELECT s FROM SystemMetricSnapshot s WHERE s.metricType = 'CPU' " +
-           "AND s.collectedAt BETWEEN :start AND :end ORDER BY s.collectedAt ASC")
+           "AND s.recordedAt BETWEEN :start AND :end ORDER BY s.recordedAt ASC")
     List<SystemMetricSnapshot> getCpuMetrics(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
 
     /**
      * Get memory usage metrics.
      */
     @Query("SELECT s FROM SystemMetricSnapshot s WHERE s.metricType = 'MEMORY' " +
-           "AND s.collectedAt BETWEEN :start AND :end ORDER BY s.collectedAt ASC")
+           "AND s.recordedAt BETWEEN :start AND :end ORDER BY s.recordedAt ASC")
     List<SystemMetricSnapshot> getMemoryMetrics(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
 
     /**
      * Get JVM metrics.
      */
     @Query("SELECT s FROM SystemMetricSnapshot s WHERE s.metricType = 'JVM' " +
-           "AND s.collectedAt BETWEEN :start AND :end ORDER BY s.collectedAt ASC")
+           "AND s.recordedAt BETWEEN :start AND :end ORDER BY s.recordedAt ASC")
     List<SystemMetricSnapshot> getJvmMetrics(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
 
     /**
      * Get database connection pool metrics.
      */
     @Query("SELECT s FROM SystemMetricSnapshot s WHERE s.metricType = 'DATABASE' " +
-           "AND s.collectedAt BETWEEN :start AND :end ORDER BY s.collectedAt ASC")
+           "AND s.recordedAt BETWEEN :start AND :end ORDER BY s.recordedAt ASC")
     List<SystemMetricSnapshot> getDatabasePoolMetrics(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
 
     /**
      * Get cache (Redis) metrics.
      */
     @Query("SELECT s FROM SystemMetricSnapshot s WHERE s.metricType = 'CACHE' " +
-           "AND s.collectedAt BETWEEN :start AND :end ORDER BY s.collectedAt ASC")
+           "AND s.recordedAt BETWEEN :start AND :end ORDER BY s.recordedAt ASC")
     List<SystemMetricSnapshot> getCacheMetrics(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
 
     /**
@@ -128,8 +128,8 @@ public interface SystemMetricSnapshotRepository extends JpaRepository<SystemMetr
     /**
      * Get all metrics at a specific time.
      */
-    @Query("SELECT s FROM SystemMetricSnapshot s WHERE s.collectedAt = " +
-           "(SELECT MAX(s2.collectedAt) FROM SystemMetricSnapshot s2 WHERE s2.collectedAt <= :asOf)")
+    @Query("SELECT s FROM SystemMetricSnapshot s WHERE s.recordedAt = " +
+           "(SELECT MAX(s2.recordedAt) FROM SystemMetricSnapshot s2 WHERE s2.recordedAt <= :asOf)")
     List<SystemMetricSnapshot> getMetricsAt(@Param("asOf") LocalDateTime asOf);
 
     /**
@@ -142,6 +142,6 @@ public interface SystemMetricSnapshotRepository extends JpaRepository<SystemMetr
      * Delete old snapshots for data retention.
      */
     @Modifying
-    @Query("DELETE FROM SystemMetricSnapshot s WHERE s.collectedAt < :cutoff")
+    @Query("DELETE FROM SystemMetricSnapshot s WHERE s.recordedAt < :cutoff")
     void deleteOldSnapshots(@Param("cutoff") LocalDateTime cutoff);
 }
