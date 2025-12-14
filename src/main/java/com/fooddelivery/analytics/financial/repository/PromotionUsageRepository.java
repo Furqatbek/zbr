@@ -25,7 +25,7 @@ public interface PromotionUsageRepository extends JpaRepository<PromotionUsage, 
            "COUNT(pu), " +
            "COALESCE(AVG(pu.discountAmount), 0) " +
            "FROM PromotionUsage pu " +
-           "WHERE pu.appliedAt BETWEEN :startDate AND :endDate")
+           "WHERE pu.usedAt BETWEEN :startDate AND :endDate")
     Object[] getPromotionMetrics(@Param("startDate") LocalDateTime startDate,
                                  @Param("endDate") LocalDateTime endDate);
 
@@ -34,7 +34,7 @@ public interface PromotionUsageRepository extends JpaRepository<PromotionUsage, 
      */
     @Query("SELECT pu.promotionType, SUM(pu.discountAmount), COUNT(pu), AVG(pu.discountAmount) " +
            "FROM PromotionUsage pu " +
-           "WHERE pu.appliedAt BETWEEN :startDate AND :endDate " +
+           "WHERE pu.usedAt BETWEEN :startDate AND :endDate " +
            "GROUP BY pu.promotionType")
     List<Object[]> getPromotionByType(@Param("startDate") LocalDateTime startDate,
                                       @Param("endDate") LocalDateTime endDate);
@@ -48,7 +48,7 @@ public interface PromotionUsageRepository extends JpaRepository<PromotionUsage, 
            "         ELSE 0 END), " +
            "COUNT(pu) " +
            "FROM PromotionUsage pu " +
-           "WHERE pu.appliedAt BETWEEN :startDate AND :endDate " +
+           "WHERE pu.usedAt BETWEEN :startDate AND :endDate " +
            "GROUP BY pu.fundedBy")
     List<Object[]> getPromotionByFunder(@Param("startDate") LocalDateTime startDate,
                                         @Param("endDate") LocalDateTime endDate);
@@ -56,11 +56,11 @@ public interface PromotionUsageRepository extends JpaRepository<PromotionUsage, 
     /**
      * Get top promotions by usage.
      */
-    @Query("SELECT pu.promotionId, pu.promotionCode, pu.promotionType, " +
+    @Query("SELECT pu.promotionId, pu.promoCode, pu.promotionType, " +
            "SUM(pu.discountAmount), COUNT(pu), SUM(pu.platformCost), SUM(pu.restaurantCost) " +
            "FROM PromotionUsage pu " +
-           "WHERE pu.appliedAt BETWEEN :startDate AND :endDate " +
-           "GROUP BY pu.promotionId, pu.promotionCode, pu.promotionType " +
+           "WHERE pu.usedAt BETWEEN :startDate AND :endDate " +
+           "GROUP BY pu.promotionId, pu.promoCode, pu.promotionType " +
            "ORDER BY COUNT(pu) DESC")
     List<Object[]> getTopPromotionsByUsage(@Param("startDate") LocalDateTime startDate,
                                            @Param("endDate") LocalDateTime endDate);
@@ -68,11 +68,11 @@ public interface PromotionUsageRepository extends JpaRepository<PromotionUsage, 
     /**
      * Get daily promotion trend.
      */
-    @Query(value = "SELECT DATE(applied_at) as date, " +
+    @Query(value = "SELECT DATE(used_at) as date, " +
                    "SUM(discount_amount), SUM(platform_cost), SUM(restaurant_cost), COUNT(*) " +
                    "FROM promotion_usages " +
-                   "WHERE applied_at BETWEEN :startDate AND :endDate " +
-                   "GROUP BY DATE(applied_at) " +
+                   "WHERE used_at BETWEEN :startDate AND :endDate " +
+                   "GROUP BY DATE(used_at) " +
                    "ORDER BY date", nativeQuery = true)
     List<Object[]> getDailyPromotionTrend(@Param("startDate") LocalDateTime startDate,
                                           @Param("endDate") LocalDateTime endDate);
@@ -81,7 +81,7 @@ public interface PromotionUsageRepository extends JpaRepository<PromotionUsage, 
      * Get total platform cost for promotions.
      */
     @Query("SELECT COALESCE(SUM(pu.platformCost), 0) FROM PromotionUsage pu " +
-           "WHERE pu.appliedAt BETWEEN :startDate AND :endDate")
+           "WHERE pu.usedAt BETWEEN :startDate AND :endDate")
     BigDecimal getTotalPlatformCost(@Param("startDate") LocalDateTime startDate,
                                     @Param("endDate") LocalDateTime endDate);
 
@@ -89,21 +89,10 @@ public interface PromotionUsageRepository extends JpaRepository<PromotionUsage, 
      * Get promotion usage rate (requires total order count from external source).
      */
     @Query("SELECT COUNT(DISTINCT pu.orderId) FROM PromotionUsage pu " +
-           "WHERE pu.appliedAt BETWEEN :startDate AND :endDate")
+           "WHERE pu.usedAt BETWEEN :startDate AND :endDate")
     Long getPromotedOrderCount(@Param("startDate") LocalDateTime startDate,
                                @Param("endDate") LocalDateTime endDate);
 
-    /**
-     * Get promotion usage by restaurant.
-     */
-    @Query("SELECT pu.restaurantId, SUM(pu.discountAmount), SUM(pu.restaurantCost), COUNT(pu) " +
-           "FROM PromotionUsage pu " +
-           "WHERE pu.appliedAt BETWEEN :startDate AND :endDate " +
-           "AND pu.restaurantId IS NOT NULL " +
-           "GROUP BY pu.restaurantId")
-    List<Object[]> getPromotionByRestaurant(@Param("startDate") LocalDateTime startDate,
-                                            @Param("endDate") LocalDateTime endDate);
-
-    List<PromotionUsage> findByOrderIdAndAppliedAtBetween(
+    List<PromotionUsage> findByOrderIdAndUsedAtBetween(
             Long orderId, LocalDateTime startDate, LocalDateTime endDate);
 }
