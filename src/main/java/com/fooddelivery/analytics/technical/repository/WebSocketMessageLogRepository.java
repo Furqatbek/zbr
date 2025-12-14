@@ -103,9 +103,10 @@ public interface WebSocketMessageLogRepository extends JpaRepository<WebSocketMe
     /**
      * Get message throughput per minute.
      */
-    @Query("SELECT COUNT(m) * 60.0 / EXTRACT(EPOCH FROM (:end - :start)) " +
-           "FROM WebSocketMessageLog m WHERE m.publishedAt BETWEEN :start AND :end")
-    Double getMessagesPerMinute(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
+    @Query(value = "SELECT COUNT(*) * 60.0 / EXTRACT(EPOCH FROM (:endTime - :startTime)) " +
+            "FROM websocket_message_logs WHERE published_at BETWEEN :startTime AND :endTime",
+            nativeQuery = true)
+    Double getMessagesPerMinute(@Param("startTime") LocalDateTime start, @Param("endTime") LocalDateTime end);
 
     /**
      * Delete old logs for data retention.
