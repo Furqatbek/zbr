@@ -8,6 +8,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -31,8 +32,8 @@ public interface RestaurantPayoutRepository extends JpaRepository<RestaurantPayo
            "COUNT(rp) " +
            "FROM RestaurantPayout rp " +
            "WHERE rp.periodStart >= :startDate AND rp.periodEnd <= :endDate")
-    Object[] getPayoutMetrics(@Param("startDate") LocalDateTime startDate,
-                              @Param("endDate") LocalDateTime endDate);
+    Object[] getPayoutMetrics(@Param("startDate") LocalDate startDate,
+                              @Param("endDate") LocalDate endDate);
 
     /**
      * Get payouts by status.
@@ -41,8 +42,8 @@ public interface RestaurantPayoutRepository extends JpaRepository<RestaurantPayo
            "FROM RestaurantPayout rp " +
            "WHERE rp.periodStart >= :startDate AND rp.periodEnd <= :endDate " +
            "GROUP BY rp.status")
-    List<Object[]> getPayoutsByStatus(@Param("startDate") LocalDateTime startDate,
-                                      @Param("endDate") LocalDateTime endDate);
+    List<Object[]> getPayoutsByStatus(@Param("startDate") LocalDate startDate,
+                                      @Param("endDate") LocalDate endDate);
 
     /**
      * Get top restaurants by payout.
@@ -53,8 +54,8 @@ public interface RestaurantPayoutRepository extends JpaRepository<RestaurantPayo
            "WHERE rp.periodStart >= :startDate AND rp.periodEnd <= :endDate " +
            "GROUP BY rp.restaurantId " +
            "ORDER BY SUM(rp.netPayout) DESC")
-    List<Object[]> getTopRestaurantsByPayout(@Param("startDate") LocalDateTime startDate,
-                                             @Param("endDate") LocalDateTime endDate);
+    List<Object[]> getTopRestaurantsByPayout(@Param("startDate") LocalDate startDate,
+                                             @Param("endDate") LocalDate endDate);
 
     /**
      * Get daily payout trend.
@@ -65,8 +66,8 @@ public interface RestaurantPayoutRepository extends JpaRepository<RestaurantPayo
                    "WHERE period_start >= :startDate AND period_end <= :endDate " +
                    "GROUP BY DATE(period_start) " +
                    "ORDER BY date", nativeQuery = true)
-    List<Object[]> getDailyPayoutTrend(@Param("startDate") LocalDateTime startDate,
-                                       @Param("endDate") LocalDateTime endDate);
+    List<Object[]> getDailyPayoutTrend(@Param("startDate") LocalDate startDate,
+                                       @Param("endDate") LocalDate endDate);
 
     /**
      * Get pending payouts total.
@@ -82,8 +83,8 @@ public interface RestaurantPayoutRepository extends JpaRepository<RestaurantPayo
                    "FROM restaurant_payouts " +
                    "WHERE status = 'COMPLETED' " +
                    "AND period_start >= :startDate AND period_end <= :endDate", nativeQuery = true)
-    BigDecimal getAverageProcessingTimeHours(@Param("startDate") LocalDateTime startDate,
-                                             @Param("endDate") LocalDateTime endDate);
+    BigDecimal getAverageProcessingTimeHours(@Param("startDate") LocalDate startDate,
+                                             @Param("endDate") LocalDate endDate);
 
     /**
      * Get payouts for specific restaurants.
@@ -93,10 +94,10 @@ public interface RestaurantPayoutRepository extends JpaRepository<RestaurantPayo
            "WHERE rp.periodStart >= :startDate AND rp.periodEnd <= :endDate " +
            "AND rp.restaurantId IN :restaurantIds " +
            "GROUP BY rp.restaurantId, rp.status")
-    List<Object[]> getPayoutsForRestaurants(@Param("startDate") LocalDateTime startDate,
-                                            @Param("endDate") LocalDateTime endDate,
+    List<Object[]> getPayoutsForRestaurants(@Param("startDate") LocalDate startDate,
+                                            @Param("endDate") LocalDate endDate,
                                             @Param("restaurantIds") List<Long> restaurantIds);
 
     List<RestaurantPayout> findByRestaurantIdAndPeriodStartGreaterThanEqualAndPeriodEndLessThanEqual(
-            Long restaurantId, LocalDateTime periodStart, LocalDateTime periodEnd);
+            Long restaurantId, LocalDate periodStart, LocalDate periodEnd);
 }
