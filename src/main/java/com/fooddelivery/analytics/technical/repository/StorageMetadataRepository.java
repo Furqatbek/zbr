@@ -19,13 +19,13 @@ public interface StorageMetadataRepository extends JpaRepository<StorageMetadata
     /**
      * Count total files.
      */
-    @Query("SELECT COUNT(s) FROM StorageMetadata s WHERE s.isDeleted = false")
+    @Query("SELECT COUNT(s) FROM StorageMetadata s WHERE s.deletedAt IS NULL")
     Long countTotalFiles();
 
     /**
      * Get total storage size.
      */
-    @Query("SELECT COALESCE(SUM(s.fileSizeBytes), 0) FROM StorageMetadata s WHERE s.isDeleted = false")
+    @Query("SELECT COALESCE(SUM(s.fileSizeBytes), 0) FROM StorageMetadata s WHERE s.deletedAt IS NULL")
     Long getTotalStorageSize();
 
     /**
@@ -87,48 +87,48 @@ public interface StorageMetadataRepository extends JpaRepository<StorageMetadata
      * Get storage breakdown by content type.
      */
     @Query("SELECT s.contentType, COUNT(s), SUM(s.fileSizeBytes), AVG(s.fileSizeBytes) " +
-           "FROM StorageMetadata s WHERE s.isDeleted = false GROUP BY s.contentType")
+           "FROM StorageMetadata s WHERE s.deletedAt IS NULL GROUP BY s.contentType")
     List<Object[]> getStorageByContentType();
 
     /**
      * Get storage breakdown by entity type.
      */
     @Query("SELECT s.entityType, COUNT(s), SUM(s.fileSizeBytes), AVG(s.fileSizeBytes) " +
-           "FROM StorageMetadata s WHERE s.isDeleted = false GROUP BY s.entityType")
+           "FROM StorageMetadata s WHERE s.deletedAt IS NULL GROUP BY s.entityType")
     List<Object[]> getStorageByEntityType();
 
     /**
      * Get storage breakdown by storage type.
      */
     @Query("SELECT s.storageType, COUNT(s), SUM(s.fileSizeBytes), AVG(s.fileSizeBytes) " +
-           "FROM StorageMetadata s WHERE s.isDeleted = false GROUP BY s.storageType")
+           "FROM StorageMetadata s WHERE s.deletedAt IS NULL GROUP BY s.storageType")
     List<Object[]> getStorageByStorageType();
 
     /**
      * Count images.
      */
-    @Query("SELECT COUNT(s) FROM StorageMetadata s WHERE s.isDeleted = false " +
+    @Query("SELECT COUNT(s) FROM StorageMetadata s WHERE s.deletedAt IS NULL " +
            "AND s.contentType LIKE 'image/%'")
     Long countImages();
 
     /**
      * Get total image size.
      */
-    @Query("SELECT COALESCE(SUM(s.fileSizeBytes), 0) FROM StorageMetadata s WHERE s.isDeleted = false " +
+    @Query("SELECT COALESCE(SUM(s.fileSizeBytes), 0) FROM StorageMetadata s WHERE s.deletedAt IS NULL " +
            "AND s.contentType LIKE 'image/%'")
     Long getTotalImageSize();
 
     /**
      * Get average image size.
      */
-    @Query("SELECT AVG(s.fileSizeBytes) FROM StorageMetadata s WHERE s.isDeleted = false " +
+    @Query("SELECT AVG(s.fileSizeBytes) FROM StorageMetadata s WHERE s.deletedAt IS NULL " +
            "AND s.contentType LIKE 'image/%'")
     Double getAverageImageSize();
 
     /**
      * Get image count by content type.
      */
-    @Query("SELECT s.contentType, COUNT(s) FROM StorageMetadata s WHERE s.isDeleted = false " +
+    @Query("SELECT s.contentType, COUNT(s) FROM StorageMetadata s WHERE s.deletedAt IS NULL " +
            "AND s.contentType LIKE 'image/%' GROUP BY s.contentType")
     List<Object[]> getImageCountByContentType();
 
@@ -144,16 +144,16 @@ public interface StorageMetadataRepository extends JpaRepository<StorageMetadata
     /**
      * Get failed uploads by reason.
      */
-    @Query("SELECT s.uploadErrorReason, COUNT(s) FROM StorageMetadata s " +
+    @Query("SELECT s.errorMessage, COUNT(s) FROM StorageMetadata s " +
            "WHERE s.uploadedAt BETWEEN :start AND :end AND s.isUploadSuccessful = false " +
-           "GROUP BY s.uploadErrorReason")
+           "GROUP BY s.errorMessage")
     List<Object[]> getFailedByReason(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
 
     /**
      * Get storage size at a point in time.
      */
     @Query("SELECT COALESCE(SUM(s.fileSizeBytes), 0) FROM StorageMetadata s " +
-           "WHERE s.uploadedAt <= :asOf AND (s.isDeleted = false OR s.deletedAt > :asOf)")
+           "WHERE s.uploadedAt <= :asOf AND (s.deletedAt IS NULL OR s.deletedAt > :asOf)")
     Long getStorageSizeAt(@Param("asOf") LocalDateTime asOf);
 
     /**
@@ -173,6 +173,6 @@ public interface StorageMetadataRepository extends JpaRepository<StorageMetadata
      * Delete records for permanently removed files older than retention.
      */
     @Modifying
-    @Query("DELETE FROM StorageMetadata s WHERE s.isDeleted = true AND s.deletedAt < :cutoff")
+    @Query("DELETE FROM StorageMetadata s WHERE s.deletedAt IS NOT NULL AND s.deletedAt < :cutoff")
     void deleteOldRecords(@Param("cutoff") LocalDateTime cutoff);
 }
