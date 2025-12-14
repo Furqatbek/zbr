@@ -120,9 +120,9 @@ public interface AppStoreRatingRepository extends JpaRepository<AppStoreRating, 
     /**
      * Get latest version by platform.
      */
-    @Query("SELECT r.appVersion FROM AppStoreRating r WHERE r.platform = :platform " +
-           "ORDER BY r.createdAt DESC LIMIT 1")
-    String getLatestVersion(@Param("platform") AppStoreRating.Platform platform);
+    @Query(value = "SELECT r.app_version FROM rating_app_store r WHERE r.platform = :platform " +
+           "ORDER BY r.created_at DESC LIMIT 1", nativeQuery = true)
+    String getLatestVersion(@Param("platform") String platform);
 
     /**
      * Get reviews for sentiment analysis (with comments).
