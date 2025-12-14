@@ -107,10 +107,10 @@ public interface BackupLogRepository extends JpaRepository<BackupLog, Long> {
     List<BackupLog> findInProgressBackups();
 
     /**
-     * Get verified backups count.
+     * Get verified (completed) backups count.
      */
     @Query("SELECT COUNT(b) FROM BackupLog b WHERE b.startedAt BETWEEN :start AND :end " +
-           "AND b.isVerified = true")
+           "AND b.status = 'COMPLETED'")
     Long countVerifiedBackups(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
 
     /**
