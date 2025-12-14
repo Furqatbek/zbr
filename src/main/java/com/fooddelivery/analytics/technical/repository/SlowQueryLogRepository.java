@@ -45,11 +45,11 @@ public interface SlowQueryLogRepository extends JpaRepository<SlowQueryLog, Long
     /**
      * Get top slow queries grouped by query hash.
      */
-    @Query("SELECT s.queryHash, s.queryText, MAX(s.durationMs), SUM(s.rowsAffected), COUNT(s), " +
-           "AVG(s.durationMs), s.tableName, MAX(s.isUsingIndex), MAX(s.timestamp) " +
-           "FROM SlowQueryLog s WHERE s.timestamp BETWEEN :start AND :end " +
-           "GROUP BY s.queryHash, s.queryText, s.tableName " +
-           "ORDER BY AVG(s.durationMs) DESC")
+    @Query(value = "SELECT s.query_hash, s.query_text, MAX(s.duration_ms), SUM(s.rows_affected), COUNT(*), " +
+           "AVG(s.duration_ms), s.table_name, BOOL_OR(s.is_using_index), MAX(s.timestamp) " +
+           "FROM slow_query_logs s WHERE s.timestamp BETWEEN :start AND :end " +
+           "GROUP BY s.query_hash, s.query_text, s.table_name " +
+           "ORDER BY AVG(s.duration_ms) DESC", nativeQuery = true)
     List<Object[]> getTopSlowQueries(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
 
     /**
