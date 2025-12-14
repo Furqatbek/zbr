@@ -50,18 +50,20 @@ public interface WebSocketConnectionLogRepository extends JpaRepository<WebSocke
     /**
      * Get average connection duration in period.
      */
-    @Query("SELECT AVG(EXTRACT(EPOCH FROM (w.disconnectedAt - w.connectedAt))) " +
-           "FROM WebSocketConnectionLog w WHERE w.disconnectedAt IS NOT NULL " +
-           "AND w.connectedAt BETWEEN :start AND :end")
+    @Query(value = "SELECT AVG(EXTRACT(EPOCH FROM (disconnected_at - connected_at))) " +
+            "FROM websocket_connection_logs WHERE disconnected_at IS NOT NULL " +
+            "AND connected_at BETWEEN :start AND :end",
+            nativeQuery = true)
     Double getAverageConnectionDurationSeconds(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
 
     /**
      * Get max concurrent connections estimate.
      */
-    @Query("SELECT MAX(concurrent) FROM (" +
-           "SELECT COUNT(*) as concurrent FROM WebSocketConnectionLog w " +
-           "WHERE w.connectedAt <= :checkTime AND (w.disconnectedAt IS NULL OR w.disconnectedAt > :checkTime) " +
-           "GROUP BY EXTRACT(HOUR FROM w.connectedAt)) subq")
+    @Query(value = "SELECT MAX(concurrent) FROM (" +
+            "SELECT COUNT(*) as concurrent FROM websocket_connection_logs " +
+            "WHERE connected_at <= :checkTime AND (disconnected_at IS NULL OR disconnected_at > :checkTime) " +
+            "GROUP BY EXTRACT(HOUR FROM connected_at)) subq",
+            nativeQuery = true)
     Long getMaxConcurrentConnections(@Param("checkTime") LocalDateTime checkTime);
 
     /**
