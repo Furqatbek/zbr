@@ -83,8 +83,8 @@ public interface RestaurantPayoutRepository extends JpaRepository<RestaurantPayo
                    "FROM restaurant_payouts " +
                    "WHERE status = 'COMPLETED' " +
                    "AND period_start >= :startDate AND period_end <= :endDate", nativeQuery = true)
-    BigDecimal getAverageProcessingTimeHours(@Param("startDate") LocalDate startDate,
-                                             @Param("endDate") LocalDate endDate);
+    Double getAverageProcessingTimeHours(@Param("startDate") LocalDate startDate,
+                                         @Param("endDate") LocalDate endDate);
 
     /**
      * Get payouts for specific restaurants.

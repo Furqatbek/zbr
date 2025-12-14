@@ -38,7 +38,7 @@ public interface RefreshTokenRepository extends JpaRepository<RefreshToken, Long
     int deleteExpiredTokens(@Param("before") LocalDateTime before);
 
     @Query("SELECT COUNT(rt) FROM RefreshToken rt WHERE rt.user.id = :userId AND rt.revoked = false")
-    int countActiveTokensByUser(@Param("userId") Long userId);
+    long countActiveTokensByUser(@Param("userId") Long userId);
 
     boolean existsByTokenAndRevokedFalse(String token);
 }

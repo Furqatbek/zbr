@@ -55,13 +55,13 @@ public interface BackupLogRepository extends JpaRepository<BackupLog, Long> {
     /**
      * Get last successful backup.
      */
-    @Query("SELECT b FROM BackupLog b WHERE b.status = 'COMPLETED' ORDER BY b.completedAt DESC LIMIT 1")
+    @Query(value = "SELECT * FROM backup_logs b WHERE b.status = 'COMPLETED' ORDER BY b.completed_at DESC LIMIT 1", nativeQuery = true)
     Optional<BackupLog> findLastSuccessfulBackup();
 
     /**
      * Get last backup (any status).
      */
-    @Query("SELECT b FROM BackupLog b ORDER BY b.startedAt DESC LIMIT 1")
+    @Query(value = "SELECT * FROM backup_logs b ORDER BY b.started_at DESC LIMIT 1", nativeQuery = true)
     Optional<BackupLog> findLastBackup();
 
     /**
