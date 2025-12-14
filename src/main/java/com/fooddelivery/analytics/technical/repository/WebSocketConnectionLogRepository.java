@@ -70,21 +70,21 @@ public interface WebSocketConnectionLogRepository extends JpaRepository<WebSocke
      * Count dropped connections (not gracefully closed).
      */
     @Query("SELECT COUNT(w) FROM WebSocketConnectionLog w WHERE w.disconnectedAt BETWEEN :start AND :end " +
-           "AND w.isGracefulClose = false")
+           "AND w.isGracefulDisconnect = false")
     Long countDroppedConnections(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
 
     /**
      * Count graceful disconnects.
      */
     @Query("SELECT COUNT(w) FROM WebSocketConnectionLog w WHERE w.disconnectedAt BETWEEN :start AND :end " +
-           "AND w.isGracefulClose = true")
+           "AND w.isGracefulDisconnect = true")
     Long countGracefulDisconnects(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
 
     /**
      * Get dropped connections by reason.
      */
     @Query("SELECT w.disconnectReason, COUNT(w) FROM WebSocketConnectionLog w " +
-           "WHERE w.disconnectedAt BETWEEN :start AND :end AND w.isGracefulClose = false " +
+           "WHERE w.disconnectedAt BETWEEN :start AND :end AND w.isGracefulDisconnect = false " +
            "GROUP BY w.disconnectReason")
     List<Object[]> getDroppedByReason(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
 
@@ -92,7 +92,7 @@ public interface WebSocketConnectionLogRepository extends JpaRepository<WebSocke
      * Get dropped connections by user type.
      */
     @Query("SELECT w.userType, COUNT(w) FROM WebSocketConnectionLog w " +
-           "WHERE w.disconnectedAt BETWEEN :start AND :end AND w.isGracefulClose = false " +
+           "WHERE w.disconnectedAt BETWEEN :start AND :end AND w.isGracefulDisconnect = false " +
            "GROUP BY w.userType")
     List<Object[]> getDroppedByUserType(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
 
