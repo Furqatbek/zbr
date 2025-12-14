@@ -38,26 +38,29 @@ public interface WebSocketMessageLogRepository extends JpaRepository<WebSocketMe
     /**
      * Get average delivery delay.
      */
-    @Query("SELECT AVG(EXTRACT(EPOCH FROM (m.deliveredAt - m.publishedAt)) * 1000) " +
-           "FROM WebSocketMessageLog m WHERE m.publishedAt BETWEEN :start AND :end " +
-           "AND m.isDelivered = true AND m.deliveredAt IS NOT NULL")
+    @Query(value = "SELECT AVG(EXTRACT(EPOCH FROM (delivered_at - published_at)) * 1000) " +
+            "FROM websocket_message_logs WHERE published_at BETWEEN :start AND :end " +
+            "AND is_delivered = true AND delivered_at IS NOT NULL",
+            nativeQuery = true)
     Double getAverageDeliveryDelayMs(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
 
     /**
      * Get max delivery delay.
      */
-    @Query("SELECT MAX(EXTRACT(EPOCH FROM (m.deliveredAt - m.publishedAt)) * 1000) " +
-           "FROM WebSocketMessageLog m WHERE m.publishedAt BETWEEN :start AND :end " +
-           "AND m.isDelivered = true AND m.deliveredAt IS NOT NULL")
+    @Query(value = "SELECT MAX(EXTRACT(EPOCH FROM (delivered_at - published_at)) * 1000) " +
+            "FROM websocket_message_logs WHERE published_at BETWEEN :start AND :end " +
+            "AND is_delivered = true AND delivered_at IS NOT NULL",
+            nativeQuery = true)
     Long getMaxDeliveryDelayMs(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
 
     /**
      * Get delivery delays for percentile calculation.
      */
-    @Query("SELECT CAST(EXTRACT(EPOCH FROM (m.deliveredAt - m.publishedAt)) * 1000 AS long) " +
-           "FROM WebSocketMessageLog m WHERE m.publishedAt BETWEEN :start AND :end " +
-           "AND m.isDelivered = true AND m.deliveredAt IS NOT NULL " +
-           "ORDER BY (m.deliveredAt - m.publishedAt) ASC")
+    @Query(value = "SELECT CAST(EXTRACT(EPOCH FROM (delivered_at - published_at)) * 1000 AS bigint) " +
+            "FROM websocket_message_logs WHERE published_at BETWEEN :start AND :end " +
+            "AND is_delivered = true AND delivered_at IS NOT NULL " +
+            "ORDER BY (delivered_at - published_at) ASC",
+            nativeQuery = true)
     List<Long> getDeliveryDelaysOrdered(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
 
     /**
@@ -84,12 +87,13 @@ public interface WebSocketMessageLogRepository extends JpaRepository<WebSocketMe
     /**
      * Get hourly message distribution.
      */
-    @Query("SELECT EXTRACT(HOUR FROM m.publishedAt) as hour, COUNT(m), " +
-           "SUM(CASE WHEN m.isDelivered = true THEN 1 ELSE 0 END), " +
-           "AVG(CASE WHEN m.isDelivered = true AND m.deliveredAt IS NOT NULL " +
-           "THEN EXTRACT(EPOCH FROM (m.deliveredAt - m.publishedAt)) * 1000 ELSE NULL END) " +
-           "FROM WebSocketMessageLog m WHERE m.publishedAt BETWEEN :start AND :end " +
-           "GROUP BY EXTRACT(HOUR FROM m.publishedAt) ORDER BY hour")
+    @Query(value = "SELECT EXTRACT(HOUR FROM published_at) as hour, COUNT(*), " +
+            "SUM(CASE WHEN is_delivered = true THEN 1 ELSE 0 END), " +
+            "AVG(CASE WHEN is_delivered = true AND delivered_at IS NOT NULL " +
+            "THEN EXTRACT(EPOCH FROM (delivered_at - published_at)) * 1000 ELSE NULL END) " +
+            "FROM websocket_message_logs WHERE published_at BETWEEN :start AND :end " +
+            "GROUP BY EXTRACT(HOUR FROM published_at) ORDER BY hour",
+            nativeQuery = true)
     List<Object[]> getHourlyDistribution(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
 
     /**
