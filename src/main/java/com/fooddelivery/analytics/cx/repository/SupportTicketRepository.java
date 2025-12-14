@@ -191,9 +191,10 @@ public interface SupportTicketRepository extends JpaRepository<SupportTicket, Lo
     /**
      * Get resolution time percentiles (approximation via ordering).
      */
-    @Query("SELECT EXTRACT(EPOCH FROM (t.resolvedAt - t.createdAt)) / 3600 " +
-           "FROM SupportTicket t WHERE t.createdAt BETWEEN :start AND :end " +
-           "AND t.resolvedAt IS NOT NULL ORDER BY (t.resolvedAt - t.createdAt)")
+    @Query(value = "SELECT EXTRACT(EPOCH FROM (resolved_at - created_at)) / 3600 " +
+            "FROM support_tickets WHERE created_at BETWEEN :start AND :end " +
+            "AND resolved_at IS NOT NULL ORDER BY (resolved_at - created_at)",
+            nativeQuery = true)
     List<Double> getResolutionTimesOrdered(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
 
     /**
