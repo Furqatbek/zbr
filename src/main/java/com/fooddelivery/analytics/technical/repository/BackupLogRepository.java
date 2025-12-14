@@ -2,6 +2,7 @@ package com.fooddelivery.analytics.technical.repository;
 
 import com.fooddelivery.analytics.technical.model.BackupLog;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -39,9 +40,9 @@ public interface BackupLogRepository extends JpaRepository<BackupLog, Long> {
     /**
      * Get average backup duration.
      */
-    @Query("SELECT AVG(EXTRACT(EPOCH FROM (b.completedAt - b.startedAt))) " +
-           "FROM BackupLog b WHERE b.startedAt BETWEEN :start AND :end " +
-           "AND b.status = 'COMPLETED' AND b.completedAt IS NOT NULL")
+    @Query(value = "SELECT AVG(EXTRACT(EPOCH FROM (b.completed_at - b.started_at))) " +
+           "FROM backup_logs b WHERE b.started_at BETWEEN :start AND :end " +
+           "AND b.status = 'COMPLETED' AND b.completed_at IS NOT NULL", nativeQuery = true)
     Double getAverageBackupDurationSeconds(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
 
     /**
@@ -115,6 +116,7 @@ public interface BackupLogRepository extends JpaRepository<BackupLog, Long> {
     /**
      * Delete old backup logs for data retention.
      */
+    @Modifying
     @Query("DELETE FROM BackupLog b WHERE b.startedAt < :cutoff")
     void deleteOldLogs(@Param("cutoff") LocalDateTime cutoff);
 }

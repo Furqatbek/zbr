@@ -2,6 +2,7 @@ package com.fooddelivery.analytics.technical.repository;
 
 import com.fooddelivery.analytics.technical.model.StorageMetadata;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -171,6 +172,7 @@ public interface StorageMetadataRepository extends JpaRepository<StorageMetadata
     /**
      * Delete records for permanently removed files older than retention.
      */
+    @Modifying
     @Query("DELETE FROM StorageMetadata s WHERE s.isDeleted = true AND s.deletedAt < :cutoff")
     void deleteOldRecords(@Param("cutoff") LocalDateTime cutoff);
 }

@@ -356,26 +356,26 @@ public interface DashboardSupportRepository extends JpaRepository<SupportTicket,
     /**
      * Count by priority within date range (returns list for breakdown).
      */
-    @Query("SELECT CAST(t.priority AS string), COUNT(t) FROM SupportTicket t " +
-            "WHERE t.createdAt BETWEEN :startDate AND :endDate " +
-            "GROUP BY t.priority")
+    @Query(value = "SELECT t.priority, COUNT(*) FROM support_tickets t " +
+            "WHERE t.created_at BETWEEN :startDate AND :endDate " +
+            "GROUP BY t.priority", nativeQuery = true)
     List<Object[]> countByPriority(@Param("startDate") LocalDateTime startDate,
                                     @Param("endDate") LocalDateTime endDate);
 
     /**
      * Count by category/type within date range.
      */
-    @Query("SELECT CAST(t.ticketType AS string), COUNT(t) FROM SupportTicket t " +
-            "WHERE t.createdAt BETWEEN :startDate AND :endDate " +
-            "GROUP BY t.ticketType")
+    @Query(value = "SELECT t.ticket_type, COUNT(*) FROM support_tickets t " +
+            "WHERE t.created_at BETWEEN :startDate AND :endDate " +
+            "GROUP BY t.ticket_type", nativeQuery = true)
     List<Object[]> countByCategory(@Param("startDate") LocalDateTime startDate,
                                     @Param("endDate") LocalDateTime endDate);
 
     /**
      * Count by specific category within date range.
      */
-    @Query("SELECT COUNT(t) FROM SupportTicket t WHERE CAST(t.ticketType AS string) = :category " +
-            "AND t.createdAt BETWEEN :startDate AND :endDate")
+    @Query(value = "SELECT COUNT(*) FROM support_tickets t WHERE t.ticket_type = :category " +
+            "AND t.created_at BETWEEN :startDate AND :endDate", nativeQuery = true)
     Long countByCategory(@Param("category") String category,
                           @Param("startDate") LocalDateTime startDate,
                           @Param("endDate") LocalDateTime endDate);
@@ -402,12 +402,12 @@ public interface DashboardSupportRepository extends JpaRepository<SupportTicket,
     /**
      * Get common issues by category.
      */
-    @Query("SELECT CAST(t.ticketType AS string), t.subject, COUNT(t), " +
-            "COALESCE(AVG(TIMESTAMPDIFF(MINUTE, t.createdAt, t.resolvedAt)), 0) " +
-            "FROM SupportTicket t " +
-            "WHERE t.createdAt BETWEEN :startDate AND :endDate " +
-            "GROUP BY t.ticketType, t.subject " +
-            "ORDER BY COUNT(t) DESC")
+    @Query(value = "SELECT t.ticket_type, t.subject, COUNT(*), " +
+            "COALESCE(AVG(EXTRACT(EPOCH FROM (t.resolved_at - t.created_at)) / 60), 0) " +
+            "FROM support_tickets t " +
+            "WHERE t.created_at BETWEEN :startDate AND :endDate " +
+            "GROUP BY t.ticket_type, t.subject " +
+            "ORDER BY COUNT(*) DESC", nativeQuery = true)
     List<Object[]> getCommonIssues(@Param("startDate") LocalDateTime startDate,
                                     @Param("endDate") LocalDateTime endDate,
                                     Pageable pageable);
@@ -415,21 +415,21 @@ public interface DashboardSupportRepository extends JpaRepository<SupportTicket,
     /**
      * Get hourly ticket distribution.
      */
-    @Query("SELECT HOUR(t.createdAt), COUNT(t) FROM SupportTicket t " +
-            "WHERE t.createdAt BETWEEN :startDate AND :endDate " +
-            "GROUP BY HOUR(t.createdAt) " +
-            "ORDER BY HOUR(t.createdAt)")
+    @Query(value = "SELECT EXTRACT(HOUR FROM t.created_at), COUNT(*) FROM support_tickets t " +
+            "WHERE t.created_at BETWEEN :startDate AND :endDate " +
+            "GROUP BY EXTRACT(HOUR FROM t.created_at) " +
+            "ORDER BY EXTRACT(HOUR FROM t.created_at)", nativeQuery = true)
     List<Object[]> getHourlyDistribution(@Param("startDate") LocalDateTime startDate,
                                           @Param("endDate") LocalDateTime endDate);
 
     /**
      * Get SLA compliance rate by priority.
      */
-    @Query("SELECT COALESCE(" +
-            "CAST(SUM(CASE WHEN t.slaBreach = false THEN 1 ELSE 0 END) AS double) / " +
-            "NULLIF(CAST(COUNT(t) AS double), 0) * 100, 100.0) " +
-            "FROM SupportTicket t WHERE CAST(t.priority AS string) = :priority " +
-            "AND t.createdAt BETWEEN :startDate AND :endDate")
+    @Query(value = "SELECT COALESCE(" +
+            "CAST(SUM(CASE WHEN t.sla_breach = false THEN 1 ELSE 0 END) AS double precision) / " +
+            "NULLIF(CAST(COUNT(*) AS double precision), 0) * 100, 100.0) " +
+            "FROM support_tickets t WHERE t.priority = :priority " +
+            "AND t.created_at BETWEEN :startDate AND :endDate", nativeQuery = true)
     Double getSlaComplianceByPriority(@Param("priority") String priority,
                                        @Param("startDate") LocalDateTime startDate,
                                        @Param("endDate") LocalDateTime endDate);
@@ -480,10 +480,10 @@ public interface DashboardSupportRepository extends JpaRepository<SupportTicket,
     /**
      * Get refunds breakdown by ticket type (for refund-related tickets).
      */
-    @Query("SELECT CAST(t.ticketType AS string), COUNT(t) FROM SupportTicket t " +
-            "WHERE t.ticketType IN ('REFUND_REQUEST', 'PAYMENT_ISSUE', 'MISSING_ITEMS', 'WRONG_ORDER') " +
-            "AND t.createdAt BETWEEN :startDate AND :endDate " +
-            "GROUP BY t.ticketType")
+    @Query(value = "SELECT t.ticket_type, COUNT(*) FROM support_tickets t " +
+            "WHERE t.ticket_type IN ('REFUND_REQUEST', 'PAYMENT_ISSUE', 'MISSING_ITEMS', 'WRONG_ORDER') " +
+            "AND t.created_at BETWEEN :startDate AND :endDate " +
+            "GROUP BY t.ticket_type", nativeQuery = true)
     List<Object[]> getRefundsByReason(@Param("startDate") LocalDateTime startDate,
                                        @Param("endDate") LocalDateTime endDate);
 }

@@ -2,6 +2,7 @@ package com.fooddelivery.analytics.technical.repository;
 
 import com.fooddelivery.analytics.technical.model.HttpRequestLog;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -108,10 +109,10 @@ public interface HttpRequestLogRepository extends JpaRepository<HttpRequestLog, 
     /**
      * Get hourly request distribution.
      */
-    @Query("SELECT EXTRACT(HOUR FROM h.timestamp) as hour, COUNT(h), AVG(h.responseTimeMs), " +
-           "SUM(CASE WHEN h.statusCode >= 400 THEN 1 ELSE 0 END) " +
-           "FROM HttpRequestLog h WHERE h.timestamp BETWEEN :start AND :end " +
-           "GROUP BY EXTRACT(HOUR FROM h.timestamp) ORDER BY hour")
+    @Query(value = "SELECT EXTRACT(HOUR FROM h.timestamp) as hour, COUNT(*), AVG(h.response_time_ms), " +
+           "SUM(CASE WHEN h.status_code >= 400 THEN 1 ELSE 0 END) " +
+           "FROM http_request_logs h WHERE h.timestamp BETWEEN :start AND :end " +
+           "GROUP BY EXTRACT(HOUR FROM h.timestamp) ORDER BY hour", nativeQuery = true)
     List<Object[]> getHourlyDistribution(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
 
     /**
@@ -140,15 +141,16 @@ public interface HttpRequestLogRepository extends JpaRepository<HttpRequestLog, 
     /**
      * Get daily request trend.
      */
-    @Query("SELECT CAST(h.timestamp AS date), COUNT(h), AVG(h.responseTimeMs), " +
-           "SUM(CASE WHEN h.statusCode >= 400 THEN 1 ELSE 0 END) " +
-           "FROM HttpRequestLog h WHERE h.timestamp BETWEEN :start AND :end " +
-           "GROUP BY CAST(h.timestamp AS date) ORDER BY CAST(h.timestamp AS date)")
+    @Query(value = "SELECT CAST(h.timestamp AS date), COUNT(*), AVG(h.response_time_ms), " +
+           "SUM(CASE WHEN h.status_code >= 400 THEN 1 ELSE 0 END) " +
+           "FROM http_request_logs h WHERE h.timestamp BETWEEN :start AND :end " +
+           "GROUP BY CAST(h.timestamp AS date) ORDER BY CAST(h.timestamp AS date)", nativeQuery = true)
     List<Object[]> getDailyTrend(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
 
     /**
      * Delete old logs for data retention.
      */
+    @Modifying
     @Query("DELETE FROM HttpRequestLog h WHERE h.timestamp < :cutoff")
     void deleteOldLogs(@Param("cutoff") LocalDateTime cutoff);
 }

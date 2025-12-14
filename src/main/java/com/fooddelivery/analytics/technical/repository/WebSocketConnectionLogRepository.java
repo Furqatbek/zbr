@@ -2,6 +2,7 @@ package com.fooddelivery.analytics.technical.repository;
 
 import com.fooddelivery.analytics.technical.model.WebSocketConnectionLog;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -118,9 +119,9 @@ public interface WebSocketConnectionLogRepository extends JpaRepository<WebSocke
     /**
      * Get peak connection hour.
      */
-    @Query("SELECT EXTRACT(HOUR FROM w.connectedAt) as hour, COUNT(w) as cnt " +
-           "FROM WebSocketConnectionLog w WHERE w.connectedAt BETWEEN :start AND :end " +
-           "GROUP BY EXTRACT(HOUR FROM w.connectedAt) ORDER BY cnt DESC")
+    @Query(value = "SELECT EXTRACT(HOUR FROM w.connected_at) as hour, COUNT(*) as cnt " +
+           "FROM websocket_connection_logs w WHERE w.connected_at BETWEEN :start AND :end " +
+           "GROUP BY EXTRACT(HOUR FROM w.connected_at) ORDER BY cnt DESC", nativeQuery = true)
     List<Object[]> getPeakHour(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
 
     /**
@@ -133,6 +134,7 @@ public interface WebSocketConnectionLogRepository extends JpaRepository<WebSocke
     /**
      * Delete old logs for data retention.
      */
+    @Modifying
     @Query("DELETE FROM WebSocketConnectionLog w WHERE w.disconnectedAt < :cutoff")
     void deleteOldLogs(@Param("cutoff") LocalDateTime cutoff);
 }

@@ -2,6 +2,7 @@ package com.fooddelivery.analytics.technical.repository;
 
 import com.fooddelivery.analytics.technical.model.SystemMetricSnapshot;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -105,10 +106,10 @@ public interface SystemMetricSnapshotRepository extends JpaRepository<SystemMetr
     /**
      * Get hourly average for a metric.
      */
-    @Query("SELECT EXTRACT(HOUR FROM s.collectedAt) as hour, AVG(s.metricValue) " +
-           "FROM SystemMetricSnapshot s WHERE s.metricName = :metricName " +
-           "AND s.collectedAt BETWEEN :start AND :end " +
-           "GROUP BY EXTRACT(HOUR FROM s.collectedAt) ORDER BY hour")
+    @Query(value = "SELECT EXTRACT(HOUR FROM s.recorded_at) as hour, AVG(s.metric_value) " +
+           "FROM system_metric_snapshots s WHERE s.metric_name = :metricName " +
+           "AND s.recorded_at BETWEEN :start AND :end " +
+           "GROUP BY EXTRACT(HOUR FROM s.recorded_at) ORDER BY hour", nativeQuery = true)
     List<Object[]> getHourlyAverage(@Param("metricName") String metricName,
                                     @Param("start") LocalDateTime start,
                                     @Param("end") LocalDateTime end);
@@ -116,10 +117,10 @@ public interface SystemMetricSnapshotRepository extends JpaRepository<SystemMetr
     /**
      * Get daily average for a metric.
      */
-    @Query("SELECT CAST(s.collectedAt AS date), AVG(s.metricValue), MAX(s.metricValue), MIN(s.metricValue) " +
-           "FROM SystemMetricSnapshot s WHERE s.metricName = :metricName " +
-           "AND s.collectedAt BETWEEN :start AND :end " +
-           "GROUP BY CAST(s.collectedAt AS date) ORDER BY CAST(s.collectedAt AS date)")
+    @Query(value = "SELECT CAST(s.recorded_at AS date), AVG(s.metric_value), MAX(s.metric_value), MIN(s.metric_value) " +
+           "FROM system_metric_snapshots s WHERE s.metric_name = :metricName " +
+           "AND s.recorded_at BETWEEN :start AND :end " +
+           "GROUP BY CAST(s.recorded_at AS date) ORDER BY CAST(s.recorded_at AS date)", nativeQuery = true)
     List<Object[]> getDailyAverage(@Param("metricName") String metricName,
                                    @Param("start") LocalDateTime start,
                                    @Param("end") LocalDateTime end);
@@ -140,6 +141,7 @@ public interface SystemMetricSnapshotRepository extends JpaRepository<SystemMetr
     /**
      * Delete old snapshots for data retention.
      */
+    @Modifying
     @Query("DELETE FROM SystemMetricSnapshot s WHERE s.collectedAt < :cutoff")
     void deleteOldSnapshots(@Param("cutoff") LocalDateTime cutoff);
 }

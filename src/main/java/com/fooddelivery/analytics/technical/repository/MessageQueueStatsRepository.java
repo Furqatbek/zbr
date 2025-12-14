@@ -2,6 +2,7 @@ package com.fooddelivery.analytics.technical.repository;
 
 import com.fooddelivery.analytics.technical.model.MessageQueueStats;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -100,14 +101,15 @@ public interface MessageQueueStatsRepository extends JpaRepository<MessageQueueS
     /**
      * Get hourly queue depth average.
      */
-    @Query("SELECT EXTRACT(HOUR FROM m.collectedAt) as hour, AVG(m.queueDepth) " +
-           "FROM MessageQueueStats m WHERE m.collectedAt BETWEEN :start AND :end " +
-           "GROUP BY EXTRACT(HOUR FROM m.collectedAt) ORDER BY hour")
+    @Query(value = "SELECT EXTRACT(HOUR FROM m.recorded_at) as hour, AVG(m.queue_depth) " +
+           "FROM message_queue_stats m WHERE m.recorded_at BETWEEN :start AND :end " +
+           "GROUP BY EXTRACT(HOUR FROM m.recorded_at) ORDER BY hour", nativeQuery = true)
     List<Object[]> getHourlyQueueDepthAverage(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
 
     /**
      * Delete old stats for data retention.
      */
+    @Modifying
     @Query("DELETE FROM MessageQueueStats m WHERE m.collectedAt < :cutoff")
     void deleteOldStats(@Param("cutoff") LocalDateTime cutoff);
 }
