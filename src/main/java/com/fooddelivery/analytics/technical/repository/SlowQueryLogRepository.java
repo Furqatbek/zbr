@@ -2,6 +2,7 @@ package com.fooddelivery.analytics.technical.repository;
 
 import com.fooddelivery.analytics.technical.model.SlowQueryLog;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -92,9 +93,9 @@ public interface SlowQueryLogRepository extends JpaRepository<SlowQueryLog, Long
     /**
      * Get daily slow query trend.
      */
-    @Query("SELECT CAST(s.timestamp AS date), COUNT(s), AVG(s.durationMs), MAX(s.durationMs) " +
-           "FROM SlowQueryLog s WHERE s.timestamp BETWEEN :start AND :end " +
-           "GROUP BY CAST(s.timestamp AS date) ORDER BY CAST(s.timestamp AS date)")
+    @Query(value = "SELECT CAST(s.timestamp AS date), COUNT(*), AVG(s.duration_ms), MAX(s.duration_ms) " +
+           "FROM slow_query_logs s WHERE s.timestamp BETWEEN :start AND :end " +
+           "GROUP BY CAST(s.timestamp AS date) ORDER BY CAST(s.timestamp AS date)", nativeQuery = true)
     List<Object[]> getDailyTrend(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
 
     /**
@@ -107,6 +108,7 @@ public interface SlowQueryLogRepository extends JpaRepository<SlowQueryLog, Long
     /**
      * Delete old logs for data retention.
      */
+    @Modifying
     @Query("DELETE FROM SlowQueryLog s WHERE s.timestamp < :cutoff")
     void deleteOldLogs(@Param("cutoff") LocalDateTime cutoff);
 }
