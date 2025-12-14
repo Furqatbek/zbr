@@ -19,7 +19,7 @@ public interface SystemHealthRepository extends JpaRepository<SystemHealthSnapsh
     /**
      * Find the most recent health snapshot.
      */
-    @Query("SELECT s FROM SystemHealthSnapshot s ORDER BY s.capturedAt DESC LIMIT 1")
+    @Query(value = "SELECT * FROM system_health_snapshots s ORDER BY s.captured_at DESC LIMIT 1", nativeQuery = true)
     Optional<SystemHealthSnapshot> findLatestSnapshot();
 
     /**

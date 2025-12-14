@@ -113,7 +113,7 @@ public interface DashboardCourierRepository extends JpaRepository<Courier, Long>
      * Find available couriers near a location.
      */
     @Query(value = "SELECT * FROM couriers c WHERE c.status = 'AVAILABLE' " +
-            "AND c.verified = true AND c.current_order_count < c.max_concurrent_orders " +
+            "AND c.is_verified = true AND c.current_order_count < c.max_concurrent_orders " +
             "AND c.current_lat IS NOT NULL AND c.current_lng IS NOT NULL " +
             "AND ST_Distance_Sphere(point(c.current_lng, c.current_lat), point(:lng, :lat)) <= :radiusMeters " +
             "ORDER BY ST_Distance_Sphere(point(c.current_lng, c.current_lat), point(:lng, :lat))",
@@ -267,7 +267,7 @@ public interface DashboardCourierRepository extends JpaRepository<Courier, Long>
     /**
      * Find courier details filtered by IDs.
      */
-    @Query(value = "SELECT c.id, CONCAT(c.first_name, ' ', c.last_name), c.status, c.average_rating, " +
+    @Query(value = "SELECT c.id, CONCAT(u.first_name, ' ', u.last_name), c.status, c.average_rating, " +
             "(SELECT COUNT(*) FROM orders o WHERE o.courier_id = c.id AND o.status = 'DELIVERED' " +
             "AND o.delivered_at BETWEEN :startDate AND :endDate), " +
             "(SELECT AVG(TIMESTAMPDIFF(MINUTE, o.accepted_at, o.delivered_at)) FROM orders o " +
@@ -278,7 +278,7 @@ public interface DashboardCourierRepository extends JpaRepository<Courier, Long>
             "AND o.delivered_at <= o.estimated_delivery_time), " +
             "c.vehicle_type, c.current_lat, c.current_lng, c.location_updated_at, " +
             "c.current_order_count, c.location_updated_at > :activeThreshold " +
-            "FROM couriers c WHERE c.id IN :courierIds AND c.verified = true",
+            "FROM couriers c JOIN users u ON c.user_id = u.id WHERE c.id IN :courierIds AND c.is_verified = true",
             nativeQuery = true)
     List<Object[]> findCourierDetailsFiltered(@Param("courierIds") List<Long> courierIds,
                                                @Param("startDate") LocalDateTime startDate,
@@ -289,7 +289,7 @@ public interface DashboardCourierRepository extends JpaRepository<Courier, Long>
     /**
      * Find all courier details.
      */
-    @Query(value = "SELECT c.id, CONCAT(c.first_name, ' ', c.last_name), c.status, c.average_rating, " +
+    @Query(value = "SELECT c.id, CONCAT(u.first_name, ' ', u.last_name), c.status, c.average_rating, " +
             "(SELECT COUNT(*) FROM orders o WHERE o.courier_id = c.id AND o.status = 'DELIVERED' " +
             "AND o.delivered_at BETWEEN :startDate AND :endDate), " +
             "(SELECT AVG(TIMESTAMPDIFF(MINUTE, o.accepted_at, o.delivered_at)) FROM orders o " +
@@ -300,7 +300,7 @@ public interface DashboardCourierRepository extends JpaRepository<Courier, Long>
             "AND o.delivered_at <= o.estimated_delivery_time), " +
             "c.vehicle_type, c.current_lat, c.current_lng, c.location_updated_at, " +
             "c.current_order_count, c.location_updated_at > :activeThreshold " +
-            "FROM couriers c WHERE c.verified = true",
+            "FROM couriers c JOIN users u ON c.user_id = u.id WHERE c.is_verified = true",
             nativeQuery = true)
     List<Object[]> findAllCourierDetails(@Param("startDate") LocalDateTime startDate,
                                           @Param("endDate") LocalDateTime endDate,
@@ -310,9 +310,9 @@ public interface DashboardCourierRepository extends JpaRepository<Courier, Long>
     /**
      * Find active courier locations.
      */
-    @Query(value = "SELECT c.id, CONCAT(c.first_name, ' ', c.last_name), c.current_lat, c.current_lng, " +
+    @Query(value = "SELECT c.id, CONCAT(u.first_name, ' ', u.last_name), c.current_lat, c.current_lng, " +
             "c.status, c.current_order_count, c.location_updated_at " +
-            "FROM couriers c WHERE c.verified = true " +
+            "FROM couriers c JOIN users u ON c.user_id = u.id WHERE c.is_verified = true " +
             "AND c.location_updated_at > :since " +
             "AND c.current_lat IS NOT NULL AND c.current_lng IS NOT NULL",
             nativeQuery = true)
@@ -333,7 +333,7 @@ public interface DashboardCourierRepository extends JpaRepository<Courier, Long>
     /**
      * Find top performing couriers.
      */
-    @Query(value = "SELECT c.id, CONCAT(c.first_name, ' ', c.last_name), c.status, c.average_rating, " +
+    @Query(value = "SELECT c.id, CONCAT(u.first_name, ' ', u.last_name), c.status, c.average_rating, " +
             "(SELECT COUNT(*) FROM orders o WHERE o.courier_id = c.id AND o.status = 'DELIVERED' " +
             "AND o.delivered_at BETWEEN :startDate AND :endDate) as delivery_count, " +
             "(SELECT AVG(TIMESTAMPDIFF(MINUTE, o.accepted_at, o.delivered_at)) FROM orders o " +
@@ -344,7 +344,7 @@ public interface DashboardCourierRepository extends JpaRepository<Courier, Long>
             "AND o.delivered_at <= o.estimated_delivery_time), " +
             "c.vehicle_type, c.current_lat, c.current_lng, c.location_updated_at, " +
             "c.current_order_count, c.location_updated_at > :activeThreshold " +
-            "FROM couriers c WHERE c.verified = true " +
+            "FROM couriers c JOIN users u ON c.user_id = u.id WHERE c.is_verified = true " +
             "ORDER BY c.average_rating DESC, delivery_count DESC",
             nativeQuery = true)
     List<Object[]> findTopPerformingCouriers(@Param("startDate") LocalDateTime startDate,

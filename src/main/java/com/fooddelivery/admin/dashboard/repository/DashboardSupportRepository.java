@@ -93,25 +93,27 @@ public interface DashboardSupportRepository extends JpaRepository<SupportTicket,
                                 @Param("endDate") LocalDateTime endDate);
 
     /**
-     * Count complaints within date range.
+     * Count complaints within date range (negative experience tickets).
      */
-    @Query("SELECT COUNT(t) FROM SupportTicket t WHERE t.ticketType = 'COMPLAINT' " +
+    @Query("SELECT COUNT(t) FROM SupportTicket t WHERE t.ticketType IN " +
+            "('LATE_DELIVERY', 'MISSING_ITEMS', 'WRONG_ORDER', 'COLD_FOOD', 'COURIER_BEHAVIOR', 'RESTAURANT_QUALITY') " +
             "AND t.createdAt BETWEEN :startDate AND :endDate")
     Long countComplaints(@Param("startDate") LocalDateTime startDate,
                           @Param("endDate") LocalDateTime endDate);
 
     /**
-     * Count inquiries within date range.
+     * Count inquiries within date range (information-seeking tickets).
      */
-    @Query("SELECT COUNT(t) FROM SupportTicket t WHERE t.ticketType = 'INQUIRY' " +
+    @Query("SELECT COUNT(t) FROM SupportTicket t WHERE t.ticketType IN " +
+            "('APP_ISSUE', 'ACCOUNT_ISSUE', 'PROMO_CODE_ISSUE') " +
             "AND t.createdAt BETWEEN :startDate AND :endDate")
     Long countInquiries(@Param("startDate") LocalDateTime startDate,
                          @Param("endDate") LocalDateTime endDate);
 
     /**
-     * Count feedback within date range.
+     * Count feedback within date range (general tickets).
      */
-    @Query("SELECT COUNT(t) FROM SupportTicket t WHERE t.ticketType = 'FEEDBACK' " +
+    @Query("SELECT COUNT(t) FROM SupportTicket t WHERE t.ticketType = 'OTHER' " +
             "AND t.createdAt BETWEEN :startDate AND :endDate")
     Long countFeedback(@Param("startDate") LocalDateTime startDate,
                         @Param("endDate") LocalDateTime endDate);

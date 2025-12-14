@@ -19,8 +19,8 @@ public interface DashboardRefreshLogRepository extends JpaRepository<DashboardRe
     /**
      * Find the most recent refresh log for a component.
      */
-    @Query("SELECT r FROM DashboardRefreshLog r WHERE r.component = :component " +
-            "ORDER BY r.refreshedAt DESC LIMIT 1")
+    @Query(value = "SELECT * FROM dashboard_refresh_logs r WHERE r.component = :component " +
+            "ORDER BY r.refreshed_at DESC LIMIT 1", nativeQuery = true)
     Optional<DashboardRefreshLog> findLatestByComponent(@Param("component") String component);
 
     /**
