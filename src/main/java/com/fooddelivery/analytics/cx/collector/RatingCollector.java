@@ -340,13 +340,13 @@ public class RatingCollector {
         Long iosCount = appStoreRatingRepository.countReviewsByPlatform(AppStoreRating.Platform.IOS, startDate, endDate);
         Map<Integer, Long> iosDistribution = getRatingDistribution(
                 appStoreRatingRepository.getRatingDistributionByPlatform(AppStoreRating.Platform.IOS, startDate, endDate));
-        String iosLatestVersion = appStoreRatingRepository.getLatestVersion(AppStoreRating.Platform.IOS);
+        String iosLatestVersion = appStoreRatingRepository.getLatestVersion(AppStoreRating.Platform.IOS.name());
 
         Double androidAvg = appStoreRatingRepository.getAverageRatingByPlatform(AppStoreRating.Platform.ANDROID, startDate, endDate);
         Long androidCount = appStoreRatingRepository.countReviewsByPlatform(AppStoreRating.Platform.ANDROID, startDate, endDate);
         Map<Integer, Long> androidDistribution = getRatingDistribution(
                 appStoreRatingRepository.getRatingDistributionByPlatform(AppStoreRating.Platform.ANDROID, startDate, endDate));
-        String androidLatestVersion = appStoreRatingRepository.getLatestVersion(AppStoreRating.Platform.ANDROID);
+        String androidLatestVersion = appStoreRatingRepository.getLatestVersion(AppStoreRating.Platform.ANDROID.name());
 
         // Overall distribution
         Map<Integer, Long> overallDistribution = getRatingDistribution(

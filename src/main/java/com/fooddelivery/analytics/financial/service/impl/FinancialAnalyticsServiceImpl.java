@@ -398,7 +398,8 @@ public class FinancialAnalyticsServiceImpl implements FinancialAnalyticsService 
         BigDecimal failedPayouts = restaurantPayoutRepository.getTotalByStatus(PaymentStatus.FAILED);
 
         // Get average processing time
-        BigDecimal avgProcessingTime = restaurantPayoutRepository.getAverageProcessingTimeHours(startLocalDate, endLocalDate);
+        Double avgProcessingTimeHours = restaurantPayoutRepository.getAverageProcessingTimeHours(startLocalDate, endLocalDate);
+        BigDecimal avgProcessingTime = avgProcessingTimeHours != null ? BigDecimal.valueOf(avgProcessingTimeHours) : BigDecimal.ZERO;
 
         // Get dispute metrics
         Long disputeCount = disputeRepository.getDisputeCount(startDate, endDate);
