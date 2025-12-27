@@ -157,4 +157,157 @@ public interface DashboardCourierRepository extends JpaRepository<Courier, Long>
     @Query("SELECT c FROM Courier c WHERE c.verified = true " +
             "ORDER BY c.totalEarnings DESC")
     List<Courier> findTopEarningCouriers(Pageable pageable);
+
+    // ==================== Additional Collector Methods ====================
+
+    /**
+     * Count total couriers.
+     */
+    @Query("SELECT COUNT(c) FROM Courier c")
+    Long countTotalCouriers();
+
+    /**
+     * Count couriers currently on delivery.
+     */
+    @Query("SELECT COUNT(c) FROM Courier c WHERE c.status = 'BUSY' AND c.currentOrderCount > 0")
+    Long countCouriersOnDelivery();
+
+    /**
+     * Count available couriers with active threshold.
+     */
+    @Query("SELECT COUNT(c) FROM Courier c WHERE c.status = 'AVAILABLE' " +
+            "AND c.verified = true AND c.currentOrderCount < c.maxConcurrentOrders " +
+            "AND c.locationUpdatedAt > :since")
+    Long countAvailableCouriers(@Param("since") LocalDateTime since);
+
+    /**
+     * Count couriers returning (completed delivery, heading back).
+     */
+    @Query("SELECT COUNT(c) FROM Courier c WHERE c.status = 'RETURNING'")
+    Long countCouriersReturning();
+
+    /**
+     * Count couriers on break.
+     */
+    @Query("SELECT COUNT(c) FROM Courier c WHERE c.status = 'ON_BREAK'")
+    Long countCouriersOnBreak();
+
+    /**
+     * Count offline couriers.
+     */
+    @Query("SELECT COUNT(c) FROM Courier c WHERE c.status = 'OFFLINE' " +
+            "OR c.locationUpdatedAt < :since")
+    Long countOfflineCouriers(@Param("since") LocalDateTime since);
+
+    /**
+     * Average delivery time in minutes.
+     */
+    @Query("SELECT COALESCE(AVG(o.deliveryTimeMinutes), 0) FROM Order o " +
+            "WHERE o.status = 'DELIVERED' " +
+            "AND o.deliveredAt BETWEEN :startDate AND :endDate")
+    Double avgDeliveryTime(@Param("startDate") LocalDateTime startDate,
+                           @Param("endDate") LocalDateTime endDate);
+
+    /**
+     * Average courier rating.
+     */
+    @Query("SELECT COALESCE(AVG(c.averageRating), 0) FROM Courier c WHERE c.verified = true")
+    Double avgCourierRating();
+
+    /**
+     * Count total deliveries in date range.
+     */
+    @Query("SELECT COUNT(o) FROM Order o WHERE o.status = 'DELIVERED' " +
+            "AND o.deliveredAt BETWEEN :startDate AND :endDate")
+    Long countTotalDeliveries(@Param("startDate") LocalDateTime startDate,
+                              @Param("endDate") LocalDateTime endDate);
+
+    /**
+     * Count on-time deliveries in date range.
+     */
+    @Query("SELECT COUNT(o) FROM Order o WHERE o.status = 'DELIVERED' " +
+            "AND o.deliveredAt <= o.estimatedDeliveryAt " +
+            "AND o.deliveredAt BETWEEN :startDate AND :endDate")
+    Long countOnTimeDeliveries(@Param("startDate") LocalDateTime startDate,
+                               @Param("endDate") LocalDateTime endDate);
+
+    /**
+     * Average deliveries per courier in date range.
+     */
+    @Query("SELECT COALESCE(COUNT(o) * 1.0 / NULLIF(COUNT(DISTINCT o.courierId), 0), 0) FROM Order o " +
+            "WHERE o.status = 'DELIVERED' " +
+            "AND o.deliveredAt BETWEEN :startDate AND :endDate")
+    Double avgDeliveriesPerCourier(@Param("startDate") LocalDateTime startDate,
+                                    @Param("endDate") LocalDateTime endDate);
+
+    /**
+     * Average distance per delivery in km.
+     */
+    @Query("SELECT COALESCE(AVG(o.deliveryDistanceKm), 0) FROM Order o " +
+            "WHERE o.status = 'DELIVERED' " +
+            "AND o.deliveredAt BETWEEN :startDate AND :endDate")
+    Double avgDistancePerDelivery(@Param("startDate") LocalDateTime startDate,
+                                   @Param("endDate") LocalDateTime endDate);
+
+    /**
+     * Find courier details filtered by IDs.
+     */
+    @Query("SELECT c.id, CONCAT(c.firstName, ' ', c.lastName), c.status, c.averageRating, " +
+            "c.totalDeliveries, 0, 0, c.vehicleType, c.currentLat, c.currentLng, " +
+            "c.locationUpdatedAt, c.currentOrderCount, (c.locationUpdatedAt > :activeThreshold) " +
+            "FROM Courier c WHERE c.id IN :courierIds " +
+            "ORDER BY c.averageRating DESC")
+    List<Object[]> findCourierDetailsFiltered(@Param("courierIds") List<Long> courierIds,
+                                               @Param("startDate") LocalDateTime startDate,
+                                               @Param("endDate") LocalDateTime endDate,
+                                               @Param("activeThreshold") LocalDateTime activeThreshold,
+                                               Pageable pageable);
+
+    /**
+     * Find all courier details.
+     */
+    @Query("SELECT c.id, CONCAT(c.firstName, ' ', c.lastName), c.status, c.averageRating, " +
+            "c.totalDeliveries, 0, 0, c.vehicleType, c.currentLat, c.currentLng, " +
+            "c.locationUpdatedAt, c.currentOrderCount, (c.locationUpdatedAt > :activeThreshold) " +
+            "FROM Courier c " +
+            "ORDER BY c.averageRating DESC")
+    List<Object[]> findAllCourierDetails(@Param("startDate") LocalDateTime startDate,
+                                          @Param("endDate") LocalDateTime endDate,
+                                          @Param("activeThreshold") LocalDateTime activeThreshold,
+                                          Pageable pageable);
+
+    /**
+     * Find active courier locations.
+     */
+    @Query("SELECT c.id, CONCAT(c.firstName, ' ', c.lastName), c.currentLat, c.currentLng, " +
+            "c.status, c.currentOrderCount, c.locationUpdatedAt " +
+            "FROM Courier c WHERE c.locationUpdatedAt > :activeThreshold " +
+            "AND c.currentLat IS NOT NULL AND c.currentLng IS NOT NULL " +
+            "ORDER BY c.locationUpdatedAt DESC")
+    List<Object[]> findActiveCourierLocations(@Param("activeThreshold") LocalDateTime activeThreshold);
+
+    /**
+     * Get courier availability by day of week and hour.
+     */
+    @Query(value = "SELECT DAYOFWEEK(location_updated_at), HOUR(location_updated_at), COUNT(DISTINCT id) " +
+            "FROM couriers WHERE status IN ('AVAILABLE', 'BUSY') " +
+            "AND location_updated_at BETWEEN :startDate AND :endDate " +
+            "GROUP BY DAYOFWEEK(location_updated_at), HOUR(location_updated_at) " +
+            "ORDER BY DAYOFWEEK(location_updated_at), HOUR(location_updated_at)",
+            nativeQuery = true)
+    List<Object[]> getCourierAvailabilityByHour(@Param("startDate") LocalDateTime startDate,
+                                                 @Param("endDate") LocalDateTime endDate);
+
+    /**
+     * Find top performing couriers.
+     */
+    @Query("SELECT c.id, CONCAT(c.firstName, ' ', c.lastName), c.status, c.averageRating, " +
+            "c.totalDeliveries, 0, 0, c.vehicleType, c.currentLat, c.currentLng, " +
+            "c.locationUpdatedAt, c.currentOrderCount, (c.locationUpdatedAt > :activeThreshold) " +
+            "FROM Courier c WHERE c.verified = true " +
+            "ORDER BY c.averageRating DESC, c.totalDeliveries DESC")
+    List<Object[]> findTopPerformingCouriers(@Param("startDate") LocalDateTime startDate,
+                                              @Param("endDate") LocalDateTime endDate,
+                                              @Param("activeThreshold") LocalDateTime activeThreshold,
+                                              Pageable pageable);
 }

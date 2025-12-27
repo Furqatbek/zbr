@@ -24,6 +24,8 @@ public class SupportMetricsDto {
     private Long totalTickets;
     private Long openTickets;
     private Long inProgressTickets;
+    private Long resolvedTickets;
+    private Long closedTickets;
     private Long waitingCustomerTickets;
     private Long waitingRestaurantTickets;
     private Long waitingCourierTickets;
@@ -36,15 +38,26 @@ public class SupportMetricsDto {
     private Long mediumPriorityTickets;
     private Long lowPriorityTickets;
 
+    // Ticket type counts
+    private Long complaintCount;
+    private Long refundRequestCount;
+    private Long inquiryCount;
+    private Long feedbackCount;
+
     // Performance metrics
     private Double avgResolutionTimeHours;
+    private Double avgResolutionTimeMinutes;
+    private String avgResolutionTimeFormatted;
     private Double avgFirstResponseTimeMinutes;
+    private String avgFirstResponseTimeFormatted;
     private Double firstContactResolutionRate;
     private Double customerSatisfactionScore; // CSAT average
+    private Double resolutionRate;
 
     // SLA compliance
     private Long slaBreach;
     private Double slaComplianceRate;
+    private Map<String, Object> slaMetrics;
 
     // Escalations
     private Long escalatedTickets;
@@ -65,6 +78,15 @@ public class SupportMetricsDto {
 
     // Hourly ticket volume
     private Map<Integer, Long> ticketsByHour;
+    private Map<Integer, Long> hourlyDistribution;
+
+    // Breakdowns
+    private Map<String, Long> statusBreakdown;
+    private Map<String, Long> priorityBreakdown;
+    private Map<String, Long> categoryBreakdown;
+
+    // Pending attention tickets
+    private List<SupportTicketItemDto> pendingAttentionTickets;
 
     // Ticket list
     private List<SupportTicketItemDto> tickets;
@@ -91,6 +113,7 @@ public class SupportMetricsDto {
         private Long ticketId;
         private String ticketNumber;
         private String ticketType;
+        private String category;
         private String status;
         private String priority;
         private String channel;
@@ -98,6 +121,8 @@ public class SupportMetricsDto {
         // Related entities
         private Long userId;
         private String userName;
+        private Long customerId;
+        private String customerName;
         private Long orderId;
         private String orderNumber;
         private Long restaurantId;
@@ -112,18 +137,26 @@ public class SupportMetricsDto {
         // Assignment
         private Long assignedToId;
         private String assignedToName;
+        private Long assignedAgentId;
+        private String assignedAgentName;
         private LocalDateTime assignedAt;
 
         // Timing
         private LocalDateTime createdAt;
+        private LocalDateTime updatedAt;
         private LocalDateTime firstResponseAt;
         private LocalDateTime resolvedAt;
         private Long ageMinutes;
+        private String ageFormatted;
         private Long responseTimeMinutes;
+        private Long waitTimeMinutes;
+        private String waitTimeFormatted;
 
         // Flags
         private Boolean slaBreach;
+        private Boolean slaBreached;
         private Boolean escalated;
+        private Boolean isEscalated;
         private Integer reopenCount;
 
         // Refund info
@@ -140,12 +173,17 @@ public class SupportMetricsDto {
         private Long agentId;
         private String agentName;
         private Long ticketsAssigned;
+        private Long ticketsHandled;
         private Long ticketsResolved;
+        private Double resolutionRate;
         private Double avgResolutionTimeHours;
+        private Double avgResolutionTimeMinutes;
         private Double avgFirstResponseTimeMinutes;
         private Double csatScore;
+        private Double avgSatisfactionScore;
         private Double slaComplianceRate;
         private Long currentOpenTickets;
+        private Double performanceScore;
     }
 
     @Data
@@ -154,10 +192,16 @@ public class SupportMetricsDto {
     @AllArgsConstructor
     public static class CommonIssueDto {
         private String issueType;
+        private String category;
+        private String subcategory;
         private Long ticketCount;
+        private Long count;
         private Double percentageOfTotal;
+        private Double percentage;
         private Double avgResolutionTimeHours;
+        private Double avgResolutionTimeMinutes;
         private BigDecimal avgRefundAmount;
         private String suggestedAction;
+        private String trend;
     }
 }
