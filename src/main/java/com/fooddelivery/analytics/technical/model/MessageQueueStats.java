@@ -76,6 +76,10 @@ public class MessageQueueStats {
     @Builder.Default
     private Boolean isHealthy = true;
 
+    @Column(name = "is_dead_letter_queue")
+    @Builder.Default
+    private Boolean isDeadLetterQueue = false;
+
     @Column(name = "recorded_at", nullable = false)
     private LocalDateTime recordedAt;
 
