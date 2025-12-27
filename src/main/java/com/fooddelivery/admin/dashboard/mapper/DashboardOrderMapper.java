@@ -21,7 +21,7 @@ public interface DashboardOrderMapper {
      * Map raw query result to ActiveOrderItemDto.
      */
     @Mapping(target = "orderId", source = "orderId")
-    @Mapping(target = "orderNumber", source = "orderNumber")
+    @Mapping(target = "externalOrderNo", source = "orderNumber")
     @Mapping(target = "customerId", source = "customerId")
     @Mapping(target = "customerName", source = "customerName")
     @Mapping(target = "restaurantId", source = "restaurantId")
@@ -29,9 +29,9 @@ public interface DashboardOrderMapper {
     @Mapping(target = "courierId", source = "courierId")
     @Mapping(target = "courierName", source = "courierName")
     @Mapping(target = "status", source = "status")
-    @Mapping(target = "orderTotal", source = "orderTotal")
+    @Mapping(target = "total", source = "orderTotal")
     @Mapping(target = "createdAt", source = "createdAt")
-    @Mapping(target = "estimatedDeliveryAt", source = "estimatedDeliveryAt")
+    @Mapping(target = "estimatedDeliveryTime", source = "estimatedDeliveryAt")
     @Mapping(target = "deliveryAddress", source = "deliveryAddress")
     ActiveOrderItemDto toActiveOrderItem(
             Long orderId,
@@ -53,23 +53,23 @@ public interface DashboardOrderMapper {
      * Map to StuckOrderItemDto with calculated fields.
      */
     @Mapping(target = "orderId", source = "orderId")
-    @Mapping(target = "orderNumber", source = "orderNumber")
+    @Mapping(target = "externalOrderNo", source = "orderNumber")
     @Mapping(target = "status", source = "status")
-    @Mapping(target = "minutesInCurrentStatus", source = "minutesInStatus")
-    @Mapping(target = "thresholdMinutes", source = "threshold")
-    @Mapping(target = "orderTotal", source = "orderTotal")
+    @Mapping(target = "minutesStuck", source = "minutesInStatus")
+    @Mapping(target = "expectedTimeMinutes", source = "threshold")
+    @Mapping(target = "total", source = "orderTotal")
     @Mapping(target = "restaurantId", source = "restaurantId")
     @Mapping(target = "restaurantName", source = "restaurantName")
     @Mapping(target = "courierId", source = "courierId")
     @Mapping(target = "courierName", source = "courierName")
     @Mapping(target = "createdAt", source = "createdAt")
-    @Mapping(target = "statusChangedAt", source = "statusChangedAt")
+    @Mapping(target = "lastStatusChange", source = "statusChangedAt")
     StuckOrderItemDto toStuckOrderItem(
             Long orderId,
             String orderNumber,
             String status,
             Long minutesInStatus,
-            Integer threshold,
+            Long threshold,
             BigDecimal orderTotal,
             Long restaurantId,
             String restaurantName,
@@ -83,19 +83,19 @@ public interface DashboardOrderMapper {
      * Map to CanceledOrderItemDto.
      */
     @Mapping(target = "orderId", source = "orderId")
-    @Mapping(target = "orderNumber", source = "orderNumber")
+    @Mapping(target = "externalOrderNo", source = "orderNumber")
     @Mapping(target = "customerId", source = "customerId")
     @Mapping(target = "customerName", source = "customerName")
     @Mapping(target = "restaurantId", source = "restaurantId")
     @Mapping(target = "restaurantName", source = "restaurantName")
-    @Mapping(target = "orderTotal", source = "orderTotal")
-    @Mapping(target = "cancelReason", source = "cancelReason")
-    @Mapping(target = "cancelledBy", source = "cancelledBy")
+    @Mapping(target = "total", source = "orderTotal")
+    @Mapping(target = "cancellationReason", source = "cancelReason")
+    @Mapping(target = "canceledBy", source = "cancelledBy")
     @Mapping(target = "createdAt", source = "createdAt")
-    @Mapping(target = "cancelledAt", source = "cancelledAt")
-    @Mapping(target = "statusAtCancellation", source = "statusAtCancellation")
+    @Mapping(target = "canceledAt", source = "cancelledAt")
+    @Mapping(target = "statusWhenCanceled", source = "statusAtCancellation")
     @Mapping(target = "refundAmount", source = "refundAmount")
-    @Mapping(target = "refundStatus", source = "refundStatus")
+    @Mapping(target = "wasRefunded", expression = "java(refundAmount != null && refundAmount.compareTo(java.math.BigDecimal.ZERO) > 0)")
     CanceledOrderItemDto toCanceledOrderItem(
             Long orderId,
             String orderNumber,
@@ -109,25 +109,24 @@ public interface DashboardOrderMapper {
             LocalDateTime createdAt,
             LocalDateTime cancelledAt,
             String statusAtCancellation,
-            BigDecimal refundAmount,
-            String refundStatus
+            BigDecimal refundAmount
     );
 
     /**
      * Map to RejectedOrderItemDto.
      */
     @Mapping(target = "orderId", source = "orderId")
-    @Mapping(target = "orderNumber", source = "orderNumber")
+    @Mapping(target = "externalOrderNo", source = "orderNumber")
     @Mapping(target = "customerId", source = "customerId")
     @Mapping(target = "customerName", source = "customerName")
     @Mapping(target = "restaurantId", source = "restaurantId")
     @Mapping(target = "restaurantName", source = "restaurantName")
-    @Mapping(target = "orderTotal", source = "orderTotal")
+    @Mapping(target = "total", source = "orderTotal")
     @Mapping(target = "rejectionReason", source = "rejectionReason")
     @Mapping(target = "createdAt", source = "createdAt")
     @Mapping(target = "rejectedAt", source = "rejectedAt")
     @Mapping(target = "wasReassigned", source = "wasReassigned")
-    @Mapping(target = "reassignedToRestaurantId", source = "reassignedToRestaurantId")
+    @Mapping(target = "reassignedToId", source = "reassignedToRestaurantId")
     RejectedOrderItemDto toRejectedOrderItem(
             Long orderId,
             String orderNumber,

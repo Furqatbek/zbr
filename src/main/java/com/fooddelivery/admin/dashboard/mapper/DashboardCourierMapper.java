@@ -19,22 +19,18 @@ public interface DashboardCourierMapper {
     @Mapping(target = "courierId", source = "courierId")
     @Mapping(target = "name", source = "name")
     @Mapping(target = "status", source = "status")
-    @Mapping(target = "isActive", source = "isActive")
-    @Mapping(target = "rating", source = "rating")
     @Mapping(target = "deliveriesToday", source = "deliveriesToday")
-    @Mapping(target = "avgDeliveryTimeMinutes", source = "avgDeliveryTime")
-    @Mapping(target = "onTimeDeliveryRate", source = "onTimeRate")
+    @Mapping(target = "avgDeliveryTimeToday", source = "avgDeliveryTime")
     @Mapping(target = "vehicleType", source = "vehicleType")
-    @Mapping(target = "currentLatitude", source = "latitude")
-    @Mapping(target = "currentLongitude", source = "longitude")
-    @Mapping(target = "lastLocationPingAt", source = "lastPingAt")
-    @Mapping(target = "currentOrderId", source = "currentOrderId")
-    @Mapping(target = "performanceScore", expression = "java(calculatePerformanceScore(rating, onTimeRate, avgDeliveryTime))")
+    @Mapping(target = "currentLat", expression = "java(latitude != null ? java.math.BigDecimal.valueOf(latitude) : null)")
+    @Mapping(target = "currentLng", expression = "java(longitude != null ? java.math.BigDecimal.valueOf(longitude) : null)")
+    @Mapping(target = "locationUpdatedAt", source = "lastPingAt")
+    @Mapping(target = "avgRating", expression = "java(rating != null ? java.math.BigDecimal.valueOf(rating) : null)")
+    @Mapping(target = "acceptanceRate", source = "onTimeRate")
     CourierDetailDto toCourierDetail(
             Long courierId,
             String name,
             String status,
-            Boolean isActive,
             Double rating,
             Long deliveriesToday,
             Double avgDeliveryTime,
@@ -42,19 +38,18 @@ public interface DashboardCourierMapper {
             String vehicleType,
             Double latitude,
             Double longitude,
-            LocalDateTime lastPingAt,
-            Long currentOrderId
+            LocalDateTime lastPingAt
     );
 
     /**
      * Map to CourierLocationDto.
      */
     @Mapping(target = "courierId", source = "courierId")
-    @Mapping(target = "courierName", source = "name")
-    @Mapping(target = "latitude", source = "latitude")
-    @Mapping(target = "longitude", source = "longitude")
+    @Mapping(target = "name", source = "name")
+    @Mapping(target = "latitude", expression = "java(latitude != null ? java.math.BigDecimal.valueOf(latitude) : null)")
+    @Mapping(target = "longitude", expression = "java(longitude != null ? java.math.BigDecimal.valueOf(longitude) : null)")
     @Mapping(target = "status", source = "status")
-    @Mapping(target = "currentOrderId", source = "currentOrderId")
+    @Mapping(target = "activeOrders", source = "activeOrderCount")
     @Mapping(target = "lastPingAt", source = "lastPingAt")
     CourierLocationDto toCourierLocation(
             Long courierId,
@@ -62,7 +57,7 @@ public interface DashboardCourierMapper {
             Double latitude,
             Double longitude,
             String status,
-            Long currentOrderId,
+            Integer activeOrderCount,
             LocalDateTime lastPingAt
     );
 

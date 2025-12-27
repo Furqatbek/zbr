@@ -42,8 +42,9 @@ public interface CxMapper {
     /**
      * Map restaurant rating summary data.
      */
-    @Mapping(target = "avgRating", source = "averageRating")
-    @Mapping(target = "totalRatings", source = "ratingCount")
+    @Mapping(target = "restaurantId", source = "restaurantId")
+    @Mapping(target = "averageRating", source = "averageRating")
+    @Mapping(target = "ratingCount", source = "ratingCount")
     RestaurantRatingMetricsDto.RestaurantRatingSummaryDto toRestaurantSummary(
             Long restaurantId, Double averageRating, Long ratingCount);
 
@@ -59,8 +60,9 @@ public interface CxMapper {
     /**
      * Map courier rating summary data.
      */
-    @Mapping(target = "avgRating", source = "averageRating")
-    @Mapping(target = "totalRatings", source = "ratingCount")
+    @Mapping(target = "courierId", source = "courierId")
+    @Mapping(target = "averageRating", source = "averageRating")
+    @Mapping(target = "ratingCount", source = "ratingCount")
     CourierRatingMetricsDto.CourierRatingSummaryDto toCourierSummary(
             Long courierId, Double averageRating, Long ratingCount);
 
