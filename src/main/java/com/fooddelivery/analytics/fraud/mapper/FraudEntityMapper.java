@@ -34,7 +34,7 @@ public interface FraudEntityMapper {
     @Mapping(target = "flagId", source = "id")
     @Mapping(target = "flagType", source = "flagType")
     @Mapping(target = "severityLevel", source = "severity")
-    @Mapping(target = "flaggedAt", source = "flaggedAt")
+    @Mapping(target = "flaggedAt", source = "createdAt")
     @Mapping(target = "description", source = "description")
     SecurityLogMetricsDto.SecurityFlagDto toSecurityFlagDto(SecurityFlag flag);
 
@@ -45,10 +45,9 @@ public interface FraudEntityMapper {
     // ============================================
 
     @Mapping(target = "deviceId", source = "deviceId")
-    @Mapping(target = "userId", source = "userId")
     @Mapping(target = "deviceType", source = "deviceType")
-    @Mapping(target = "isEmulator", source = "emulator")
-    @Mapping(target = "isRooted", source = "rooted")
+    @Mapping(target = "isEmulator", source = "isEmulator")
+    @Mapping(target = "isRooted", source = "isRooted")
     @Mapping(target = "trustScore", source = "trustScore")
     @Mapping(target = "firstSeenAt", source = "firstSeenAt")
     AccountIntegrityMetricsDto.SuspiciousDeviceDto toSuspiciousDeviceDto(DeviceFingerprint device);
@@ -76,10 +75,10 @@ public interface FraudEntityMapper {
 
     @Mapping(target = "referrerId", source = "referrerId")
     @Mapping(target = "totalReferrals", source = "totalReferrals")
-    @Mapping(target = "successfulReferrals", source = "successfulReferrals")
-    @Mapping(target = "fraudulentReferrals", source = "fraudulentReferrals")
-    @Mapping(target = "earningsTotal", source = "totalEarnings")
-    @Mapping(target = "fraudRate", expression = "java(calculateRate(source.getFraudulentReferrals(), source.getTotalReferrals()))")
+    @Mapping(target = "completedReferrals", source = "successfulReferrals")
+    @Mapping(target = "suspiciousReferrals", source = "fraudulentReferrals")
+    @Mapping(target = "totalBonusesEarned", source = "totalEarnings")
+    @Mapping(target = "suspiciousRate", expression = "java(calculateRate(source.getFraudulentReferrals(), source.getTotalReferrals()))")
     ReferralFraudMetricsDto.FraudulentReferrerDto toFraudulentReferrerDto(ReferralAggregation source);
 
     List<ReferralFraudMetricsDto.FraudulentReferrerDto> toFraudulentReferrerDtoList(List<ReferralAggregation> sources);
