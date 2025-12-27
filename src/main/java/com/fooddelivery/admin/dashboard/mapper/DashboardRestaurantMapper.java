@@ -18,17 +18,13 @@ public interface DashboardRestaurantMapper {
     @Mapping(target = "restaurantId", source = "restaurantId")
     @Mapping(target = "name", source = "name")
     @Mapping(target = "status", source = "status")
-    @Mapping(target = "isOnline", source = "isOnline")
-    @Mapping(target = "rating", source = "rating")
-    @Mapping(target = "totalOrdersToday", source = "totalOrders")
-    @Mapping(target = "avgPreparationTimeMinutes", source = "avgPrepTime")
-    @Mapping(target = "orderAcceptanceLatencySeconds", source = "acceptanceLatency")
+    @Mapping(target = "isOpen", source = "isOnline")
+    @Mapping(target = "avgRating", expression = "java(rating != null ? java.math.BigDecimal.valueOf(rating) : null)")
+    @Mapping(target = "ordersToday", source = "totalOrders")
+    @Mapping(target = "avgPrepTime", source = "avgPrepTime")
+    @Mapping(target = "avgAcceptanceLatency", source = "acceptanceLatency")
     @Mapping(target = "acceptanceRate", source = "acceptanceRate")
-    @Mapping(target = "rejectedOrdersToday", source = "rejectedOrders")
-    @Mapping(target = "cuisineType", source = "cuisineType")
-    @Mapping(target = "city", source = "city")
-    @Mapping(target = "lastOrderAt", source = "lastOrderAt")
-    @Mapping(target = "performanceScore", expression = "java(calculatePerformanceScore(rating, acceptanceRate, avgPrepTime))")
+    @Mapping(target = "ordersRejected", source = "rejectedOrders")
     RestaurantDetailDto toRestaurantDetail(
             Long restaurantId,
             String name,
@@ -39,10 +35,7 @@ public interface DashboardRestaurantMapper {
             Double avgPrepTime,
             Double acceptanceLatency,
             Double acceptanceRate,
-            Long rejectedOrders,
-            String cuisineType,
-            String city,
-            LocalDateTime lastOrderAt
+            Long rejectedOrders
     );
 
     /**

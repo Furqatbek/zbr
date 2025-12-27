@@ -21,26 +21,23 @@ public interface DashboardSupportMapper {
      */
     @Mapping(target = "ticketId", source = "ticketId")
     @Mapping(target = "ticketNumber", source = "ticketNumber")
-    @Mapping(target = "customerId", source = "customerId")
-    @Mapping(target = "customerName", source = "customerName")
+    @Mapping(target = "userId", source = "customerId")
+    @Mapping(target = "userName", source = "customerName")
     @Mapping(target = "orderId", source = "orderId")
-    @Mapping(target = "category", source = "category")
+    @Mapping(target = "ticketType", source = "category")
     @Mapping(target = "priority", source = "priority")
     @Mapping(target = "status", source = "status")
     @Mapping(target = "subject", source = "subject")
     @Mapping(target = "createdAt", source = "createdAt")
-    @Mapping(target = "updatedAt", source = "updatedAt")
-    @Mapping(target = "assignedAgentId", source = "assignedAgentId")
-    @Mapping(target = "assignedAgentName", source = "assignedAgentName")
+    @Mapping(target = "assignedToId", source = "assignedAgentId")
+    @Mapping(target = "assignedToName", source = "assignedAgentName")
     @Mapping(target = "firstResponseAt", source = "firstResponseAt")
     @Mapping(target = "resolvedAt", source = "resolvedAt")
-    @Mapping(target = "isEscalated", source = "isEscalated")
+    @Mapping(target = "escalated", source = "isEscalated")
     @Mapping(target = "refundAmount", source = "refundAmount")
-    @Mapping(target = "waitTimeMinutes", expression = "java(calculateWaitTime(createdAt, firstResponseAt, status))")
-    @Mapping(target = "waitTimeFormatted", expression = "java(formatDuration(calculateWaitTime(createdAt, firstResponseAt, status)))")
+    @Mapping(target = "responseTimeMinutes", expression = "java(calculateWaitTime(createdAt, firstResponseAt, status))")
     @Mapping(target = "ageMinutes", expression = "java(calculateAge(createdAt))")
-    @Mapping(target = "ageFormatted", expression = "java(formatDuration(calculateAge(createdAt)))")
-    @Mapping(target = "slaBreached", expression = "java(isSlaBreached(priority, calculateWaitTime(createdAt, firstResponseAt, status), status))")
+    @Mapping(target = "slaBreach", expression = "java(isSlaBreached(priority, calculateWaitTime(createdAt, firstResponseAt, status), status))")
     SupportTicketItemDto toSupportTicketItem(
             Long ticketId,
             String ticketNumber,
@@ -52,7 +49,6 @@ public interface DashboardSupportMapper {
             String status,
             String subject,
             LocalDateTime createdAt,
-            LocalDateTime updatedAt,
             Long assignedAgentId,
             String assignedAgentName,
             LocalDateTime firstResponseAt,
@@ -66,14 +62,13 @@ public interface DashboardSupportMapper {
      */
     @Mapping(target = "agentId", source = "agentId")
     @Mapping(target = "agentName", source = "agentName")
-    @Mapping(target = "ticketsHandled", source = "ticketsHandled")
+    @Mapping(target = "ticketsAssigned", source = "ticketsHandled")
     @Mapping(target = "ticketsResolved", source = "ticketsResolved")
-    @Mapping(target = "resolutionRate", expression = "java(calculateResolutionRate(ticketsHandled, ticketsResolved))")
-    @Mapping(target = "avgResolutionTimeMinutes", source = "avgResolutionTime")
+    @Mapping(target = "slaComplianceRate", expression = "java(calculateResolutionRate(ticketsHandled, ticketsResolved))")
+    @Mapping(target = "avgResolutionTimeHours", expression = "java(avgResolutionTime != null ? avgResolutionTime / 60.0 : null)")
     @Mapping(target = "avgFirstResponseTimeMinutes", source = "avgFirstResponseTime")
-    @Mapping(target = "avgSatisfactionScore", source = "avgSatisfactionScore")
+    @Mapping(target = "csatScore", source = "avgSatisfactionScore")
     @Mapping(target = "currentOpenTickets", source = "currentOpenTickets")
-    @Mapping(target = "performanceScore", expression = "java(calculateAgentPerformanceScore(calculateResolutionRate(ticketsHandled, ticketsResolved), avgResolutionTime, avgSatisfactionScore))")
     AgentPerformanceDto toAgentPerformance(
             Long agentId,
             String agentName,

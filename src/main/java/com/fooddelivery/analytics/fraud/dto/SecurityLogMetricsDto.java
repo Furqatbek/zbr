@@ -224,4 +224,30 @@ public class SecurityLogMetricsDto {
         private String attackPattern;
         private Boolean isBlocked;
     }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class SecurityFlagDto {
+        private Long flagId;
+        private String flagType;
+        private String severityLevel;
+        private LocalDateTime flaggedAt;
+        private String description;
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class SuspiciousIpDto {
+        private String ipAddress;
+        private Long failedAttempts;
+        private Long uniqueUsersTargeted;
+        private Boolean isVpn;
+        private Boolean isTor;
+        private Boolean isProxy;
+        private LocalDateTime lastAttemptAt;
+    }
 }

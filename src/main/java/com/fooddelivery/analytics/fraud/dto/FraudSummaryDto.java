@@ -55,6 +55,19 @@ public class FraudSummaryDto {
     // Top threats
     private List<TopThreatDto> topThreats;
 
+    // Category summaries (for mapper usage)
+    private List<FraudCategorySummaryDto> categorySummaries;
+
+    // Trend analysis
+    private FraudTrendDto trendAnalysis;
+
+    // Active alerts
+    private List<FraudAlertDto> activeAlerts;
+
+    // Totals
+    private Long totalFlaggedUsers;
+    private Long totalSecurityIncidents;
+
     // Recommendations
     private List<String> recommendations;
 
@@ -127,5 +140,47 @@ public class FraudSummaryDto {
         private BigDecimal potentialImpact;
         private String recommendedAction;
         private Integer priority;
+        private Integer riskScore;
+        private String affectedEntity;
+        private String category;
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class FraudCategorySummaryDto {
+        private String category;
+        private Integer riskScore;
+        private String riskLevel;
+        private Long incidentCount;
+        private List<String> topIndicators;
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class FraudTrendDto {
+        private String trendDirection;
+        private Double percentageChange;
+        private String comparisonPeriod;
+        private String paymentTrend;
+        private String behavioralTrend;
+        private String securityTrend;
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class FraudAlertDto {
+        private String alertId;
+        private String severity;
+        private String title;
+        private String description;
+        private String category;
+        private LocalDateTime createdAt;
+        private Boolean acknowledged;
     }
 }
