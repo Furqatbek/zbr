@@ -129,6 +129,11 @@ public class Restaurant {
     @Builder.Default
     private Boolean isOpen = false;
 
+    // Currency
+    @Column(name = "currency", length = 3)
+    @Builder.Default
+    private String currency = "USD";
+
     // Platform commission
     @Column(name = "commission_rate", precision = 5, scale = 2)
     @Builder.Default

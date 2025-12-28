@@ -12,6 +12,11 @@ public enum OrderType {
     /**
      * Customer picks up from restaurant.
      */
+    PICKUP,
+
+    /**
+     * Customer picks up from restaurant (alias for PICKUP).
+     */
     TAKEAWAY,
 
     /**

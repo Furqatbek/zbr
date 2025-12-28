@@ -99,4 +99,14 @@ public class OrderNotificationRequest {
      * Additional context metadata.
      */
     private Map<String, Object> additionalData;
+
+    /**
+     * Metadata for notification context.
+     */
+    private Map<String, Object> metadata;
+
+    /**
+     * Total amount for the order.
+     */
+    private BigDecimal totalAmount;
 }

@@ -79,4 +79,14 @@ public class FraudMetricsRequest {
     private Boolean includeTrends = false;
     @Builder.Default
     private Integer maxListSize = 100;
+
+    /**
+     * Create a default request with specified date range.
+     */
+    public static FraudMetricsRequest createDefault(LocalDateTime startDate, LocalDateTime endDate) {
+        return FraudMetricsRequest.builder()
+                .startDate(startDate)
+                .endDate(endDate)
+                .build();
+    }
 }

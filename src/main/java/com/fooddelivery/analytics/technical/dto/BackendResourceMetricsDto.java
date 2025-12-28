@@ -210,9 +210,19 @@ public class BackendResourceMetricsDto {
         private Integer maxConnections;
 
         /**
+         * Max pool size.
+         */
+        private Integer maxPoolSize;
+
+        /**
          * Pending connection requests.
          */
         private Integer pendingRequests;
+
+        /**
+         * Pending connections.
+         */
+        private Integer pendingConnections;
 
         /**
          * Connection acquire time (avg) in ms.
@@ -228,6 +238,11 @@ public class BackendResourceMetricsDto {
          * Connection pool utilization (0.0 - 1.0).
          */
         private Double poolUtilization;
+
+        /**
+         * Usage percentage (0.0 - 1.0).
+         */
+        private Double usagePercentage;
 
         /**
          * Health status based on pool metrics.
@@ -248,7 +263,7 @@ public class BackendResourceMetricsDto {
         /**
          * Connected clients.
          */
-        private Integer connectedClients;
+        private Long connectedClients;
 
         /**
          * Used memory in bytes.
@@ -269,6 +284,11 @@ public class BackendResourceMetricsDto {
          * Total keys.
          */
         private Long totalKeys;
+
+        /**
+         * Key count.
+         */
+        private Long keyCount;
 
         /**
          * Expired keys.
@@ -322,9 +342,29 @@ public class BackendResourceMetricsDto {
         private Long queueDepth;
 
         /**
+         * Total queue depth across all queues.
+         */
+        private Long totalQueueDepth;
+
+        /**
          * Consumer lag (Kafka).
          */
         private Long consumerLag;
+
+        /**
+         * Total consumer lag across all queues.
+         */
+        private Long totalConsumerLag;
+
+        /**
+         * Dead letter queue message count.
+         */
+        private Long deadLetterQueueCount;
+
+        /**
+         * Queue depths by queue name.
+         */
+        private java.util.Map<String, Long> queueDepths;
 
         /**
          * Number of consumers.

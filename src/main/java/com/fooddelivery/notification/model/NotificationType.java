@@ -18,6 +18,7 @@ public enum NotificationType {
     ORDER_CANCELLED("Order Cancelled", NotificationCategory.ORDER, NotificationPriority.HIGH),
     ORDER_DELAYED("Order Delayed", NotificationCategory.ORDER, NotificationPriority.HIGH),
     ORDER_MODIFIED("Order Modified", NotificationCategory.ORDER, NotificationPriority.NORMAL),
+    ORDER_COMPLETED("Order Completed", NotificationCategory.ORDER, NotificationPriority.NORMAL),
 
     // ===== Courier Events =====
     COURIER_ASSIGNED("Courier Assigned", NotificationCategory.DELIVERY, NotificationPriority.HIGH),
@@ -49,6 +50,7 @@ public enum NotificationType {
     REFUND_REQUEST_RECEIVED("Refund Request Received", NotificationCategory.SUPPORT, NotificationPriority.HIGH),
     REFUND_APPROVED("Refund Approved", NotificationCategory.SUPPORT, NotificationPriority.NORMAL),
     REFUND_REJECTED("Refund Rejected", NotificationCategory.SUPPORT, NotificationPriority.HIGH),
+    REFUND_PROCESSED("Refund Processed", NotificationCategory.SUPPORT, NotificationPriority.NORMAL),
 
     // ===== Restaurant Events =====
     NEW_ORDER_RECEIVED("New Order Received", NotificationCategory.RESTAURANT_OPS, NotificationPriority.URGENT),
