@@ -8,14 +8,14 @@ WORKDIR /app
 # Copy pom.xml first for better caching
 COPY pom.xml .
 
-# Download dependencies (cached if pom.xml unchanged)
-RUN mvn dependency:go-offline -B
+# Download dependencies (with -U to update releases)
+RUN mvn dependency:go-offline dependency:resolve-plugins -U -B
 
 # Copy source code
 COPY src ./src
 
 # Build the application (skip test compilation due to test API mismatches)
-RUN mvn clean package -Dmaven.test.skip=true -B
+RUN mvn clean package -Dmaven.test.skip=true -U -B
 
 # Runtime stage
 FROM eclipse-temurin:17-jre-alpine
