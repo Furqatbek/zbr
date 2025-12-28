@@ -240,11 +240,11 @@ public interface DashboardSupportRepository extends JpaRepository<SupportTicket,
                               @Param("endDate") LocalDateTime endDate);
 
     /**
-     * Count approved refunds.
+     * Count refunded tickets (tickets with refund issued).
      */
     @Query("SELECT COUNT(t) FROM SupportTicket t WHERE t.isRefunded = true " +
             "AND t.createdAt BETWEEN :startDate AND :endDate")
-    Long countApprovedRefunds(@Param("startDate") LocalDateTime startDate,
+    Long countRefundedTickets(@Param("startDate") LocalDateTime startDate,
                                @Param("endDate") LocalDateTime endDate);
 
     /**
