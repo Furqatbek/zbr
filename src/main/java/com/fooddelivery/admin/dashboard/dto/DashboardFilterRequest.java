@@ -50,6 +50,7 @@ public class DashboardFilterRequest {
     // Pagination
     private Integer page;
     private Integer size;
+    private Integer pageSize; // Alias for size
     private String sortBy;
     private String sortDirection; // ASC, DESC
 
@@ -126,6 +127,16 @@ public class DashboardFilterRequest {
      * Get page size with default.
      */
     public int getPageSize() {
-        return size != null ? size : 50;
+        if (pageSize != null) return pageSize;
+        if (size != null) return size;
+        return 50;
+    }
+
+    /**
+     * Set page size.
+     */
+    public void setPageSize(int pageSize) {
+        this.pageSize = pageSize;
+        this.size = pageSize;
     }
 }

@@ -55,4 +55,62 @@ public class DashboardRefreshLog {
     @CreationTimestamp
     @Column(name = "refreshed_at", nullable = false, updatable = false)
     private LocalDateTime refreshedAt;
+
+    // Alias fields for builder compatibility
+    @Transient
+    private String component;
+
+    @Transient
+    private Long durationMs;
+
+    @Transient
+    private Boolean success;
+
+    @Transient
+    private String message;
+
+    // Post-construct to handle alias fields
+    @PostLoad
+    @PostPersist
+    private void syncFields() {
+        if (component != null && panelName == null) {
+            panelName = component;
+        }
+        if (durationMs != null && queryDurationMs == null) {
+            queryDurationMs = durationMs.intValue();
+        }
+        if (success != null && successful == null) {
+            successful = success;
+        }
+        if (message != null && errorMessage == null) {
+            errorMessage = message;
+        }
+    }
+
+    // Builder customization
+    public static class DashboardRefreshLogBuilder {
+        public DashboardRefreshLogBuilder component(String component) {
+            this.component = component;
+            this.panelName = component;
+            return this;
+        }
+
+        public DashboardRefreshLogBuilder durationMs(Long durationMs) {
+            this.durationMs = durationMs;
+            this.queryDurationMs = durationMs != null ? durationMs.intValue() : null;
+            return this;
+        }
+
+        public DashboardRefreshLogBuilder success(Boolean success) {
+            this.success = success;
+            this.successful = success;
+            return this;
+        }
+
+        public DashboardRefreshLogBuilder message(String message) {
+            this.message = message;
+            this.errorMessage = message;
+            return this;
+        }
+    }
 }

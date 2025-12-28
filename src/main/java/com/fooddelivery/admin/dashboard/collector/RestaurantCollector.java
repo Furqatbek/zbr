@@ -288,8 +288,8 @@ public class RestaurantCollector {
      * Create pageable from filter.
      */
     private Pageable createPageable(DashboardFilterRequest filter) {
-        int page = filter.getPage() != null ? filter.getPage() : 0;
-        int size = filter.getPageSize() != null ? filter.getPageSize() : 50;
+        int page = filter.getPageNumber(); // getPageNumber() has default of 0
+        int size = filter.getPageSize();   // getPageSize() has default of 50
         String sortBy = filter.getSortBy() != null ? filter.getSortBy() : "name";
         String sortDir = filter.getSortDirection() != null ? filter.getSortDirection() : "ASC";
 

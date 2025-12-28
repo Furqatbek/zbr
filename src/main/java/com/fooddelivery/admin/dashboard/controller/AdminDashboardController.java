@@ -413,9 +413,8 @@ public class AdminDashboardController {
         if (filter.getPage() == null) {
             filter.setPage(DashboardConstants.DEFAULT_PAGE);
         }
-        if (filter.getPageSize() == null) {
-            filter.setPageSize(DashboardConstants.DEFAULT_PAGE_SIZE);
-        }
+        // getPageSize() returns int with default, so no null check needed
+        // The setPageSize call is only for explicit override
 
         return filter;
     }

@@ -155,8 +155,10 @@ public class FraudAnalyticsServiceImpl implements FraudAnalyticsService {
             int deviceSignupThreshold, int ipSignupThreshold,
             double promoAbuseRate, boolean includeDetails, int maxListSize) {
         log.debug("Collecting referral fraud metrics from {} to {}", startDate, endDate);
+        // Convert promoAbuseRate (used for threshold) to int for collector
+        int minOrdersForPromoAbuse = (int) Math.max(1, promoAbuseRate);
         return referralFraudCollector.collect(startDate, endDate, deviceSignupThreshold,
-                ipSignupThreshold, promoAbuseRate, includeDetails, maxListSize);
+                ipSignupThreshold, minOrdersForPromoAbuse, includeDetails, maxListSize);
     }
 
     @Override

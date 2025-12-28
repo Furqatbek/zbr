@@ -34,6 +34,13 @@ public class OverviewCollector {
     private static final int ACTIVE_RESTAURANT_THRESHOLD_MINUTES = 30;
 
     /**
+     * Collect all overview metrics for the dashboard using filter.
+     */
+    public DashboardOverviewDto collectOverview(com.fooddelivery.admin.dashboard.dto.DashboardFilterRequest filter) {
+        return collect(filter.getEffectiveStartDate(), filter.getEffectiveEndDate());
+    }
+
+    /**
      * Collect all overview metrics for the dashboard.
      */
     public DashboardOverviewDto collect(LocalDateTime startDate, LocalDateTime endDate) {

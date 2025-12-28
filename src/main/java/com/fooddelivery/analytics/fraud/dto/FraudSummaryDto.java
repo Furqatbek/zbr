@@ -86,6 +86,13 @@ public class FraudSummaryDto {
         private BigDecimal promoAbuseAmount;
         private BigDecimal chargebackAmount;
         private BigDecimal refundAbuseAmount;
+
+        // Alias fields for mapper compatibility
+        private BigDecimal totalEstimatedLoss;
+        private BigDecimal failedPaymentLoss;
+        private BigDecimal refundAbuseLoss;
+        private BigDecimal promoAbuseLoss;
+        private BigDecimal referralFraudLoss;
     }
 
     @Data

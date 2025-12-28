@@ -123,6 +123,7 @@ public class AccountIntegrityMetricsDto {
     public static class SuspiciousDeviceDto {
         private String deviceId;
         private String deviceFingerprint;
+        private Long userId; // Single user for mapping from query
         private Integer userCount;
         private List<Long> userIds;
         private Boolean isEmulator;

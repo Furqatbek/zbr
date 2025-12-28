@@ -246,6 +246,51 @@ public class OrdersCollector {
                 .build();
     }
 
+    /**
+     * Collect rejected orders.
+     */
+    public RejectedOrdersDto collectRejectedOrders(DashboardFilterRequest filter) {
+        log.debug("Collecting rejected orders from {} to {}", filter.getEffectiveStartDate(), filter.getEffectiveEndDate());
+
+        LocalDateTime startDate = filter.getEffectiveStartDate();
+        LocalDateTime endDate = filter.getEffectiveEndDate();
+
+        PageRequest pageRequest = PageRequest.of(
+                filter.getPageNumber(),
+                filter.getPageSize(),
+                Sort.by(Sort.Direction.DESC, "createdAt")
+        );
+
+        // Count rejected orders
+        Long totalRejected = orderRepository.countRejectedOrders(startDate, endDate);
+
+        // Calculate time-based totals
+        LocalDateTime todayStart = LocalDateTime.now().toLocalDate().atStartOfDay();
+        LocalDateTime weekStart = todayStart.minusDays(7);
+        LocalDateTime monthStart = todayStart.minusDays(30);
+
+        Long rejectedToday = orderRepository.countRejectedOrders(todayStart, LocalDateTime.now());
+        Long rejectedThisWeek = orderRepository.countRejectedOrders(weekStart, LocalDateTime.now());
+        Long rejectedThisMonth = orderRepository.countRejectedOrders(monthStart, LocalDateTime.now());
+
+        return RejectedOrdersDto.builder()
+                .totalRejectedOrders(totalRejected != null ? totalRejected : 0L)
+                .rejectedByRestaurant(0L) // Would need additional query
+                .rejectedByCourier(0L) // Would need additional query
+                .rejectedToday(rejectedToday != null ? rejectedToday : 0L)
+                .rejectedThisWeek(rejectedThisWeek != null ? rejectedThisWeek : 0L)
+                .rejectedThisMonth(rejectedThisMonth != null ? rejectedThisMonth : 0L)
+                .totalValueLost(BigDecimal.ZERO) // Would need additional query
+                .avgRejectedOrderValue(BigDecimal.ZERO) // Would need additional query
+                .orders(new ArrayList<>())
+                .currentPage(0)
+                .pageSize(filter.getPageSize())
+                .totalElements(totalRejected != null ? totalRejected : 0L)
+                .totalPages(0)
+                .generatedAt(LocalDateTime.now())
+                .build();
+    }
+
     // ==================== Helper Methods ====================
 
     private ActiveOrdersDto.ActiveOrderItemDto mapToActiveOrderItem(Order order, long waitMinutes) {
