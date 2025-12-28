@@ -25,8 +25,10 @@ public class RestaurantMetricsDto {
     private Long totalRestaurants;
     private Long onlineRestaurants;
     private Long offlineRestaurants;
+    private Long busyRestaurants;
     private Long acceptingOrders;
     private Long pausedRestaurants;
+    private Double onlinePercentage;
 
     // Aggregate metrics
     private Double avgPrepTime; // minutes
@@ -39,11 +41,21 @@ public class RestaurantMetricsDto {
     private Long averagePerformingRestaurants;
     private Long underPerformingRestaurants; // high rejection, slow prep
 
+    // Performance summary
+    private RestaurantPerformanceSummaryDto performanceSummary;
+
     // List of restaurant details
     private List<RestaurantDetailDto> restaurants;
+    private List<RestaurantDetailDto> topPerformers;
+    private List<RestaurantDetailDto> underperformers;
 
     // Single restaurant detail (when querying by ID)
     private RestaurantDetailDto restaurantDetail;
+
+    // Distributions
+    private Map<String, Long> statusBreakdown;
+    private Map<String, Long> cuisineDistribution;
+    private Map<String, Long> geographicDistribution;
 
     // Pagination
     private Integer currentPage;
@@ -62,10 +74,13 @@ public class RestaurantMetricsDto {
         private String name;
         private String status; // ONLINE, OFFLINE, PAUSED, BUSY
         private Boolean isOpen;
+        private Boolean isOnline;
         private Boolean isAcceptingOrders;
 
         // Location
         private String address;
+        private String city;
+        private String cuisineType;
         private BigDecimal latitude;
         private BigDecimal longitude;
 
@@ -75,19 +90,25 @@ public class RestaurantMetricsDto {
 
         // Today's metrics
         private Long ordersToday;
+        private Long totalOrdersToday;
         private Long ordersAccepted;
         private Long ordersRejected;
+        private Long rejectedOrdersToday;
         private Long ordersCanceled;
         private BigDecimal revenueToday;
 
         // Performance metrics
         private Double avgPrepTime; // minutes
+        private Double avgPreparationTimeMinutes;
         private Double avgAcceptanceLatency; // seconds from order to acceptance
+        private Double orderAcceptanceLatencySeconds;
         private Double acceptanceRate;
         private Double rejectionRate;
         private Double cancellationRate;
+        private Double performanceScore;
 
         // Rating
+        private Double rating;
         private BigDecimal avgRating;
         private Integer totalRatings;
         private Integer ratingsToday;
@@ -105,6 +126,7 @@ public class RestaurantMetricsDto {
         // Issues/Alerts
         private List<String> activeAlerts;
         private Integer stuckOrdersCount;
+        private LocalDateTime lastOrderAt;
 
         // Order breakdown by hour (for today)
         private Map<Integer, Long> ordersByHour;
@@ -120,9 +142,14 @@ public class RestaurantMetricsDto {
         private Double performanceScore; // 0-100
         private String tier; // TOP, GOOD, AVERAGE, POOR
         private Double avgPrepTime;
+        private Double avgPreparationTimeMinutes;
+        private Double avgAcceptanceLatencySeconds;
         private Double acceptanceRate;
-        private BigDecimal avgRating;
+        private Double avgAcceptanceRate;
+        private Double avgRating;
         private Long totalOrders;
+        private Long totalOrdersProcessed;
+        private Double rejectionRate;
         private List<String> improvementSuggestions;
     }
 }

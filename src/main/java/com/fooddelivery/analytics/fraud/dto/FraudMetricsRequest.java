@@ -80,6 +80,34 @@ public class FraudMetricsRequest {
     @Builder.Default
     private Integer maxListSize = 100;
 
+    // Additional thresholds for service compatibility
+    @Builder.Default
+    private Integer velocityThreshold = 5;
+    @Builder.Default
+    private Double refundRateThreshold = 0.3;
+    @Builder.Default
+    private Integer fakeAccountAgeThreshold = 24;
+    @Builder.Default
+    private Integer deviceShareThreshold = 2;
+    @Builder.Default
+    private Integer ipShareThreshold = 3;
+    @Builder.Default
+    private Integer deviceSignupThreshold = 2;
+    @Builder.Default
+    private Integer ipSignupThreshold = 3;
+    @Builder.Default
+    private Double promoAbuseRateThreshold = 0.5;
+    @Builder.Default
+    private Integer loginTimeWindowMinutes = 15;
+    @Builder.Default
+    private Integer rateLimitThreshold = 100;
+    @Builder.Default
+    private Integer addressUserThreshold = 3;
+    @Builder.Default
+    private Integer velocityWindowMinutes = 60;
+    @Builder.Default
+    private Integer minOrdersForRefundAnalysis2 = 5;
+
     /**
      * Create a default request with specified date range.
      */
@@ -88,5 +116,18 @@ public class FraudMetricsRequest {
                 .startDate(startDate)
                 .endDate(endDate)
                 .build();
+    }
+
+    // Alias getters for service compatibility
+    public Integer getAddressUserThreshold() {
+        return addressUserThreshold != null ? addressUserThreshold : addressMultiUserThreshold;
+    }
+
+    public Integer getVelocityWindowMinutes() {
+        return velocityWindowMinutes != null ? velocityWindowMinutes : velocityTimeWindowMinutes;
+    }
+
+    public Integer getMinOrdersForRefund() {
+        return minOrdersForRefundAnalysis;
     }
 }
