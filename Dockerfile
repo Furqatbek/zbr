@@ -5,17 +5,12 @@ FROM maven:3.9-eclipse-temurin-17-alpine AS build
 
 WORKDIR /app
 
-# Copy pom.xml first for better caching
+# Copy pom.xml and source code
 COPY pom.xml .
-
-# Download dependencies (with -U to update releases)
-RUN mvn dependency:go-offline dependency:resolve-plugins -U -B
-
-# Copy source code
 COPY src ./src
 
-# Build the application (skip test compilation due to test API mismatches)
-RUN mvn clean package -Dmaven.test.skip=true -U -B
+# Build the application (downloads dependencies as needed, skip tests)
+RUN mvn clean package -Dmaven.test.skip=true -B
 
 # Runtime stage
 FROM eclipse-temurin:17-jre-alpine
