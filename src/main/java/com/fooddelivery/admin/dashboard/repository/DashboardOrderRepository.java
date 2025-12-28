@@ -458,4 +458,12 @@ public interface DashboardOrderRepository extends JpaRepository<Order, Long> {
             "GROUP BY o.paymentMethod")
     List<Object[]> getRevenueByPaymentMethod(@Param("startDate") LocalDateTime startDate,
                                               @Param("endDate") LocalDateTime endDate);
+
+    /**
+     * Count rejected orders within date range.
+     */
+    @Query("SELECT COUNT(o) FROM Order o WHERE o.status = 'REJECTED' " +
+            "AND o.createdAt BETWEEN :startDate AND :endDate")
+    Long countRejectedOrders(@Param("startDate") LocalDateTime startDate,
+                              @Param("endDate") LocalDateTime endDate);
 }
