@@ -205,4 +205,11 @@ public class SupportTicket {
     public boolean isOpen() {
         return status != TicketStatus.RESOLVED && status != TicketStatus.CLOSED;
     }
+
+    /**
+     * Alias for ticketType for mapper compatibility.
+     */
+    public TicketType getType() {
+        return ticketType;
+    }
 }

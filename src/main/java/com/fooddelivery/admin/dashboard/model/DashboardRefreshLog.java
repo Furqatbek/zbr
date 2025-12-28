@@ -87,8 +87,13 @@ public class DashboardRefreshLog {
         }
     }
 
-    // Builder customization
+    // Builder customization - declare fields that we're setting
     public static class DashboardRefreshLogBuilder {
+        private String panelName;
+        private Integer queryDurationMs;
+        private Boolean successful;
+        private String errorMessage;
+
         public DashboardRefreshLogBuilder component(String component) {
             this.component = component;
             this.panelName = component;

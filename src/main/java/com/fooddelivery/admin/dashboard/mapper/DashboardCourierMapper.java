@@ -43,14 +43,17 @@ public interface DashboardCourierMapper {
 
     /**
      * Map to CourierLocationDto.
+     * Note: latitude/longitude are handled by custom builder methods in CourierLocationDto
      */
     @Mapping(target = "courierId", source = "courierId")
     @Mapping(target = "name", source = "name")
-    @Mapping(target = "latitude", expression = "java(latitude != null ? java.math.BigDecimal.valueOf(latitude) : null)")
-    @Mapping(target = "longitude", expression = "java(longitude != null ? java.math.BigDecimal.valueOf(longitude) : null)")
+    @Mapping(target = "lat", source = "latitude")
+    @Mapping(target = "lng", source = "longitude")
     @Mapping(target = "status", source = "status")
     @Mapping(target = "activeOrders", source = "activeOrderCount")
     @Mapping(target = "lastPingAt", source = "lastPingAt")
+    @Mapping(target = "latitude", ignore = true)
+    @Mapping(target = "longitude", ignore = true)
     CourierLocationDto toCourierLocation(
             Long courierId,
             String name,

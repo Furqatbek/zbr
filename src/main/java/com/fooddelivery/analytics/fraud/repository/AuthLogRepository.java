@@ -226,4 +226,55 @@ public interface AuthLogRepository extends JpaRepository<AuthLog, Long> {
 
     @Query("SELECT COUNT(DISTINCT a.ipAddress) FROM AuthLog a WHERE a.createdAt BETWEEN :start AND :end")
     Long countTotalUniqueIps(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
+
+    // ==================== User-Specific Security Queries ====================
+
+    /**
+     * Count failed logins for a specific user.
+     */
+    @Query("SELECT COUNT(a) FROM AuthLog a WHERE a.userId = :userId " +
+            "AND a.authType = 'LOGIN' AND a.status = 'FAILED' " +
+            "AND a.createdAt BETWEEN :start AND :end")
+    Long countFailedLoginsByUser(@Param("userId") Long userId,
+                                  @Param("start") LocalDateTime start,
+                                  @Param("end") LocalDateTime end);
+
+    /**
+     * Count total logins for a specific user.
+     */
+    @Query("SELECT COUNT(a) FROM AuthLog a WHERE a.userId = :userId " +
+            "AND a.authType = 'LOGIN' AND a.createdAt BETWEEN :start AND :end")
+    Long countTotalLoginsByUser(@Param("userId") Long userId,
+                                 @Param("start") LocalDateTime start,
+                                 @Param("end") LocalDateTime end);
+
+    /**
+     * Check if user has VPN usage.
+     */
+    @Query("SELECT CASE WHEN COUNT(a) > 0 THEN true ELSE false END FROM AuthLog a " +
+            "WHERE a.userId = :userId AND a.isVpn = true " +
+            "AND a.createdAt BETWEEN :start AND :end")
+    Boolean hasVpnUsage(@Param("userId") Long userId,
+                        @Param("start") LocalDateTime start,
+                        @Param("end") LocalDateTime end);
+
+    /**
+     * Check if user has TOR usage.
+     */
+    @Query("SELECT CASE WHEN COUNT(a) > 0 THEN true ELSE false END FROM AuthLog a " +
+            "WHERE a.userId = :userId AND a.isTor = true " +
+            "AND a.createdAt BETWEEN :start AND :end")
+    Boolean hasTorUsage(@Param("userId") Long userId,
+                        @Param("start") LocalDateTime start,
+                        @Param("end") LocalDateTime end);
+
+    /**
+     * Check if user has rate limit violations.
+     */
+    @Query("SELECT CASE WHEN COUNT(a) > 0 THEN true ELSE false END FROM AuthLog a " +
+            "WHERE a.userId = :userId AND a.status = 'RATE_LIMITED' " +
+            "AND a.createdAt BETWEEN :start AND :end")
+    Boolean hasRateLimitViolations(@Param("userId") Long userId,
+                                    @Param("start") LocalDateTime start,
+                                    @Param("end") LocalDateTime end);
 }

@@ -172,4 +172,21 @@ public interface ReferralEventRepository extends JpaRepository<ReferralEvent, Lo
             "WHERE r.deviceId IS NOT NULL AND r.createdAt BETWEEN :start AND :end " +
             "GROUP BY SUBSTRING(r.deviceId, 1, POSITION('-' IN r.deviceId) - 1)")
     List<Object[]> getSignupsByDeviceType(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
+
+    // ==================== User-Specific Referral Queries ====================
+
+    /**
+     * Count referrals by a specific referrer.
+     */
+    @Query("SELECT COUNT(r) FROM ReferralEvent r WHERE r.referrerId = :referrerId")
+    Long countByReferrerId(@Param("referrerId") Long referrerId);
+
+    /**
+     * Count suspicious referrals by a specific referrer.
+     */
+    @Query("SELECT COUNT(r) FROM ReferralEvent r WHERE r.referrerId = :referrerId " +
+            "AND r.isSuspicious = true AND r.createdAt BETWEEN :start AND :end")
+    Long countSuspiciousReferralsByReferrer(@Param("referrerId") Long referrerId,
+                                             @Param("start") LocalDateTime start,
+                                             @Param("end") LocalDateTime end);
 }
