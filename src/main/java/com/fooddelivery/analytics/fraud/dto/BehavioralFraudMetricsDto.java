@@ -28,6 +28,27 @@ public class BehavioralFraudMetricsDto {
     // Refund abuse metrics
     private RefundAbuseMetricsDto refundAbuse;
 
+    /**
+     * Alias for orderVelocity.
+     */
+    public VelocityMetricsDto getVelocityMetrics() {
+        return orderVelocity;
+    }
+
+    /**
+     * Alias for refundAbuse.
+     */
+    public RefundAbuseMetricsDto getRefundMetrics() {
+        return refundAbuse;
+    }
+
+    /**
+     * Alias for orderValueAnomalies.
+     */
+    public OrderValueAnomaliesDto getOrderValueMetrics() {
+        return orderValueAnomalies;
+    }
+
     // Address fraud metrics
     private AddressFraudMetricsDto addressFraud;
 
@@ -51,8 +72,22 @@ public class BehavioralFraudMetricsDto {
         private Double maxOrdersPerUserPerDay;
         private Long usersExceedingVelocityThreshold;
         private Integer velocityThresholdPerHour;
-        private List<VelocityViolationDto> velocityViolations;
+        private List<VelocityViolationDto> velocityViolationsList;
         private Map<Integer, Long> ordersPerHourDistribution;
+
+        /**
+         * Get count of velocity violations.
+         */
+        public Long getVelocityViolations() {
+            return velocityViolationsList != null ? (long) velocityViolationsList.size() : 0L;
+        }
+
+        /**
+         * Get list of velocity violations.
+         */
+        public List<VelocityViolationDto> getVelocityViolationsList() {
+            return velocityViolationsList;
+        }
     }
 
     @Data
@@ -82,6 +117,15 @@ public class BehavioralFraudMetricsDto {
         private Double anomalyRate;
         private List<OrderValueAnomalyDto> anomalies;
         private Double zScoreThreshold;
+
+        /**
+         * Get total anomalous order count (above + below threshold).
+         */
+        public Long getAnomalousOrderCount() {
+            long above = ordersAboveThreshold != null ? ordersAboveThreshold : 0L;
+            long below = ordersBelowThreshold != null ? ordersBelowThreshold : 0L;
+            return above + below;
+        }
     }
 
     @Data
@@ -110,6 +154,20 @@ public class BehavioralFraudMetricsDto {
         private List<RefundAbuserDto> topRefundAbusers;
         private Map<String, Long> refundsByReason;
         private Map<String, Double> refundRateByReason;
+
+        /**
+         * Alias for usersWithHighRefundRate.
+         */
+        public Long getHighRefundUsers() {
+            return usersWithHighRefundRate;
+        }
+
+        /**
+         * Alias for topRefundAbusers.
+         */
+        public List<RefundAbuserDto> getRefundAbusersList() {
+            return topRefundAbusers;
+        }
     }
 
     @Data

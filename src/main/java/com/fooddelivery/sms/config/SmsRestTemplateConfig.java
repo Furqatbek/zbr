@@ -20,8 +20,8 @@ public class SmsRestTemplateConfig {
     @Bean
     public RestTemplate restTemplate(RestTemplateBuilder builder) {
         return builder
-                .connectTimeout(Duration.ofMillis(properties.getConnectTimeout()))
-                .readTimeout(Duration.ofMillis(properties.getReadTimeout()))
+                .setConnectTimeout(Duration.ofMillis(properties.getConnectTimeout()))
+                .setReadTimeout(Duration.ofMillis(properties.getReadTimeout()))
                 .build();
     }
 }

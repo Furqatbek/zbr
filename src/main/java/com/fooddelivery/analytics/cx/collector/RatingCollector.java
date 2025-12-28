@@ -474,4 +474,37 @@ public class RatingCollector {
 
         return percentages;
     }
+
+    // ==================== Overloaded Methods for Service Compatibility ====================
+
+    /**
+     * Collect restaurant rating metrics (overload with all boolean parameters).
+     */
+    public RestaurantRatingMetricsDto collectRestaurantRatings(Long restaurantId, LocalDateTime startDate,
+                                                               LocalDateTime endDate, boolean includeDistribution,
+                                                               boolean includeTrend, boolean includeTopRestaurants) {
+        int topN = includeTopRestaurants ? 10 : 0;
+        return collectRestaurantRatings(restaurantId, startDate, endDate, includeTrend, includeTopRestaurants, topN);
+    }
+
+    /**
+     * Collect courier rating metrics (overload with all boolean parameters).
+     */
+    public CourierRatingMetricsDto collectCourierRatings(Long courierId, LocalDateTime startDate,
+                                                         LocalDateTime endDate, boolean includeDistribution,
+                                                         boolean includeTrend, boolean includeTopCouriers) {
+        int topN = includeTopCouriers ? 10 : 0;
+        return collectCourierRatings(courierId, startDate, endDate, includeTrend, includeTopCouriers, topN);
+    }
+
+    /**
+     * Collect app store rating metrics (overload with version/country/trend breakdown flags).
+     */
+    public AppStoreRatingMetricsDto collectAppStoreRatings(LocalDateTime startDate, LocalDateTime endDate,
+                                                           boolean includeVersionBreakdown,
+                                                           boolean includeCountryBreakdown,
+                                                           boolean includeTrend) {
+        // Delegate to the existing method - version and country breakdowns are always included
+        return collectAppStoreRatings(startDate, endDate, includeTrend);
+    }
 }
