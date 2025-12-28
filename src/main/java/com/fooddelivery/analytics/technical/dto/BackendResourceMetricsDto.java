@@ -46,9 +46,19 @@ public class BackendResourceMetricsDto {
     private List<MessageQueueMetricsDto> messageQueues;
 
     /**
+     * Single message queue metrics (for backward compatibility).
+     */
+    private MessageQueueMetricsDto messageQueue;
+
+    /**
      * Overall health status.
      */
     private HealthStatus overallHealth;
+
+    /**
+     * Overall status (alias for overallHealth).
+     */
+    private HealthStatus overallStatus;
 
     /**
      * Timestamp when metrics were collected.
@@ -82,6 +92,11 @@ public class BackendResourceMetricsDto {
         private Double systemLoadAverage;
 
         /**
+         * Load per processor.
+         */
+        private Double loadPerProcessor;
+
+        /**
          * Health status based on CPU usage.
          */
         private HealthStatus status;
@@ -111,6 +126,11 @@ public class BackendResourceMetricsDto {
          * Memory usage percentage.
          */
         private Double memoryUsagePercent;
+
+        /**
+         * Usage percentage (alias).
+         */
+        private Double usagePercentage;
 
         /**
          * Health status based on memory usage.
@@ -144,9 +164,24 @@ public class BackendResourceMetricsDto {
         private Double heapUsagePercent;
 
         /**
+         * Heap usage percentage (alias).
+         */
+        private Double heapUsagePercentage;
+
+        /**
          * Non-heap memory used in bytes.
          */
         private Long nonHeapUsedBytes;
+
+        /**
+         * Non-heap memory max in bytes.
+         */
+        private Long nonHeapMaxBytes;
+
+        /**
+         * Non-heap memory committed in bytes.
+         */
+        private Long nonHeapCommittedBytes;
 
         /**
          * Number of live threads.
@@ -154,9 +189,19 @@ public class BackendResourceMetricsDto {
         private Integer liveThreads;
 
         /**
+         * Thread count.
+         */
+        private Integer threadCount;
+
+        /**
          * Peak thread count.
          */
         private Integer peakThreads;
+
+        /**
+         * Peak thread count (alias).
+         */
+        private Integer peakThreadCount;
 
         /**
          * Daemon thread count.
@@ -167,6 +212,11 @@ public class BackendResourceMetricsDto {
          * Total GC pause time in ms.
          */
         private Long gcPauseTimeMs;
+
+        /**
+         * GC time in ms (alias).
+         */
+        private Double gcTimeMs;
 
         /**
          * GC count.

@@ -72,21 +72,24 @@ public class BehavioralFraudMetricsDto {
         private Double maxOrdersPerUserPerDay;
         private Long usersExceedingVelocityThreshold;
         private Integer velocityThresholdPerHour;
+        private List<VelocityViolationDto> velocityViolations;
         private List<VelocityViolationDto> velocityViolationsList;
         private Map<Integer, Long> ordersPerHourDistribution;
 
         /**
          * Get count of velocity violations.
          */
-        public Long getVelocityViolations() {
-            return velocityViolationsList != null ? (long) velocityViolationsList.size() : 0L;
+        public Long getVelocityViolationsCount() {
+            if (velocityViolations != null) return (long) velocityViolations.size();
+            if (velocityViolationsList != null) return (long) velocityViolationsList.size();
+            return 0L;
         }
 
         /**
          * Get list of velocity violations.
          */
         public List<VelocityViolationDto> getVelocityViolationsList() {
-            return velocityViolationsList;
+            return velocityViolationsList != null ? velocityViolationsList : velocityViolations;
         }
     }
 

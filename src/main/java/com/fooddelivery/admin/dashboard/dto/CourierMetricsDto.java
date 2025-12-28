@@ -155,6 +155,20 @@ public class CourierMetricsDto {
         private Integer activeOrders;
         private Long currentOrderId;
         private Boolean isAvailable;
+
+        // Builder method aliases for Double latitude/longitude
+        public static class CourierLocationDtoBuilder {
+            public CourierLocationDtoBuilder latitude(Double lat) {
+                this.latitude = lat != null ? BigDecimal.valueOf(lat) : null;
+                this.lat = lat;
+                return this;
+            }
+            public CourierLocationDtoBuilder longitude(Double lng) {
+                this.longitude = lng != null ? BigDecimal.valueOf(lng) : null;
+                this.lng = lng;
+                return this;
+            }
+        }
     }
 
     @Data
@@ -170,11 +184,21 @@ public class CourierMetricsDto {
         private Double avgDeliveryTimeMinutes;
         private Double acceptanceRate;
         private BigDecimal avgRating;
+        private Double rating;
         private Long totalDeliveries;
         private Long totalDeliveriesToday;
         private Double onTimeDeliveryRate;
         private Double avgDeliveriesPerCourier;
         private Double avgDistancePerDeliveryKm;
         private List<String> improvementSuggestions;
+
+        // Builder method alias for Double avgRating
+        public static class CourierPerformanceSummaryDtoBuilder {
+            public CourierPerformanceSummaryDtoBuilder avgRating(Double rating) {
+                this.avgRating = rating != null ? BigDecimal.valueOf(rating) : null;
+                this.rating = rating;
+                return this;
+            }
+        }
     }
 }

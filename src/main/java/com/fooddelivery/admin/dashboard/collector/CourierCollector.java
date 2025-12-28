@@ -318,8 +318,8 @@ public class CourierCollector {
      * Create pageable from filter.
      */
     private Pageable createPageable(DashboardFilterRequest filter) {
-        int page = filter.getPage() != null ? filter.getPage() : 0;
-        int size = filter.getPageSize() != null ? filter.getPageSize() : 50;
+        int page = filter.getPageNumber(); // getPageNumber() has default
+        int size = filter.getPageSize();   // getPageSize() has default
         String sortBy = filter.getSortBy() != null ? filter.getSortBy() : "name";
         String sortDir = filter.getSortDirection() != null ? filter.getSortDirection() : "ASC";
 
