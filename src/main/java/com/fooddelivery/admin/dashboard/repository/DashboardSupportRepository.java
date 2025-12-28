@@ -449,4 +449,53 @@ public interface DashboardSupportRepository extends JpaRepository<SupportTicket,
     List<Object[]> findTicketDetails(@Param("startDate") LocalDateTime startDate,
                                       @Param("endDate") LocalDateTime endDate,
                                       Pageable pageable);
+
+    // ==================== Finance Collector Methods ====================
+
+    /**
+     * Calculate total refunds paid within date range.
+     */
+    @Query("SELECT COALESCE(SUM(t.refundAmount), 0) FROM SupportTicket t " +
+            "WHERE t.ticketType = 'REFUND_REQUEST' AND t.refundApproved = true " +
+            "AND t.createdAt BETWEEN :startDate AND :endDate")
+    BigDecimal calculateTotalRefunds(@Param("startDate") LocalDateTime startDate,
+                                      @Param("endDate") LocalDateTime endDate);
+
+    /**
+     * Count approved refunds within date range.
+     */
+    @Query("SELECT COUNT(t) FROM SupportTicket t " +
+            "WHERE t.ticketType = 'REFUND_REQUEST' AND t.refundApproved = true " +
+            "AND t.createdAt BETWEEN :startDate AND :endDate")
+    Long countApprovedRefunds(@Param("startDate") LocalDateTime startDate,
+                               @Param("endDate") LocalDateTime endDate);
+
+    /**
+     * Count pending refunds within date range.
+     */
+    @Query("SELECT COUNT(t) FROM SupportTicket t " +
+            "WHERE t.ticketType = 'REFUND_REQUEST' AND t.refundApproved IS NULL " +
+            "AND t.status NOT IN ('RESOLVED', 'CLOSED') " +
+            "AND t.createdAt BETWEEN :startDate AND :endDate")
+    Long countPendingRefunds(@Param("startDate") LocalDateTime startDate,
+                              @Param("endDate") LocalDateTime endDate);
+
+    /**
+     * Count rejected refunds within date range.
+     */
+    @Query("SELECT COUNT(t) FROM SupportTicket t " +
+            "WHERE t.ticketType = 'REFUND_REQUEST' AND t.refundApproved = false " +
+            "AND t.createdAt BETWEEN :startDate AND :endDate")
+    Long countRejectedRefunds(@Param("startDate") LocalDateTime startDate,
+                               @Param("endDate") LocalDateTime endDate);
+
+    /**
+     * Get refunds breakdown by reason.
+     */
+    @Query("SELECT t.refundReason, COUNT(t) FROM SupportTicket t " +
+            "WHERE t.ticketType = 'REFUND_REQUEST' " +
+            "AND t.createdAt BETWEEN :startDate AND :endDate " +
+            "GROUP BY t.refundReason")
+    List<Object[]> getRefundsByReason(@Param("startDate") LocalDateTime startDate,
+                                       @Param("endDate") LocalDateTime endDate);
 }

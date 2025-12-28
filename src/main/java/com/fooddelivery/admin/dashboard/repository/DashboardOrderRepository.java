@@ -306,4 +306,156 @@ public interface DashboardOrderRepository extends JpaRepository<Order, Long> {
             "GROUP BY o.courier.id")
     List<Object[]> deliveriesPerCourier(@Param("startDate") LocalDateTime startDate,
                                          @Param("endDate") LocalDateTime endDate);
+
+    // ==================== Finance Collector Methods ====================
+
+    /**
+     * Calculate GMV (Gross Merchandise Value) within date range.
+     */
+    @Query("SELECT COALESCE(SUM(o.total), 0) FROM Order o " +
+            "WHERE o.status IN ('DELIVERED', 'COMPLETED') " +
+            "AND o.createdAt BETWEEN :startDate AND :endDate")
+    BigDecimal calculateGMV(@Param("startDate") LocalDateTime startDate,
+                            @Param("endDate") LocalDateTime endDate);
+
+    /**
+     * Calculate delivery fee revenue within date range.
+     */
+    @Query("SELECT COALESCE(SUM(o.deliveryFee), 0) FROM Order o " +
+            "WHERE o.status IN ('DELIVERED', 'COMPLETED') " +
+            "AND o.createdAt BETWEEN :startDate AND :endDate")
+    BigDecimal calculateDeliveryFeeRevenue(@Param("startDate") LocalDateTime startDate,
+                                            @Param("endDate") LocalDateTime endDate);
+
+    /**
+     * Calculate courier payouts within date range.
+     */
+    @Query("SELECT COALESCE(SUM(o.courierEarnings), 0) FROM Order o " +
+            "WHERE o.status = 'DELIVERED' " +
+            "AND o.deliveredAt BETWEEN :startDate AND :endDate")
+    BigDecimal calculateCourierPayouts(@Param("startDate") LocalDateTime startDate,
+                                        @Param("endDate") LocalDateTime endDate);
+
+    /**
+     * Calculate total discounts used within date range.
+     */
+    @Query("SELECT COALESCE(SUM(o.discount), 0) FROM Order o " +
+            "WHERE o.createdAt BETWEEN :startDate AND :endDate")
+    BigDecimal calculateDiscountsUsed(@Param("startDate") LocalDateTime startDate,
+                                       @Param("endDate") LocalDateTime endDate);
+
+    /**
+     * Calculate unsettled restaurant payouts.
+     */
+    @Query("SELECT COALESCE(SUM(o.restaurantEarnings), 0) FROM Order o " +
+            "WHERE o.status = 'DELIVERED' AND o.restaurantPaid = false " +
+            "AND o.deliveredAt BETWEEN :startDate AND :endDate")
+    BigDecimal calculateUnsettledRestaurantPayouts(@Param("startDate") LocalDateTime startDate,
+                                                    @Param("endDate") LocalDateTime endDate);
+
+    /**
+     * Calculate unsettled courier payouts.
+     */
+    @Query("SELECT COALESCE(SUM(o.courierEarnings), 0) FROM Order o " +
+            "WHERE o.status = 'DELIVERED' AND o.courierPaid = false " +
+            "AND o.deliveredAt BETWEEN :startDate AND :endDate")
+    BigDecimal calculateUnsettledCourierPayouts(@Param("startDate") LocalDateTime startDate,
+                                                 @Param("endDate") LocalDateTime endDate);
+
+    /**
+     * Count orders within date range (alias for countByDateRange).
+     */
+    @Query("SELECT COUNT(o) FROM Order o WHERE o.createdAt BETWEEN :startDate AND :endDate")
+    Long countOrdersToday(@Param("startDate") LocalDateTime startDate,
+                          @Param("endDate") LocalDateTime endDate);
+
+    /**
+     * Count pending restaurant payouts.
+     */
+    @Query("SELECT COUNT(DISTINCT o.restaurant.id) FROM Order o " +
+            "WHERE o.status = 'DELIVERED' AND o.restaurantPaid = false " +
+            "AND o.deliveredAt BETWEEN :startDate AND :endDate")
+    Long countPendingRestaurantPayouts(@Param("startDate") LocalDateTime startDate,
+                                        @Param("endDate") LocalDateTime endDate);
+
+    /**
+     * Count pending courier payouts.
+     */
+    @Query("SELECT COUNT(DISTINCT o.courier.id) FROM Order o " +
+            "WHERE o.status = 'DELIVERED' AND o.courierPaid = false " +
+            "AND o.deliveredAt BETWEEN :startDate AND :endDate")
+    Long countPendingCourierPayouts(@Param("startDate") LocalDateTime startDate,
+                                     @Param("endDate") LocalDateTime endDate);
+
+    /**
+     * Count completed payouts.
+     */
+    @Query("SELECT COUNT(o) FROM Order o " +
+            "WHERE o.status = 'DELIVERED' AND o.restaurantPaid = true AND o.courierPaid = true " +
+            "AND o.deliveredAt BETWEEN :startDate AND :endDate")
+    Long countCompletedPayouts(@Param("startDate") LocalDateTime startDate,
+                                @Param("endDate") LocalDateTime endDate);
+
+    /**
+     * Average payout settlement time in minutes.
+     */
+    @Query("SELECT COALESCE(AVG(TIMESTAMPDIFF(MINUTE, o.deliveredAt, o.payoutProcessedAt)), 0) FROM Order o " +
+            "WHERE o.status = 'DELIVERED' AND o.payoutProcessedAt IS NOT NULL " +
+            "AND o.deliveredAt BETWEEN :startDate AND :endDate")
+    Double avgPayoutSettlementTimeMinutes(@Param("startDate") LocalDateTime startDate,
+                                           @Param("endDate") LocalDateTime endDate);
+
+    /**
+     * Count orders with discount.
+     */
+    @Query("SELECT COUNT(o) FROM Order o " +
+            "WHERE o.discount IS NOT NULL AND o.discount > 0 " +
+            "AND o.createdAt BETWEEN :startDate AND :endDate")
+    Long countOrdersWithDiscount(@Param("startDate") LocalDateTime startDate,
+                                  @Param("endDate") LocalDateTime endDate);
+
+    /**
+     * Get discounts breakdown by type.
+     */
+    @Query("SELECT o.discountType, COALESCE(SUM(o.discount), 0) FROM Order o " +
+            "WHERE o.discount IS NOT NULL AND o.discount > 0 " +
+            "AND o.createdAt BETWEEN :startDate AND :endDate " +
+            "GROUP BY o.discountType")
+    List<Object[]> getDiscountsByType(@Param("startDate") LocalDateTime startDate,
+                                       @Param("endDate") LocalDateTime endDate);
+
+    /**
+     * Get top promo codes by usage.
+     */
+    @Query(value = "SELECT promo_code, COUNT(*), COALESCE(SUM(discount), 0) FROM orders " +
+            "WHERE promo_code IS NOT NULL " +
+            "AND created_at BETWEEN :startDate AND :endDate " +
+            "GROUP BY promo_code " +
+            "ORDER BY COUNT(*) DESC " +
+            "LIMIT :limit", nativeQuery = true)
+    List<Object[]> getTopPromoCodes(@Param("startDate") LocalDateTime startDate,
+                                     @Param("endDate") LocalDateTime endDate,
+                                     @Param("limit") int limit);
+
+    /**
+     * Get daily revenue breakdown.
+     */
+    @Query(value = "SELECT DATE(created_at), COALESCE(SUM(total), 0), COUNT(*), " +
+            "COALESCE(SUM(delivery_fee), 0), COALESCE(SUM(discount), 0) FROM orders " +
+            "WHERE status IN ('DELIVERED', 'COMPLETED') " +
+            "AND created_at BETWEEN :startDate AND :endDate " +
+            "GROUP BY DATE(created_at) " +
+            "ORDER BY DATE(created_at)", nativeQuery = true)
+    List<Object[]> getDailyRevenue(@Param("startDate") LocalDateTime startDate,
+                                    @Param("endDate") LocalDateTime endDate);
+
+    /**
+     * Get revenue breakdown by payment method.
+     */
+    @Query("SELECT o.paymentMethod, COALESCE(SUM(o.total), 0) FROM Order o " +
+            "WHERE o.status IN ('DELIVERED', 'COMPLETED') " +
+            "AND o.createdAt BETWEEN :startDate AND :endDate " +
+            "GROUP BY o.paymentMethod")
+    List<Object[]> getRevenueByPaymentMethod(@Param("startDate") LocalDateTime startDate,
+                                              @Param("endDate") LocalDateTime endDate);
 }
