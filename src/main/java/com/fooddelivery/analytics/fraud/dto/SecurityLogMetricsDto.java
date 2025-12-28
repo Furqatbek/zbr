@@ -61,6 +61,13 @@ public class SecurityLogMetricsDto {
         private List<UserLoginRiskDto> highRiskUsers;
         private List<IpLoginRiskDto> highRiskIps;
         private Map<Integer, Long> failedLoginsByHour;
+
+        /**
+         * Alias for loginFailureRate.
+         */
+        public Double getFailedLoginRate() {
+            return loginFailureRate;
+        }
     }
 
     @Data
@@ -122,6 +129,13 @@ public class SecurityLogMetricsDto {
         private List<RateLimitedEntityDto> topRateLimitedIps;
         private Map<String, Long> rateLimitsByEndpoint;
         private Map<Integer, Long> rateLimitsByHour;
+
+        /**
+         * Alias for totalRateLimitedRequests.
+         */
+        public Long getTotalRateLimitViolations() {
+            return totalRateLimitedRequests;
+        }
     }
 
     @Data
@@ -151,6 +165,20 @@ public class SecurityLogMetricsDto {
         private List<FlaggedIpDto> flaggedIpsList;
         private Map<String, Long> ipsByCountry;
         private Map<String, Long> suspiciousIpsByCountry;
+
+        /**
+         * Alias for flaggedIps.
+         */
+        public Long getSuspiciousIpCount() {
+            return flaggedIps;
+        }
+
+        /**
+         * Alias for flaggedIpsList.
+         */
+        public List<FlaggedIpDto> getSuspiciousIpsList() {
+            return flaggedIpsList;
+        }
     }
 
     @Data
@@ -169,6 +197,20 @@ public class SecurityLogMetricsDto {
         private Long uniqueUsersFromIp;
         private String threatLevel;
         private Integer riskScore;
+
+        /**
+         * Alias for riskScore.
+         */
+        public Integer getThreatScore() {
+            return riskScore;
+        }
+
+        /**
+         * Alias for ipAddressPartial.
+         */
+        public String getIpAddress() {
+            return ipAddressPartial;
+        }
     }
 
     @Data
@@ -208,6 +250,13 @@ public class SecurityLogMetricsDto {
         private List<BruteForceAttackDto> activeAttacks;
         private Integer bruteForceThreshold;
         private Integer timeWindowMinutes;
+
+        /**
+         * Alias for blockedAttacks.
+         */
+        public Long getDetectedAttacks() {
+            return blockedAttacks;
+        }
     }
 
     @Data

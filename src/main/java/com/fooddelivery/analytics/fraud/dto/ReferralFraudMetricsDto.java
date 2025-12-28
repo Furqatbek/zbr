@@ -48,6 +48,34 @@ public class ReferralFraudMetricsDto {
     private LocalDateTime periodStart;
     private LocalDateTime periodEnd;
 
+    /**
+     * Alias for fraudulentReferralRate.
+     */
+    public Double getOverallReferralFraudRate() {
+        return fraudulentReferralRate;
+    }
+
+    /**
+     * Alias for circularReferrals.
+     */
+    public CircularReferralMetricsDto getCircularReferralMetrics() {
+        return circularReferrals;
+    }
+
+    /**
+     * Alias for promoAbuse.
+     */
+    public PromoAbuseMetricsDto getPromoAbuseMetrics() {
+        return promoAbuse;
+    }
+
+    /**
+     * Get total fraudulent referrals count.
+     */
+    public Long getTotalFraudulentReferrals() {
+        return suspiciousReferrals != null ? suspiciousReferrals : 0L;
+    }
+
     @Data
     @Builder
     @NoArgsConstructor
@@ -110,6 +138,13 @@ public class ReferralFraudMetricsDto {
         private Long usersInCircularChains;
         private BigDecimal bonusesInCircularChains;
         private List<CircularChainDto> detectedChains;
+
+        /**
+         * Alias for circularReferralChains.
+         */
+        public Long getCircularChainCount() {
+            return circularReferralChains;
+        }
     }
 
     @Data
@@ -139,6 +174,20 @@ public class ReferralFraudMetricsDto {
         private List<PromoAbuserDto> topPromoAbusers;
         private Map<String, Long> abuseByPromoType;
         private Integer minOrdersForPromoAbuse;
+
+        /**
+         * Alias for promoOnlyUsers.
+         */
+        public Long getPromoOnlyUsersCount() {
+            return promoOnlyUsers;
+        }
+
+        /**
+         * Alias for totalPromoCreditsUsed.
+         */
+        public BigDecimal getEstimatedPromoLoss() {
+            return totalPromoCreditsUsed;
+        }
     }
 
     @Data
