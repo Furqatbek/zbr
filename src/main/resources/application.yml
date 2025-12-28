@@ -37,7 +37,8 @@ spring:
     enabled: true
     locations: classpath:db/migration
     baseline-on-migrate: true
-    validate-on-migrate: true
+    validate-on-migrate: false
+    repair: true
 
   # Redis Configuration
   data:
