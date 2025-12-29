@@ -45,10 +45,28 @@ public class SupportMetricsDto {
     // SLA compliance
     private Long slaBreach;
     private Double slaComplianceRate;
+    private Map<String, Object> slaMetrics;
 
     // Escalations
     private Long escalatedTickets;
     private Long reopenedTickets;
+
+    // Resolution metrics
+    private Long resolvedTickets;
+    private Long closedTickets;
+    private Double resolutionRate;
+    private Double avgResolutionTimeMinutes;
+    private String avgResolutionTimeFormatted;
+    private String avgFirstResponseTimeFormatted;
+
+    // Breakdowns
+    private Map<String, Long> statusBreakdown;
+    private Map<String, Long> priorityBreakdown;
+    private Map<String, Long> categoryBreakdown;
+    private Map<Integer, Long> hourlyDistribution;
+
+    // Pending attention
+    private List<SupportTicketItemDto> pendingAttentionTickets;
 
     // Refund requests
     private Long refundRequestsTotal;
@@ -170,10 +188,16 @@ public class SupportMetricsDto {
     @AllArgsConstructor
     public static class CommonIssueDto {
         private String issueType;
+        private String category;
+        private String subcategory;
         private Long ticketCount;
+        private Long count;
         private Double percentageOfTotal;
+        private Double percentage;
         private Double avgResolutionTimeHours;
+        private Double avgResolutionTimeMinutes;
         private BigDecimal avgRefundAmount;
         private String suggestedAction;
+        private String trend;
     }
 }

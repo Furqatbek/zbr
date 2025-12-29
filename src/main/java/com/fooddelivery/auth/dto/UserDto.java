@@ -45,7 +45,10 @@ public class UserDto {
     @Schema(description = "User roles", example = "[\"CONSUMER\"]")
     private Set<Role> roles;
 
-    @Schema(description = "User status", example = "ACTIVE")
+    @Schema(description = "Single role (string format)", example = "CONSUMER")
+    private String role;
+
+    @Schema(description = "User status (enum)", example = "ACTIVE")
     private UserStatus status;
 
     @Schema(description = "Email verified flag", example = "true")
@@ -59,4 +62,13 @@ public class UserDto {
 
     @Schema(description = "Account creation timestamp")
     private LocalDateTime createdAt;
+
+    @Schema(description = "User address")
+    private String address;
+
+    @Schema(description = "User latitude")
+    private Double latitude;
+
+    @Schema(description = "User longitude")
+    private Double longitude;
 }

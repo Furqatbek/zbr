@@ -43,4 +43,7 @@ public class AuthResponse {
 
     @Schema(description = "User roles", example = "[\"CONSUMER\"]")
     private Set<Role> roles;
+
+    @Schema(description = "User details")
+    private UserDto user;
 }
