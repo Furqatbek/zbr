@@ -1,6 +1,37 @@
 -- Food Delivery Platform - Initial Schema
 -- Flyway Migration V1
 
+-- Drop existing tables to handle schema changes from partial runs
+-- Drop in reverse order of dependencies using CASCADE
+DROP TABLE IF EXISTS notification_preferences CASCADE;
+DROP TABLE IF EXISTS ratings CASCADE;
+DROP TABLE IF EXISTS audit_events CASCADE;
+DROP TABLE IF EXISTS referrals CASCADE;
+DROP TABLE IF EXISTS payments CASCADE;
+DROP TABLE IF EXISTS order_items CASCADE;
+DROP TABLE IF EXISTS orders CASCADE;
+DROP TABLE IF EXISTS couriers CASCADE;
+DROP TABLE IF EXISTS item_options CASCADE;
+DROP TABLE IF EXISTS item_variants CASCADE;
+DROP TABLE IF EXISTS menu_items CASCADE;
+DROP TABLE IF EXISTS menu_categories CASCADE;
+DROP TABLE IF EXISTS restaurant_operating_hours CASCADE;
+DROP TABLE IF EXISTS restaurants CASCADE;
+DROP TABLE IF EXISTS refresh_tokens CASCADE;
+DROP TABLE IF EXISTS users CASCADE;
+
+-- Drop triggers if they exist
+DROP TRIGGER IF EXISTS update_users_updated_at ON users;
+DROP TRIGGER IF EXISTS update_restaurants_updated_at ON restaurants;
+DROP TRIGGER IF EXISTS update_menu_categories_updated_at ON menu_categories;
+DROP TRIGGER IF EXISTS update_menu_items_updated_at ON menu_items;
+DROP TRIGGER IF EXISTS update_couriers_updated_at ON couriers;
+DROP TRIGGER IF EXISTS update_orders_updated_at ON orders;
+DROP TRIGGER IF EXISTS update_payments_updated_at ON payments;
+
+-- Drop function if it exists
+DROP FUNCTION IF EXISTS update_updated_at_column();
+
 -- Users table
 CREATE TABLE users (
     id BIGSERIAL PRIMARY KEY,

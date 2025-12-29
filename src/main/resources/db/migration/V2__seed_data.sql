@@ -3,23 +3,28 @@
 
 -- Insert admin user (password: Admin@123)
 INSERT INTO users (email, password_hash, full_name, phone, role, status, email_verified)
-VALUES ('admin@fooddelivery.com', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 'System Admin', '+1234567890', 'ADMIN', 'ACTIVE', true);
+VALUES ('admin@fooddelivery.com', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 'System Admin', '+1234567890', 'ADMIN', 'ACTIVE', true)
+ON CONFLICT (email) DO NOTHING;
 
 -- Insert platform user (password: Platform@123)
 INSERT INTO users (email, password_hash, full_name, phone, role, status, email_verified)
-VALUES ('platform@fooddelivery.com', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 'Platform Manager', '+1234567891', 'PLATFORM', 'ACTIVE', true);
+VALUES ('platform@fooddelivery.com', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 'Platform Manager', '+1234567891', 'PLATFORM', 'ACTIVE', true)
+ON CONFLICT (email) DO NOTHING;
 
 -- Insert demo restaurant owner (password: Owner@123)
 INSERT INTO users (email, password_hash, full_name, phone, role, status, email_verified)
-VALUES ('owner@pizzapalace.com', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 'Mario Rossi', '+1234567892', 'RESTAURANT_OWNER', 'ACTIVE', true);
+VALUES ('owner@pizzapalace.com', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 'Mario Rossi', '+1234567892', 'RESTAURANT_OWNER', 'ACTIVE', true)
+ON CONFLICT (email) DO NOTHING;
 
 -- Insert demo consumer (password: Consumer@123)
 INSERT INTO users (email, password_hash, full_name, phone, role, status, email_verified)
-VALUES ('john.doe@example.com', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 'John Doe', '+1234567893', 'CONSUMER', 'ACTIVE', true);
+VALUES ('john.doe@example.com', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 'John Doe', '+1234567893', 'CONSUMER', 'ACTIVE', true)
+ON CONFLICT (email) DO NOTHING;
 
 -- Insert demo courier (password: Courier@123)
 INSERT INTO users (email, password_hash, full_name, phone, role, status, email_verified)
-VALUES ('courier@fooddelivery.com', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 'Fast Eddie', '+1234567894', 'COURIER', 'ACTIVE', true);
+VALUES ('courier@fooddelivery.com', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 'Fast Eddie', '+1234567894', 'COURIER', 'ACTIVE', true)
+ON CONFLICT (email) DO NOTHING;
 
 -- Insert demo restaurant
 INSERT INTO restaurants (owner_id, name, slug, description, cuisine_type, address_line1, city, state, postal_code, country, latitude, longitude, phone, email, status, avg_prep_time, minimum_order, delivery_fee, delivery_radius_km, accepts_pickup, accepts_delivery, is_featured)
@@ -46,7 +51,8 @@ VALUES (
     true,
     true,
     true
-);
+)
+ON CONFLICT (slug) DO NOTHING;
 
 -- Insert operating hours for Pizza Palace (Mon-Sun, 11:00-22:00)
 INSERT INTO restaurant_operating_hours (restaurant_id, day_of_week, open_time, close_time, is_closed)
@@ -143,12 +149,15 @@ SELECT id, 'Jalapenos', 1.00, true, 1, false, 'toppings' FROM menu_items WHERE n
 
 -- Insert courier for demo user
 INSERT INTO couriers (user_id, vehicle_type, license_plate, status, is_available)
-SELECT id, 'BICYCLE', NULL, 'ONLINE', true FROM users WHERE email = 'courier@fooddelivery.com';
+SELECT id, 'BICYCLE', NULL, 'ONLINE', true FROM users WHERE email = 'courier@fooddelivery.com'
+ON CONFLICT (user_id) DO NOTHING;
 
 -- Insert notification preferences for all users
 INSERT INTO notification_preferences (user_id, email_enabled, sms_enabled, push_enabled, order_updates, promotions, newsletter)
-SELECT id, true, true, true, true, true, false FROM users;
+SELECT id, true, true, true, true, true, false FROM users
+ON CONFLICT (user_id) DO NOTHING;
 
 -- Insert a referral code for the admin
 INSERT INTO referrals (referrer_id, code, status, referrer_reward, referred_reward, expires_at)
-SELECT id, 'ADMIN2024', 'PENDING', 20.00, 15.00, CURRENT_TIMESTAMP + INTERVAL '90 days' FROM users WHERE email = 'admin@fooddelivery.com';
+SELECT id, 'ADMIN2024', 'PENDING', 20.00, 15.00, CURRENT_TIMESTAMP + INTERVAL '90 days' FROM users WHERE email = 'admin@fooddelivery.com'
+ON CONFLICT (code) DO NOTHING;
