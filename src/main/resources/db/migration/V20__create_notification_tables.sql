@@ -11,6 +11,18 @@
 --   - Notification templates
 -- =====================================================
 
+-- Drop existing tables to handle schema changes from partial runs
+DROP TABLE IF EXISTS notification_read_status CASCADE;
+DROP TABLE IF EXISTS notification_preferences CASCADE;
+DROP TABLE IF EXISTS notification_templates CASCADE;
+DROP TABLE IF EXISTS notifications CASCADE;
+
+-- Drop triggers if they exist
+DROP TRIGGER IF EXISTS trg_notifications_updated_at ON notifications;
+DROP TRIGGER IF EXISTS trg_notification_templates_updated_at ON notification_templates;
+DROP TRIGGER IF EXISTS trg_notification_preferences_updated_at ON notification_preferences;
+DROP FUNCTION IF EXISTS update_notification_updated_at();
+
 -- Create enum types for notification system
 DO $$
 BEGIN
@@ -65,7 +77,7 @@ END$$;
 -- =====================================================
 -- Notifications Table
 -- =====================================================
-CREATE TABLE IF NOT EXISTS notifications (
+CREATE TABLE notifications (
     id BIGSERIAL PRIMARY KEY,
 
     -- Target information
@@ -114,7 +126,7 @@ CREATE TABLE IF NOT EXISTS notifications (
 -- =====================================================
 -- Notification Templates Table
 -- =====================================================
-CREATE TABLE IF NOT EXISTS notification_templates (
+CREATE TABLE notification_templates (
     id BIGSERIAL PRIMARY KEY,
 
     -- Template identification
@@ -150,7 +162,7 @@ CREATE TABLE IF NOT EXISTS notification_templates (
 -- =====================================================
 -- Notification Preferences Table (per-user preferences)
 -- =====================================================
-CREATE TABLE IF NOT EXISTS notification_preferences (
+CREATE TABLE notification_preferences (
     id BIGSERIAL PRIMARY KEY,
 
     user_id BIGINT NOT NULL,
@@ -188,7 +200,7 @@ CREATE TABLE IF NOT EXISTS notification_preferences (
 -- =====================================================
 -- Notification Read Status Table (for broadcast notifications)
 -- =====================================================
-CREATE TABLE IF NOT EXISTS notification_read_status (
+CREATE TABLE notification_read_status (
     id BIGSERIAL PRIMARY KEY,
 
     notification_id BIGINT NOT NULL REFERENCES notifications(id) ON DELETE CASCADE,

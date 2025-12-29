@@ -1,8 +1,23 @@
 -- Customer Experience Analytics Tables
 -- V17: Create CX analytics tables for NPS, ratings, and support tickets
 
+-- Drop existing tables to handle schema changes from partial runs
+DROP TABLE IF EXISTS support_tickets CASCADE;
+DROP TABLE IF EXISTS nps_surveys CASCADE;
+DROP TABLE IF EXISTS app_store_ratings CASCADE;
+DROP TABLE IF EXISTS courier_ratings CASCADE;
+DROP TABLE IF EXISTS restaurant_ratings CASCADE;
+
+-- Drop function and triggers if they exist
+DROP TRIGGER IF EXISTS update_restaurant_ratings_updated_at ON restaurant_ratings;
+DROP TRIGGER IF EXISTS update_courier_ratings_updated_at ON courier_ratings;
+DROP TRIGGER IF EXISTS update_app_store_ratings_updated_at ON app_store_ratings;
+DROP TRIGGER IF EXISTS update_nps_surveys_updated_at ON nps_surveys;
+DROP TRIGGER IF EXISTS update_support_tickets_updated_at ON support_tickets;
+DROP FUNCTION IF EXISTS update_cx_updated_at();
+
 -- ==================== Restaurant Ratings ====================
-CREATE TABLE IF NOT EXISTS restaurant_ratings (
+CREATE TABLE restaurant_ratings (
     id BIGSERIAL PRIMARY KEY,
     restaurant_id BIGINT NOT NULL,
     user_id BIGINT NOT NULL,
@@ -18,15 +33,15 @@ CREATE TABLE IF NOT EXISTS restaurant_ratings (
 );
 
 -- Indexes for restaurant_ratings
-CREATE INDEX IF NOT EXISTS idx_restaurant_ratings_restaurant_id ON restaurant_ratings(restaurant_id);
-CREATE INDEX IF NOT EXISTS idx_restaurant_ratings_user_id ON restaurant_ratings(user_id);
-CREATE INDEX IF NOT EXISTS idx_restaurant_ratings_order_id ON restaurant_ratings(order_id);
-CREATE INDEX IF NOT EXISTS idx_restaurant_ratings_created_at ON restaurant_ratings(created_at);
-CREATE INDEX IF NOT EXISTS idx_restaurant_ratings_score ON restaurant_ratings(score);
-CREATE INDEX IF NOT EXISTS idx_restaurant_ratings_restaurant_created ON restaurant_ratings(restaurant_id, created_at);
+CREATE INDEX idx_restaurant_ratings_restaurant_id ON restaurant_ratings(restaurant_id);
+CREATE INDEX idx_restaurant_ratings_user_id ON restaurant_ratings(user_id);
+CREATE INDEX idx_restaurant_ratings_order_id ON restaurant_ratings(order_id);
+CREATE INDEX idx_restaurant_ratings_created_at ON restaurant_ratings(created_at);
+CREATE INDEX idx_restaurant_ratings_score ON restaurant_ratings(score);
+CREATE INDEX idx_restaurant_ratings_restaurant_created ON restaurant_ratings(restaurant_id, created_at);
 
 -- ==================== Courier Ratings ====================
-CREATE TABLE IF NOT EXISTS courier_ratings (
+CREATE TABLE courier_ratings (
     id BIGSERIAL PRIMARY KEY,
     courier_id BIGINT NOT NULL,
     user_id BIGINT NOT NULL,
@@ -43,22 +58,22 @@ CREATE TABLE IF NOT EXISTS courier_ratings (
 );
 
 -- Indexes for courier_ratings
-CREATE INDEX IF NOT EXISTS idx_courier_ratings_courier_id ON courier_ratings(courier_id);
-CREATE INDEX IF NOT EXISTS idx_courier_ratings_user_id ON courier_ratings(user_id);
-CREATE INDEX IF NOT EXISTS idx_courier_ratings_order_id ON courier_ratings(order_id);
-CREATE INDEX IF NOT EXISTS idx_courier_ratings_delivery_id ON courier_ratings(delivery_id);
-CREATE INDEX IF NOT EXISTS idx_courier_ratings_created_at ON courier_ratings(created_at);
-CREATE INDEX IF NOT EXISTS idx_courier_ratings_score ON courier_ratings(score);
-CREATE INDEX IF NOT EXISTS idx_courier_ratings_courier_created ON courier_ratings(courier_id, created_at);
+CREATE INDEX idx_courier_ratings_courier_id ON courier_ratings(courier_id);
+CREATE INDEX idx_courier_ratings_user_id ON courier_ratings(user_id);
+CREATE INDEX idx_courier_ratings_order_id ON courier_ratings(order_id);
+CREATE INDEX idx_courier_ratings_delivery_id ON courier_ratings(delivery_id);
+CREATE INDEX idx_courier_ratings_created_at ON courier_ratings(created_at);
+CREATE INDEX idx_courier_ratings_score ON courier_ratings(score);
+CREATE INDEX idx_courier_ratings_courier_created ON courier_ratings(courier_id, created_at);
 
 -- ==================== App Store Ratings ====================
-CREATE TABLE IF NOT EXISTS app_store_ratings (
+CREATE TABLE app_store_ratings (
     id BIGSERIAL PRIMARY KEY,
     platform VARCHAR(20) NOT NULL CHECK (platform IN ('IOS', 'ANDROID')),
     score INTEGER NOT NULL CHECK (score >= 1 AND score <= 5),
     title VARCHAR(500),
     comment TEXT,
-    review_id VARCHAR(255),
+    review_id VARCHAR(255) UNIQUE,
     country VARCHAR(10),
     app_version VARCHAR(50),
     device_type VARCHAR(100),
@@ -71,24 +86,16 @@ CREATE TABLE IF NOT EXISTS app_store_ratings (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Add unique constraint if not exists
-DO $$
-BEGIN
-    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'unique_review_id') THEN
-        ALTER TABLE app_store_ratings ADD CONSTRAINT unique_review_id UNIQUE (review_id);
-    END IF;
-END $$;
-
 -- Indexes for app_store_ratings
-CREATE INDEX IF NOT EXISTS idx_app_store_ratings_platform ON app_store_ratings(platform);
-CREATE INDEX IF NOT EXISTS idx_app_store_ratings_created_at ON app_store_ratings(created_at);
-CREATE INDEX IF NOT EXISTS idx_app_store_ratings_score ON app_store_ratings(score);
-CREATE INDEX IF NOT EXISTS idx_app_store_ratings_country ON app_store_ratings(country);
-CREATE INDEX IF NOT EXISTS idx_app_store_ratings_app_version ON app_store_ratings(app_version);
-CREATE INDEX IF NOT EXISTS idx_app_store_ratings_platform_created ON app_store_ratings(platform, created_at);
+CREATE INDEX idx_app_store_ratings_platform ON app_store_ratings(platform);
+CREATE INDEX idx_app_store_ratings_created_at ON app_store_ratings(created_at);
+CREATE INDEX idx_app_store_ratings_score ON app_store_ratings(score);
+CREATE INDEX idx_app_store_ratings_country ON app_store_ratings(country);
+CREATE INDEX idx_app_store_ratings_app_version ON app_store_ratings(app_version);
+CREATE INDEX idx_app_store_ratings_platform_created ON app_store_ratings(platform, created_at);
 
 -- ==================== NPS Surveys ====================
-CREATE TABLE IF NOT EXISTS nps_surveys (
+CREATE TABLE nps_surveys (
     id BIGSERIAL PRIMARY KEY,
     user_id BIGINT NOT NULL,
     score INTEGER NOT NULL CHECK (score >= 0 AND score <= 10),
@@ -104,14 +111,14 @@ CREATE TABLE IF NOT EXISTS nps_surveys (
 );
 
 -- Indexes for nps_surveys
-CREATE INDEX IF NOT EXISTS idx_nps_surveys_user_id ON nps_surveys(user_id);
-CREATE INDEX IF NOT EXISTS idx_nps_surveys_score ON nps_surveys(score);
-CREATE INDEX IF NOT EXISTS idx_nps_surveys_created_at ON nps_surveys(created_at);
-CREATE INDEX IF NOT EXISTS idx_nps_surveys_survey_channel ON nps_surveys(survey_channel);
-CREATE INDEX IF NOT EXISTS idx_nps_surveys_user_segment ON nps_surveys(user_segment);
+CREATE INDEX idx_nps_surveys_user_id ON nps_surveys(user_id);
+CREATE INDEX idx_nps_surveys_score ON nps_surveys(score);
+CREATE INDEX idx_nps_surveys_created_at ON nps_surveys(created_at);
+CREATE INDEX idx_nps_surveys_survey_channel ON nps_surveys(survey_channel);
+CREATE INDEX idx_nps_surveys_user_segment ON nps_surveys(user_segment);
 
 -- ==================== Support Tickets ====================
-CREATE TABLE IF NOT EXISTS support_tickets (
+CREATE TABLE support_tickets (
     id BIGSERIAL PRIMARY KEY,
     ticket_number VARCHAR(50) NOT NULL UNIQUE,
     user_id BIGINT NOT NULL,
@@ -142,26 +149,26 @@ CREATE TABLE IF NOT EXISTS support_tickets (
     csat_feedback TEXT,
     refund_issued BOOLEAN DEFAULT FALSE,
     refund_amount DECIMAL(10,2),
-    tags TEXT[], -- PostgreSQL array for tags
+    tags TEXT[],
     resolution_time_hours INTEGER,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Indexes for support_tickets
-CREATE INDEX IF NOT EXISTS idx_support_tickets_user_id ON support_tickets(user_id);
-CREATE INDEX IF NOT EXISTS idx_support_tickets_order_id ON support_tickets(order_id);
-CREATE INDEX IF NOT EXISTS idx_support_tickets_ticket_type ON support_tickets(ticket_type);
-CREATE INDEX IF NOT EXISTS idx_support_tickets_status ON support_tickets(status);
-CREATE INDEX IF NOT EXISTS idx_support_tickets_priority ON support_tickets(priority);
-CREATE INDEX IF NOT EXISTS idx_support_tickets_channel ON support_tickets(channel);
-CREATE INDEX IF NOT EXISTS idx_support_tickets_assigned_agent_id ON support_tickets(assigned_agent_id);
-CREATE INDEX IF NOT EXISTS idx_support_tickets_created_at ON support_tickets(created_at);
-CREATE INDEX IF NOT EXISTS idx_support_tickets_resolved_at ON support_tickets(resolved_at);
-CREATE INDEX IF NOT EXISTS idx_support_tickets_sla_due_at ON support_tickets(sla_due_at);
-CREATE INDEX IF NOT EXISTS idx_support_tickets_is_sla_breached ON support_tickets(is_sla_breached);
-CREATE INDEX IF NOT EXISTS idx_support_tickets_ticket_type_created ON support_tickets(ticket_type, created_at);
-CREATE INDEX IF NOT EXISTS idx_support_tickets_status_created ON support_tickets(status, created_at);
+CREATE INDEX idx_support_tickets_user_id ON support_tickets(user_id);
+CREATE INDEX idx_support_tickets_order_id ON support_tickets(order_id);
+CREATE INDEX idx_support_tickets_ticket_type ON support_tickets(ticket_type);
+CREATE INDEX idx_support_tickets_status ON support_tickets(status);
+CREATE INDEX idx_support_tickets_priority ON support_tickets(priority);
+CREATE INDEX idx_support_tickets_channel ON support_tickets(channel);
+CREATE INDEX idx_support_tickets_assigned_agent_id ON support_tickets(assigned_agent_id);
+CREATE INDEX idx_support_tickets_created_at ON support_tickets(created_at);
+CREATE INDEX idx_support_tickets_resolved_at ON support_tickets(resolved_at);
+CREATE INDEX idx_support_tickets_sla_due_at ON support_tickets(sla_due_at);
+CREATE INDEX idx_support_tickets_is_sla_breached ON support_tickets(is_sla_breached);
+CREATE INDEX idx_support_tickets_ticket_type_created ON support_tickets(ticket_type, created_at);
+CREATE INDEX idx_support_tickets_status_created ON support_tickets(status, created_at);
 
 -- ==================== Trigger for updated_at timestamps ====================
 CREATE OR REPLACE FUNCTION update_cx_updated_at()
@@ -172,28 +179,23 @@ BEGIN
 END;
 $$ language 'plpgsql';
 
--- Apply triggers to all CX tables (drop first if exists)
-DROP TRIGGER IF EXISTS update_restaurant_ratings_updated_at ON restaurant_ratings;
+-- Apply triggers to all CX tables
 CREATE TRIGGER update_restaurant_ratings_updated_at
     BEFORE UPDATE ON restaurant_ratings
     FOR EACH ROW EXECUTE FUNCTION update_cx_updated_at();
 
-DROP TRIGGER IF EXISTS update_courier_ratings_updated_at ON courier_ratings;
 CREATE TRIGGER update_courier_ratings_updated_at
     BEFORE UPDATE ON courier_ratings
     FOR EACH ROW EXECUTE FUNCTION update_cx_updated_at();
 
-DROP TRIGGER IF EXISTS update_app_store_ratings_updated_at ON app_store_ratings;
 CREATE TRIGGER update_app_store_ratings_updated_at
     BEFORE UPDATE ON app_store_ratings
     FOR EACH ROW EXECUTE FUNCTION update_cx_updated_at();
 
-DROP TRIGGER IF EXISTS update_nps_surveys_updated_at ON nps_surveys;
 CREATE TRIGGER update_nps_surveys_updated_at
     BEFORE UPDATE ON nps_surveys
     FOR EACH ROW EXECUTE FUNCTION update_cx_updated_at();
 
-DROP TRIGGER IF EXISTS update_support_tickets_updated_at ON support_tickets;
 CREATE TRIGGER update_support_tickets_updated_at
     BEFORE UPDATE ON support_tickets
     FOR EACH ROW EXECUTE FUNCTION update_cx_updated_at();

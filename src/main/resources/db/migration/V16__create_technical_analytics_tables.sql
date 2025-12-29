@@ -1,9 +1,23 @@
 -- Technical Analytics Tables Migration
 -- Creates tables for platform health and performance monitoring
 
+-- Drop existing tables to handle schema changes from partial runs
+DROP TABLE IF EXISTS system_metric_snapshots CASCADE;
+DROP TABLE IF EXISTS backup_logs CASCADE;
+DROP TABLE IF EXISTS message_queue_stats CASCADE;
+DROP TABLE IF EXISTS storage_metadata CASCADE;
+DROP TABLE IF EXISTS websocket_message_logs CASCADE;
+DROP TABLE IF EXISTS websocket_connection_logs CASCADE;
+DROP TABLE IF EXISTS slow_query_logs CASCADE;
+DROP TABLE IF EXISTS http_request_logs CASCADE;
+
+-- Drop views if they exist
+DROP VIEW IF EXISTS vw_table_stats;
+DROP VIEW IF EXISTS vw_index_usage_stats;
+
 -- HTTP Request Logs Table
 -- Stores HTTP request data for API performance analysis
-CREATE TABLE IF NOT EXISTS http_request_logs (
+CREATE TABLE http_request_logs (
     id BIGSERIAL PRIMARY KEY,
     request_id VARCHAR(64) UNIQUE NOT NULL,
     method VARCHAR(10) NOT NULL,
@@ -22,16 +36,16 @@ CREATE TABLE IF NOT EXISTS http_request_logs (
 );
 
 -- Indexes for HTTP request logs
-CREATE INDEX IF NOT EXISTS idx_http_request_logs_timestamp ON http_request_logs(request_timestamp);
-CREATE INDEX IF NOT EXISTS idx_http_request_logs_endpoint ON http_request_logs(endpoint);
-CREATE INDEX IF NOT EXISTS idx_http_request_logs_status ON http_request_logs(status_code);
-CREATE INDEX IF NOT EXISTS idx_http_request_logs_method ON http_request_logs(method);
-CREATE INDEX IF NOT EXISTS idx_http_request_logs_user ON http_request_logs(user_id);
-CREATE INDEX IF NOT EXISTS idx_http_request_logs_endpoint_timestamp ON http_request_logs(endpoint, request_timestamp);
+CREATE INDEX idx_http_request_logs_timestamp ON http_request_logs(request_timestamp);
+CREATE INDEX idx_http_request_logs_endpoint ON http_request_logs(endpoint);
+CREATE INDEX idx_http_request_logs_status ON http_request_logs(status_code);
+CREATE INDEX idx_http_request_logs_method ON http_request_logs(method);
+CREATE INDEX idx_http_request_logs_user ON http_request_logs(user_id);
+CREATE INDEX idx_http_request_logs_endpoint_timestamp ON http_request_logs(endpoint, request_timestamp);
 
 -- Slow Query Logs Table
 -- Stores slow database queries for performance analysis
-CREATE TABLE IF NOT EXISTS slow_query_logs (
+CREATE TABLE slow_query_logs (
     id BIGSERIAL PRIMARY KEY,
     query_hash VARCHAR(64) NOT NULL,
     query_text TEXT NOT NULL,
@@ -47,15 +61,15 @@ CREATE TABLE IF NOT EXISTS slow_query_logs (
 );
 
 -- Indexes for slow query logs
-CREATE INDEX IF NOT EXISTS idx_slow_query_logs_executed_at ON slow_query_logs(executed_at);
-CREATE INDEX IF NOT EXISTS idx_slow_query_logs_query_hash ON slow_query_logs(query_hash);
-CREATE INDEX IF NOT EXISTS idx_slow_query_logs_table ON slow_query_logs(table_name);
-CREATE INDEX IF NOT EXISTS idx_slow_query_logs_duration ON slow_query_logs(duration_ms);
-CREATE INDEX IF NOT EXISTS idx_slow_query_logs_type ON slow_query_logs(query_type);
+CREATE INDEX idx_slow_query_logs_executed_at ON slow_query_logs(executed_at);
+CREATE INDEX idx_slow_query_logs_query_hash ON slow_query_logs(query_hash);
+CREATE INDEX idx_slow_query_logs_table ON slow_query_logs(table_name);
+CREATE INDEX idx_slow_query_logs_duration ON slow_query_logs(duration_ms);
+CREATE INDEX idx_slow_query_logs_type ON slow_query_logs(query_type);
 
 -- WebSocket Connection Logs Table
 -- Stores WebSocket connection events
-CREATE TABLE IF NOT EXISTS websocket_connection_logs (
+CREATE TABLE websocket_connection_logs (
     id BIGSERIAL PRIMARY KEY,
     session_id VARCHAR(64) UNIQUE NOT NULL,
     user_id BIGINT,
@@ -73,15 +87,15 @@ CREATE TABLE IF NOT EXISTS websocket_connection_logs (
 );
 
 -- Indexes for WebSocket connection logs
-CREATE INDEX IF NOT EXISTS idx_ws_conn_logs_connected_at ON websocket_connection_logs(connected_at);
-CREATE INDEX IF NOT EXISTS idx_ws_conn_logs_disconnected_at ON websocket_connection_logs(disconnected_at);
-CREATE INDEX IF NOT EXISTS idx_ws_conn_logs_user ON websocket_connection_logs(user_id);
-CREATE INDEX IF NOT EXISTS idx_ws_conn_logs_user_type ON websocket_connection_logs(user_type);
-CREATE INDEX IF NOT EXISTS idx_ws_conn_logs_active ON websocket_connection_logs(disconnected_at) WHERE disconnected_at IS NULL;
+CREATE INDEX idx_ws_conn_logs_connected_at ON websocket_connection_logs(connected_at);
+CREATE INDEX idx_ws_conn_logs_disconnected_at ON websocket_connection_logs(disconnected_at);
+CREATE INDEX idx_ws_conn_logs_user ON websocket_connection_logs(user_id);
+CREATE INDEX idx_ws_conn_logs_user_type ON websocket_connection_logs(user_type);
+CREATE INDEX idx_ws_conn_logs_active ON websocket_connection_logs(disconnected_at) WHERE disconnected_at IS NULL;
 
 -- WebSocket Message Logs Table
 -- Stores WebSocket message delivery data
-CREATE TABLE IF NOT EXISTS websocket_message_logs (
+CREATE TABLE websocket_message_logs (
     id BIGSERIAL PRIMARY KEY,
     message_id VARCHAR(64) UNIQUE NOT NULL,
     session_id VARCHAR(64) NOT NULL,
@@ -96,14 +110,14 @@ CREATE TABLE IF NOT EXISTS websocket_message_logs (
 );
 
 -- Indexes for WebSocket message logs
-CREATE INDEX IF NOT EXISTS idx_ws_msg_logs_published_at ON websocket_message_logs(published_at);
-CREATE INDEX IF NOT EXISTS idx_ws_msg_logs_session ON websocket_message_logs(session_id);
-CREATE INDEX IF NOT EXISTS idx_ws_msg_logs_type ON websocket_message_logs(message_type);
-CREATE INDEX IF NOT EXISTS idx_ws_msg_logs_delivered ON websocket_message_logs(is_delivered);
+CREATE INDEX idx_ws_msg_logs_published_at ON websocket_message_logs(published_at);
+CREATE INDEX idx_ws_msg_logs_session ON websocket_message_logs(session_id);
+CREATE INDEX idx_ws_msg_logs_type ON websocket_message_logs(message_type);
+CREATE INDEX idx_ws_msg_logs_delivered ON websocket_message_logs(is_delivered);
 
 -- Storage Metadata Table
 -- Stores file upload and storage information
-CREATE TABLE IF NOT EXISTS storage_metadata (
+CREATE TABLE storage_metadata (
     id BIGSERIAL PRIMARY KEY,
     file_key VARCHAR(512) UNIQUE NOT NULL,
     original_filename VARCHAR(256),
@@ -125,16 +139,16 @@ CREATE TABLE IF NOT EXISTS storage_metadata (
 );
 
 -- Indexes for storage metadata
-CREATE INDEX IF NOT EXISTS idx_storage_metadata_uploaded_at ON storage_metadata(uploaded_at);
-CREATE INDEX IF NOT EXISTS idx_storage_metadata_content_type ON storage_metadata(content_type);
-CREATE INDEX IF NOT EXISTS idx_storage_metadata_storage_type ON storage_metadata(storage_type);
-CREATE INDEX IF NOT EXISTS idx_storage_metadata_entity ON storage_metadata(entity_type, entity_id);
-CREATE INDEX IF NOT EXISTS idx_storage_metadata_deleted ON storage_metadata(is_deleted);
-CREATE INDEX IF NOT EXISTS idx_storage_metadata_success ON storage_metadata(is_upload_successful);
+CREATE INDEX idx_storage_metadata_uploaded_at ON storage_metadata(uploaded_at);
+CREATE INDEX idx_storage_metadata_content_type ON storage_metadata(content_type);
+CREATE INDEX idx_storage_metadata_storage_type ON storage_metadata(storage_type);
+CREATE INDEX idx_storage_metadata_entity ON storage_metadata(entity_type, entity_id);
+CREATE INDEX idx_storage_metadata_deleted ON storage_metadata(is_deleted);
+CREATE INDEX idx_storage_metadata_success ON storage_metadata(is_upload_successful);
 
 -- Message Queue Stats Table
 -- Stores RabbitMQ/Kafka statistics
-CREATE TABLE IF NOT EXISTS message_queue_stats (
+CREATE TABLE message_queue_stats (
     id BIGSERIAL PRIMARY KEY,
     queue_name VARCHAR(128) NOT NULL,
     broker_type VARCHAR(20) NOT NULL,
@@ -149,14 +163,14 @@ CREATE TABLE IF NOT EXISTS message_queue_stats (
 );
 
 -- Indexes for message queue stats
-CREATE INDEX IF NOT EXISTS idx_mq_stats_collected_at ON message_queue_stats(collected_at);
-CREATE INDEX IF NOT EXISTS idx_mq_stats_queue ON message_queue_stats(queue_name);
-CREATE INDEX IF NOT EXISTS idx_mq_stats_broker ON message_queue_stats(broker_type);
-CREATE INDEX IF NOT EXISTS idx_mq_stats_queue_collected ON message_queue_stats(queue_name, collected_at DESC);
+CREATE INDEX idx_mq_stats_collected_at ON message_queue_stats(collected_at);
+CREATE INDEX idx_mq_stats_queue ON message_queue_stats(queue_name);
+CREATE INDEX idx_mq_stats_broker ON message_queue_stats(broker_type);
+CREATE INDEX idx_mq_stats_queue_collected ON message_queue_stats(queue_name, collected_at DESC);
 
 -- Backup Logs Table
 -- Stores database backup information
-CREATE TABLE IF NOT EXISTS backup_logs (
+CREATE TABLE backup_logs (
     id BIGSERIAL PRIMARY KEY,
     backup_id VARCHAR(64) UNIQUE NOT NULL,
     database_name VARCHAR(64) NOT NULL,
@@ -172,14 +186,14 @@ CREATE TABLE IF NOT EXISTS backup_logs (
 );
 
 -- Indexes for backup logs
-CREATE INDEX IF NOT EXISTS idx_backup_logs_started_at ON backup_logs(started_at);
-CREATE INDEX IF NOT EXISTS idx_backup_logs_status ON backup_logs(status);
-CREATE INDEX IF NOT EXISTS idx_backup_logs_database ON backup_logs(database_name);
-CREATE INDEX IF NOT EXISTS idx_backup_logs_type ON backup_logs(backup_type);
+CREATE INDEX idx_backup_logs_started_at ON backup_logs(started_at);
+CREATE INDEX idx_backup_logs_status ON backup_logs(status);
+CREATE INDEX idx_backup_logs_database ON backup_logs(database_name);
+CREATE INDEX idx_backup_logs_type ON backup_logs(backup_type);
 
 -- System Metric Snapshots Table
 -- Stores periodic system metric snapshots
-CREATE TABLE IF NOT EXISTS system_metric_snapshots (
+CREATE TABLE system_metric_snapshots (
     id BIGSERIAL PRIMARY KEY,
     metric_name VARCHAR(128) NOT NULL,
     metric_type VARCHAR(20) NOT NULL,
@@ -191,10 +205,10 @@ CREATE TABLE IF NOT EXISTS system_metric_snapshots (
 );
 
 -- Indexes for system metric snapshots
-CREATE INDEX IF NOT EXISTS idx_sys_metric_collected_at ON system_metric_snapshots(collected_at);
-CREATE INDEX IF NOT EXISTS idx_sys_metric_name ON system_metric_snapshots(metric_name);
-CREATE INDEX IF NOT EXISTS idx_sys_metric_type ON system_metric_snapshots(metric_type);
-CREATE INDEX IF NOT EXISTS idx_sys_metric_name_collected ON system_metric_snapshots(metric_name, collected_at DESC);
+CREATE INDEX idx_sys_metric_collected_at ON system_metric_snapshots(collected_at);
+CREATE INDEX idx_sys_metric_name ON system_metric_snapshots(metric_name);
+CREATE INDEX idx_sys_metric_type ON system_metric_snapshots(metric_type);
+CREATE INDEX idx_sys_metric_name_collected ON system_metric_snapshots(metric_name, collected_at DESC);
 
 -- Add comments for documentation
 COMMENT ON TABLE http_request_logs IS 'Stores HTTP request data for API performance analysis';
@@ -273,13 +287,3 @@ SELECT
     pg_size_pretty(pg_total_relation_size(relid)) AS total_size
 FROM pg_stat_user_tables
 ORDER BY n_live_tup DESC;
-
--- Grant permissions (adjust role names as needed)
--- GRANT SELECT, INSERT, DELETE ON http_request_logs TO app_user;
--- GRANT SELECT, INSERT, DELETE ON slow_query_logs TO app_user;
--- GRANT SELECT, INSERT, UPDATE, DELETE ON websocket_connection_logs TO app_user;
--- GRANT SELECT, INSERT, DELETE ON websocket_message_logs TO app_user;
--- GRANT SELECT, INSERT, UPDATE, DELETE ON storage_metadata TO app_user;
--- GRANT SELECT, INSERT, DELETE ON message_queue_stats TO app_user;
--- GRANT SELECT, INSERT ON backup_logs TO app_user;
--- GRANT SELECT, INSERT, DELETE ON system_metric_snapshots TO app_user;
