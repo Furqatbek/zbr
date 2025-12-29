@@ -14,7 +14,7 @@
 -- Courier Location Events
 -- Tracks courier GPS location updates for analytics
 -- ============================================================================
-CREATE TABLE courier_location_events (
+CREATE TABLE IF NOT EXISTS courier_location_events (
     id BIGSERIAL PRIMARY KEY,
     courier_id BIGINT NOT NULL,
     latitude DECIMAL(10, 7) NOT NULL,
@@ -31,15 +31,15 @@ CREATE TABLE courier_location_events (
 );
 
 -- Indexes for courier location events
-CREATE INDEX idx_cle_courier_id ON courier_location_events(courier_id);
-CREATE INDEX idx_cle_recorded_at ON courier_location_events(recorded_at);
-CREATE INDEX idx_cle_courier_recorded ON courier_location_events(courier_id, recorded_at);
+CREATE INDEX IF NOT EXISTS idx_cle_courier_id ON courier_location_events(courier_id);
+CREATE INDEX IF NOT EXISTS idx_cle_recorded_at ON courier_location_events(recorded_at);
+CREATE INDEX IF NOT EXISTS idx_cle_courier_recorded ON courier_location_events(courier_id, recorded_at);
 
 -- ============================================================================
 -- Courier Order Events
 -- Tracks courier responses to order offers (accept/reject/timeout)
 -- ============================================================================
-CREATE TABLE courier_order_events (
+CREATE TABLE IF NOT EXISTS courier_order_events (
     id BIGSERIAL PRIMARY KEY,
     courier_id BIGINT NOT NULL,
     order_id BIGINT NOT NULL,
@@ -57,17 +57,17 @@ CREATE TABLE courier_order_events (
 );
 
 -- Indexes for courier order events
-CREATE INDEX idx_coe_courier_id ON courier_order_events(courier_id);
-CREATE INDEX idx_coe_order_id ON courier_order_events(order_id);
-CREATE INDEX idx_coe_event_type ON courier_order_events(event_type);
-CREATE INDEX idx_coe_timestamp ON courier_order_events(event_timestamp);
-CREATE INDEX idx_coe_courier_timestamp ON courier_order_events(courier_id, event_timestamp);
+CREATE INDEX IF NOT EXISTS idx_coe_courier_id ON courier_order_events(courier_id);
+CREATE INDEX IF NOT EXISTS idx_coe_order_id ON courier_order_events(order_id);
+CREATE INDEX IF NOT EXISTS idx_coe_event_type ON courier_order_events(event_type);
+CREATE INDEX IF NOT EXISTS idx_coe_timestamp ON courier_order_events(event_timestamp);
+CREATE INDEX IF NOT EXISTS idx_coe_courier_timestamp ON courier_order_events(courier_id, event_timestamp);
 
 -- ============================================================================
 -- Courier Availability Events
 -- Tracks courier online/offline/busy status changes
 -- ============================================================================
-CREATE TABLE courier_availability_events (
+CREATE TABLE IF NOT EXISTS courier_availability_events (
     id BIGSERIAL PRIMARY KEY,
     courier_id BIGINT NOT NULL,
     status VARCHAR(20) NOT NULL,
@@ -82,16 +82,16 @@ CREATE TABLE courier_availability_events (
 );
 
 -- Indexes for courier availability events
-CREATE INDEX idx_cae_courier_id ON courier_availability_events(courier_id);
-CREATE INDEX idx_cae_status_changed_at ON courier_availability_events(status_changed_at);
-CREATE INDEX idx_cae_status ON courier_availability_events(status);
-CREATE INDEX idx_cae_courier_changed ON courier_availability_events(courier_id, status_changed_at);
+CREATE INDEX IF NOT EXISTS idx_cae_courier_id ON courier_availability_events(courier_id);
+CREATE INDEX IF NOT EXISTS idx_cae_status_changed_at ON courier_availability_events(status_changed_at);
+CREATE INDEX IF NOT EXISTS idx_cae_status ON courier_availability_events(status);
+CREATE INDEX IF NOT EXISTS idx_cae_courier_changed ON courier_availability_events(courier_id, status_changed_at);
 
 -- ============================================================================
 -- Restaurant Order Events
 -- Tracks restaurant order handling (receive, accept, prepare, ready)
 -- ============================================================================
-CREATE TABLE restaurant_order_events (
+CREATE TABLE IF NOT EXISTS restaurant_order_events (
     id BIGSERIAL PRIMARY KEY,
     restaurant_id BIGINT NOT NULL,
     order_id BIGINT NOT NULL,
@@ -108,17 +108,17 @@ CREATE TABLE restaurant_order_events (
 );
 
 -- Indexes for restaurant order events
-CREATE INDEX idx_roe_restaurant_id ON restaurant_order_events(restaurant_id);
-CREATE INDEX idx_roe_order_id ON restaurant_order_events(order_id);
-CREATE INDEX idx_roe_event_type ON restaurant_order_events(event_type);
-CREATE INDEX idx_roe_timestamp ON restaurant_order_events(event_timestamp);
-CREATE INDEX idx_roe_restaurant_timestamp ON restaurant_order_events(restaurant_id, event_timestamp);
+CREATE INDEX IF NOT EXISTS idx_roe_restaurant_id ON restaurant_order_events(restaurant_id);
+CREATE INDEX IF NOT EXISTS idx_roe_order_id ON restaurant_order_events(order_id);
+CREATE INDEX IF NOT EXISTS idx_roe_event_type ON restaurant_order_events(event_type);
+CREATE INDEX IF NOT EXISTS idx_roe_timestamp ON restaurant_order_events(event_timestamp);
+CREATE INDEX IF NOT EXISTS idx_roe_restaurant_timestamp ON restaurant_order_events(restaurant_id, event_timestamp);
 
 -- ============================================================================
 -- Restaurant Online Status
 -- Tracks restaurant online/offline status changes for uptime metrics
 -- ============================================================================
-CREATE TABLE restaurant_online_status (
+CREATE TABLE IF NOT EXISTS restaurant_online_status (
     id BIGSERIAL PRIMARY KEY,
     restaurant_id BIGINT NOT NULL,
     is_online BOOLEAN NOT NULL,
@@ -131,15 +131,15 @@ CREATE TABLE restaurant_online_status (
 );
 
 -- Indexes for restaurant online status
-CREATE INDEX idx_ros_restaurant_id ON restaurant_online_status(restaurant_id);
-CREATE INDEX idx_ros_status_changed_at ON restaurant_online_status(status_changed_at);
-CREATE INDEX idx_ros_restaurant_changed ON restaurant_online_status(restaurant_id, status_changed_at);
+CREATE INDEX IF NOT EXISTS idx_ros_restaurant_id ON restaurant_online_status(restaurant_id);
+CREATE INDEX IF NOT EXISTS idx_ros_status_changed_at ON restaurant_online_status(status_changed_at);
+CREATE INDEX IF NOT EXISTS idx_ros_restaurant_changed ON restaurant_online_status(restaurant_id, status_changed_at);
 
 -- ============================================================================
 -- Menu Update History
 -- Tracks menu changes for update frequency metrics
 -- ============================================================================
-CREATE TABLE menu_update_history (
+CREATE TABLE IF NOT EXISTS menu_update_history (
     id BIGSERIAL PRIMARY KEY,
     restaurant_id BIGINT NOT NULL,
     update_type VARCHAR(30) NOT NULL,
@@ -158,15 +158,15 @@ CREATE TABLE menu_update_history (
 );
 
 -- Indexes for menu update history
-CREATE INDEX idx_muh_restaurant_id ON menu_update_history(restaurant_id);
-CREATE INDEX idx_muh_updated_at ON menu_update_history(updated_at);
-CREATE INDEX idx_muh_restaurant_updated ON menu_update_history(restaurant_id, updated_at);
+CREATE INDEX IF NOT EXISTS idx_muh_restaurant_id ON menu_update_history(restaurant_id);
+CREATE INDEX IF NOT EXISTS idx_muh_updated_at ON menu_update_history(updated_at);
+CREATE INDEX IF NOT EXISTS idx_muh_restaurant_updated ON menu_update_history(restaurant_id, updated_at);
 
 -- ============================================================================
 -- ETA History
 -- Tracks ETA predictions vs actual delivery for accuracy metrics
 -- ============================================================================
-CREATE TABLE eta_history (
+CREATE TABLE IF NOT EXISTS eta_history (
     id BIGSERIAL PRIMARY KEY,
     order_id BIGINT NOT NULL,
     restaurant_id BIGINT NOT NULL,
@@ -203,20 +203,20 @@ CREATE TABLE eta_history (
 );
 
 -- Indexes for ETA history
-CREATE INDEX idx_eta_order_id ON eta_history(order_id);
-CREATE INDEX idx_eta_restaurant_id ON eta_history(restaurant_id);
-CREATE INDEX idx_eta_courier_id ON eta_history(courier_id);
-CREATE INDEX idx_eta_predicted_at ON eta_history(predicted_at);
-CREATE INDEX idx_eta_delivered_at ON eta_history(actual_delivered_at);
-CREATE INDEX idx_eta_completed ON eta_history(was_completed, predicted_at);
+CREATE INDEX IF NOT EXISTS idx_eta_order_id ON eta_history(order_id);
+CREATE INDEX IF NOT EXISTS idx_eta_restaurant_id ON eta_history(restaurant_id);
+CREATE INDEX IF NOT EXISTS idx_eta_courier_id ON eta_history(courier_id);
+CREATE INDEX IF NOT EXISTS idx_eta_predicted_at ON eta_history(predicted_at);
+CREATE INDEX IF NOT EXISTS idx_eta_delivered_at ON eta_history(actual_delivered_at);
+CREATE INDEX IF NOT EXISTS idx_eta_completed ON eta_history(was_completed, predicted_at);
 
 -- ============================================================================
 -- Composite indexes for common analytics queries
 -- ============================================================================
 
 -- For order fulfillment analysis
-CREATE INDEX idx_orders_restaurant_created ON orders(restaurant_id, created_at);
-CREATE INDEX idx_orders_courier_created ON orders(courier_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_orders_restaurant_created ON orders(restaurant_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_orders_courier_created ON orders(courier_id, created_at);
 
 -- Comments for documentation
 COMMENT ON TABLE courier_location_events IS 'Tracks courier GPS location updates for location frequency and movement analytics';

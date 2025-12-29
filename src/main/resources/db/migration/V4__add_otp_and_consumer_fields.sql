@@ -20,15 +20,39 @@ CREATE INDEX IF NOT EXISTS idx_otp_phone_code ON otp_codes(phone, code);
 CREATE INDEX IF NOT EXISTS idx_otp_expires_at ON otp_codes(expires_at);
 
 -- Alter users table to make email and password nullable for phone-only users
-ALTER TABLE users ALTER COLUMN email DROP NOT NULL;
-ALTER TABLE users ALTER COLUMN password_hash DROP NOT NULL;
+-- Use DO block to handle already-nullable columns gracefully
+DO $$
+BEGIN
+    -- Make email nullable if not already
+    IF EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'users' AND column_name = 'email' AND is_nullable = 'NO'
+    ) THEN
+        ALTER TABLE users ALTER COLUMN email DROP NOT NULL;
+    END IF;
 
--- Make phone unique
+    -- Make password_hash nullable if not already
+    IF EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'users' AND column_name = 'password_hash' AND is_nullable = 'NO'
+    ) THEN
+        ALTER TABLE users ALTER COLUMN password_hash DROP NOT NULL;
+    END IF;
+END $$;
+
+-- Make phone unique (drop and recreate to be idempotent)
 ALTER TABLE users DROP CONSTRAINT IF EXISTS users_phone_key;
-ALTER TABLE users ADD CONSTRAINT users_phone_key UNIQUE (phone);
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint WHERE conname = 'users_phone_key'
+    ) THEN
+        ALTER TABLE users ADD CONSTRAINT users_phone_key UNIQUE (phone);
+    END IF;
+END $$;
 
--- Add role column to users table (single role)
-ALTER TABLE users ADD COLUMN IF NOT EXISTS role VARCHAR(20) NOT NULL DEFAULT 'CONSUMER';
+-- Add role column to users table (single role) - already exists in V1, skip if present
+ALTER TABLE users ADD COLUMN IF NOT EXISTS role VARCHAR(20);
 
 -- Add address fields for consumers
 ALTER TABLE users ADD COLUMN IF NOT EXISTS address VARCHAR(500);

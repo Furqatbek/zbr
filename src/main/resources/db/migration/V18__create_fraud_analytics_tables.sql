@@ -29,13 +29,13 @@ CREATE TABLE IF NOT EXISTS payment_attempts (
 );
 
 -- Indexes for payment_attempts
-CREATE INDEX idx_payment_attempts_user_id ON payment_attempts(user_id);
-CREATE INDEX idx_payment_attempts_status ON payment_attempts(status);
-CREATE INDEX idx_payment_attempts_created_at ON payment_attempts(created_at);
-CREATE INDEX idx_payment_attempts_user_status ON payment_attempts(user_id, status);
-CREATE INDEX idx_payment_attempts_card_bin ON payment_attempts(card_bin);
-CREATE INDEX idx_payment_attempts_token_hash ON payment_attempts(payment_token_hash);
-CREATE INDEX idx_payment_attempts_device_id ON payment_attempts(device_id);
+CREATE INDEX IF NOT EXISTS idx_payment_attempts_user_id ON payment_attempts(user_id);
+CREATE INDEX IF NOT EXISTS idx_payment_attempts_status ON payment_attempts(status);
+CREATE INDEX IF NOT EXISTS idx_payment_attempts_created_at ON payment_attempts(created_at);
+CREATE INDEX IF NOT EXISTS idx_payment_attempts_user_status ON payment_attempts(user_id, status);
+CREATE INDEX IF NOT EXISTS idx_payment_attempts_card_bin ON payment_attempts(card_bin);
+CREATE INDEX IF NOT EXISTS idx_payment_attempts_token_hash ON payment_attempts(payment_token_hash);
+CREATE INDEX IF NOT EXISTS idx_payment_attempts_device_id ON payment_attempts(device_id);
 
 -- ============================================
 -- Authentication Logs Table
@@ -65,13 +65,13 @@ CREATE TABLE IF NOT EXISTS auth_logs (
 );
 
 -- Indexes for auth_logs
-CREATE INDEX idx_auth_logs_user_id ON auth_logs(user_id);
-CREATE INDEX idx_auth_logs_ip_address ON auth_logs(ip_address);
-CREATE INDEX idx_auth_logs_status ON auth_logs(status);
-CREATE INDEX idx_auth_logs_created_at ON auth_logs(created_at);
-CREATE INDEX idx_auth_logs_user_status ON auth_logs(user_id, status);
-CREATE INDEX idx_auth_logs_ip_status ON auth_logs(ip_address, status);
-CREATE INDEX idx_auth_logs_vpn_tor ON auth_logs(is_vpn, is_tor, is_proxy);
+CREATE INDEX IF NOT EXISTS idx_auth_logs_user_id ON auth_logs(user_id);
+CREATE INDEX IF NOT EXISTS idx_auth_logs_ip_address ON auth_logs(ip_address);
+CREATE INDEX IF NOT EXISTS idx_auth_logs_status ON auth_logs(status);
+CREATE INDEX IF NOT EXISTS idx_auth_logs_created_at ON auth_logs(created_at);
+CREATE INDEX IF NOT EXISTS idx_auth_logs_user_status ON auth_logs(user_id, status);
+CREATE INDEX IF NOT EXISTS idx_auth_logs_ip_status ON auth_logs(ip_address, status);
+CREATE INDEX IF NOT EXISTS idx_auth_logs_vpn_tor ON auth_logs(is_vpn, is_tor, is_proxy);
 
 -- ============================================
 -- Referral Events Table
@@ -97,13 +97,13 @@ CREATE TABLE IF NOT EXISTS referral_events (
 );
 
 -- Indexes for referral_events
-CREATE INDEX idx_referral_events_referrer ON referral_events(referrer_id);
-CREATE INDEX idx_referral_events_referred ON referral_events(referred_user_id);
-CREATE INDEX idx_referral_events_code ON referral_events(referral_code);
-CREATE INDEX idx_referral_events_device ON referral_events(signup_device_id);
-CREATE INDEX idx_referral_events_ip ON referral_events(signup_ip_address);
-CREATE INDEX idx_referral_events_created_at ON referral_events(created_at);
-CREATE INDEX idx_referral_events_fraudulent ON referral_events(is_fraudulent);
+CREATE INDEX IF NOT EXISTS idx_referral_events_referrer ON referral_events(referrer_id);
+CREATE INDEX IF NOT EXISTS idx_referral_events_referred ON referral_events(referred_user_id);
+CREATE INDEX IF NOT EXISTS idx_referral_events_code ON referral_events(referral_code);
+CREATE INDEX IF NOT EXISTS idx_referral_events_device ON referral_events(signup_device_id);
+CREATE INDEX IF NOT EXISTS idx_referral_events_ip ON referral_events(signup_ip_address);
+CREATE INDEX IF NOT EXISTS idx_referral_events_created_at ON referral_events(created_at);
+CREATE INDEX IF NOT EXISTS idx_referral_events_fraudulent ON referral_events(is_fraudulent);
 
 -- ============================================
 -- Promo Usage Logs Table
@@ -129,13 +129,13 @@ CREATE TABLE IF NOT EXISTS promo_usage_logs (
 );
 
 -- Indexes for promo_usage_logs
-CREATE INDEX idx_promo_usage_user ON promo_usage_logs(user_id);
-CREATE INDEX idx_promo_usage_code ON promo_usage_logs(promo_code);
-CREATE INDEX idx_promo_usage_type ON promo_usage_logs(promo_type);
-CREATE INDEX idx_promo_usage_device ON promo_usage_logs(device_id);
-CREATE INDEX idx_promo_usage_ip ON promo_usage_logs(ip_address);
-CREATE INDEX idx_promo_usage_created ON promo_usage_logs(created_at);
-CREATE INDEX idx_promo_usage_abuse ON promo_usage_logs(is_abuse_suspected);
+CREATE INDEX IF NOT EXISTS idx_promo_usage_user ON promo_usage_logs(user_id);
+CREATE INDEX IF NOT EXISTS idx_promo_usage_code ON promo_usage_logs(promo_code);
+CREATE INDEX IF NOT EXISTS idx_promo_usage_type ON promo_usage_logs(promo_type);
+CREATE INDEX IF NOT EXISTS idx_promo_usage_device ON promo_usage_logs(device_id);
+CREATE INDEX IF NOT EXISTS idx_promo_usage_ip ON promo_usage_logs(ip_address);
+CREATE INDEX IF NOT EXISTS idx_promo_usage_created ON promo_usage_logs(created_at);
+CREATE INDEX IF NOT EXISTS idx_promo_usage_abuse ON promo_usage_logs(is_abuse_suspected);
 
 -- ============================================
 -- Fraud Order History Table
@@ -167,14 +167,14 @@ CREATE TABLE IF NOT EXISTS fraud_order_history (
 );
 
 -- Indexes for fraud_order_history
-CREATE INDEX idx_fraud_order_user ON fraud_order_history(user_id);
-CREATE INDEX idx_fraud_order_restaurant ON fraud_order_history(restaurant_id);
-CREATE INDEX idx_fraud_order_address_hash ON fraud_order_history(delivery_address_hash);
-CREATE INDEX idx_fraud_order_device ON fraud_order_history(device_id);
-CREATE INDEX idx_fraud_order_refunded ON fraud_order_history(is_refunded);
-CREATE INDEX idx_fraud_order_created ON fraud_order_history(created_at);
-CREATE INDEX idx_fraud_order_user_created ON fraud_order_history(user_id, created_at);
-CREATE INDEX idx_fraud_order_flagged ON fraud_order_history(is_flagged);
+CREATE INDEX IF NOT EXISTS idx_fraud_order_user ON fraud_order_history(user_id);
+CREATE INDEX IF NOT EXISTS idx_fraud_order_restaurant ON fraud_order_history(restaurant_id);
+CREATE INDEX IF NOT EXISTS idx_fraud_order_address_hash ON fraud_order_history(delivery_address_hash);
+CREATE INDEX IF NOT EXISTS idx_fraud_order_device ON fraud_order_history(device_id);
+CREATE INDEX IF NOT EXISTS idx_fraud_order_refunded ON fraud_order_history(is_refunded);
+CREATE INDEX IF NOT EXISTS idx_fraud_order_created ON fraud_order_history(created_at);
+CREATE INDEX IF NOT EXISTS idx_fraud_order_user_created ON fraud_order_history(user_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_fraud_order_flagged ON fraud_order_history(is_flagged);
 
 -- ============================================
 -- Device Fingerprints Table
@@ -203,14 +203,21 @@ CREATE TABLE IF NOT EXISTS device_fingerprints (
 );
 
 -- Indexes for device_fingerprints
-CREATE INDEX idx_device_fingerprints_device ON device_fingerprints(device_id);
-CREATE INDEX idx_device_fingerprints_user ON device_fingerprints(user_id);
-CREATE INDEX idx_device_fingerprints_type ON device_fingerprints(device_type);
-CREATE INDEX idx_device_fingerprints_emulator ON device_fingerprints(is_emulator);
-CREATE INDEX idx_device_fingerprints_rooted ON device_fingerprints(is_rooted);
-CREATE INDEX idx_device_fingerprints_trust ON device_fingerprints(trust_score);
-CREATE INDEX idx_device_fingerprints_first_seen ON device_fingerprints(first_seen_at);
-CREATE UNIQUE INDEX idx_device_fingerprints_device_user ON device_fingerprints(device_id, user_id);
+CREATE INDEX IF NOT EXISTS idx_device_fingerprints_device ON device_fingerprints(device_id);
+CREATE INDEX IF NOT EXISTS idx_device_fingerprints_user ON device_fingerprints(user_id);
+CREATE INDEX IF NOT EXISTS idx_device_fingerprints_type ON device_fingerprints(device_type);
+CREATE INDEX IF NOT EXISTS idx_device_fingerprints_emulator ON device_fingerprints(is_emulator);
+CREATE INDEX IF NOT EXISTS idx_device_fingerprints_rooted ON device_fingerprints(is_rooted);
+CREATE INDEX IF NOT EXISTS idx_device_fingerprints_trust ON device_fingerprints(trust_score);
+CREATE INDEX IF NOT EXISTS idx_device_fingerprints_first_seen ON device_fingerprints(first_seen_at);
+
+-- Create unique index only if not exists
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'idx_device_fingerprints_device_user') THEN
+        CREATE UNIQUE INDEX idx_device_fingerprints_device_user ON device_fingerprints(device_id, user_id);
+    END IF;
+END $$;
 
 -- ============================================
 -- Security Flags Table
@@ -239,13 +246,12 @@ CREATE TABLE IF NOT EXISTS security_flags (
 );
 
 -- Indexes for security_flags
-CREATE INDEX idx_security_flags_user ON security_flags(user_id);
-CREATE INDEX idx_security_flags_entity ON security_flags(entity_type, entity_id);
-CREATE INDEX idx_security_flags_type ON security_flags(flag_type);
-CREATE INDEX idx_security_flags_severity ON security_flags(severity);
-CREATE INDEX idx_security_flags_status ON security_flags(status);
-CREATE INDEX idx_security_flags_flagged_at ON security_flags(flagged_at);
-CREATE INDEX idx_security_flags_active ON security_flags(status) WHERE status = 'ACTIVE';
+CREATE INDEX IF NOT EXISTS idx_security_flags_user ON security_flags(user_id);
+CREATE INDEX IF NOT EXISTS idx_security_flags_entity ON security_flags(entity_type, entity_id);
+CREATE INDEX IF NOT EXISTS idx_security_flags_type ON security_flags(flag_type);
+CREATE INDEX IF NOT EXISTS idx_security_flags_severity ON security_flags(severity);
+CREATE INDEX IF NOT EXISTS idx_security_flags_status ON security_flags(status);
+CREATE INDEX IF NOT EXISTS idx_security_flags_flagged_at ON security_flags(flagged_at);
 
 -- ============================================
 -- Comments for documentation

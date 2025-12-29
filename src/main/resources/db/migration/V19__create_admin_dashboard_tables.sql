@@ -47,9 +47,9 @@ CREATE TABLE IF NOT EXISTS system_health_snapshots (
 );
 
 -- Index for efficient querying of recent snapshots
-CREATE INDEX idx_system_health_captured_at ON system_health_snapshots(captured_at DESC);
-CREATE INDEX idx_system_health_component ON system_health_snapshots(component, captured_at DESC);
-CREATE INDEX idx_system_health_status ON system_health_snapshots(status, captured_at DESC);
+CREATE INDEX IF NOT EXISTS idx_system_health_captured_at ON system_health_snapshots(captured_at DESC);
+CREATE INDEX IF NOT EXISTS idx_system_health_component ON system_health_snapshots(component, captured_at DESC);
+CREATE INDEX IF NOT EXISTS idx_system_health_status ON system_health_snapshots(status, captured_at DESC);
 
 -- Dashboard Refresh Logs Table
 -- Tracks dashboard data refresh events for performance monitoring
@@ -65,9 +65,9 @@ CREATE TABLE IF NOT EXISTS dashboard_refresh_logs (
 );
 
 -- Index for efficient querying of refresh logs
-CREATE INDEX idx_dashboard_refresh_logs_refreshed_at ON dashboard_refresh_logs(refreshed_at DESC);
-CREATE INDEX idx_dashboard_refresh_logs_component ON dashboard_refresh_logs(component, refreshed_at DESC);
-CREATE INDEX idx_dashboard_refresh_logs_success ON dashboard_refresh_logs(success, refreshed_at DESC);
+CREATE INDEX IF NOT EXISTS idx_dashboard_refresh_logs_refreshed_at ON dashboard_refresh_logs(refreshed_at DESC);
+CREATE INDEX IF NOT EXISTS idx_dashboard_refresh_logs_component ON dashboard_refresh_logs(component, refreshed_at DESC);
+CREATE INDEX IF NOT EXISTS idx_dashboard_refresh_logs_success ON dashboard_refresh_logs(success, refreshed_at DESC);
 
 -- =====================================================
 -- Materialized Views for Dashboard Performance
@@ -75,7 +75,9 @@ CREATE INDEX idx_dashboard_refresh_logs_success ON dashboard_refresh_logs(succes
 -- =====================================================
 
 -- Daily Order Summary Materialized View
-CREATE MATERIALIZED VIEW IF NOT EXISTS mv_daily_order_summary AS
+-- Using correct column names from V1 schema
+DROP MATERIALIZED VIEW IF EXISTS mv_daily_order_summary;
+CREATE MATERIALIZED VIEW mv_daily_order_summary AS
 SELECT
     DATE(created_at) as order_date,
     COUNT(*) as total_orders,
@@ -84,17 +86,18 @@ SELECT
     COUNT(CASE WHEN status = 'REJECTED' THEN 1 END) as rejected_orders,
     SUM(CASE WHEN status = 'DELIVERED' THEN total_amount ELSE 0 END) as total_gmv,
     AVG(CASE WHEN status = 'DELIVERED' THEN total_amount END) as avg_order_value,
-    AVG(CASE WHEN delivery_time IS NOT NULL AND created_at IS NOT NULL
-        THEN EXTRACT(EPOCH FROM (delivery_time - created_at))/60 END) as avg_delivery_time_minutes
+    AVG(CASE WHEN delivered_at IS NOT NULL AND created_at IS NOT NULL
+        THEN EXTRACT(EPOCH FROM (delivered_at - created_at))/60 END) as avg_delivery_time_minutes
 FROM orders
 WHERE created_at >= CURRENT_DATE - INTERVAL '90 days'
 GROUP BY DATE(created_at);
 
 -- Index on materialized view
-CREATE UNIQUE INDEX idx_mv_daily_order_summary_date ON mv_daily_order_summary(order_date);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_mv_daily_order_summary_date ON mv_daily_order_summary(order_date);
 
 -- Hourly Order Activity Materialized View
-CREATE MATERIALIZED VIEW IF NOT EXISTS mv_hourly_order_activity AS
+DROP MATERIALIZED VIEW IF EXISTS mv_hourly_order_activity;
+CREATE MATERIALIZED VIEW mv_hourly_order_activity AS
 SELECT
     DATE(created_at) as order_date,
     EXTRACT(HOUR FROM created_at) as hour_of_day,
@@ -105,39 +108,45 @@ WHERE created_at >= CURRENT_DATE - INTERVAL '30 days'
 GROUP BY DATE(created_at), EXTRACT(HOUR FROM created_at);
 
 -- Index on hourly activity view
-CREATE INDEX idx_mv_hourly_order_activity ON mv_hourly_order_activity(order_date, hour_of_day);
+CREATE INDEX IF NOT EXISTS idx_mv_hourly_order_activity ON mv_hourly_order_activity(order_date, hour_of_day);
 
 -- Restaurant Performance Summary Materialized View
-CREATE MATERIALIZED VIEW IF NOT EXISTS mv_restaurant_performance_daily AS
+-- Using correct column names from V1 schema (avg_rating instead of rating, no is_online column)
+DROP MATERIALIZED VIEW IF EXISTS mv_restaurant_performance_daily;
+CREATE MATERIALIZED VIEW mv_restaurant_performance_daily AS
 SELECT
     r.id as restaurant_id,
     r.name as restaurant_name,
     DATE(o.created_at) as order_date,
     COUNT(o.id) as total_orders,
     COUNT(CASE WHEN o.status = 'DELIVERED' THEN 1 END) as delivered_orders,
-    COUNT(CASE WHEN o.status = 'REJECTED' THEN 1 END) as rejected_orders,
+    COUNT(CASE WHEN o.status = 'CANCELLED' THEN 1 END) as cancelled_orders,
     AVG(CASE WHEN o.status = 'DELIVERED' THEN o.total_amount END) as avg_order_value,
-    r.rating as current_rating,
-    r.is_online as is_online
+    r.avg_rating as current_rating,
+    r.status as restaurant_status
 FROM restaurants r
 LEFT JOIN orders o ON r.id = o.restaurant_id AND o.created_at >= CURRENT_DATE - INTERVAL '30 days'
-GROUP BY r.id, r.name, DATE(o.created_at), r.rating, r.is_online;
+GROUP BY r.id, r.name, DATE(o.created_at), r.avg_rating, r.status;
 
 -- Courier Performance Summary Materialized View
-CREATE MATERIALIZED VIEW IF NOT EXISTS mv_courier_performance_daily AS
+-- Using correct column names (joining with users for name, using avg_rating)
+DROP MATERIALIZED VIEW IF EXISTS mv_courier_performance_daily;
+CREATE MATERIALIZED VIEW mv_courier_performance_daily AS
 SELECT
     c.id as courier_id,
-    c.name as courier_name,
+    u.full_name as courier_name,
     DATE(o.created_at) as delivery_date,
     COUNT(o.id) as total_deliveries,
-    AVG(EXTRACT(EPOCH FROM (o.delivery_time - o.pickup_time))/60) as avg_delivery_time_minutes,
-    c.rating as current_rating,
+    AVG(CASE WHEN o.delivered_at IS NOT NULL AND o.picked_up_at IS NOT NULL
+        THEN EXTRACT(EPOCH FROM (o.delivered_at - o.picked_up_at))/60 END) as avg_delivery_time_minutes,
+    c.avg_rating as current_rating,
     c.vehicle_type
 FROM couriers c
+JOIN users u ON c.user_id = u.id
 LEFT JOIN orders o ON c.id = o.courier_id
     AND o.status = 'DELIVERED'
     AND o.created_at >= CURRENT_DATE - INTERVAL '30 days'
-GROUP BY c.id, c.name, DATE(o.created_at), c.rating, c.vehicle_type;
+GROUP BY c.id, u.full_name, DATE(o.created_at), c.avg_rating, c.vehicle_type;
 
 -- =====================================================
 -- Functions for Refreshing Materialized Views
@@ -147,10 +156,10 @@ GROUP BY c.id, c.name, DATE(o.created_at), c.rating, c.vehicle_type;
 CREATE OR REPLACE FUNCTION refresh_dashboard_materialized_views()
 RETURNS void AS $$
 BEGIN
-    REFRESH MATERIALIZED VIEW CONCURRENTLY mv_daily_order_summary;
-    REFRESH MATERIALIZED VIEW CONCURRENTLY mv_hourly_order_activity;
-    REFRESH MATERIALIZED VIEW CONCURRENTLY mv_restaurant_performance_daily;
-    REFRESH MATERIALIZED VIEW CONCURRENTLY mv_courier_performance_daily;
+    REFRESH MATERIALIZED VIEW mv_daily_order_summary;
+    REFRESH MATERIALIZED VIEW mv_hourly_order_activity;
+    REFRESH MATERIALIZED VIEW mv_restaurant_performance_daily;
+    REFRESH MATERIALIZED VIEW mv_courier_performance_daily;
 END;
 $$ LANGUAGE plpgsql;
 

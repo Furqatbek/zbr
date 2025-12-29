@@ -21,10 +21,10 @@ CREATE TABLE IF NOT EXISTS restaurant_commissions (
     CONSTRAINT chk_commission_type CHECK (commission_type IN ('PERCENTAGE', 'FIXED', 'HYBRID', 'TIERED', 'PROMOTIONAL'))
 );
 
-CREATE INDEX idx_rc_restaurant_id ON restaurant_commissions(restaurant_id);
-CREATE INDEX idx_rc_order_id ON restaurant_commissions(order_id);
-CREATE INDEX idx_rc_earned_at ON restaurant_commissions(earned_at);
-CREATE INDEX idx_rc_commission_type ON restaurant_commissions(commission_type);
+CREATE INDEX IF NOT EXISTS idx_rc_restaurant_id ON restaurant_commissions(restaurant_id);
+CREATE INDEX IF NOT EXISTS idx_rc_order_id ON restaurant_commissions(order_id);
+CREATE INDEX IF NOT EXISTS idx_rc_earned_at ON restaurant_commissions(earned_at);
+CREATE INDEX IF NOT EXISTS idx_rc_commission_type ON restaurant_commissions(commission_type);
 
 -- =============================================
 -- Courier Payments Table
@@ -51,10 +51,10 @@ CREATE TABLE IF NOT EXISTS courier_payments (
     CONSTRAINT chk_payment_status CHECK (payment_status IN ('PENDING', 'PROCESSING', 'COMPLETED', 'FAILED', 'CANCELLED'))
 );
 
-CREATE INDEX idx_cp_courier_id ON courier_payments(courier_id);
-CREATE INDEX idx_cp_order_id ON courier_payments(order_id);
-CREATE INDEX idx_cp_payment_date ON courier_payments(payment_date);
-CREATE INDEX idx_cp_payment_status ON courier_payments(payment_status);
+CREATE INDEX IF NOT EXISTS idx_cp_courier_id ON courier_payments(courier_id);
+CREATE INDEX IF NOT EXISTS idx_cp_order_id ON courier_payments(order_id);
+CREATE INDEX IF NOT EXISTS idx_cp_payment_date ON courier_payments(payment_date);
+CREATE INDEX IF NOT EXISTS idx_cp_payment_status ON courier_payments(payment_status);
 
 -- =============================================
 -- Courier Bonuses Table
@@ -77,10 +77,10 @@ CREATE TABLE IF NOT EXISTS courier_bonuses (
     CONSTRAINT chk_bonus_status CHECK (status IN ('PENDING', 'PROCESSING', 'COMPLETED', 'FAILED', 'CANCELLED'))
 );
 
-CREATE INDEX idx_cb_courier_id ON courier_bonuses(courier_id);
-CREATE INDEX idx_cb_bonus_type ON courier_bonuses(bonus_type);
-CREATE INDEX idx_cb_earned_at ON courier_bonuses(earned_at);
-CREATE INDEX idx_cb_status ON courier_bonuses(status);
+CREATE INDEX IF NOT EXISTS idx_cb_courier_id ON courier_bonuses(courier_id);
+CREATE INDEX IF NOT EXISTS idx_cb_bonus_type ON courier_bonuses(bonus_type);
+CREATE INDEX IF NOT EXISTS idx_cb_earned_at ON courier_bonuses(earned_at);
+CREATE INDEX IF NOT EXISTS idx_cb_status ON courier_bonuses(status);
 
 -- =============================================
 -- Promotion Usages Table
@@ -107,12 +107,12 @@ CREATE TABLE IF NOT EXISTS promotion_usages (
     CONSTRAINT chk_funded_by CHECK (funded_by IN ('PLATFORM', 'RESTAURANT', 'SHARED'))
 );
 
-CREATE INDEX idx_pu_promotion_id ON promotion_usages(promotion_id);
-CREATE INDEX idx_pu_order_id ON promotion_usages(order_id);
-CREATE INDEX idx_pu_user_id ON promotion_usages(user_id);
-CREATE INDEX idx_pu_restaurant_id ON promotion_usages(restaurant_id);
-CREATE INDEX idx_pu_applied_at ON promotion_usages(applied_at);
-CREATE INDEX idx_pu_promotion_type ON promotion_usages(promotion_type);
+CREATE INDEX IF NOT EXISTS idx_pu_promotion_id ON promotion_usages(promotion_id);
+CREATE INDEX IF NOT EXISTS idx_pu_order_id ON promotion_usages(order_id);
+CREATE INDEX IF NOT EXISTS idx_pu_user_id ON promotion_usages(user_id);
+CREATE INDEX IF NOT EXISTS idx_pu_restaurant_id ON promotion_usages(restaurant_id);
+CREATE INDEX IF NOT EXISTS idx_pu_applied_at ON promotion_usages(applied_at);
+CREATE INDEX IF NOT EXISTS idx_pu_promotion_type ON promotion_usages(promotion_type);
 
 -- =============================================
 -- Restaurant Payouts Table
@@ -141,10 +141,10 @@ CREATE TABLE IF NOT EXISTS restaurant_payouts (
     CONSTRAINT chk_payout_status CHECK (status IN ('PENDING', 'PROCESSING', 'COMPLETED', 'FAILED', 'CANCELLED'))
 );
 
-CREATE INDEX idx_rp_restaurant_id ON restaurant_payouts(restaurant_id);
-CREATE INDEX idx_rp_period_start ON restaurant_payouts(period_start);
-CREATE INDEX idx_rp_period_end ON restaurant_payouts(period_end);
-CREATE INDEX idx_rp_status ON restaurant_payouts(status);
+CREATE INDEX IF NOT EXISTS idx_rp_restaurant_id ON restaurant_payouts(restaurant_id);
+CREATE INDEX IF NOT EXISTS idx_rp_period_start ON restaurant_payouts(period_start);
+CREATE INDEX IF NOT EXISTS idx_rp_period_end ON restaurant_payouts(period_end);
+CREATE INDEX IF NOT EXISTS idx_rp_status ON restaurant_payouts(status);
 
 -- =============================================
 -- Payout Disputes Table
@@ -170,11 +170,11 @@ CREATE TABLE IF NOT EXISTS payout_disputes (
     CONSTRAINT chk_dispute_status CHECK (status IN ('OPEN', 'INVESTIGATING', 'RESOLVED_FOR_CLAIMANT', 'RESOLVED_FOR_PLATFORM', 'PARTIALLY_RESOLVED', 'CLOSED', 'ESCALATED'))
 );
 
-CREATE INDEX idx_pd_payout_id ON payout_disputes(payout_id);
-CREATE INDEX idx_pd_entity_id ON payout_disputes(entity_id);
-CREATE INDEX idx_pd_entity_type ON payout_disputes(entity_type);
-CREATE INDEX idx_pd_status ON payout_disputes(status);
-CREATE INDEX idx_pd_raised_at ON payout_disputes(raised_at);
+CREATE INDEX IF NOT EXISTS idx_pd_payout_id ON payout_disputes(payout_id);
+CREATE INDEX IF NOT EXISTS idx_pd_entity_id ON payout_disputes(entity_id);
+CREATE INDEX IF NOT EXISTS idx_pd_entity_type ON payout_disputes(entity_type);
+CREATE INDEX IF NOT EXISTS idx_pd_status ON payout_disputes(status);
+CREATE INDEX IF NOT EXISTS idx_pd_raised_at ON payout_disputes(raised_at);
 
 -- =============================================
 -- Gift Card Usages Table
@@ -193,10 +193,10 @@ CREATE TABLE IF NOT EXISTS gift_card_usages (
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX idx_gcu_gift_card_id ON gift_card_usages(gift_card_id);
-CREATE INDEX idx_gcu_order_id ON gift_card_usages(order_id);
-CREATE INDEX idx_gcu_user_id ON gift_card_usages(user_id);
-CREATE INDEX idx_gcu_used_at ON gift_card_usages(used_at);
+CREATE INDEX IF NOT EXISTS idx_gcu_gift_card_id ON gift_card_usages(gift_card_id);
+CREATE INDEX IF NOT EXISTS idx_gcu_order_id ON gift_card_usages(order_id);
+CREATE INDEX IF NOT EXISTS idx_gcu_user_id ON gift_card_usages(user_id);
+CREATE INDEX IF NOT EXISTS idx_gcu_used_at ON gift_card_usages(used_at);
 
 -- =============================================
 -- Referral Rewards Table
@@ -219,10 +219,10 @@ CREATE TABLE IF NOT EXISTS referral_rewards (
     CONSTRAINT chk_reward_status CHECK (status IN ('PENDING', 'PROCESSING', 'COMPLETED', 'FAILED', 'CANCELLED'))
 );
 
-CREATE INDEX idx_rr_referrer_id ON referral_rewards(referrer_id);
-CREATE INDEX idx_rr_referred_id ON referral_rewards(referred_user_id);
-CREATE INDEX idx_rr_awarded_at ON referral_rewards(awarded_at);
-CREATE INDEX idx_rr_status ON referral_rewards(status);
+CREATE INDEX IF NOT EXISTS idx_rr_referrer_id ON referral_rewards(referrer_id);
+CREATE INDEX IF NOT EXISTS idx_rr_referred_id ON referral_rewards(referred_user_id);
+CREATE INDEX IF NOT EXISTS idx_rr_awarded_at ON referral_rewards(awarded_at);
+CREATE INDEX IF NOT EXISTS idx_rr_status ON referral_rewards(status);
 
 -- =============================================
 -- Add Comments for Documentation
