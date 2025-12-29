@@ -22,6 +22,8 @@ public class AppStoreRatingMetricsDto {
     // Platform breakdown
     private PlatformRatingDto iosRatings;
     private PlatformRatingDto androidRatings;
+    private PlatformRatingDto iosPlatform;
+    private PlatformRatingDto androidPlatform;
 
     // Distribution (1-5 stars) - combined
     private Map<Integer, Long> distribution;

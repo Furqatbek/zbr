@@ -107,7 +107,7 @@ public class CourierCollector {
 
         return CourierPerformanceSummaryDto.builder()
                 .avgDeliveryTimeMinutes(roundToTwoDecimals(avgDeliveryTime))
-                .avgRating(roundToTwoDecimals(avgRating))
+                .avgRating(toBigDecimal(avgRating))
                 .totalDeliveriesToday(totalDeliveries)
                 .onTimeDeliveryRate(roundToTwoDecimals(onTimeRate))
                 .avgDeliveriesPerCourier(roundToTwoDecimals(avgDeliveriesPerCourier))
@@ -318,8 +318,8 @@ public class CourierCollector {
      * Create pageable from filter.
      */
     private Pageable createPageable(DashboardFilterRequest filter) {
-        int page = filter.getPage() != null ? filter.getPage() : 0;
-        int size = filter.getPageSize() != null ? filter.getPageSize() : 50;
+        int page = filter.getPageNumber();
+        int size = filter.getPageSize();
         String sortBy = filter.getSortBy() != null ? filter.getSortBy() : "name";
         String sortDir = filter.getSortDirection() != null ? filter.getSortDirection() : "ASC";
 
@@ -350,5 +350,15 @@ public class CourierCollector {
         return BigDecimal.valueOf(value)
                 .setScale(2, RoundingMode.HALF_UP)
                 .doubleValue();
+    }
+
+    /**
+     * Convert Double to BigDecimal with two decimal places.
+     */
+    private BigDecimal toBigDecimal(Double value) {
+        if (value == null) {
+            return BigDecimal.ZERO;
+        }
+        return BigDecimal.valueOf(value).setScale(2, RoundingMode.HALF_UP);
     }
 }

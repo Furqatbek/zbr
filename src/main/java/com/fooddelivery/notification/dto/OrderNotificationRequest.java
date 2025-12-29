@@ -71,6 +71,11 @@ public class OrderNotificationRequest {
     private BigDecimal orderTotal;
 
     /**
+     * Total amount (alias for orderTotal).
+     */
+    private BigDecimal totalAmount;
+
+    /**
      * Event type that triggered this notification.
      */
     private NotificationType eventType;

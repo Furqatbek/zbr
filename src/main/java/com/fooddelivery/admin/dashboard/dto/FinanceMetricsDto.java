@@ -102,6 +102,10 @@ public class FinanceMetricsDto {
         private BigDecimal totalRestaurantPayouts;
         private BigDecimal totalCourierPayouts;
 
+        // Pending payouts breakdown
+        private Long pendingRestaurantPayouts;
+        private Long pendingCourierPayouts;
+
         // Unsettled breakdown
         private Long unsettledCount;
         private BigDecimal unsettledAmount;
@@ -120,6 +124,10 @@ public class FinanceMetricsDto {
         private BigDecimal totalDiscountsThisMonth;
         private Long discountUsageCountToday;
         private Double avgDiscountPercent;
+
+        // Orders with discounts
+        private Long ordersWithDiscount;
+        private Double discountedOrdersPercentage;
 
         // By type
         private BigDecimal promoCodeDiscounts;
@@ -144,6 +152,7 @@ public class FinanceMetricsDto {
         private BigDecimal totalRefundsToday;
         private BigDecimal totalRefundsThisWeek;
         private BigDecimal totalRefundsThisMonth;
+        private Long refundCount;
         private Long refundCountToday;
         private Long refundCountThisWeek;
         private BigDecimal avgRefundAmount;

@@ -30,12 +30,15 @@ public class RatingCollector {
     // Minimum ratings threshold for top/lowest lists
     private static final long MIN_RATINGS_THRESHOLD = 5;
 
+    private static final int DEFAULT_TOP_N = 10;
+
     /**
      * Collect restaurant rating metrics.
      */
     public RestaurantRatingMetricsDto collectRestaurantRatings(Long restaurantId, LocalDateTime startDate,
-                                                               LocalDateTime endDate, boolean includeTrend,
-                                                               boolean includeTopPerformers, int topN) {
+                                                               LocalDateTime endDate, boolean includeDistribution,
+                                                               boolean includeTrend, boolean includeTopPerformers) {
+        int topN = DEFAULT_TOP_N;
         log.debug("Collecting restaurant rating metrics for restaurantId={} from {} to {}",
                 restaurantId, startDate, endDate);
 
@@ -168,8 +171,9 @@ public class RatingCollector {
      * Collect courier rating metrics.
      */
     public CourierRatingMetricsDto collectCourierRatings(Long courierId, LocalDateTime startDate,
-                                                         LocalDateTime endDate, boolean includeTrend,
-                                                         boolean includeTopPerformers, int topN) {
+                                                         LocalDateTime endDate, boolean includeDistribution,
+                                                         boolean includeTrend, boolean includeTopPerformers) {
+        int topN = DEFAULT_TOP_N;
         log.debug("Collecting courier rating metrics for courierId={} from {} to {}", courierId, startDate, endDate);
 
         CourierRatingMetricsDto.CourierRatingMetricsDtoBuilder builder = CourierRatingMetricsDto.builder()
@@ -324,6 +328,8 @@ public class RatingCollector {
      * Collect app store rating metrics.
      */
     public AppStoreRatingMetricsDto collectAppStoreRatings(LocalDateTime startDate, LocalDateTime endDate,
+                                                           boolean includeVersionBreakdown,
+                                                           boolean includeCountryBreakdown,
                                                            boolean includeTrend) {
         log.debug("Collecting app store rating metrics from {} to {}", startDate, endDate);
 

@@ -15,9 +15,11 @@ public enum NotificationType {
     ORDER_IN_TRANSIT("Order In Transit", NotificationCategory.ORDER, NotificationPriority.NORMAL),
     ORDER_ARRIVING("Order Arriving Soon", NotificationCategory.ORDER, NotificationPriority.NORMAL),
     ORDER_DELIVERED("Order Delivered", NotificationCategory.ORDER, NotificationPriority.NORMAL),
+    ORDER_COMPLETED("Order Completed", NotificationCategory.ORDER, NotificationPriority.NORMAL),
     ORDER_CANCELLED("Order Cancelled", NotificationCategory.ORDER, NotificationPriority.HIGH),
     ORDER_DELAYED("Order Delayed", NotificationCategory.ORDER, NotificationPriority.HIGH),
     ORDER_MODIFIED("Order Modified", NotificationCategory.ORDER, NotificationPriority.NORMAL),
+    REFUND_PROCESSED("Refund Processed", NotificationCategory.FINANCE, NotificationPriority.NORMAL),
 
     // ===== Courier Events =====
     COURIER_ASSIGNED("Courier Assigned", NotificationCategory.DELIVERY, NotificationPriority.HIGH),

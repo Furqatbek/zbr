@@ -21,12 +21,15 @@ public class BehavioralFraudMetricsDto {
 
     // Order velocity metrics
     private VelocityMetricsDto orderVelocity;
+    private VelocityMetricsDto velocityMetrics;
 
     // Order value anomalies
     private OrderValueAnomaliesDto orderValueAnomalies;
+    private OrderValueAnomaliesDto orderValueMetrics;
 
     // Refund abuse metrics
     private RefundAbuseMetricsDto refundAbuse;
+    private RefundAbuseMetricsDto refundMetrics;
 
     // Address fraud metrics
     private AddressFraudMetricsDto addressFraud;
