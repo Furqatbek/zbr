@@ -34,7 +34,6 @@ public interface FraudEntityMapper {
     @Mapping(target = "flagId", source = "id")
     @Mapping(target = "flagType", source = "flagType")
     @Mapping(target = "severityLevel", source = "severity")
-    @Mapping(target = "flaggedAt", source = "flaggedAt")
     @Mapping(target = "description", source = "description")
     SecurityLogMetricsDto.SecurityFlagDto toSecurityFlagDto(SecurityFlag flag);
 
@@ -47,8 +46,8 @@ public interface FraudEntityMapper {
     @Mapping(target = "deviceId", source = "deviceId")
     @Mapping(target = "userId", source = "userId")
     @Mapping(target = "deviceType", source = "deviceType")
-    @Mapping(target = "isEmulator", source = "emulator")
-    @Mapping(target = "isRooted", source = "rooted")
+    @Mapping(target = "isEmulator", source = "isEmulator")
+    @Mapping(target = "isRooted", source = "isRooted")
     @Mapping(target = "trustScore", source = "trustScore")
     @Mapping(target = "firstSeenAt", source = "firstSeenAt")
     AccountIntegrityMetricsDto.SuspiciousDeviceDto toSuspiciousDeviceDto(DeviceFingerprint device);

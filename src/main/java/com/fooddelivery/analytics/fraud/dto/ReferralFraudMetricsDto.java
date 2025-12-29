@@ -165,10 +165,14 @@ public class ReferralFraudMetricsDto {
     public static class FraudulentReferrerDto {
         private Long referrerId;
         private Long totalReferrals;
+        private Long successfulReferrals;
+        private Long fraudulentReferrals;
         private Long suspiciousReferrals;
         private Long completedReferrals;
         private BigDecimal totalBonusesEarned;
+        private BigDecimal earningsTotal;
         private Double suspiciousRate;
+        private Double fraudRate;
         private List<String> fraudIndicators;
         private Integer riskScore;
     }
