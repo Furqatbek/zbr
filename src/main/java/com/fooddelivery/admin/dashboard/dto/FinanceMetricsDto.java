@@ -144,6 +144,7 @@ public class FinanceMetricsDto {
         private BigDecimal platformRevenue;
         private BigDecimal commissionRevenue;
         private BigDecimal deliveryFeeRevenue;
+        private BigDecimal discounts;
         private Long orderCount;
         private BigDecimal avgOrderValue;
     }

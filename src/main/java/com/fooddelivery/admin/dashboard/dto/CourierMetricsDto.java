@@ -27,15 +27,21 @@ public class CourierMetricsDto {
     private Long availableCouriers;
     private Long busyCouriers;
     private Long onBreakCouriers;
+    private Long onDeliveryCouriers;
 
     // Active couriers (recent location ping)
     private Long activeCouriers; // Location ping < 3 minutes
+    private Double activePercentage;
+    private Double utilizationRate;
 
     // Performance aggregates
     private Double avgDeliveryTime; // minutes
     private Double avgAcceptanceRate;
     private Double avgCancellationRate;
     private Double avgRating;
+
+    // Performance summary
+    private CourierPerformanceSummaryDto performanceSummary;
 
     // Today's metrics
     private Long deliveriesToday;
@@ -45,6 +51,16 @@ public class CourierMetricsDto {
 
     // Vehicle type breakdown
     private Map<String, Long> couriersByVehicle; // BICYCLE, MOTORCYCLE, CAR
+    private Map<String, Long> vehicleDistribution;
+
+    // Status breakdown
+    private Map<String, Long> statusBreakdown;
+
+    // Availability heatmap (day -> hour -> count)
+    private Map<String, Map<Integer, Long>> availabilityHeatmap;
+
+    // Top performers
+    private List<CourierDetailDto> topPerformers;
 
     // List of courier details
     private List<CourierDetailDto> couriers;
@@ -133,8 +149,10 @@ public class CourierMetricsDto {
         private String name;
         private String courierName;
         private String status;
-        private BigDecimal latitude;
-        private BigDecimal longitude;
+        private BigDecimal latitudeBd;
+        private BigDecimal longitudeBd;
+        private Double latitude;
+        private Double longitude;
         private LocalDateTime lastPingAt;
         private Long currentOrderId;
         private Integer activeOrders;
@@ -151,9 +169,14 @@ public class CourierMetricsDto {
         private Double performanceScore; // 0-100
         private String tier; // TOP, GOOD, AVERAGE, POOR
         private Double avgDeliveryTime;
+        private Double avgDeliveryTimeMinutes;
         private Double acceptanceRate;
         private BigDecimal avgRating;
         private Long totalDeliveries;
+        private Long totalDeliveriesToday;
+        private Double onTimeDeliveryRate;
+        private Double avgDeliveriesPerCourier;
+        private Double avgDistancePerDeliveryKm;
         private List<String> improvementSuggestions;
     }
 }

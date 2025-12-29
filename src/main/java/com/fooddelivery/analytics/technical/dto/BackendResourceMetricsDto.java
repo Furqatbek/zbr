@@ -41,14 +41,24 @@ public class BackendResourceMetricsDto {
     private RedisMetricsDto redis;
 
     /**
-     * Message queue metrics.
+     * Message queue metrics (list).
      */
     private List<MessageQueueMetricsDto> messageQueues;
+
+    /**
+     * Message queue metrics (single aggregate).
+     */
+    private MessageQueueMetricsDto messageQueue;
 
     /**
      * Overall health status.
      */
     private HealthStatus overallHealth;
+
+    /**
+     * Overall status (alias for overallHealth).
+     */
+    private HealthStatus overallStatus;
 
     /**
      * Timestamp when metrics were collected.
@@ -82,6 +92,11 @@ public class BackendResourceMetricsDto {
         private Double systemLoadAverage;
 
         /**
+         * Load per processor.
+         */
+        private Double loadPerProcessor;
+
+        /**
          * Health status based on CPU usage.
          */
         private HealthStatus status;
@@ -111,6 +126,11 @@ public class BackendResourceMetricsDto {
          * Memory usage percentage.
          */
         private Double memoryUsagePercent;
+
+        /**
+         * Usage percentage (alias).
+         */
+        private Double usagePercentage;
 
         /**
          * Health status based on memory usage.
@@ -144,9 +164,24 @@ public class BackendResourceMetricsDto {
         private Double heapUsagePercent;
 
         /**
+         * Heap usage percentage (alias).
+         */
+        private Double heapUsagePercentage;
+
+        /**
          * Non-heap memory used in bytes.
          */
         private Long nonHeapUsedBytes;
+
+        /**
+         * Non-heap memory max in bytes.
+         */
+        private Long nonHeapMaxBytes;
+
+        /**
+         * Non-heap memory committed in bytes.
+         */
+        private Long nonHeapCommittedBytes;
 
         /**
          * Number of live threads.
@@ -154,9 +189,19 @@ public class BackendResourceMetricsDto {
         private Integer liveThreads;
 
         /**
+         * Thread count (alias).
+         */
+        private Integer threadCount;
+
+        /**
          * Peak thread count.
          */
         private Integer peakThreads;
+
+        /**
+         * Peak thread count (alias).
+         */
+        private Integer peakThreadCount;
 
         /**
          * Daemon thread count.
@@ -172,6 +217,11 @@ public class BackendResourceMetricsDto {
          * GC count.
          */
         private Long gcCount;
+
+        /**
+         * GC time in ms (alias).
+         */
+        private Double gcTimeMs;
 
         /**
          * JVM uptime in seconds.
@@ -210,9 +260,19 @@ public class BackendResourceMetricsDto {
         private Integer maxConnections;
 
         /**
+         * Max pool size (alias).
+         */
+        private Integer maxPoolSize;
+
+        /**
          * Pending connection requests.
          */
         private Integer pendingRequests;
+
+        /**
+         * Pending connections (alias).
+         */
+        private Integer pendingConnections;
 
         /**
          * Connection acquire time (avg) in ms.
@@ -228,6 +288,11 @@ public class BackendResourceMetricsDto {
          * Connection pool utilization (0.0 - 1.0).
          */
         private Double poolUtilization;
+
+        /**
+         * Usage percentage (alias).
+         */
+        private Double usagePercentage;
 
         /**
          * Health status based on pool metrics.
@@ -269,6 +334,11 @@ public class BackendResourceMetricsDto {
          * Total keys.
          */
         private Long totalKeys;
+
+        /**
+         * Key count (alias).
+         */
+        private Long keyCount;
 
         /**
          * Expired keys.
@@ -345,6 +415,26 @@ public class BackendResourceMetricsDto {
          * Is queue healthy.
          */
         private Boolean isHealthy;
+
+        /**
+         * Total queue depth (aggregate).
+         */
+        private Long totalQueueDepth;
+
+        /**
+         * Total consumer lag (aggregate).
+         */
+        private Long totalConsumerLag;
+
+        /**
+         * Dead letter queue message count.
+         */
+        private Long deadLetterQueueCount;
+
+        /**
+         * Queue depths by queue name.
+         */
+        private java.util.Map<String, Long> queueDepths;
 
         /**
          * Health status.
