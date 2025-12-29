@@ -58,6 +58,13 @@ public class FraudSummaryDto {
     // Recommendations
     private List<String> recommendations;
 
+    // Mapper-expected fields
+    private Long totalFlaggedUsers;
+    private Long totalSecurityIncidents;
+    private List<FraudCategorySummaryDto> categorySummaries;
+    private FraudTrendDto trendAnalysis;
+    private List<FraudAlertDto> activeAlerts;
+
     private LocalDateTime periodStart;
     private LocalDateTime periodEnd;
     private LocalDateTime generatedAt;
@@ -127,5 +134,55 @@ public class FraudSummaryDto {
         private BigDecimal potentialImpact;
         private String recommendedAction;
         private Integer priority;
+        private Integer riskScore;
+        private String affectedEntity;
+        private String category;
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class FraudCategorySummaryDto {
+        private String category;
+        private Integer riskScore;
+        private String riskLevel;
+        private Long incidentCount;
+        private Long newIncidents;
+        private Long resolvedIncidents;
+        private Double changeFromPreviousPeriod;
+        private List<String> topIndicators;
+        private List<String> topIssues;
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class FraudTrendDto {
+        private String trendDirection;
+        private Double percentageChange;
+        private String comparisonPeriod;
+        private String paymentTrend;
+        private String behavioralTrend;
+        private String securityTrend;
+        private Long previousPeriodIncidents;
+        private Long currentPeriodIncidents;
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class FraudAlertDto {
+        private String alertId;
+        private String severity;
+        private String title;
+        private String description;
+        private String category;
+        private LocalDateTime createdAt;
+        private Boolean acknowledged;
+        private Long affectedEntities;
+        private String recommendedAction;
     }
 }

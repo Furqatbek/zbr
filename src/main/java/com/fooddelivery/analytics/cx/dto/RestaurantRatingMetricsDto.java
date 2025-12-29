@@ -84,7 +84,9 @@ public class RestaurantRatingMetricsDto {
         private Long restaurantId;
         private String restaurantName;
         private Double averageRating;
+        private Double avgRating;
         private Long ratingCount;
+        private Long totalRatings;
         private Long reviewCount;
         private Double ratingChange; // Compared to previous period
     }

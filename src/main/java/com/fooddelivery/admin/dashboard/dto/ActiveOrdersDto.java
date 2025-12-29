@@ -48,6 +48,7 @@ public class ActiveOrdersDto {
     public static class ActiveOrderItemDto {
         private Long orderId;
         private String externalOrderNo;
+        private String orderNumber;
         private String status;
         private String orderType;
 
@@ -73,6 +74,7 @@ public class ActiveOrdersDto {
         private LocalDateTime readyAt;
         private LocalDateTime pickedUpAt;
         private LocalDateTime estimatedDeliveryTime;
+        private LocalDateTime estimatedDeliveryAt;
         private Long waitTimeMinutes; // Time since creation
 
         // Financials
@@ -80,6 +82,7 @@ public class ActiveOrdersDto {
         private BigDecimal deliveryFee;
         private BigDecimal discount;
         private BigDecimal total;
+        private BigDecimal orderTotal;
 
         // Flags
         private Boolean isDelayed;

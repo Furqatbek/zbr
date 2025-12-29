@@ -84,7 +84,9 @@ public class CourierRatingMetricsDto {
         private Long courierId;
         private String courierName;
         private Double averageRating;
+        private Double avgRating;
         private Long ratingCount;
+        private Long totalRatings;
         private Long deliveryCount;
         private Double tipRate;
         private Double ratingChange;

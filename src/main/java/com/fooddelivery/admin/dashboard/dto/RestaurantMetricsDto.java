@@ -62,10 +62,13 @@ public class RestaurantMetricsDto {
         private String name;
         private String status; // ONLINE, OFFLINE, PAUSED, BUSY
         private Boolean isOpen;
+        private Boolean isOnline;
         private Boolean isAcceptingOrders;
 
         // Location
         private String address;
+        private String city;
+        private String cuisineType;
         private BigDecimal latitude;
         private BigDecimal longitude;
 
@@ -75,19 +78,25 @@ public class RestaurantMetricsDto {
 
         // Today's metrics
         private Long ordersToday;
+        private Long totalOrdersToday;
         private Long ordersAccepted;
         private Long ordersRejected;
+        private Long rejectedOrdersToday;
         private Long ordersCanceled;
         private BigDecimal revenueToday;
 
         // Performance metrics
         private Double avgPrepTime; // minutes
+        private Double avgPreparationTimeMinutes;
         private Double avgAcceptanceLatency; // seconds from order to acceptance
+        private Double orderAcceptanceLatencySeconds;
         private Double acceptanceRate;
         private Double rejectionRate;
         private Double cancellationRate;
+        private Double performanceScore;
 
         // Rating
+        private Double rating;
         private BigDecimal avgRating;
         private Integer totalRatings;
         private Integer ratingsToday;
@@ -101,6 +110,9 @@ public class RestaurantMetricsDto {
         private Long ordersYesterday;
         private BigDecimal revenueYesterday;
         private Double orderChangePercent;
+
+        // Timestamps
+        private LocalDateTime lastOrderAt;
 
         // Issues/Alerts
         private List<String> activeAlerts;

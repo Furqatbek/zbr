@@ -91,13 +91,16 @@ public class SupportMetricsDto {
         private Long ticketId;
         private String ticketNumber;
         private String ticketType;
+        private String category;
         private String status;
         private String priority;
         private String channel;
 
         // Related entities
         private Long userId;
+        private Long customerId;
         private String userName;
+        private String customerName;
         private Long orderId;
         private String orderNumber;
         private Long restaurantId;
@@ -111,19 +114,27 @@ public class SupportMetricsDto {
 
         // Assignment
         private Long assignedToId;
+        private Long assignedAgentId;
         private String assignedToName;
+        private String assignedAgentName;
         private LocalDateTime assignedAt;
 
         // Timing
         private LocalDateTime createdAt;
+        private LocalDateTime updatedAt;
         private LocalDateTime firstResponseAt;
         private LocalDateTime resolvedAt;
         private Long ageMinutes;
+        private String ageFormatted;
         private Long responseTimeMinutes;
+        private Long waitTimeMinutes;
+        private String waitTimeFormatted;
 
         // Flags
         private Boolean slaBreach;
+        private Boolean slaBreached;
         private Boolean escalated;
+        private Boolean isEscalated;
         private Integer reopenCount;
 
         // Refund info
@@ -140,11 +151,16 @@ public class SupportMetricsDto {
         private Long agentId;
         private String agentName;
         private Long ticketsAssigned;
+        private Long ticketsHandled;
         private Long ticketsResolved;
+        private Double resolutionRate;
         private Double avgResolutionTimeHours;
+        private Double avgResolutionTimeMinutes;
         private Double avgFirstResponseTimeMinutes;
         private Double csatScore;
+        private Double avgSatisfactionScore;
         private Double slaComplianceRate;
+        private Double performanceScore;
         private Long currentOpenTickets;
     }
 

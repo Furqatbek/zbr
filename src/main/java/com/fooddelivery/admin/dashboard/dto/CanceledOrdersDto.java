@@ -70,8 +70,11 @@ public class CanceledOrdersDto {
     public static class CanceledOrderItemDto {
         private Long orderId;
         private String externalOrderNo;
+        private String orderNumber;
         private String statusWhenCanceled;
+        private String statusAtCancellation;
         private String canceledBy; // CUSTOMER, RESTAURANT, COURIER, SYSTEM, ADMIN
+        private String cancelledBy;
 
         // Restaurant info
         private Long restaurantId;
@@ -88,18 +91,22 @@ public class CanceledOrdersDto {
 
         // Cancellation details
         private String cancellationReason;
+        private String cancelReason;
         private LocalDateTime canceledAt;
+        private LocalDateTime cancelledAt;
         private Long orderAgeMinutes; // Time from creation to cancellation
 
         // Order details
         private BigDecimal subtotal;
         private BigDecimal total;
+        private BigDecimal orderTotal;
         private Integer itemCount;
         private LocalDateTime createdAt;
 
         // Refund info
         private Boolean wasRefunded;
         private BigDecimal refundAmount;
+        private String refundStatus;
         private LocalDateTime refundedAt;
 
         // Impact assessment

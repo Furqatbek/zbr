@@ -76,17 +76,22 @@ public class CourierMetricsDto {
         private String phone;
         private String email;
         private String status; // AVAILABLE, BUSY, OFFLINE, ON_BREAK
+        private Boolean isActive;
         private String vehicleType;
         private String vehicleNumber;
 
         // Current location
         private BigDecimal currentLat;
         private BigDecimal currentLng;
+        private Double currentLatitude;
+        private Double currentLongitude;
         private LocalDateTime locationUpdatedAt;
+        private LocalDateTime lastLocationPingAt;
         private Long secondsSinceLastPing;
         private Boolean isLocationStale; // > 3 minutes
 
         // Current assignments
+        private Long currentOrderId;
         private Integer currentOrderCount;
         private Integer maxConcurrentOrders;
         private List<Long> activeOrderIds;
@@ -97,12 +102,16 @@ public class CourierMetricsDto {
         private Long ordersAcceptedToday;
         private Long ordersRejectedToday;
         private Double avgDeliveryTimeToday; // minutes
+        private Double avgDeliveryTimeMinutes;
 
         // Overall performance
         private Integer totalDeliveries;
         private BigDecimal totalEarnings;
         private Double acceptanceRate;
         private Double cancellationRate;
+        private Double onTimeDeliveryRate;
+        private Double performanceScore;
+        private Double rating;
         private BigDecimal avgRating;
         private Integer totalRatings;
 
@@ -122,10 +131,12 @@ public class CourierMetricsDto {
     public static class CourierLocationDto {
         private Long courierId;
         private String name;
+        private String courierName;
         private String status;
         private BigDecimal latitude;
         private BigDecimal longitude;
         private LocalDateTime lastPingAt;
+        private Long currentOrderId;
         private Integer activeOrders;
         private Boolean isAvailable;
     }

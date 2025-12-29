@@ -57,6 +57,7 @@ public class RejectedOrdersDto {
     public static class RejectedOrderItemDto {
         private Long orderId;
         private String externalOrderNo;
+        private String orderNumber;
         private String rejectedBy; // RESTAURANT, COURIER
 
         // Restaurant info
@@ -75,12 +76,14 @@ public class RejectedOrdersDto {
 
         // Order details
         private BigDecimal total;
+        private BigDecimal orderTotal;
         private Integer itemCount;
         private LocalDateTime createdAt;
 
         // Was order reassigned?
         private Boolean wasReassigned;
         private Long reassignedToId;
+        private Long reassignedToRestaurantId;
         private String reassignedToName;
     }
 

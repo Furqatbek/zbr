@@ -44,6 +44,7 @@ public class StuckOrdersDto {
     public static class StuckOrderItemDto {
         private Long orderId;
         private String externalOrderNo;
+        private String orderNumber;
         private String status;
         private String stuckStage;
 
@@ -68,11 +69,15 @@ public class StuckOrdersDto {
         // Timing
         private LocalDateTime createdAt;
         private LocalDateTime lastStatusChange;
+        private LocalDateTime statusChangedAt;
         private Long minutesStuck;
+        private Long minutesInCurrentStatus;
         private Long expectedTimeMinutes;
+        private Integer thresholdMinutes;
 
         // Financials
         private BigDecimal total;
+        private BigDecimal orderTotal;
 
         // Priority
         private String priority; // LOW, MEDIUM, HIGH, CRITICAL
