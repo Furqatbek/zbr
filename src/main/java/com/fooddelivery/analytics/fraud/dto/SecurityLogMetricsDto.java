@@ -54,6 +54,7 @@ public class SecurityLogMetricsDto {
         private Long successfulLogins;
         private Long failedLogins;
         private Double loginFailureRate;
+        private Double failedLoginRate; // Alias for loginFailureRate, used by FraudSummaryMapper
         private Long uniqueUsersWithFailedLogins;
         private Long uniqueIpsWithFailedLogins;
         private Long accountsLocked;
@@ -116,6 +117,7 @@ public class SecurityLogMetricsDto {
     @AllArgsConstructor
     public static class RateLimitMetricsDto {
         private Long totalRateLimitedRequests;
+        private Long totalRateLimitViolations; // Used by FraudSummaryMapper
         private Long uniqueRateLimitedUsers;
         private Long uniqueRateLimitedIps;
         private List<RateLimitedEntityDto> topRateLimitedUsers;
@@ -149,6 +151,8 @@ public class SecurityLogMetricsDto {
         private Double suspiciousIpRate;
         private Long flaggedIps;
         private List<FlaggedIpDto> flaggedIpsList;
+        private Long suspiciousIpCount;
+        private List<SuspiciousIpDto> suspiciousIpsList;
         private Map<String, Long> ipsByCountry;
         private Map<String, Long> suspiciousIpsByCountry;
     }
@@ -205,6 +209,7 @@ public class SecurityLogMetricsDto {
         private Long uniqueTargetedAccounts;
         private Long uniqueAttackingIps;
         private Long blockedAttacks;
+        private Long detectedAttacks;
         private List<BruteForceAttackDto> activeAttacks;
         private Integer bruteForceThreshold;
         private Integer timeWindowMinutes;
@@ -223,5 +228,38 @@ public class SecurityLogMetricsDto {
         private LocalDateTime lastAttemptAt;
         private String attackPattern;
         private Boolean isBlocked;
+    }
+
+    /**
+     * Security flag DTO for flagged accounts/activities.
+     */
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class SecurityFlagDto {
+        private Long flagId;
+        private String flagType;
+        private String severityLevel;
+        private LocalDateTime flaggedAt;
+        private String description;
+    }
+
+    /**
+     * Suspicious IP DTO for IP-based threat detection.
+     */
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class SuspiciousIpDto {
+        private String ipAddress;
+        private Long failedAttempts;
+        private Long uniqueUsersTargeted;
+        private Boolean isVpn;
+        private Boolean isTor;
+        private Boolean isProxy;
+        private LocalDateTime lastAttemptAt;
+        private Integer threatScore;
     }
 }

@@ -4,45 +4,42 @@ import com.fooddelivery.admin.dashboard.dto.RestaurantMetricsDto.RestaurantDetai
 import com.fooddelivery.admin.dashboard.util.DashboardMetricsCalculator;
 import org.mapstruct.*;
 
-import java.time.LocalDateTime;
+import java.math.BigDecimal;
 
 /**
  * MapStruct mapper for restaurant-related dashboard DTOs.
+ * Uses correct property names from RestaurantMetricsDto inner classes.
  */
 @Mapper(componentModel = "spring", imports = {DashboardMetricsCalculator.class})
 public interface DashboardRestaurantMapper {
 
     /**
      * Map to RestaurantDetailDto.
+     * Property names match RestaurantDetailDto fields.
      */
     @Mapping(target = "restaurantId", source = "restaurantId")
     @Mapping(target = "name", source = "name")
     @Mapping(target = "status", source = "status")
-    @Mapping(target = "isOnline", source = "isOnline")
-    @Mapping(target = "rating", source = "rating")
-    @Mapping(target = "totalOrdersToday", source = "totalOrders")
-    @Mapping(target = "avgPreparationTimeMinutes", source = "avgPrepTime")
-    @Mapping(target = "orderAcceptanceLatencySeconds", source = "acceptanceLatency")
+    @Mapping(target = "isOpen", source = "isOpen")
+    @Mapping(target = "avgRating", source = "rating")
+    @Mapping(target = "ordersToday", source = "totalOrders")
+    @Mapping(target = "avgPrepTime", source = "avgPrepTime")
+    @Mapping(target = "avgAcceptanceLatency", source = "acceptanceLatency")
     @Mapping(target = "acceptanceRate", source = "acceptanceRate")
-    @Mapping(target = "rejectedOrdersToday", source = "rejectedOrders")
-    @Mapping(target = "cuisineType", source = "cuisineType")
-    @Mapping(target = "city", source = "city")
-    @Mapping(target = "lastOrderAt", source = "lastOrderAt")
-    @Mapping(target = "performanceScore", expression = "java(calculatePerformanceScore(rating, acceptanceRate, avgPrepTime))")
+    @Mapping(target = "ordersRejected", source = "rejectedOrders")
+    @Mapping(target = "address", source = "address")
     RestaurantDetailDto toRestaurantDetail(
             Long restaurantId,
             String name,
             String status,
-            Boolean isOnline,
-            Double rating,
+            Boolean isOpen,
+            BigDecimal rating,
             Long totalOrders,
             Double avgPrepTime,
             Double acceptanceLatency,
             Double acceptanceRate,
             Long rejectedOrders,
-            String cuisineType,
-            String city,
-            LocalDateTime lastOrderAt
+            String address
     );
 
     /**
@@ -72,8 +69,8 @@ public interface DashboardRestaurantMapper {
     /**
      * Determine restaurant display status.
      */
-    default String determineStatus(Boolean isOnline, String status) {
-        if (isOnline == null || !isOnline) {
+    default String determineStatus(Boolean isOpen, String status) {
+        if (isOpen == null || !isOpen) {
             return "OFFLINE";
         }
         if ("BUSY".equalsIgnoreCase(status)) {

@@ -12,88 +12,88 @@ import java.time.temporal.ChronoUnit;
 
 /**
  * MapStruct mapper for support-related dashboard DTOs.
+ * Uses correct property names from SupportMetricsDto inner classes.
  */
 @Mapper(componentModel = "spring", imports = {ChronoUnit.class, LocalDateTime.class, DashboardMetricsCalculator.class, DashboardConstants.class})
 public interface DashboardSupportMapper {
 
     /**
      * Map to SupportTicketItemDto.
+     * Property names match SupportTicketItemDto fields.
      */
     @Mapping(target = "ticketId", source = "ticketId")
     @Mapping(target = "ticketNumber", source = "ticketNumber")
-    @Mapping(target = "customerId", source = "customerId")
-    @Mapping(target = "customerName", source = "customerName")
-    @Mapping(target = "orderId", source = "orderId")
-    @Mapping(target = "category", source = "category")
-    @Mapping(target = "priority", source = "priority")
+    @Mapping(target = "ticketType", source = "ticketType")
     @Mapping(target = "status", source = "status")
+    @Mapping(target = "priority", source = "priority")
+    @Mapping(target = "channel", source = "channel")
+    @Mapping(target = "userId", source = "userId")
+    @Mapping(target = "userName", source = "userName")
+    @Mapping(target = "orderId", source = "orderId")
     @Mapping(target = "subject", source = "subject")
+    @Mapping(target = "assignedToId", source = "assignedToId")
+    @Mapping(target = "assignedToName", source = "assignedToName")
     @Mapping(target = "createdAt", source = "createdAt")
-    @Mapping(target = "updatedAt", source = "updatedAt")
-    @Mapping(target = "assignedAgentId", source = "assignedAgentId")
-    @Mapping(target = "assignedAgentName", source = "assignedAgentName")
     @Mapping(target = "firstResponseAt", source = "firstResponseAt")
     @Mapping(target = "resolvedAt", source = "resolvedAt")
-    @Mapping(target = "isEscalated", source = "isEscalated")
-    @Mapping(target = "refundAmount", source = "refundAmount")
-    @Mapping(target = "waitTimeMinutes", expression = "java(calculateWaitTime(createdAt, firstResponseAt, status))")
-    @Mapping(target = "waitTimeFormatted", expression = "java(formatDuration(calculateWaitTime(createdAt, firstResponseAt, status)))")
     @Mapping(target = "ageMinutes", expression = "java(calculateAge(createdAt))")
-    @Mapping(target = "ageFormatted", expression = "java(formatDuration(calculateAge(createdAt)))")
-    @Mapping(target = "slaBreached", expression = "java(isSlaBreached(priority, calculateWaitTime(createdAt, firstResponseAt, status), status))")
+    @Mapping(target = "responseTimeMinutes", expression = "java(calculateResponseTime(createdAt, firstResponseAt))")
+    @Mapping(target = "slaBreach", expression = "java(isSlaBreached(priority, calculateResponseTime(createdAt, firstResponseAt), status))")
+    @Mapping(target = "escalated", source = "escalated")
+    @Mapping(target = "isRefundRequest", source = "isRefundRequest")
+    @Mapping(target = "refundAmount", source = "refundAmount")
     SupportTicketItemDto toSupportTicketItem(
             Long ticketId,
             String ticketNumber,
-            Long customerId,
-            String customerName,
-            Long orderId,
-            String category,
-            String priority,
+            String ticketType,
             String status,
+            String priority,
+            String channel,
+            Long userId,
+            String userName,
+            Long orderId,
             String subject,
+            Long assignedToId,
+            String assignedToName,
             LocalDateTime createdAt,
-            LocalDateTime updatedAt,
-            Long assignedAgentId,
-            String assignedAgentName,
             LocalDateTime firstResponseAt,
             LocalDateTime resolvedAt,
-            Boolean isEscalated,
+            Boolean escalated,
+            Boolean isRefundRequest,
             BigDecimal refundAmount
     );
 
     /**
      * Map to AgentPerformanceDto.
+     * Property names match AgentPerformanceDto fields.
      */
     @Mapping(target = "agentId", source = "agentId")
     @Mapping(target = "agentName", source = "agentName")
-    @Mapping(target = "ticketsHandled", source = "ticketsHandled")
+    @Mapping(target = "ticketsAssigned", source = "ticketsAssigned")
     @Mapping(target = "ticketsResolved", source = "ticketsResolved")
-    @Mapping(target = "resolutionRate", expression = "java(calculateResolutionRate(ticketsHandled, ticketsResolved))")
-    @Mapping(target = "avgResolutionTimeMinutes", source = "avgResolutionTime")
-    @Mapping(target = "avgFirstResponseTimeMinutes", source = "avgFirstResponseTime")
-    @Mapping(target = "avgSatisfactionScore", source = "avgSatisfactionScore")
+    @Mapping(target = "avgResolutionTimeHours", source = "avgResolutionTimeHours")
+    @Mapping(target = "avgFirstResponseTimeMinutes", source = "avgFirstResponseTimeMinutes")
+    @Mapping(target = "csatScore", source = "csatScore")
+    @Mapping(target = "slaComplianceRate", source = "slaComplianceRate")
     @Mapping(target = "currentOpenTickets", source = "currentOpenTickets")
-    @Mapping(target = "performanceScore", expression = "java(calculateAgentPerformanceScore(calculateResolutionRate(ticketsHandled, ticketsResolved), avgResolutionTime, avgSatisfactionScore))")
     AgentPerformanceDto toAgentPerformance(
             Long agentId,
             String agentName,
-            Long ticketsHandled,
+            Long ticketsAssigned,
             Long ticketsResolved,
-            Double avgResolutionTime,
-            Double avgFirstResponseTime,
-            Double avgSatisfactionScore,
+            Double avgResolutionTimeHours,
+            Double avgFirstResponseTimeMinutes,
+            Double csatScore,
+            Double slaComplianceRate,
             Long currentOpenTickets
     );
 
     /**
-     * Calculate wait time in minutes.
+     * Calculate response time in minutes.
      */
-    default Long calculateWaitTime(LocalDateTime createdAt, LocalDateTime firstResponseAt, String status) {
-        if (firstResponseAt != null) {
+    default Long calculateResponseTime(LocalDateTime createdAt, LocalDateTime firstResponseAt) {
+        if (firstResponseAt != null && createdAt != null) {
             return ChronoUnit.MINUTES.between(createdAt, firstResponseAt);
-        }
-        if ("OPEN".equalsIgnoreCase(status)) {
-            return ChronoUnit.MINUTES.between(createdAt, LocalDateTime.now());
         }
         return null;
     }
@@ -111,45 +111,13 @@ public interface DashboardSupportMapper {
     /**
      * Check if SLA is breached based on priority.
      */
-    default Boolean isSlaBreached(String priority, Long waitTimeMinutes, String status) {
-        if (waitTimeMinutes == null || "RESOLVED".equalsIgnoreCase(status) || "CLOSED".equalsIgnoreCase(status)) {
+    default Boolean isSlaBreached(String priority, Long responseTimeMinutes, String status) {
+        if (responseTimeMinutes == null || "RESOLVED".equalsIgnoreCase(status) || "CLOSED".equalsIgnoreCase(status)) {
             return false;
         }
 
         int slaThreshold = DashboardConstants.getSlaThreshold(priority);
-        return waitTimeMinutes > slaThreshold;
-    }
-
-    /**
-     * Calculate resolution rate.
-     */
-    default Double calculateResolutionRate(Long ticketsHandled, Long ticketsResolved) {
-        if (ticketsHandled == null || ticketsHandled == 0) {
-            return 0.0;
-        }
-        return DashboardMetricsCalculator.roundToTwoDecimals(
-                (ticketsResolved.doubleValue() / ticketsHandled) * 100);
-    }
-
-    /**
-     * Calculate agent performance score.
-     */
-    default Double calculateAgentPerformanceScore(Double resolutionRate, Double avgResolutionTime,
-                                                   Double satisfactionScore) {
-        if (resolutionRate == null) resolutionRate = 0.0;
-        if (avgResolutionTime == null) avgResolutionTime = 0.0;
-        if (satisfactionScore == null) satisfactionScore = 0.0;
-
-        // Resolution rate: 30%
-        double resolutionScore = (resolutionRate / 100.0) * 30;
-
-        // Resolution time: 30% (lower is better, assuming 120 min is baseline)
-        double timeScore = Math.max(0, (1 - (avgResolutionTime / 120.0))) * 30;
-
-        // Satisfaction: 40% (assuming 5-point scale)
-        double satisfactionPart = (satisfactionScore / 5.0) * 40;
-
-        return DashboardMetricsCalculator.roundToTwoDecimals(resolutionScore + timeScore + satisfactionPart);
+        return responseTimeMinutes > slaThreshold;
     }
 
     /**

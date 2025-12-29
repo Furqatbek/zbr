@@ -32,16 +32,21 @@ public class FraudSummaryDto {
     private Long abnormalOrderPatterns;
     private Long bruteForceAttempts;
     private Long circularReferrals;
+    private Long totalFlaggedUsers;
+    private Long totalSecurityIncidents;
 
     // Financial impact
     private FinancialImpactDto financialImpact;
 
-    // Category-specific summaries
+    // Category-specific summaries (legacy)
     private CategorySummaryDto paymentFraudSummary;
     private CategorySummaryDto behavioralFraudSummary;
     private CategorySummaryDto accountFraudSummary;
     private CategorySummaryDto referralFraudSummary;
     private CategorySummaryDto securitySummary;
+
+    // Category summaries list (used by FraudSummaryMapper)
+    private List<FraudCategorySummaryDto> categorySummaries;
 
     // Active security flags
     private Long activeSecurityFlags;
@@ -51,9 +56,13 @@ public class FraudSummaryDto {
     // Trends
     private TrendDataDto weekOverWeekTrend;
     private List<DailyFraudTrendDto> dailyTrend;
+    private FraudTrendDto trendAnalysis;
 
     // Top threats
     private List<TopThreatDto> topThreats;
+
+    // Active alerts
+    private List<FraudAlertDto> activeAlerts;
 
     // Recommendations
     private List<String> recommendations;
@@ -73,6 +82,12 @@ public class FraudSummaryDto {
         private BigDecimal promoAbuseAmount;
         private BigDecimal chargebackAmount;
         private BigDecimal refundAbuseAmount;
+        // Additional fields used by FraudSummaryMapper
+        private BigDecimal totalEstimatedLoss;
+        private BigDecimal failedPaymentLoss;
+        private BigDecimal refundAbuseLoss;
+        private BigDecimal promoAbuseLoss;
+        private BigDecimal referralFraudLoss;
     }
 
     @Data
@@ -90,6 +105,21 @@ public class FraudSummaryDto {
         private List<String> topIssues;
     }
 
+    /**
+     * Fraud category summary DTO used by FraudSummaryMapper.
+     */
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class FraudCategorySummaryDto {
+        private String category;
+        private Integer riskScore;
+        private String riskLevel;
+        private Long incidentCount;
+        private List<String> topIndicators;
+    }
+
     @Data
     @Builder
     @NoArgsConstructor
@@ -99,6 +129,22 @@ public class FraudSummaryDto {
         private String direction; // UP, DOWN, STABLE
         private Long previousPeriodIncidents;
         private Long currentPeriodIncidents;
+    }
+
+    /**
+     * Fraud trend DTO used by FraudSummaryMapper.
+     */
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class FraudTrendDto {
+        private String trendDirection;
+        private Double percentageChange;
+        private String comparisonPeriod;
+        private String paymentTrend;
+        private String behavioralTrend;
+        private String securityTrend;
     }
 
     @Data
@@ -127,5 +173,26 @@ public class FraudSummaryDto {
         private BigDecimal potentialImpact;
         private String recommendedAction;
         private Integer priority;
+        // Additional fields used by FraudSummaryMapper
+        private Integer riskScore;
+        private String affectedEntity;
+        private String category;
+    }
+
+    /**
+     * Fraud alert DTO used by FraudSummaryMapper.
+     */
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class FraudAlertDto {
+        private String alertId;
+        private String severity;
+        private String title;
+        private String description;
+        private String category;
+        private LocalDateTime createdAt;
+        private Boolean acknowledged;
     }
 }
