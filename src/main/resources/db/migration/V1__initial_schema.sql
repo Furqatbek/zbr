@@ -20,16 +20,7 @@ DROP TABLE IF EXISTS restaurants CASCADE;
 DROP TABLE IF EXISTS refresh_tokens CASCADE;
 DROP TABLE IF EXISTS users CASCADE;
 
--- Drop triggers if they exist
-DROP TRIGGER IF EXISTS update_users_updated_at ON users;
-DROP TRIGGER IF EXISTS update_restaurants_updated_at ON restaurants;
-DROP TRIGGER IF EXISTS update_menu_categories_updated_at ON menu_categories;
-DROP TRIGGER IF EXISTS update_menu_items_updated_at ON menu_items;
-DROP TRIGGER IF EXISTS update_couriers_updated_at ON couriers;
-DROP TRIGGER IF EXISTS update_orders_updated_at ON orders;
-DROP TRIGGER IF EXISTS update_payments_updated_at ON payments;
-
--- Drop function if it exists
+-- Drop function if it exists (triggers are dropped automatically with CASCADE)
 DROP FUNCTION IF EXISTS update_updated_at_column();
 
 -- Users table
