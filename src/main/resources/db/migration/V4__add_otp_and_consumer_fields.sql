@@ -1,7 +1,10 @@
 -- V4: Add OTP table and update users table for phone-based authentication
 
+-- Drop existing table to handle schema changes from partial runs
+DROP TABLE IF EXISTS otp_codes CASCADE;
+
 -- Create OTP codes table
-CREATE TABLE IF NOT EXISTS otp_codes (
+CREATE TABLE otp_codes (
     id BIGSERIAL PRIMARY KEY,
     phone VARCHAR(20) NOT NULL,
     code VARCHAR(6) NOT NULL,
@@ -15,9 +18,9 @@ CREATE TABLE IF NOT EXISTS otp_codes (
 );
 
 -- Add indexes for OTP codes
-CREATE INDEX IF NOT EXISTS idx_otp_phone ON otp_codes(phone);
-CREATE INDEX IF NOT EXISTS idx_otp_phone_code ON otp_codes(phone, code);
-CREATE INDEX IF NOT EXISTS idx_otp_expires_at ON otp_codes(expires_at);
+CREATE INDEX idx_otp_phone ON otp_codes(phone);
+CREATE INDEX idx_otp_phone_code ON otp_codes(phone, code);
+CREATE INDEX idx_otp_expires_at ON otp_codes(expires_at);
 
 -- Alter users table to make email and password nullable for phone-only users
 -- Use DO block to handle already-nullable columns gracefully

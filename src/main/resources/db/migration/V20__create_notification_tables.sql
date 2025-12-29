@@ -220,41 +220,41 @@ CREATE TABLE notification_read_status (
 -- =====================================================
 
 -- Notifications table indexes
-CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON notifications(user_id);
-CREATE INDEX IF NOT EXISTS idx_notifications_role ON notifications(role);
-CREATE INDEX IF NOT EXISTS idx_notifications_user_role ON notifications(user_id, role);
-CREATE INDEX IF NOT EXISTS idx_notifications_category ON notifications(category);
-CREATE INDEX IF NOT EXISTS idx_notifications_type ON notifications(notification_type);
-CREATE INDEX IF NOT EXISTS idx_notifications_priority ON notifications(priority);
-CREATE INDEX IF NOT EXISTS idx_notifications_order_id ON notifications(order_id);
-CREATE INDEX IF NOT EXISTS idx_notifications_created_at ON notifications(created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_notifications_read_at ON notifications(read_at);
-CREATE INDEX IF NOT EXISTS idx_notifications_dismissed ON notifications(dismissed);
-CREATE INDEX IF NOT EXISTS idx_notifications_expires_at ON notifications(expires_at);
+CREATE INDEX idx_notifications_user_id ON notifications(user_id);
+CREATE INDEX idx_notifications_role ON notifications(role);
+CREATE INDEX idx_notifications_user_role ON notifications(user_id, role);
+CREATE INDEX idx_notifications_category ON notifications(category);
+CREATE INDEX idx_notifications_type ON notifications(notification_type);
+CREATE INDEX idx_notifications_priority ON notifications(priority);
+CREATE INDEX idx_notifications_order_id ON notifications(order_id);
+CREATE INDEX idx_notifications_created_at ON notifications(created_at DESC);
+CREATE INDEX idx_notifications_read_at ON notifications(read_at);
+CREATE INDEX idx_notifications_dismissed ON notifications(dismissed);
+CREATE INDEX idx_notifications_expires_at ON notifications(expires_at);
 
 -- Composite indexes for common queries
-CREATE INDEX IF NOT EXISTS idx_notifications_user_unread ON notifications(user_id, read_at)
+CREATE INDEX idx_notifications_user_unread ON notifications(user_id, read_at)
     WHERE read_at IS NULL AND dismissed = FALSE;
-CREATE INDEX IF NOT EXISTS idx_notifications_user_role_unread ON notifications(user_id, role, read_at)
+CREATE INDEX idx_notifications_user_role_unread ON notifications(user_id, role, read_at)
     WHERE read_at IS NULL AND dismissed = FALSE;
-CREATE INDEX IF NOT EXISTS idx_notifications_user_category ON notifications(user_id, category, created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_notifications_cleanup ON notifications(created_at, read_at, dismissed)
+CREATE INDEX idx_notifications_user_category ON notifications(user_id, category, created_at DESC);
+CREATE INDEX idx_notifications_cleanup ON notifications(created_at, read_at, dismissed)
     WHERE expires_at IS NOT NULL OR dismissed = TRUE;
 
 -- Notification templates indexes
-CREATE INDEX IF NOT EXISTS idx_notification_templates_code ON notification_templates(template_code);
-CREATE INDEX IF NOT EXISTS idx_notification_templates_type ON notification_templates(notification_type);
-CREATE INDEX IF NOT EXISTS idx_notification_templates_role ON notification_templates(role);
-CREATE INDEX IF NOT EXISTS idx_notification_templates_active ON notification_templates(active)
+CREATE INDEX idx_notification_templates_code ON notification_templates(template_code);
+CREATE INDEX idx_notification_templates_type ON notification_templates(notification_type);
+CREATE INDEX idx_notification_templates_role ON notification_templates(role);
+CREATE INDEX idx_notification_templates_active ON notification_templates(active)
     WHERE active = TRUE;
 
 -- Notification preferences indexes
-CREATE INDEX IF NOT EXISTS idx_notification_preferences_user ON notification_preferences(user_id);
-CREATE INDEX IF NOT EXISTS idx_notification_preferences_user_role ON notification_preferences(user_id, role);
+CREATE INDEX idx_notification_preferences_user ON notification_preferences(user_id);
+CREATE INDEX idx_notification_preferences_user_role ON notification_preferences(user_id, role);
 
 -- Notification read status indexes
-CREATE INDEX IF NOT EXISTS idx_notification_read_status_notification ON notification_read_status(notification_id);
-CREATE INDEX IF NOT EXISTS idx_notification_read_status_user ON notification_read_status(user_id);
+CREATE INDEX idx_notification_read_status_notification ON notification_read_status(notification_id);
+CREATE INDEX idx_notification_read_status_user ON notification_read_status(user_id);
 
 -- =====================================================
 -- Trigger for updated_at timestamp
