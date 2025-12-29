@@ -75,6 +75,12 @@ public class SupportMetricsDto {
     private Long refundRequestsDenied;
     private BigDecimal totalRefundAmount;
 
+    // Ticket type counts
+    private Long complaintCount;
+    private Long refundRequestCount;
+    private Long inquiryCount;
+    private Long feedbackCount;
+
     // By ticket type
     private Map<String, Long> ticketsByType;
 

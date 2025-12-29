@@ -22,42 +22,59 @@ import java.util.Map;
 public class FinanceMetricsDto {
 
     // Gross Merchandise Value (GMV)
+    private BigDecimal gmv;
     private BigDecimal gmvToday;
     private BigDecimal gmvThisWeek;
     private BigDecimal gmvThisMonth;
     private BigDecimal gmvYtd;
 
     // Platform Revenue
+    private BigDecimal commissionRevenue;
     private BigDecimal commissionRevenueToday;
     private BigDecimal commissionRevenueThisWeek;
     private BigDecimal commissionRevenueThisMonth;
+    private BigDecimal deliveryFeeRevenue;
     private BigDecimal deliveryFeeRevenueToday;
+    private BigDecimal totalRevenue;
+    private BigDecimal netRevenue;
     private BigDecimal totalPlatformRevenueToday;
+    private BigDecimal commissionRate;
 
     // Order breakdown
+    private Long totalOrders;
     private Long totalOrdersToday;
     private BigDecimal avgOrderValue;
     private BigDecimal avgCommissionPerOrder;
 
     // Payouts
-    private PayoutSummaryDto restaurantPayouts;
-    private PayoutSummaryDto courierPayouts;
+    private BigDecimal restaurantPayouts;
+    private BigDecimal courierPayouts;
+    private BigDecimal discountsUsed;
+    private BigDecimal refundsPaid;
+    private BigDecimal unsettledRestaurantPayouts;
+    private BigDecimal unsettledCourierPayouts;
+    private PayoutSummaryDto payoutSummary;
 
     // Discounts & Promotions
     private DiscountSummaryDto discounts;
+    private DiscountSummaryDto discountSummary;
 
     // Refunds
     private RefundSummaryDto refunds;
+    private RefundSummaryDto refundSummary;
 
     // Unsettled amounts
     private BigDecimal totalUnsettledAmount;
     private Long unsettledPayoutsCount;
 
     // Daily revenue trend
+    private List<DailyRevenueDto> dailyRevenue;
     private List<DailyRevenueDto> dailyRevenueTrend;
 
-    // Revenue by category
+    // Revenue breakdown
     private Map<String, BigDecimal> revenueByCategory;
+    private Map<String, BigDecimal> paymentMethodBreakdown;
+    private Map<String, Object> periodComparison;
 
     // Top performing restaurants by revenue
     private List<EntityRevenueDto> topRestaurantsByRevenue;
@@ -81,6 +98,10 @@ public class FinanceMetricsDto {
         private BigDecimal avgPayoutAmount;
         private LocalDateTime lastPayoutAt;
 
+        // Total payouts
+        private BigDecimal totalRestaurantPayouts;
+        private BigDecimal totalCourierPayouts;
+
         // Unsettled breakdown
         private Long unsettledCount;
         private BigDecimal unsettledAmount;
@@ -93,6 +114,7 @@ public class FinanceMetricsDto {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class DiscountSummaryDto {
+        private BigDecimal totalDiscounts;
         private BigDecimal totalDiscountsToday;
         private BigDecimal totalDiscountsThisWeek;
         private BigDecimal totalDiscountsThisMonth;
@@ -118,6 +140,7 @@ public class FinanceMetricsDto {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class RefundSummaryDto {
+        private BigDecimal totalRefundAmount;
         private BigDecimal totalRefundsToday;
         private BigDecimal totalRefundsThisWeek;
         private BigDecimal totalRefundsThisMonth;

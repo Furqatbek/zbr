@@ -99,4 +99,9 @@ public class OrderNotificationRequest {
      * Additional context metadata.
      */
     private Map<String, Object> additionalData;
+
+    /**
+     * Metadata for notification processing.
+     */
+    private Map<String, Object> metadata;
 }

@@ -214,7 +214,7 @@ public class PhoneAuthService {
                 .lastName(user.getLastName())
                 .fullName(user.getFullName())
                 .role(user.getRole().name())
-                .status(user.getStatus().name())
+                .status(user.getStatus())
                 .emailVerified(user.getEmailVerified())
                 .phoneVerified(user.getPhoneVerified())
                 .profileImageUrl(user.getProfileImageUrl())

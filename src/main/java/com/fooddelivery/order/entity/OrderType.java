@@ -15,6 +15,11 @@ public enum OrderType {
     TAKEAWAY,
 
     /**
+     * Customer picks up from restaurant (alias for TAKEAWAY).
+     */
+    PICKUP,
+
+    /**
      * Dine-in at restaurant (hall service).
      */
     DINE_IN
