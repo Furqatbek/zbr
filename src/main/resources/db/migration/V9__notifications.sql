@@ -1,6 +1,18 @@
 -- Notification System Tables
 -- V9: Templates, preferences, and notification history
 
+-- Drop existing tables if they exist (from previous migrations)
+DO $$
+BEGIN
+    DROP TABLE IF EXISTS notification_batches CASCADE;
+    DROP TABLE IF EXISTS notifications CASCADE;
+    DROP TABLE IF EXISTS push_tokens CASCADE;
+    DROP TABLE IF EXISTS notification_preferences CASCADE;
+    DROP TABLE IF EXISTS notification_templates CASCADE;
+    DROP TABLE IF EXISTS email_templates CASCADE;
+    DROP TABLE IF EXISTS sms_templates CASCADE;
+END $$;
+
 -- Notification Templates
 CREATE TABLE notification_templates (
     id BIGSERIAL PRIMARY KEY,
