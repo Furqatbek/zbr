@@ -145,11 +145,11 @@ SELECT
     COUNT(CASE WHEN o.status = 'DELIVERED' THEN 1 END) as delivered_orders,
     COUNT(CASE WHEN o.status = 'REJECTED' THEN 1 END) as rejected_orders,
     AVG(CASE WHEN o.status = 'DELIVERED' THEN o.total_amount END) as avg_order_value,
-    r.rating as current_rating,
+    r.avg_rating as current_rating,
     r.is_online as is_online
 FROM restaurants r
 LEFT JOIN orders o ON r.id = o.restaurant_id AND o.created_at >= CURRENT_DATE - INTERVAL '30 days'
-GROUP BY r.id, r.name, DATE(o.created_at), r.rating, r.is_online;
+GROUP BY r.id, r.name, DATE(o.created_at), r.avg_rating, r.is_online;
 
 -- Courier Performance Summary Materialized View
 CREATE MATERIALIZED VIEW IF NOT EXISTS mv_courier_performance_daily AS
@@ -159,13 +159,13 @@ SELECT
     DATE(o.created_at) as delivery_date,
     COUNT(o.id) as total_deliveries,
     AVG(EXTRACT(EPOCH FROM (o.delivered_at - o.picked_up_at))/60) as avg_delivery_time_minutes,
-    c.rating as current_rating,
+    c.avg_rating as current_rating,
     c.vehicle_type
 FROM couriers c
 LEFT JOIN orders o ON c.id = o.courier_id
     AND o.status = 'DELIVERED'
     AND o.created_at >= CURRENT_DATE - INTERVAL '30 days'
-GROUP BY c.id, c.name, DATE(o.created_at), c.rating, c.vehicle_type;
+GROUP BY c.id, c.name, DATE(o.created_at), c.avg_rating, c.vehicle_type;
 
 -- =====================================================
 -- Functions for Refreshing Materialized Views

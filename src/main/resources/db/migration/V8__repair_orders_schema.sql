@@ -127,6 +127,30 @@ BEGIN
     END IF;
 END $$;
 
+-- Ensure restaurants table has is_online column (used by V19 materialized views)
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'restaurants' AND column_name = 'is_online'
+    ) THEN
+        ALTER TABLE restaurants ADD COLUMN is_online BOOLEAN DEFAULT FALSE;
+        RAISE NOTICE 'Added is_online column to restaurants table';
+    END IF;
+END $$;
+
+-- Ensure couriers table has name column (used by V19 materialized views)
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'couriers' AND column_name = 'name'
+    ) THEN
+        ALTER TABLE couriers ADD COLUMN name VARCHAR(255);
+        RAISE NOTICE 'Added name column to couriers table';
+    END IF;
+END $$;
+
 -- Ensure couriers table has avg_rating column (used by V19 materialized views)
 DO $$
 BEGIN
