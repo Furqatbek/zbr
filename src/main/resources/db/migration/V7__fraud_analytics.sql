@@ -1,33 +1,46 @@
 -- Fraud Detection and Security Analytics
 -- V7: Auth logs, fraud events, and risk scoring
 
--- Auth Logs (with all entity-required columns)
+-- Drop existing tables if they exist (for idempotent migrations)
+DO $$
+BEGIN
+    DROP TABLE IF EXISTS chargeback_events CASCADE;
+    DROP TABLE IF EXISTS account_risk_scores CASCADE;
+    DROP TABLE IF EXISTS fraud_rules CASCADE;
+    DROP TABLE IF EXISTS ip_reputation CASCADE;
+    DROP TABLE IF EXISTS device_fingerprints CASCADE;
+    DROP TABLE IF EXISTS referral_events CASCADE;
+    DROP TABLE IF EXISTS fraud_events CASCADE;
+    DROP TABLE IF EXISTS auth_logs CASCADE;
+END $$;
+
+-- Auth Logs (matching AuthLog entity exactly)
 CREATE TABLE auth_logs (
     id BIGSERIAL PRIMARY KEY,
     user_id BIGINT,
     username VARCHAR(255),
-    event_type VARCHAR(50) NOT NULL,
-    success BOOLEAN NOT NULL DEFAULT FALSE,
-    ip_address VARCHAR(45),
+    ip_address VARCHAR(45) NOT NULL,
+    user_agent VARCHAR(500),
+    status VARCHAR(30) NOT NULL,
+    auth_type VARCHAR(30),
+    failure_reason VARCHAR(255),
     device_id VARCHAR(255),
     device_fingerprint VARCHAR(255),
-    user_agent VARCHAR(500),
-    geo_country VARCHAR(100),
+    geo_country VARCHAR(2),
     geo_city VARCHAR(100),
-    geo_location VARCHAR(255),
+    is_vpn BOOLEAN,
+    is_tor BOOLEAN,
+    is_proxy BOOLEAN,
     session_id VARCHAR(255),
-    failure_reason VARCHAR(255),
-    risk_score DOUBLE PRECISION DEFAULT 0,
-    is_suspicious BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE INDEX idx_auth_logs_user_id ON auth_logs(user_id);
-CREATE INDEX idx_auth_logs_event_type ON auth_logs(event_type);
-CREATE INDEX idx_auth_logs_created_at ON auth_logs(created_at);
 CREATE INDEX idx_auth_logs_ip_address ON auth_logs(ip_address);
-CREATE INDEX idx_auth_logs_device_fingerprint ON auth_logs(device_fingerprint);
-CREATE INDEX idx_auth_logs_is_suspicious ON auth_logs(is_suspicious);
+CREATE INDEX idx_auth_logs_status ON auth_logs(status);
+CREATE INDEX idx_auth_logs_created_at ON auth_logs(created_at);
+CREATE INDEX idx_auth_logs_user_status_created ON auth_logs(user_id, status, created_at);
+CREATE INDEX idx_auth_logs_ip_status_created ON auth_logs(ip_address, status, created_at);
 
 -- Fraud Events
 CREATE TABLE fraud_events (
