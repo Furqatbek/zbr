@@ -41,15 +41,43 @@ CREATE TABLE IF NOT EXISTS system_health_snapshots (
 
     -- Status
     status VARCHAR(20) DEFAULT 'HEALTHY',
-    status_message TEXT,
-
-    CONSTRAINT chk_status CHECK (status IN ('HEALTHY', 'DEGRADED', 'CRITICAL', 'UNKNOWN'))
+    status_message TEXT
 );
 
--- Index for efficient querying of recent snapshots
-CREATE INDEX idx_system_health_captured_at ON system_health_snapshots(captured_at DESC);
-CREATE INDEX idx_system_health_component ON system_health_snapshots(component, captured_at DESC);
-CREATE INDEX idx_system_health_status ON system_health_snapshots(status, captured_at DESC);
+-- Add status column if table exists but column is missing
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'system_health_snapshots' AND column_name = 'status'
+    ) THEN
+        ALTER TABLE system_health_snapshots ADD COLUMN status VARCHAR(20) DEFAULT 'HEALTHY';
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'system_health_snapshots' AND column_name = 'status_message'
+    ) THEN
+        ALTER TABLE system_health_snapshots ADD COLUMN status_message TEXT;
+    END IF;
+END $$;
+
+-- Add constraint if it doesn't exist
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.table_constraints
+        WHERE constraint_name = 'chk_status' AND table_name = 'system_health_snapshots'
+    ) THEN
+        ALTER TABLE system_health_snapshots ADD CONSTRAINT chk_status
+            CHECK (status IN ('HEALTHY', 'DEGRADED', 'CRITICAL', 'UNKNOWN'));
+    END IF;
+END $$;
+
+-- Index for efficient querying of recent snapshots (create only if not exists)
+CREATE INDEX IF NOT EXISTS idx_system_health_captured_at ON system_health_snapshots(captured_at DESC);
+CREATE INDEX IF NOT EXISTS idx_system_health_component ON system_health_snapshots(component, captured_at DESC);
+CREATE INDEX IF NOT EXISTS idx_system_health_status ON system_health_snapshots(status, captured_at DESC);
 
 -- Dashboard Refresh Logs Table
 -- Tracks dashboard data refresh events for performance monitoring
@@ -65,9 +93,9 @@ CREATE TABLE IF NOT EXISTS dashboard_refresh_logs (
 );
 
 -- Index for efficient querying of refresh logs
-CREATE INDEX idx_dashboard_refresh_logs_refreshed_at ON dashboard_refresh_logs(refreshed_at DESC);
-CREATE INDEX idx_dashboard_refresh_logs_component ON dashboard_refresh_logs(component, refreshed_at DESC);
-CREATE INDEX idx_dashboard_refresh_logs_success ON dashboard_refresh_logs(success, refreshed_at DESC);
+CREATE INDEX IF NOT EXISTS idx_dashboard_refresh_logs_refreshed_at ON dashboard_refresh_logs(refreshed_at DESC);
+CREATE INDEX IF NOT EXISTS idx_dashboard_refresh_logs_component ON dashboard_refresh_logs(component, refreshed_at DESC);
+CREATE INDEX IF NOT EXISTS idx_dashboard_refresh_logs_success ON dashboard_refresh_logs(success, refreshed_at DESC);
 
 -- =====================================================
 -- Materialized Views for Dashboard Performance
