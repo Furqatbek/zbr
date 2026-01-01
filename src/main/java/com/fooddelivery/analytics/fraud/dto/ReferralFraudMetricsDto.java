@@ -127,9 +127,14 @@ public class ReferralFraudMetricsDto {
     @AllArgsConstructor
     public static class CircularReferralMetricsDto {
         private Long circularReferralChains;
+        private Long circularChainCount; // Alias
         private Long usersInCircularChains;
         private BigDecimal bonusesInCircularChains;
         private List<CircularChainDto> detectedChains;
+
+        public Long getCircularChainCount() {
+            return circularChainCount != null ? circularChainCount : circularReferralChains;
+        }
     }
 
     @Data
@@ -152,13 +157,23 @@ public class ReferralFraudMetricsDto {
     public static class PromoAbuseMetricsDto {
         private Long totalPromoUsers;
         private Long promoOnlyUsers;
+        private Long promoOnlyUsersCount; // Alias
         private Double promoOnlyUserRate;
         private Long usersWithNoPayingOrders;
         private BigDecimal totalPromoCreditsUsed;
+        private BigDecimal estimatedPromoLoss; // Alias for totalPromoCreditsUsed
         private BigDecimal avgPromoCreditsPerUser;
         private List<PromoAbuserDto> topPromoAbusers;
         private Map<String, Long> abuseByPromoType;
         private Integer minOrdersForPromoAbuse;
+
+        public Long getPromoOnlyUsersCount() {
+            return promoOnlyUsersCount != null ? promoOnlyUsersCount : promoOnlyUsers;
+        }
+
+        public BigDecimal getEstimatedPromoLoss() {
+            return estimatedPromoLoss != null ? estimatedPromoLoss : totalPromoCreditsUsed;
+        }
     }
 
     @Data

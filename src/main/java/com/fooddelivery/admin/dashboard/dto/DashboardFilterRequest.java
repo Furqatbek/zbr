@@ -138,4 +138,18 @@ public class DashboardFilterRequest {
         this.pageSize = pageSize;
         this.size = pageSize;
     }
+
+    /**
+     * Check if page size is explicitly set.
+     */
+    public boolean isPageSizeSet() {
+        return pageSize != null || size != null;
+    }
+
+    /**
+     * Check if page is explicitly set.
+     */
+    public boolean isPageSet() {
+        return page != null;
+    }
 }

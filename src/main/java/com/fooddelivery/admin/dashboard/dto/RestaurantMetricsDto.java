@@ -40,6 +40,27 @@ public class RestaurantMetricsDto {
     private Long averagePerformingRestaurants;
     private Long underPerformingRestaurants; // high rejection, slow prep
 
+    // Online percentage
+    private Double onlinePercentage;
+
+    // Performance summary
+    private RestaurantPerformanceSummaryDto performanceSummary;
+
+    // Status breakdown
+    private Map<String, Long> statusBreakdown;
+
+    // Cuisine distribution
+    private Map<String, Long> cuisineDistribution;
+
+    // Geographic distribution
+    private Map<String, Long> geographicDistribution;
+
+    // Top performers
+    private List<RestaurantDetailDto> topPerformers;
+
+    // Underperformers
+    private List<RestaurantDetailDto> underperformers;
+
     // List of restaurant details
     private List<RestaurantDetailDto> restaurants;
 
@@ -134,9 +155,12 @@ public class RestaurantMetricsDto {
         private String tier; // TOP, GOOD, AVERAGE, POOR
         private Double avgPrepTime;
         private Double avgPreparationTimeMinutes;
+        private Double avgAcceptanceLatencySeconds;
         private Double acceptanceRate;
+        private Double avgAcceptanceRate;
         private BigDecimal avgRating;
         private Long totalOrders;
+        private Long totalOrdersProcessed;
         private Long rejectedOrdersCount;
         private Double rejectionRate;
         private List<String> improvementSuggestions;

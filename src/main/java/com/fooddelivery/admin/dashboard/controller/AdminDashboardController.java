@@ -410,10 +410,10 @@ public class AdminDashboardController {
         if (filter.getEndDate() == null) {
             filter.setEndDate(LocalDateTime.now());
         }
-        if (filter.getPage() == null) {
+        if (!filter.isPageSet()) {
             filter.setPage(DashboardConstants.DEFAULT_PAGE);
         }
-        if (filter.getPageSize() == null) {
+        if (!filter.isPageSizeSet()) {
             filter.setPageSize(DashboardConstants.DEFAULT_PAGE_SIZE);
         }
 

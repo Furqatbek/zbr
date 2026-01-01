@@ -1,5 +1,6 @@
 package com.fooddelivery.admin.dashboard.collector;
 
+import com.fooddelivery.admin.dashboard.dto.DashboardFilterRequest;
 import com.fooddelivery.admin.dashboard.dto.DashboardOverviewDto;
 import com.fooddelivery.admin.dashboard.repository.DashboardCourierRepository;
 import com.fooddelivery.admin.dashboard.repository.DashboardOrderRepository;
@@ -32,6 +33,13 @@ public class OverviewCollector {
 
     private static final int ACTIVE_COURIER_THRESHOLD_MINUTES = 3;
     private static final int ACTIVE_RESTAURANT_THRESHOLD_MINUTES = 30;
+
+    /**
+     * Collect all overview metrics for the dashboard with filter.
+     */
+    public DashboardOverviewDto collectOverview(DashboardFilterRequest filter) {
+        return collect(filter.getEffectiveStartDate(), filter.getEffectiveEndDate());
+    }
 
     /**
      * Collect all overview metrics for the dashboard.

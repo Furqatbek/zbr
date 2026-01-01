@@ -179,6 +179,7 @@ public class SecurityLogMetricsDto {
     @AllArgsConstructor
     public static class FlaggedIpDto {
         private String ipAddressPartial;
+        private String ipAddress; // Alias
         private String geoCountry;
         private String geoCity;
         private Boolean isVpn;
@@ -189,6 +190,15 @@ public class SecurityLogMetricsDto {
         private Long uniqueUsersFromIp;
         private String threatLevel;
         private Integer riskScore;
+        private Integer threatScore; // Alias for riskScore
+
+        public String getIpAddress() {
+            return ipAddress != null ? ipAddress : ipAddressPartial;
+        }
+
+        public Integer getThreatScore() {
+            return threatScore != null ? threatScore : riskScore;
+        }
     }
 
     @Data

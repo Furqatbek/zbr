@@ -71,9 +71,19 @@ public class CxSummaryDto {
         private Long courierRatingCount;
         private Double avgAppStoreRating;
         private Double appStoreAverageRating; // Alias
+        private Double appStoreIosRating; // Alias for iOS-specific rating
+        private Double appStoreAndroidRating; // Alias for Android-specific rating
         private Long appStoreReviewCount;
         private Double overallRatingChange;
         private Double overallAverageRating;
+
+        public Double getAppStoreIosRating() {
+            return appStoreIosRating != null ? appStoreIosRating : avgAppStoreRating;
+        }
+
+        public Double getAppStoreAndroidRating() {
+            return appStoreAndroidRating != null ? appStoreAndroidRating : avgAppStoreRating;
+        }
     }
 
     /**

@@ -418,4 +418,88 @@ public class OrdersCollector {
             default -> "Review order status";
         };
     }
+
+    /**
+     * Collect rejected orders.
+     */
+    public RejectedOrdersDto collectRejectedOrders(DashboardFilterRequest filter) {
+        log.debug("Collecting rejected orders from {} to {}", filter.getEffectiveStartDate(), filter.getEffectiveEndDate());
+
+        LocalDateTime startDate = filter.getEffectiveStartDate();
+        LocalDateTime endDate = filter.getEffectiveEndDate();
+
+        PageRequest pageRequest = PageRequest.of(
+                filter.getPageNumber(),
+                filter.getPageSize(),
+                Sort.by(Sort.Direction.DESC, "createdAt")
+        );
+
+        Page<Order> rejectedPage = orderRepository.findRejectedOrders(startDate, endDate, pageRequest);
+
+        // Count totals
+        Long totalRejected = orderRepository.countRejectedOrders(startDate, endDate);
+        BigDecimal totalValueLost = orderRepository.sumRejectedOrderValue(startDate, endDate);
+
+        // Get restaurant breakdown
+        List<Object[]> restaurantData = orderRepository.countRejectedByRestaurant(startDate, endDate);
+        List<RejectedOrdersDto.RejectorSummaryDto> topRejectingRestaurants = restaurantData.stream()
+                .limit(10)
+                .map(row -> RejectedOrdersDto.RejectorSummaryDto.builder()
+                        .entityId(((Number) row[0]).longValue())
+                        .entityName((String) row[1])
+                        .entityType("RESTAURANT")
+                        .rejectionCount(((Number) row[2]).longValue())
+                        .build())
+                .collect(Collectors.toList());
+
+        // Calculate time-based breakdowns
+        LocalDateTime todayStart = LocalDateTime.now().toLocalDate().atStartOfDay();
+        LocalDateTime weekStart = todayStart.minusDays(7);
+        LocalDateTime monthStart = todayStart.minusDays(30);
+
+        Long rejectedToday = orderRepository.countRejectedOrders(todayStart, LocalDateTime.now());
+        Long rejectedThisWeek = orderRepository.countRejectedOrders(weekStart, LocalDateTime.now());
+        Long rejectedThisMonth = orderRepository.countRejectedOrders(monthStart, LocalDateTime.now());
+
+        // Map orders to DTOs
+        List<RejectedOrdersDto.RejectedOrderItemDto> orderItems = rejectedPage.getContent().stream()
+                .map(this::mapToRejectedOrderItem)
+                .collect(Collectors.toList());
+
+        return RejectedOrdersDto.builder()
+                .totalRejectedOrders(totalRejected)
+                .rejectedToday(rejectedToday)
+                .rejectedThisWeek(rejectedThisWeek)
+                .rejectedThisMonth(rejectedThisMonth)
+                .totalValueLost(totalValueLost)
+                .topRejectingRestaurants(topRejectingRestaurants)
+                .orders(orderItems)
+                .currentPage(rejectedPage.getNumber())
+                .pageSize(rejectedPage.getSize())
+                .totalElements(rejectedPage.getTotalElements())
+                .totalPages(rejectedPage.getTotalPages())
+                .generatedAt(LocalDateTime.now())
+                .build();
+    }
+
+    private RejectedOrdersDto.RejectedOrderItemDto mapToRejectedOrderItem(Order order) {
+        long timeToRejection = order.getRejectedAt() != null
+                ? ChronoUnit.MINUTES.between(order.getCreatedAt(), order.getRejectedAt())
+                : 0;
+
+        return RejectedOrdersDto.RejectedOrderItemDto.builder()
+                .orderId(order.getId())
+                .externalOrderNo(order.getExternalOrderNo())
+                .restaurantId(order.getRestaurant() != null ? order.getRestaurant().getId() : null)
+                .restaurantName(order.getRestaurant() != null ? order.getRestaurant().getName() : null)
+                .customerId(order.getConsumer() != null ? order.getConsumer().getId() : null)
+                .customerName(order.getCustomerName())
+                .customerPhone(order.getCustomerPhone())
+                .rejectionReason(order.getRejectionReason())
+                .rejectedAt(order.getRejectedAt())
+                .timeToRejectionMinutes(timeToRejection)
+                .total(order.getTotal())
+                .createdAt(order.getCreatedAt())
+                .build();
+    }
 }

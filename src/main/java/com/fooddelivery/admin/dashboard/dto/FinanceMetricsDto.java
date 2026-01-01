@@ -113,6 +113,12 @@ public class FinanceMetricsDto {
         private BigDecimal unsettledCourierAmount;
         private Long overdueCount; // Past scheduled payout date
         private BigDecimal overdueAmount;
+
+        // Completed payouts
+        private Long completedPayoutsCount;
+
+        // Average settlement time
+        private Double avgSettlementTimeHours;
     }
 
     @Data
@@ -144,6 +150,23 @@ public class FinanceMetricsDto {
 
         // Top promo codes
         private List<PromoCodeUsageDto> topPromoCodes;
+
+        // Alternative format for top promo codes
+        private List<Map<String, Object>> topPromoCodesMap;
+
+        // Average discount per order
+        private BigDecimal avgDiscountPerOrder;
+
+        // Discount breakdown by type
+        private Map<String, BigDecimal> discountByType;
+
+        public List<Map<String, Object>> getTopPromoCodes() {
+            return topPromoCodesMap;
+        }
+
+        public void setTopPromoCodes(List<Map<String, Object>> topPromoCodes) {
+            this.topPromoCodesMap = topPromoCodes;
+        }
     }
 
     @Data
@@ -170,6 +193,12 @@ public class FinanceMetricsDto {
         // Pending refunds
         private Long pendingRefundCount;
         private BigDecimal pendingRefundAmount;
+
+        // Approval rate
+        private Double approvalRate;
+
+        // Breakdown by reason
+        private Map<String, Long> refundByReason;
     }
 
     @Data

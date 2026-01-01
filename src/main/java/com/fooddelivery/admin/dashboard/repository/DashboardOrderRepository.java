@@ -454,4 +454,44 @@ public interface DashboardOrderRepository extends JpaRepository<Order, Long> {
             "GROUP BY o.paymentMethod")
     List<Object[]> getRevenueByPaymentMethod(@Param("startDate") LocalDateTime startDate,
                                              @Param("endDate") LocalDateTime endDate);
+
+    // ==================== Rejected Orders Queries ====================
+
+    /**
+     * Count rejected orders within date range.
+     */
+    @Query("SELECT COUNT(o) FROM Order o WHERE o.status = 'REJECTED' " +
+            "AND o.createdAt BETWEEN :startDate AND :endDate")
+    Long countRejectedOrders(@Param("startDate") LocalDateTime startDate,
+                             @Param("endDate") LocalDateTime endDate);
+
+    /**
+     * Find rejected orders within date range.
+     */
+    @Query("SELECT o FROM Order o WHERE o.status = 'REJECTED' " +
+            "AND o.createdAt BETWEEN :startDate AND :endDate " +
+            "ORDER BY o.createdAt DESC")
+    Page<Order> findRejectedOrders(@Param("startDate") LocalDateTime startDate,
+                                   @Param("endDate") LocalDateTime endDate,
+                                   Pageable pageable);
+
+    /**
+     * Count rejected orders by restaurant.
+     */
+    @Query("SELECT o.restaurant.id, o.restaurant.name, COUNT(o) FROM Order o " +
+            "WHERE o.status = 'REJECTED' " +
+            "AND o.createdAt BETWEEN :startDate AND :endDate " +
+            "GROUP BY o.restaurant.id, o.restaurant.name " +
+            "ORDER BY COUNT(o) DESC")
+    List<Object[]> countRejectedByRestaurant(@Param("startDate") LocalDateTime startDate,
+                                             @Param("endDate") LocalDateTime endDate);
+
+    /**
+     * Sum value of rejected orders.
+     */
+    @Query("SELECT COALESCE(SUM(o.total), 0) FROM Order o " +
+            "WHERE o.status = 'REJECTED' " +
+            "AND o.createdAt BETWEEN :startDate AND :endDate")
+    BigDecimal sumRejectedOrderValue(@Param("startDate") LocalDateTime startDate,
+                                     @Param("endDate") LocalDateTime endDate);
 }

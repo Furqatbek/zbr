@@ -81,9 +81,14 @@ public class FraudSummaryDto {
         private BigDecimal promoAbuseAmount;
         private BigDecimal chargebackAmount;
         private BigDecimal refundAbuseAmount;
+        private BigDecimal failedPaymentLoss;
 
         public BigDecimal getTotalEstimatedLoss() {
             return totalEstimatedLoss != null ? totalEstimatedLoss : estimatedFraudLoss;
+        }
+
+        public BigDecimal getFailedPaymentLoss() {
+            return failedPaymentLoss != null ? failedPaymentLoss : BigDecimal.ZERO;
         }
     }
 
