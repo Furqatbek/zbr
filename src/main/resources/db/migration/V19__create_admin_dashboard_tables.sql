@@ -139,6 +139,17 @@ CREATE INDEX idx_mv_hourly_order_activity ON mv_hourly_order_activity(order_date
 -- Ensure required columns exist before creating views
 -- =====================================================
 
+-- Ensure auth_logs.device_fingerprint column exists (required by AuthLog entity)
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'auth_logs' AND column_name = 'device_fingerprint'
+    ) THEN
+        ALTER TABLE auth_logs ADD COLUMN device_fingerprint VARCHAR(255);
+    END IF;
+END $$;
+
 -- Ensure restaurants.is_online column exists
 DO $$
 BEGIN
