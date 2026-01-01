@@ -114,6 +114,22 @@ CREATE TABLE IF NOT EXISTS notifications (
 -- =====================================================
 -- Notification Templates Table
 -- =====================================================
+
+-- Drop malformed table if it exists without required columns (from partial previous run)
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM information_schema.tables
+        WHERE table_name = 'notification_templates'
+    ) AND NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'notification_templates' AND column_name = 'template_code'
+    ) THEN
+        DROP TABLE notification_templates CASCADE;
+        RAISE NOTICE 'Dropped malformed notification_templates table';
+    END IF;
+END $$;
+
 CREATE TABLE IF NOT EXISTS notification_templates (
     id BIGSERIAL PRIMARY KEY,
 
