@@ -79,12 +79,12 @@ public interface CxMapper {
     /**
      * Map SupportTicket entity to response DTO.
      */
-    @Mapping(target = "typeName", expression = "java(ticket.getType() != null ? ticket.getType().name() : null)")
+    @Mapping(target = "typeName", expression = "java(ticket.getTicketType() != null ? ticket.getTicketType().name() : null)")
     @Mapping(target = "statusName", expression = "java(ticket.getStatus() != null ? ticket.getStatus().name() : null)")
     @Mapping(target = "priorityName", expression = "java(ticket.getPriority() != null ? ticket.getPriority().name() : null)")
     @Mapping(target = "channelName", expression = "java(ticket.getChannel() != null ? ticket.getChannel().name() : null)")
-    @Mapping(target = "resolutionTimeHours", expression = "java(ticket.getResolutionTimeHours())")
-    @Mapping(target = "firstResponseTimeMinutes", expression = "java(ticket.getFirstResponseTimeMinutes())")
+    @Mapping(target = "resolutionTimeHours", expression = "java(ticket.getResolutionTimeHours() != null ? ticket.getResolutionTimeHours().doubleValue() : null)")
+    @Mapping(target = "firstResponseTimeMinutes", expression = "java(ticket.getFirstResponseTimeMinutes() != null ? ticket.getFirstResponseTimeMinutes().doubleValue() : null)")
     @Mapping(target = "isOpen", expression = "java(ticket.isOpen())")
     SupportTicketResponseDto toSupportTicketResponse(SupportTicket ticket);
 

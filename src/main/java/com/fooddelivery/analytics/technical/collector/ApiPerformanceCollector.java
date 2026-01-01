@@ -126,7 +126,7 @@ public class ApiPerformanceCollector {
                 .hourlyDistribution(hourlyDistribution)
                 .periodStart(startDate)
                 .periodEnd(endDate)
-                .status(status)
+                .status(status != null ? status.name() : null)
                 .build();
     }
 

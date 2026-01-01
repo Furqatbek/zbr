@@ -74,7 +74,8 @@ public class TechnicalAnalyticsServiceImpl implements TechnicalAnalyticsService 
                         apiMetrics.getResponseTimePercentiles().getP99() : null)
                 .errorRate(apiMetrics.getErrorRate())
                 .timeoutRate(apiMetrics.getTimeoutRate())
-                .status(apiMetrics.getStatus())
+                .status(apiMetrics.getStatus() != null ?
+                        BackendResourceMetricsDto.HealthStatus.valueOf(apiMetrics.getStatus()) : null)
                 .build();
 
         TechnicalSummaryDto.BackendSummaryDto backendSummary = TechnicalSummaryDto.BackendSummaryDto.builder()

@@ -155,7 +155,7 @@ public class FraudAnalyticsServiceImpl implements FraudAnalyticsService {
             double promoAbuseRate, boolean includeDetails, int maxListSize) {
         log.debug("Collecting referral fraud metrics from {} to {}", startDate, endDate);
         return referralFraudCollector.collect(startDate, endDate, deviceSignupThreshold,
-                ipSignupThreshold, promoAbuseRate, includeDetails, maxListSize);
+                ipSignupThreshold, (int) promoAbuseRate, includeDetails, maxListSize);
     }
 
     @Override
@@ -184,19 +184,19 @@ public class FraudAnalyticsServiceImpl implements FraudAnalyticsService {
                 .endDate(endDate)
                 .failedPaymentThreshold(request.getFailedPaymentThreshold())
                 .paymentTimeWindowMinutes(15) // Shorter window for real-time
-                .velocityThreshold(request.getVelocityThreshold())
-                .refundRateThreshold(request.getRefundRateThreshold())
+                .orderVelocityThresholdPerHour(request.getVelocityThreshold())
+                .highRefundRateThreshold(request.getRefundRateThreshold())
                 .orderValueZScoreThreshold(request.getOrderValueZScoreThreshold())
-                .addressUserThreshold(request.getAddressUserThreshold())
-                .fakeAccountAgeThreshold(request.getFakeAccountAgeThreshold())
-                .deviceShareThreshold(request.getDeviceShareThreshold())
-                .ipShareThreshold(request.getIpShareThreshold())
-                .deviceSignupThreshold(request.getDeviceSignupThreshold())
-                .ipSignupThreshold(request.getIpSignupThreshold())
-                .promoAbuseRateThreshold(request.getPromoAbuseRateThreshold())
+                .addressMultiUserThreshold(request.getAddressUserThreshold())
+                .fakeAccountAgeThresholdHours(request.getFakeAccountAgeThreshold())
+                .multiAccountDeviceThreshold(request.getDeviceShareThreshold())
+                .multiAccountIpThreshold(request.getIpShareThreshold())
+                .signupsPerDeviceThreshold(request.getDeviceSignupThreshold())
+                .signupsPerIpThreshold(request.getIpSignupThreshold())
+                .minOrdersForPromoAbuse(request.getMinOrdersForPromoAbuse() != null ? request.getMinOrdersForPromoAbuse() : 3)
                 .failedLoginThreshold(request.getFailedLoginThreshold())
-                .loginTimeWindowMinutes(5) // Shorter window for real-time
-                .rateLimitThreshold(request.getRateLimitThreshold())
+                .bruteForceTimeWindowMinutes(5) // Shorter window for real-time
+                .bruteForceThreshold(request.getBruteForceThreshold() != null ? request.getBruteForceThreshold() : 10)
                 .includeDetailedLists(true)
                 .maxListSize(FraudConstants.DEFAULT_TOP_THREATS_SIZE)
                 .build();

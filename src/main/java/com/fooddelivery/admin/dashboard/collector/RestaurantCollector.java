@@ -215,7 +215,7 @@ public class RestaurantCollector {
                 .rating(roundToTwoDecimals(rating))
                 .totalOrdersToday(totalOrders)
                 .avgPreparationTimeMinutes(roundToTwoDecimals(avgPrepTime))
-                .cuisineType(restaurant.getCuisineType())
+                .cuisineType(null) // Restaurant entity doesn't have cuisineType field
                 .city(restaurant.getCity())
                 .performanceScore(calculatePerformanceScore(rating, 100.0, avgPrepTime))
                 .build();

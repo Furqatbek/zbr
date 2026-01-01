@@ -82,8 +82,8 @@ public class BehavioralFraudCollector {
             LocalDateTime startDate, LocalDateTime endDate, int threshold, int windowMinutes,
             boolean includeDetails, int maxSize) {
 
-        Double avgOrders = orderHistoryRepository.getAvgOrdersPerUser(startDate, endDate);
-        if (avgOrders == null) avgOrders = 0.0;
+        Double avgOrdersTemp = orderHistoryRepository.getAvgOrdersPerUser(startDate, endDate);
+        final double avgOrders = avgOrdersTemp != null ? avgOrdersTemp : 0.0;
 
         // Get hourly distribution
         Map<Integer, Long> hourlyDist = new LinkedHashMap<>();
