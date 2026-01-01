@@ -73,6 +73,17 @@ CREATE INDEX idx_auth_logs_user_status ON auth_logs(user_id, status);
 CREATE INDEX idx_auth_logs_ip_status ON auth_logs(ip_address, status);
 CREATE INDEX idx_auth_logs_vpn_tor ON auth_logs(is_vpn, is_tor, is_proxy);
 
+-- Add device_fingerprint column if missing (required by AuthLog entity)
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'auth_logs' AND column_name = 'device_fingerprint'
+    ) THEN
+        ALTER TABLE auth_logs ADD COLUMN device_fingerprint VARCHAR(255);
+    END IF;
+END $$;
+
 -- ============================================
 -- Referral Events Table
 -- Tracks referral program usage for fraud detection
