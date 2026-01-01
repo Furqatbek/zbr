@@ -1,6 +1,19 @@
 -- Technical Analytics Tables
 -- V5: Platform health and performance monitoring
 
+-- Drop existing tables if they exist (for idempotent migrations)
+DO $$
+BEGIN
+    DROP TABLE IF EXISTS system_metric_snapshots CASCADE;
+    DROP TABLE IF EXISTS backup_logs CASCADE;
+    DROP TABLE IF EXISTS message_queue_stats CASCADE;
+    DROP TABLE IF EXISTS storage_metadata CASCADE;
+    DROP TABLE IF EXISTS websocket_message_logs CASCADE;
+    DROP TABLE IF EXISTS websocket_connection_logs CASCADE;
+    DROP TABLE IF EXISTS slow_query_logs CASCADE;
+    DROP TABLE IF EXISTS http_request_logs CASCADE;
+END $$;
+
 -- HTTP Request Logs
 CREATE TABLE http_request_logs (
     id BIGSERIAL PRIMARY KEY,
@@ -137,21 +150,27 @@ CREATE INDEX idx_mq_stats_queue_collected ON message_queue_stats(queue_name, col
 -- Backup Logs
 CREATE TABLE backup_logs (
     id BIGSERIAL PRIMARY KEY,
-    backup_id VARCHAR(64) UNIQUE NOT NULL,
-    database_name VARCHAR(64) NOT NULL,
+    backup_id VARCHAR(50) NOT NULL,
     backup_type VARCHAR(20) NOT NULL,
-    status VARCHAR(20) NOT NULL,
+    database_name VARCHAR(100),
     backup_size_bytes BIGINT,
-    backup_path VARCHAR(512),
-    is_verified BOOLEAN DEFAULT FALSE,
+    backup_location VARCHAR(500),
+    status VARCHAR(20) NOT NULL,
     started_at TIMESTAMP NOT NULL,
     completed_at TIMESTAMP,
-    error_message TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    duration_seconds BIGINT,
+    error_message VARCHAR(1000),
+    tables_backed_up INTEGER,
+    rows_backed_up BIGINT,
+    is_compressed BOOLEAN DEFAULT TRUE,
+    is_encrypted BOOLEAN DEFAULT FALSE,
+    retention_days INTEGER,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX idx_backup_logs_started_at ON backup_logs(started_at);
-CREATE INDEX idx_backup_logs_status ON backup_logs(status);
+CREATE INDEX idx_bl_backup_type ON backup_logs(backup_type);
+CREATE INDEX idx_bl_status ON backup_logs(status);
+CREATE INDEX idx_bl_started_at ON backup_logs(started_at);
 
 -- System Metric Snapshots
 CREATE TABLE system_metric_snapshots (
