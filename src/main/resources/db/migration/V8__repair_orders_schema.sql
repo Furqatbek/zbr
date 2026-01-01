@@ -6,20 +6,27 @@
 -- This migration is safe to run on both fresh and existing databases.
 -- =====================================================
 
--- Add total_amount column if it doesn't exist
+-- Add total_amount column if it doesn't exist (alias for 'total' column)
 -- This column is required by V19 materialized views
 DO $$
 BEGIN
-    IF NOT EXISTS (
+    -- First check if 'total' column exists (from Order entity)
+    IF EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'orders' AND column_name = 'total'
+    ) AND NOT EXISTS (
         SELECT 1 FROM information_schema.columns
         WHERE table_name = 'orders' AND column_name = 'total_amount'
     ) THEN
-        ALTER TABLE orders ADD COLUMN total_amount DECIMAL(10, 2);
-        -- Update existing rows: calculate total_amount from other fields if they exist
-        UPDATE orders SET total_amount = COALESCE(subtotal, 0) + COALESCE(tax_amount, 0) + COALESCE(delivery_fee, 0) + COALESCE(tip_amount, 0) - COALESCE(discount_amount, 0)
-        WHERE total_amount IS NULL;
-        -- Make it NOT NULL after populating
-        ALTER TABLE orders ALTER COLUMN total_amount SET NOT NULL;
+        -- Create total_amount as a generated column based on total
+        ALTER TABLE orders ADD COLUMN total_amount DECIMAL(10, 2) GENERATED ALWAYS AS (total) STORED;
+        RAISE NOTICE 'Added total_amount as generated column from total';
+    ELSIF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'orders' AND column_name = 'total_amount'
+    ) THEN
+        -- No total column exists, create total_amount with default
+        ALTER TABLE orders ADD COLUMN total_amount DECIMAL(10, 2) NOT NULL DEFAULT 0;
         RAISE NOTICE 'Added total_amount column to orders table';
     END IF;
 END $$;
@@ -36,15 +43,15 @@ BEGIN
     END IF;
 END $$;
 
--- Ensure tax_amount column exists
+-- Ensure tax column exists (Order entity uses 'tax', not 'tax_amount')
 DO $$
 BEGIN
     IF NOT EXISTS (
         SELECT 1 FROM information_schema.columns
-        WHERE table_name = 'orders' AND column_name = 'tax_amount'
+        WHERE table_name = 'orders' AND column_name = 'tax'
     ) THEN
-        ALTER TABLE orders ADD COLUMN tax_amount DECIMAL(10, 2) DEFAULT 0.00;
-        RAISE NOTICE 'Added tax_amount column to orders table';
+        ALTER TABLE orders ADD COLUMN tax DECIMAL(10, 2) DEFAULT 0.00;
+        RAISE NOTICE 'Added tax column to orders table';
     END IF;
 END $$;
 
@@ -72,15 +79,15 @@ BEGIN
     END IF;
 END $$;
 
--- Ensure discount_amount column exists
+-- Ensure discount column exists (Order entity uses 'discount', not 'discount_amount')
 DO $$
 BEGIN
     IF NOT EXISTS (
         SELECT 1 FROM information_schema.columns
-        WHERE table_name = 'orders' AND column_name = 'discount_amount'
+        WHERE table_name = 'orders' AND column_name = 'discount'
     ) THEN
-        ALTER TABLE orders ADD COLUMN discount_amount DECIMAL(10, 2) DEFAULT 0.00;
-        RAISE NOTICE 'Added discount_amount column to orders table';
+        ALTER TABLE orders ADD COLUMN discount DECIMAL(10, 2) DEFAULT 0.00;
+        RAISE NOTICE 'Added discount column to orders table';
     END IF;
 END $$;
 
