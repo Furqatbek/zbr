@@ -183,4 +183,35 @@ public interface PaymentAttemptRepository extends JpaRepository<PaymentAttempt, 
             "HAVING COUNT(DISTINCT p.userId) > 1 " +
             "ORDER BY COUNT(DISTINCT p.userId) DESC")
     List<Object[]> detectSharedPaymentTokens(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
+
+    // ==================== User-Specific Queries ====================
+
+    /**
+     * Count payment attempts for a specific user in date range.
+     */
+    @Query("SELECT COUNT(p) FROM PaymentAttempt p WHERE p.userId = :userId " +
+            "AND p.createdAt BETWEEN :start AND :end")
+    Long countByUserIdAndCreatedAtBetween(@Param("userId") Long userId,
+                                           @Param("start") LocalDateTime start,
+                                           @Param("end") LocalDateTime end);
+
+    /**
+     * Count failed payments for a specific user.
+     */
+    @Query("SELECT COUNT(p) FROM PaymentAttempt p WHERE p.userId = :userId " +
+            "AND p.status IN ('FAILED', 'DECLINED') " +
+            "AND p.createdAt BETWEEN :start AND :end")
+    Long countUserFailedPayments(@Param("userId") Long userId,
+                                  @Param("start") LocalDateTime start,
+                                  @Param("end") LocalDateTime end);
+
+    /**
+     * Get total failed payment amount for a specific user.
+     */
+    @Query("SELECT COALESCE(SUM(p.amount), 0) FROM PaymentAttempt p " +
+            "WHERE p.userId = :userId AND p.status IN ('FAILED', 'DECLINED') " +
+            "AND p.createdAt BETWEEN :start AND :end")
+    java.math.BigDecimal getUserTotalFailedAmount(@Param("userId") Long userId,
+                                                   @Param("start") LocalDateTime start,
+                                                   @Param("end") LocalDateTime end);
 }

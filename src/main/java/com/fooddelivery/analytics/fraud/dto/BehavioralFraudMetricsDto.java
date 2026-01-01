@@ -55,7 +55,13 @@ public class BehavioralFraudMetricsDto {
         private Long usersExceedingVelocityThreshold;
         private Integer velocityThresholdPerHour;
         private List<VelocityViolationDto> velocityViolations;
+        private Long velocityViolationCount; // Alias for count
         private Map<Integer, Long> ordersPerHourDistribution;
+
+        public Long getVelocityViolationCount() {
+            if (velocityViolationCount != null) return velocityViolationCount;
+            return velocityViolations != null ? (long) velocityViolations.size() : 0L;
+        }
     }
 
     @Data

@@ -124,8 +124,11 @@ public class FraudAnalyticsServiceImpl implements FraudAnalyticsService {
             double orderValueZScore, int addressUserThreshold,
             boolean includeDetails, int maxListSize) {
         log.debug("Collecting behavioral fraud metrics from {} to {}", startDate, endDate);
-        return behavioralFraudCollector.collect(startDate, endDate, velocityThreshold,
-                refundRateThreshold, orderValueZScore, addressUserThreshold,
+        // Default values for additional parameters
+        int velocityWindowMinutes = 60;
+        int minOrdersForRefund = 3;
+        return behavioralFraudCollector.collect(startDate, endDate, velocityThreshold, velocityWindowMinutes,
+                orderValueZScore, refundRateThreshold, minOrdersForRefund, addressUserThreshold,
                 includeDetails, maxListSize);
     }
 

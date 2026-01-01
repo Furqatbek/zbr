@@ -112,8 +112,8 @@ public abstract class FraudSummaryMapper {
 
         // Velocity violations (max 30 points)
         if (metrics.getVelocityMetrics() != null &&
-                metrics.getVelocityMetrics().getVelocityViolations() != null) {
-            score += Math.min(metrics.getVelocityMetrics().getVelocityViolations() * 3, 30);
+                metrics.getVelocityMetrics().getVelocityViolationCount() != null) {
+            score += Math.min(metrics.getVelocityMetrics().getVelocityViolationCount() * 3, 30);
         }
 
         // Refund abuse (max 35 points)
@@ -434,8 +434,8 @@ public abstract class FraudSummaryMapper {
 
         long total = 0;
         if (behavioral.getVelocityMetrics() != null &&
-                behavioral.getVelocityMetrics().getVelocityViolations() != null) {
-            total += behavioral.getVelocityMetrics().getVelocityViolations();
+                behavioral.getVelocityMetrics().getVelocityViolationCount() != null) {
+            total += behavioral.getVelocityMetrics().getVelocityViolationCount();
         }
         if (behavioral.getOrderValueMetrics() != null &&
                 behavioral.getOrderValueMetrics().getAnomalousOrderCount() != null) {
@@ -462,8 +462,8 @@ public abstract class FraudSummaryMapper {
         if (metrics == null) return indicators;
 
         if (metrics.getVelocityMetrics() != null &&
-                metrics.getVelocityMetrics().getVelocityViolations() != null &&
-                metrics.getVelocityMetrics().getVelocityViolations() > 0) {
+                metrics.getVelocityMetrics().getVelocityViolationCount() != null &&
+                metrics.getVelocityMetrics().getVelocityViolationCount() > 0) {
             indicators.add(FraudConstants.INDICATOR_VELOCITY_VIOLATION);
         }
         if (metrics.getRefundMetrics() != null &&

@@ -148,25 +148,14 @@ public class FinanceMetricsDto {
         private BigDecimal platformFundedDiscounts;
         private BigDecimal restaurantFundedDiscounts;
 
-        // Top promo codes
-        private List<PromoCodeUsageDto> topPromoCodes;
-
-        // Alternative format for top promo codes
-        private List<Map<String, Object>> topPromoCodesMap;
+        // Top promo codes - using Map format for flexibility
+        private List<Map<String, Object>> topPromoCodes;
 
         // Average discount per order
         private BigDecimal avgDiscountPerOrder;
 
         // Discount breakdown by type
         private Map<String, BigDecimal> discountByType;
-
-        public List<Map<String, Object>> getTopPromoCodes() {
-            return topPromoCodesMap;
-        }
-
-        public void setTopPromoCodes(List<Map<String, Object>> topPromoCodes) {
-            this.topPromoCodesMap = topPromoCodes;
-        }
     }
 
     @Data

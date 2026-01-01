@@ -29,11 +29,17 @@ public class DashboardRefreshLog {
     @Column(name = "panel_name", nullable = false, length = 50)
     private String panelName; // OVERVIEW, ORDERS, RESTAURANTS, COURIERS, FINANCE, SUPPORT
 
+    @Column(name = "component", length = 100)
+    private String component; // Alias for panelName
+
     @Column(name = "admin_user_id")
     private Long adminUserId;
 
     @Column(name = "query_duration_ms")
     private Integer queryDurationMs;
+
+    @Column(name = "duration_ms")
+    private Long durationMs; // Alias for queryDurationMs
 
     @Column(name = "cache_hit")
     @Builder.Default
@@ -51,6 +57,13 @@ public class DashboardRefreshLog {
     @Column(name = "successful")
     @Builder.Default
     private Boolean successful = true;
+
+    @Column(name = "success")
+    @Builder.Default
+    private Boolean success = true; // Alias for successful
+
+    @Column(name = "message", length = 500)
+    private String message; // Alias for errorMessage
 
     @CreationTimestamp
     @Column(name = "refreshed_at", nullable = false, updatable = false)

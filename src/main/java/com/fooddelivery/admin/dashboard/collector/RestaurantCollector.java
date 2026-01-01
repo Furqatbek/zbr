@@ -102,11 +102,21 @@ public class RestaurantCollector {
         return RestaurantPerformanceSummaryDto.builder()
                 .avgPreparationTimeMinutes(roundToTwoDecimals(avgPrepTime))
                 .avgAcceptanceLatencySeconds(roundToTwoDecimals(avgAcceptanceLatency))
-                .avgRating(roundToTwoDecimals(avgRating))
+                .avgRating(toBigDecimal(avgRating))
                 .avgAcceptanceRate(roundToTwoDecimals(avgAcceptanceRate))
                 .totalOrdersProcessed(totalOrdersProcessed)
                 .rejectionRate(roundToTwoDecimals(rejectionRate))
                 .build();
+    }
+
+    /**
+     * Convert Double to BigDecimal.
+     */
+    private BigDecimal toBigDecimal(Double value) {
+        if (value == null) {
+            return BigDecimal.ZERO;
+        }
+        return BigDecimal.valueOf(value).setScale(2, RoundingMode.HALF_UP);
     }
 
     /**
@@ -183,6 +193,35 @@ public class RestaurantCollector {
     }
 
     /**
+     * Map Restaurant entity to RestaurantDetailDto.
+     */
+    private RestaurantDetailDto mapRestaurantToDetail(com.fooddelivery.restaurant.entity.Restaurant restaurant) {
+        Double rating = restaurant.getAverageRating() != null
+                ? restaurant.getAverageRating().doubleValue() : 0.0;
+        Double avgPrepTime = restaurant.getAveragePrepTimeMinutes() != null
+                ? restaurant.getAveragePrepTimeMinutes().doubleValue() : 0.0;
+        Long totalOrders = restaurant.getTotalOrders() != null
+                ? restaurant.getTotalOrders() : 0L;
+        Boolean isOnline = restaurant.getIsOpen() != null ? restaurant.getIsOpen() : false;
+        String status = restaurant.getStatus() != null ? restaurant.getStatus().name() : "UNKNOWN";
+
+        String statusDisplay = determineRestaurantStatus(isOnline, status);
+
+        return RestaurantDetailDto.builder()
+                .restaurantId(restaurant.getId())
+                .name(restaurant.getName())
+                .status(statusDisplay)
+                .isOnline(isOnline)
+                .rating(roundToTwoDecimals(rating))
+                .totalOrdersToday(totalOrders)
+                .avgPreparationTimeMinutes(roundToTwoDecimals(avgPrepTime))
+                .cuisineType(restaurant.getCuisineType())
+                .city(restaurant.getCity())
+                .performanceScore(calculatePerformanceScore(rating, 100.0, avgPrepTime))
+                .build();
+    }
+
+    /**
      * Determine restaurant display status.
      */
     private String determineRestaurantStatus(Boolean isOnline, String status) {
@@ -246,11 +285,11 @@ public class RestaurantCollector {
     private List<RestaurantDetailDto> collectTopPerformers(LocalDateTime startDate,
                                                            LocalDateTime endDate, int limit) {
         Pageable pageable = PageRequest.of(0, limit);
-        List<Object[]> topPerformers = restaurantRepository.findTopPerformingRestaurants(
+        List<com.fooddelivery.restaurant.entity.Restaurant> topPerformers = restaurantRepository.findTopPerformingRestaurants(
                 startDate, endDate, pageable);
 
         return topPerformers.stream()
-                .map(this::mapToRestaurantDetail)
+                .map(this::mapRestaurantToDetail)
                 .collect(Collectors.toList());
     }
 
@@ -260,11 +299,11 @@ public class RestaurantCollector {
     private List<RestaurantDetailDto> collectUnderperformers(LocalDateTime startDate,
                                                               LocalDateTime endDate, int limit) {
         Pageable pageable = PageRequest.of(0, limit);
-        List<Object[]> underperformers = restaurantRepository.findUnderperformingRestaurants(
+        List<com.fooddelivery.restaurant.entity.Restaurant> underperformers = restaurantRepository.findUnderperformingRestaurants(
                 startDate, endDate, 3.0, 70.0, pageable); // rating < 3.0 or acceptance < 70%
 
         return underperformers.stream()
-                .map(this::mapToRestaurantDetail)
+                .map(this::mapRestaurantToDetail)
                 .collect(Collectors.toList());
     }
 

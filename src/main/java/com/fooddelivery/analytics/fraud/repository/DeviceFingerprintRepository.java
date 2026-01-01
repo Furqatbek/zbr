@@ -150,4 +150,26 @@ public interface DeviceFingerprintRepository extends JpaRepository<DeviceFingerp
             "HAVING COUNT(DISTINCT d.userId) > 1 " +
             "ORDER BY COUNT(DISTINCT d.userId) DESC")
     List<Object[]> getFingerprintClusters(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
+
+    // ==================== User-Specific Device Queries ====================
+
+    /**
+     * Count distinct devices used by a specific user.
+     */
+    @Query("SELECT COUNT(DISTINCT d.deviceId) FROM DeviceFingerprint d " +
+            "WHERE d.userId = :userId AND d.firstSeenAt BETWEEN :start AND :end")
+    Long countUserDevices(@Param("userId") Long userId,
+                          @Param("start") LocalDateTime start,
+                          @Param("end") LocalDateTime end);
+
+    /**
+     * Check if user has shared a device with other users.
+     */
+    @Query("SELECT CASE WHEN COUNT(DISTINCT d2.userId) > 1 THEN true ELSE false END " +
+            "FROM DeviceFingerprint d " +
+            "JOIN DeviceFingerprint d2 ON d.deviceId = d2.deviceId " +
+            "WHERE d.userId = :userId AND d.firstSeenAt BETWEEN :start AND :end")
+    Boolean hasSharedDevice(@Param("userId") Long userId,
+                            @Param("start") LocalDateTime start,
+                            @Param("end") LocalDateTime end);
 }

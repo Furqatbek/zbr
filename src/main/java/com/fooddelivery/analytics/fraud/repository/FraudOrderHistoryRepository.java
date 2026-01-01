@@ -219,4 +219,17 @@ public interface FraudOrderHistoryRepository extends JpaRepository<FraudOrderHis
             "WHERE o.createdAt BETWEEN :start AND :end " +
             "GROUP BY o.userId) sub")
     Double getAvgOrdersPerUser(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
+
+    /**
+     * Get order statistics for a specific user.
+     * Returns: totalOrders, refundedOrders, avgOrderValue
+     */
+    @Query("SELECT COUNT(o), " +
+            "SUM(CASE WHEN o.isRefunded = true THEN 1 ELSE 0 END), " +
+            "AVG(o.amount) " +
+            "FROM FraudOrderHistory o " +
+            "WHERE o.userId = :userId AND o.createdAt BETWEEN :start AND :end")
+    List<Object[]> getUserOrderStats(@Param("userId") Long userId,
+                                      @Param("start") LocalDateTime start,
+                                      @Param("end") LocalDateTime end);
 }
