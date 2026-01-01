@@ -240,6 +240,11 @@ spring:
   jpa:
     show-sql: true
 
+  flyway:
+    # In dev, allow modified migrations and out-of-order execution
+    validate-on-migrate: false
+    out-of-order: true
+
 logging:
   level:
     com.fooddelivery: DEBUG
@@ -260,6 +265,18 @@ logging:
     com.fooddelivery: INFO
   pattern:
     console: '{"timestamp":"%d{yyyy-MM-dd HH:mm:ss.SSS}","level":"%level","thread":"%thread","logger":"%logger{36}","message":"%msg"}%n'
+
+---
+# Docker Profile
+spring:
+  config:
+    activate:
+      on-profile: docker
+
+  flyway:
+    # In Docker, allow modified migrations and out-of-order execution
+    validate-on-migrate: false
+    out-of-order: true
 
 ---
 # Test Profile
