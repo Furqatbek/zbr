@@ -135,6 +135,32 @@ GROUP BY DATE(created_at), EXTRACT(HOUR FROM created_at);
 -- Index on hourly activity view
 CREATE INDEX idx_mv_hourly_order_activity ON mv_hourly_order_activity(order_date, hour_of_day);
 
+-- =====================================================
+-- Ensure required columns exist before creating views
+-- =====================================================
+
+-- Ensure restaurants.is_online column exists
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'restaurants' AND column_name = 'is_online'
+    ) THEN
+        ALTER TABLE restaurants ADD COLUMN is_online BOOLEAN DEFAULT FALSE;
+    END IF;
+END $$;
+
+-- Ensure couriers.name column exists
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'couriers' AND column_name = 'name'
+    ) THEN
+        ALTER TABLE couriers ADD COLUMN name VARCHAR(255);
+    END IF;
+END $$;
+
 -- Restaurant Performance Summary Materialized View
 CREATE MATERIALIZED VIEW IF NOT EXISTS mv_restaurant_performance_daily AS
 SELECT
