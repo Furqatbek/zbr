@@ -1,32 +1,41 @@
 -- Food Delivery Platform - Initial Schema
 -- Flyway Migration V1
--- All core tables with proper column definitions
+-- All core tables matching JPA entities exactly
 
 -- Users table
 CREATE TABLE users (
     id BIGSERIAL PRIMARY KEY,
     email VARCHAR(255) UNIQUE,
+    phone VARCHAR(20) UNIQUE,
     password_hash VARCHAR(255),
-    full_name VARCHAR(255) NOT NULL,
-    phone VARCHAR(50) UNIQUE,
-    role VARCHAR(50) NOT NULL DEFAULT 'CONSUMER',
-    status VARCHAR(50) NOT NULL DEFAULT 'ACTIVE',
-    email_verified BOOLEAN DEFAULT FALSE,
-    phone_verified BOOLEAN DEFAULT FALSE,
-    failed_login_attempts INT DEFAULT 0,
-    locked_until TIMESTAMP,
-    last_login_at TIMESTAMP,
+    first_name VARCHAR(100),
+    last_name VARCHAR(100),
+    profile_image_url VARCHAR(255),
     address VARCHAR(500),
     latitude DOUBLE PRECISION,
     longitude DOUBLE PRECISION,
+    role VARCHAR(20) NOT NULL DEFAULT 'CONSUMER',
+    status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
+    email_verified BOOLEAN DEFAULT FALSE,
+    phone_verified BOOLEAN DEFAULT FALSE,
+    last_login_at TIMESTAMP,
+    failed_login_attempts INTEGER DEFAULT 0,
+    locked_until TIMESTAMP,
+    version BIGINT DEFAULT 0,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE INDEX idx_users_email ON users(email);
 CREATE INDEX idx_users_phone ON users(phone);
-CREATE INDEX idx_users_role ON users(role);
 CREATE INDEX idx_users_status ON users(status);
+
+-- User roles collection table
+CREATE TABLE user_roles (
+    user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    role VARCHAR(20) NOT NULL,
+    PRIMARY KEY (user_id, role)
+);
 
 -- Refresh tokens table
 CREATE TABLE refresh_tokens (
@@ -46,58 +55,47 @@ CREATE INDEX idx_refresh_tokens_user_id ON refresh_tokens(user_id);
 CREATE TABLE restaurants (
     id BIGSERIAL PRIMARY KEY,
     owner_id BIGINT NOT NULL REFERENCES users(id),
-    name VARCHAR(255) NOT NULL,
-    slug VARCHAR(255) NOT NULL UNIQUE,
-    description TEXT,
-    cuisine_type VARCHAR(100),
+    name VARCHAR(200) NOT NULL,
+    slug VARCHAR(250) UNIQUE,
+    description VARCHAR(1000),
+    logo_url VARCHAR(255),
+    cover_image_url VARCHAR(255),
+    phone VARCHAR(50),
+    email VARCHAR(255),
     address_line1 VARCHAR(255),
     address_line2 VARCHAR(255),
     city VARCHAR(100),
     state VARCHAR(100),
     postal_code VARCHAR(20),
-    country VARCHAR(100) DEFAULT 'US',
-    latitude DECIMAL(10, 8),
-    longitude DECIMAL(11, 8),
-    phone VARCHAR(50),
-    email VARCHAR(255),
-    logo_url VARCHAR(500),
-    banner_url VARCHAR(500),
-    status VARCHAR(50) NOT NULL DEFAULT 'PENDING',
-    avg_rating DECIMAL(3, 2) DEFAULT 0.00,
-    rating DECIMAL(3, 2) DEFAULT 0.00,
-    total_ratings INT DEFAULT 0,
-    avg_prep_time INT DEFAULT 30,
-    minimum_order DECIMAL(10, 2) DEFAULT 0.00,
-    delivery_fee DECIMAL(10, 2) DEFAULT 0.00,
-    delivery_radius_km DECIMAL(5, 2) DEFAULT 10.00,
-    accepts_pickup BOOLEAN DEFAULT TRUE,
-    accepts_delivery BOOLEAN DEFAULT TRUE,
-    accepts_dine_in BOOLEAN DEFAULT FALSE,
+    country VARCHAR(100),
+    latitude DECIMAL(10, 7),
+    longitude DECIMAL(10, 7),
+    status VARCHAR(20) NOT NULL DEFAULT 'PENDING',
     is_featured BOOLEAN DEFAULT FALSE,
-    is_online BOOLEAN DEFAULT FALSE,
-    commission_rate DECIMAL(5, 4) DEFAULT 0.15,
+    accepts_delivery BOOLEAN DEFAULT TRUE,
+    accepts_takeaway BOOLEAN DEFAULT TRUE,
+    accepts_dine_in BOOLEAN DEFAULT FALSE,
+    minimum_order DECIMAL(10, 2) DEFAULT 0,
+    delivery_fee DECIMAL(10, 2) DEFAULT 0,
+    delivery_radius_km INTEGER DEFAULT 10,
+    average_prep_time_minutes INTEGER DEFAULT 30,
+    opens_at TIME,
+    closes_at TIME,
+    is_open BOOLEAN DEFAULT FALSE,
+    commission_rate DECIMAL(5, 2) DEFAULT 15.00,
+    currency VARCHAR(10) DEFAULT 'UZS',
+    average_rating DECIMAL(3, 2) DEFAULT 0,
+    total_ratings INTEGER DEFAULT 0,
+    total_orders INTEGER DEFAULT 0,
+    config_json TEXT,
     version BIGINT DEFAULT 0,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX idx_restaurants_owner_id ON restaurants(owner_id);
-CREATE INDEX idx_restaurants_slug ON restaurants(slug);
+CREATE INDEX idx_restaurants_owner ON restaurants(owner_id);
 CREATE INDEX idx_restaurants_status ON restaurants(status);
-CREATE INDEX idx_restaurants_location ON restaurants(latitude, longitude);
-CREATE INDEX idx_restaurants_cuisine ON restaurants(cuisine_type);
-
--- Restaurant operating hours
-CREATE TABLE restaurant_operating_hours (
-    id BIGSERIAL PRIMARY KEY,
-    restaurant_id BIGINT NOT NULL REFERENCES restaurants(id) ON DELETE CASCADE,
-    day_of_week INT NOT NULL CHECK (day_of_week BETWEEN 0 AND 6),
-    open_time TIME NOT NULL,
-    close_time TIME NOT NULL,
-    is_closed BOOLEAN DEFAULT FALSE
-);
-
-CREATE INDEX idx_operating_hours_restaurant ON restaurant_operating_hours(restaurant_id);
+CREATE INDEX idx_restaurants_slug ON restaurants(slug);
 
 -- Menu categories
 CREATE TABLE menu_categories (
@@ -108,7 +106,7 @@ CREATE TABLE menu_categories (
     display_order INT DEFAULT 0,
     is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE INDEX idx_menu_categories_restaurant ON menu_categories(restaurant_id);
@@ -131,125 +129,98 @@ CREATE TABLE menu_items (
     is_vegetarian BOOLEAN DEFAULT FALSE,
     is_vegan BOOLEAN DEFAULT FALSE,
     is_gluten_free BOOLEAN DEFAULT FALSE,
-    spice_level INT DEFAULT 0 CHECK (spice_level BETWEEN 0 AND 5),
+    spice_level INT DEFAULT 0,
     calories INT,
     prep_time_minutes INT,
     display_order INT DEFAULT 0,
     version BIGINT DEFAULT 0,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE INDEX idx_menu_items_restaurant ON menu_items(restaurant_id);
 CREATE INDEX idx_menu_items_category ON menu_items(category_id);
-CREATE INDEX idx_menu_items_available ON menu_items(is_available);
-CREATE INDEX idx_menu_items_image_path ON menu_items(image_path);
-
--- Item variants
-CREATE TABLE item_variants (
-    id BIGSERIAL PRIMARY KEY,
-    menu_item_id BIGINT NOT NULL REFERENCES menu_items(id) ON DELETE CASCADE,
-    name VARCHAR(100) NOT NULL,
-    price_adjustment DECIMAL(10, 2) DEFAULT 0.00,
-    is_default BOOLEAN DEFAULT FALSE,
-    is_available BOOLEAN DEFAULT TRUE,
-    display_order INT DEFAULT 0
-);
-
-CREATE INDEX idx_item_variants_menu_item ON item_variants(menu_item_id);
-
--- Item options
-CREATE TABLE item_options (
-    id BIGSERIAL PRIMARY KEY,
-    menu_item_id BIGINT NOT NULL REFERENCES menu_items(id) ON DELETE CASCADE,
-    name VARCHAR(100) NOT NULL,
-    price DECIMAL(10, 2) DEFAULT 0.00,
-    is_available BOOLEAN DEFAULT TRUE,
-    max_selections INT DEFAULT 1,
-    is_required BOOLEAN DEFAULT FALSE,
-    option_group VARCHAR(100)
-);
-
-CREATE INDEX idx_item_options_menu_item ON item_options(menu_item_id);
 
 -- Couriers table
 CREATE TABLE couriers (
     id BIGSERIAL PRIMARY KEY,
     user_id BIGINT NOT NULL UNIQUE REFERENCES users(id),
-    name VARCHAR(255),
-    vehicle_type VARCHAR(50),
-    license_plate VARCHAR(50),
-    status VARCHAR(50) NOT NULL DEFAULT 'OFFLINE',
-    current_latitude DECIMAL(10, 8),
-    current_longitude DECIMAL(11, 8),
-    last_location_update TIMESTAMP,
-    is_available BOOLEAN DEFAULT FALSE,
-    avg_rating DECIMAL(3, 2) DEFAULT 0.00,
-    rating DECIMAL(3, 2) DEFAULT 0.00,
-    total_ratings INT DEFAULT 0,
-    total_deliveries INT DEFAULT 0,
+    status VARCHAR(20) NOT NULL DEFAULT 'OFFLINE',
+    vehicle_type VARCHAR(20) NOT NULL DEFAULT 'BICYCLE',
+    vehicle_number VARCHAR(50),
+    license_number VARCHAR(50),
+    current_lat DECIMAL(10, 7),
+    current_lng DECIMAL(10, 7),
+    location_updated_at TIMESTAMP,
+    total_deliveries INTEGER DEFAULT 0,
+    average_rating DECIMAL(3, 2) DEFAULT 0,
+    total_ratings INTEGER DEFAULT 0,
+    acceptance_rate DECIMAL(5, 2) DEFAULT 100.00,
+    total_earnings DECIMAL(12, 2) DEFAULT 0,
+    max_concurrent_orders INTEGER DEFAULT 3,
+    current_order_count INTEGER DEFAULT 0,
+    preferred_radius_km INTEGER DEFAULT 5,
+    is_verified BOOLEAN DEFAULT FALSE,
+    verified_at TIMESTAMP,
+    documents_submitted BOOLEAN DEFAULT FALSE,
+    version BIGINT DEFAULT 0,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX idx_couriers_user_id ON couriers(user_id);
+CREATE INDEX idx_couriers_user ON couriers(user_id);
 CREATE INDEX idx_couriers_status ON couriers(status);
-CREATE INDEX idx_couriers_location ON couriers(current_latitude, current_longitude);
+CREATE INDEX idx_couriers_location ON couriers(current_lat, current_lng);
 
 -- Orders table
 CREATE TABLE orders (
     id BIGSERIAL PRIMARY KEY,
-    order_number VARCHAR(50) NOT NULL UNIQUE,
-    customer_id BIGINT NOT NULL REFERENCES users(id),
+    external_order_no VARCHAR(50) NOT NULL UNIQUE,
+    consumer_id BIGINT NOT NULL REFERENCES users(id),
     restaurant_id BIGINT NOT NULL REFERENCES restaurants(id),
     courier_id BIGINT REFERENCES couriers(id),
-    status VARCHAR(50) NOT NULL DEFAULT 'CREATED',
-    order_type VARCHAR(50) NOT NULL DEFAULT 'DELIVERY',
+    order_type VARCHAR(20) NOT NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'CREATED',
+    payment_status VARCHAR(20) NOT NULL DEFAULT 'PENDING',
     subtotal DECIMAL(10, 2) NOT NULL DEFAULT 0,
-    tax DECIMAL(10, 2) DEFAULT 0.00,
-    tax_amount DECIMAL(10, 2) DEFAULT 0.00,
-    delivery_fee DECIMAL(10, 2) DEFAULT 0.00,
-    tip_amount DECIMAL(10, 2) DEFAULT 0.00,
-    discount DECIMAL(10, 2) DEFAULT 0.00,
-    discount_amount DECIMAL(10, 2) DEFAULT 0.00,
+    tax DECIMAL(10, 2) DEFAULT 0,
+    delivery_fee DECIMAL(10, 2) DEFAULT 0,
+    discount DECIMAL(10, 2) DEFAULT 0,
+    tip_amount DECIMAL(10, 2) DEFAULT 0,
     total DECIMAL(10, 2) NOT NULL DEFAULT 0,
-    total_amount DECIMAL(10, 2) NOT NULL DEFAULT 0,
-    currency VARCHAR(3) DEFAULT 'USD',
-    delivery_address_line1 VARCHAR(255),
-    delivery_address_line2 VARCHAR(255),
-    delivery_city VARCHAR(100),
-    delivery_state VARCHAR(100),
-    delivery_postal_code VARCHAR(20),
-    delivery_latitude DECIMAL(10, 8),
-    delivery_longitude DECIMAL(11, 8),
-    delivery_instructions TEXT,
-    table_number VARCHAR(20),
-    scheduled_for TIMESTAMP,
+    delivery_address VARCHAR(500),
+    delivery_latitude DECIMAL(10, 7),
+    delivery_longitude DECIMAL(10, 7),
+    delivery_instructions VARCHAR(500),
+    table_id VARCHAR(255),
+    customer_name VARCHAR(200),
+    customer_phone VARCHAR(50),
+    notes VARCHAR(1000),
+    estimated_prep_time_minutes INTEGER,
     estimated_delivery_time TIMESTAMP,
-    actual_delivery_time TIMESTAMP,
     accepted_at TIMESTAMP,
     preparing_at TIMESTAMP,
     ready_at TIMESTAMP,
     picked_up_at TIMESTAMP,
     delivered_at TIMESTAMP,
+    completed_at TIMESTAMP,
     cancelled_at TIMESTAMP,
-    cancellation_reason TEXT,
-    customer_notes TEXT,
-    restaurant_notes TEXT,
+    cancellation_reason VARCHAR(500),
+    rejected_at TIMESTAMP,
+    rejection_reason VARCHAR(500),
+    consumer_rating INTEGER,
+    consumer_review VARCHAR(1000),
     version BIGINT DEFAULT 0,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX idx_orders_order_number ON orders(order_number);
-CREATE INDEX idx_orders_customer ON orders(customer_id);
+CREATE INDEX idx_orders_consumer ON orders(consumer_id);
 CREATE INDEX idx_orders_restaurant ON orders(restaurant_id);
 CREATE INDEX idx_orders_courier ON orders(courier_id);
 CREATE INDEX idx_orders_status ON orders(status);
+CREATE INDEX idx_orders_external_no ON orders(external_order_no);
 CREATE INDEX idx_orders_created_at ON orders(created_at);
-CREATE INDEX idx_orders_status_created ON orders(status, created_at);
-CREATE INDEX idx_orders_restaurant_created ON orders(restaurant_id, created_at);
-CREATE INDEX idx_orders_courier_created ON orders(courier_id, created_at);
 
 -- Order items
 CREATE TABLE order_items (
@@ -257,7 +228,7 @@ CREATE TABLE order_items (
     order_id BIGINT NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
     menu_item_id BIGINT REFERENCES menu_items(id),
     name VARCHAR(255) NOT NULL,
-    quantity INT NOT NULL CHECK (quantity > 0),
+    quantity INT NOT NULL,
     unit_price DECIMAL(10, 2) NOT NULL,
     total_price DECIMAL(10, 2) NOT NULL,
     variant_name VARCHAR(100),
@@ -283,68 +254,11 @@ CREATE TABLE payments (
     refunded_at TIMESTAMP,
     metadata JSONB,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE INDEX idx_payments_order ON payments(order_id);
-CREATE INDEX idx_payments_payment_intent ON payments(payment_intent_id);
 CREATE INDEX idx_payments_status ON payments(status);
-
--- Referrals table
-CREATE TABLE referrals (
-    id BIGSERIAL PRIMARY KEY,
-    referrer_id BIGINT NOT NULL REFERENCES users(id),
-    referred_user_id BIGINT REFERENCES users(id),
-    code VARCHAR(50) NOT NULL UNIQUE,
-    status VARCHAR(50) NOT NULL DEFAULT 'PENDING',
-    referrer_reward DECIMAL(10, 2) DEFAULT 10.00,
-    referred_reward DECIMAL(10, 2) DEFAULT 10.00,
-    completed_at TIMESTAMP,
-    expires_at TIMESTAMP,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE INDEX idx_referrals_referrer ON referrals(referrer_id);
-CREATE INDEX idx_referrals_code ON referrals(code);
-CREATE INDEX idx_referrals_status ON referrals(status);
-
--- Audit events table
-CREATE TABLE audit_events (
-    id BIGSERIAL PRIMARY KEY,
-    event_type VARCHAR(100) NOT NULL,
-    aggregate_type VARCHAR(100),
-    aggregate_id VARCHAR(100),
-    user_id BIGINT,
-    action VARCHAR(255) NOT NULL,
-    details JSONB,
-    ip_address VARCHAR(45),
-    user_agent VARCHAR(500),
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE INDEX idx_audit_events_type ON audit_events(event_type);
-CREATE INDEX idx_audit_events_aggregate ON audit_events(aggregate_type, aggregate_id);
-CREATE INDEX idx_audit_events_user ON audit_events(user_id);
-CREATE INDEX idx_audit_events_created ON audit_events(created_at);
-
--- Customer ratings table
-CREATE TABLE ratings (
-    id BIGSERIAL PRIMARY KEY,
-    order_id BIGINT NOT NULL UNIQUE REFERENCES orders(id),
-    customer_id BIGINT NOT NULL REFERENCES users(id),
-    restaurant_id BIGINT REFERENCES restaurants(id),
-    courier_id BIGINT REFERENCES couriers(id),
-    restaurant_rating INT CHECK (restaurant_rating BETWEEN 1 AND 5),
-    courier_rating INT CHECK (courier_rating BETWEEN 1 AND 5),
-    food_rating INT CHECK (food_rating BETWEEN 1 AND 5),
-    delivery_rating INT CHECK (delivery_rating BETWEEN 1 AND 5),
-    comment TEXT,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE INDEX idx_ratings_order ON ratings(order_id);
-CREATE INDEX idx_ratings_restaurant ON ratings(restaurant_id);
-CREATE INDEX idx_ratings_courier ON ratings(courier_id);
 
 -- OTP codes table
 CREATE TABLE otp_codes (
@@ -361,8 +275,6 @@ CREATE TABLE otp_codes (
 );
 
 CREATE INDEX idx_otp_phone ON otp_codes(phone);
-CREATE INDEX idx_otp_phone_code ON otp_codes(phone, code);
-CREATE INDEX idx_otp_expires_at ON otp_codes(expires_at);
 
 -- Activity logs table
 CREATE TABLE activity_logs (
@@ -383,11 +295,8 @@ CREATE TABLE activity_logs (
 );
 
 CREATE INDEX idx_activity_user_id ON activity_logs(user_id);
-CREATE INDEX idx_activity_created_at ON activity_logs(created_at);
-CREATE INDEX idx_activity_user_event_date ON activity_logs(user_id, event_type, created_at);
 CREATE INDEX idx_activity_event_type ON activity_logs(event_type);
-CREATE INDEX idx_activity_restaurant_id ON activity_logs(restaurant_id);
-CREATE INDEX idx_activity_session_id ON activity_logs(session_id);
+CREATE INDEX idx_activity_created_at ON activity_logs(created_at);
 
 -- Functions for updated_at trigger
 CREATE OR REPLACE FUNCTION update_updated_at_column()
@@ -405,23 +314,13 @@ CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON users
 CREATE TRIGGER update_restaurants_updated_at BEFORE UPDATE ON restaurants
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
-CREATE TRIGGER update_menu_categories_updated_at BEFORE UPDATE ON menu_categories
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
-CREATE TRIGGER update_menu_items_updated_at BEFORE UPDATE ON menu_items
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
 CREATE TRIGGER update_couriers_updated_at BEFORE UPDATE ON couriers
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 CREATE TRIGGER update_orders_updated_at BEFORE UPDATE ON orders
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
-CREATE TRIGGER update_payments_updated_at BEFORE UPDATE ON payments
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
--- Comments
-COMMENT ON TABLE users IS 'Platform users with role-based access';
-COMMENT ON TABLE restaurants IS 'Restaurant profiles with location and settings';
-COMMENT ON TABLE orders IS 'Customer orders with full delivery lifecycle';
-COMMENT ON TABLE couriers IS 'Delivery courier profiles and status';
+COMMENT ON TABLE users IS 'Platform users';
+COMMENT ON TABLE restaurants IS 'Restaurant profiles';
+COMMENT ON TABLE couriers IS 'Delivery couriers';
+COMMENT ON TABLE orders IS 'Customer orders';
