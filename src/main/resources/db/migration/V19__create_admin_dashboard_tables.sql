@@ -112,8 +112,8 @@ SELECT
     COUNT(CASE WHEN status = 'REJECTED' THEN 1 END) as rejected_orders,
     SUM(CASE WHEN status = 'DELIVERED' THEN total_amount ELSE 0 END) as total_gmv,
     AVG(CASE WHEN status = 'DELIVERED' THEN total_amount END) as avg_order_value,
-    AVG(CASE WHEN delivery_time IS NOT NULL AND created_at IS NOT NULL
-        THEN EXTRACT(EPOCH FROM (delivery_time - created_at))/60 END) as avg_delivery_time_minutes
+    AVG(CASE WHEN delivered_at IS NOT NULL AND created_at IS NOT NULL
+        THEN EXTRACT(EPOCH FROM (delivered_at - created_at))/60 END) as avg_delivery_time_minutes
 FROM orders
 WHERE created_at >= CURRENT_DATE - INTERVAL '90 days'
 GROUP BY DATE(created_at);
@@ -158,7 +158,7 @@ SELECT
     c.name as courier_name,
     DATE(o.created_at) as delivery_date,
     COUNT(o.id) as total_deliveries,
-    AVG(EXTRACT(EPOCH FROM (o.delivery_time - o.pickup_time))/60) as avg_delivery_time_minutes,
+    AVG(EXTRACT(EPOCH FROM (o.delivered_at - o.picked_up_at))/60) as avg_delivery_time_minutes,
     c.rating as current_rating,
     c.vehicle_type
 FROM couriers c
