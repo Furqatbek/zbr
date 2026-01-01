@@ -22,6 +22,30 @@ public interface DashboardRestaurantRepository extends JpaRepository<Restaurant,
     // ==================== Count Queries ====================
 
     /**
+     * Count total restaurants.
+     */
+    @Query("SELECT COUNT(r) FROM Restaurant r")
+    Long countTotalRestaurants();
+
+    /**
+     * Count busy restaurants.
+     */
+    @Query("SELECT COUNT(r) FROM Restaurant r WHERE r.isOpen = true AND r.status = 'ACTIVE'")
+    Long countBusyRestaurants();
+
+    /**
+     * Count offline restaurants.
+     */
+    @Query("SELECT COUNT(r) FROM Restaurant r WHERE r.isOpen = false AND r.status = 'ACTIVE'")
+    Long countOfflineRestaurants();
+
+    /**
+     * Count temporarily closed restaurants.
+     */
+    @Query("SELECT COUNT(r) FROM Restaurant r WHERE r.status = 'TEMPORARILY_CLOSED'")
+    Long countTemporarilyClosedRestaurants();
+
+    /**
      * Count restaurants by status.
      */
     Long countByStatus(RestaurantStatus status);
@@ -135,4 +159,90 @@ public interface DashboardRestaurantRepository extends JpaRepository<Restaurant,
     @Query("SELECT r FROM Restaurant r WHERE r.isOpen = false " +
             "AND r.status = 'ACTIVE' AND r.updatedAt > :since")
     List<Restaurant> findRecentlyOfflineRestaurants(@Param("since") LocalDateTime since);
+
+    // ==================== Aggregation Queries ====================
+
+    /**
+     * Average preparation time.
+     */
+    @Query("SELECT AVG(r.averagePrepTimeMinutes) FROM Restaurant r WHERE r.status = 'ACTIVE' " +
+            "AND r.averagePrepTimeMinutes IS NOT NULL")
+    Double avgPreparationTime(@Param("startDate") LocalDateTime startDate, @Param("endDate") LocalDateTime endDate);
+
+    /**
+     * Average order acceptance latency.
+     */
+    @Query("SELECT AVG(o.acceptedAt - o.createdAt) FROM Order o " +
+            "WHERE o.acceptedAt IS NOT NULL AND o.createdAt BETWEEN :startDate AND :endDate")
+    Double avgOrderAcceptanceLatency(@Param("startDate") LocalDateTime startDate, @Param("endDate") LocalDateTime endDate);
+
+    /**
+     * Average restaurant rating.
+     */
+    @Query("SELECT AVG(r.averageRating) FROM Restaurant r WHERE r.status = 'ACTIVE'")
+    Double avgRestaurantRating();
+
+    /**
+     * Average order acceptance rate.
+     */
+    @Query("SELECT CASE WHEN COUNT(o) > 0 THEN " +
+            "CAST(SUM(CASE WHEN o.status != 'REJECTED' THEN 1 ELSE 0 END) AS double) / COUNT(o) * 100 " +
+            "ELSE 100.0 END FROM Order o WHERE o.createdAt BETWEEN :startDate AND :endDate")
+    Double avgOrderAcceptanceRate(@Param("startDate") LocalDateTime startDate, @Param("endDate") LocalDateTime endDate);
+
+    /**
+     * Find restaurant details with filter.
+     */
+    @Query("SELECT r.id, r.name, r.status, r.isOpen, r.address, r.city, r.cuisineType, " +
+            "r.totalOrders, r.averageRating, r.totalRatings, r.averagePrepTimeMinutes " +
+            "FROM Restaurant r WHERE r.id IN :ids")
+    List<Object[]> findRestaurantDetailsFiltered(@Param("ids") List<Long> ids,
+                                                  @Param("startDate") LocalDateTime startDate,
+                                                  @Param("endDate") LocalDateTime endDate,
+                                                  Pageable pageable);
+
+    /**
+     * Find all restaurant details.
+     */
+    @Query("SELECT r.id, r.name, r.status, r.isOpen, r.address, r.city, r.cuisineType, " +
+            "r.totalOrders, r.averageRating, r.totalRatings, r.averagePrepTimeMinutes " +
+            "FROM Restaurant r WHERE r.status = 'ACTIVE'")
+    List<Object[]> findAllRestaurantDetails(@Param("startDate") LocalDateTime startDate,
+                                             @Param("endDate") LocalDateTime endDate,
+                                             Pageable pageable);
+
+    /**
+     * Count by cuisine type.
+     */
+    @Query("SELECT r.cuisineType, COUNT(r) FROM Restaurant r WHERE r.status = 'ACTIVE' " +
+            "GROUP BY r.cuisineType")
+    List<Object[]> countByCuisineType();
+
+    /**
+     * Count by city.
+     */
+    @Query("SELECT r.city, COUNT(r) FROM Restaurant r WHERE r.status = 'ACTIVE' " +
+            "GROUP BY r.city")
+    List<Object[]> countByCity();
+
+    /**
+     * Find top performing restaurants.
+     */
+    @Query("SELECT r FROM Restaurant r WHERE r.status = 'ACTIVE' " +
+            "AND r.totalRatings > 0 ORDER BY r.averageRating DESC, r.totalOrders DESC")
+    List<Restaurant> findTopPerformingRestaurants(@Param("startDate") LocalDateTime startDate,
+                                                   @Param("endDate") LocalDateTime endDate,
+                                                   Pageable pageable);
+
+    /**
+     * Find underperforming restaurants.
+     */
+    @Query("SELECT r FROM Restaurant r WHERE r.status = 'ACTIVE' " +
+            "AND (r.averageRating < :minRating OR r.averagePrepTimeMinutes > :maxPrepTime) " +
+            "ORDER BY r.averageRating ASC")
+    List<Restaurant> findUnderperformingRestaurants(@Param("startDate") LocalDateTime startDate,
+                                                     @Param("endDate") LocalDateTime endDate,
+                                                     @Param("minRating") double minRating,
+                                                     @Param("maxPrepTime") double maxPrepTime,
+                                                     Pageable pageable);
 }

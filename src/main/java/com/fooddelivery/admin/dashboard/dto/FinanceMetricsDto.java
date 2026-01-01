@@ -109,6 +109,8 @@ public class FinanceMetricsDto {
         // Unsettled breakdown
         private Long unsettledCount;
         private BigDecimal unsettledAmount;
+        private BigDecimal unsettledRestaurantAmount;
+        private BigDecimal unsettledCourierAmount;
         private Long overdueCount; // Past scheduled payout date
         private BigDecimal overdueAmount;
     }
@@ -128,6 +130,7 @@ public class FinanceMetricsDto {
         // Orders with discounts
         private Long ordersWithDiscount;
         private Double discountedOrdersPercentage;
+        private Double discountUsageRate;
 
         // By type
         private BigDecimal promoCodeDiscounts;
@@ -155,6 +158,9 @@ public class FinanceMetricsDto {
         private Long refundCount;
         private Long refundCountToday;
         private Long refundCountThisWeek;
+        private Long approvedRefunds;
+        private Long pendingRefunds;
+        private Long rejectedRefunds;
         private BigDecimal avgRefundAmount;
         private Double refundRate; // percentage of orders refunded
 

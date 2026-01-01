@@ -89,4 +89,49 @@ public class FraudMetricsRequest {
                 .endDate(endDate)
                 .build();
     }
+
+    // Alias getters for service compatibility
+    public Integer getVelocityThreshold() {
+        return orderVelocityThresholdPerHour;
+    }
+
+    public Double getRefundRateThreshold() {
+        return highRefundRateThreshold;
+    }
+
+    public Integer getAddressUserThreshold() {
+        return addressMultiUserThreshold;
+    }
+
+    public Integer getFakeAccountAgeThreshold() {
+        return fakeAccountAgeThresholdHours;
+    }
+
+    public Integer getDeviceShareThreshold() {
+        return multiAccountDeviceThreshold;
+    }
+
+    public Integer getIpShareThreshold() {
+        return multiAccountIpThreshold;
+    }
+
+    public Integer getDeviceSignupThreshold() {
+        return signupsPerDeviceThreshold;
+    }
+
+    public Integer getIpSignupThreshold() {
+        return signupsPerIpThreshold;
+    }
+
+    public Double getPromoAbuseRateThreshold() {
+        return 0.5; // Default 50%
+    }
+
+    public Integer getLoginTimeWindowMinutes() {
+        return bruteForceTimeWindowMinutes;
+    }
+
+    public Integer getRateLimitThreshold() {
+        return 100; // Default rate limit
+    }
 }

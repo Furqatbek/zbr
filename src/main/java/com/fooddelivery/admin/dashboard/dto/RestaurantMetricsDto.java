@@ -25,6 +25,7 @@ public class RestaurantMetricsDto {
     private Long totalRestaurants;
     private Long onlineRestaurants;
     private Long offlineRestaurants;
+    private Long busyRestaurants;
     private Long acceptingOrders;
     private Long pausedRestaurants;
 
@@ -132,9 +133,12 @@ public class RestaurantMetricsDto {
         private Double performanceScore; // 0-100
         private String tier; // TOP, GOOD, AVERAGE, POOR
         private Double avgPrepTime;
+        private Double avgPreparationTimeMinutes;
         private Double acceptanceRate;
         private BigDecimal avgRating;
         private Long totalOrders;
+        private Long rejectedOrdersCount;
+        private Double rejectionRate;
         private List<String> improvementSuggestions;
     }
 }

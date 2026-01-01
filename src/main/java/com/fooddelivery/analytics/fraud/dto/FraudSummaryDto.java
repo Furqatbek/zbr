@@ -75,11 +75,16 @@ public class FraudSummaryDto {
     @AllArgsConstructor
     public static class FinancialImpactDto {
         private BigDecimal estimatedFraudLoss;
+        private BigDecimal totalEstimatedLoss;
         private BigDecimal preventedFraudAmount;
         private BigDecimal suspiciousTransactionVolume;
         private BigDecimal promoAbuseAmount;
         private BigDecimal chargebackAmount;
         private BigDecimal refundAbuseAmount;
+
+        public BigDecimal getTotalEstimatedLoss() {
+            return totalEstimatedLoss != null ? totalEstimatedLoss : estimatedFraudLoss;
+        }
     }
 
     @Data

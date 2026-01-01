@@ -313,7 +313,7 @@ public class BackendResourceMetricsDto {
         /**
          * Connected clients.
          */
-        private Integer connectedClients;
+        private Long connectedClients;
 
         /**
          * Used memory in bytes.

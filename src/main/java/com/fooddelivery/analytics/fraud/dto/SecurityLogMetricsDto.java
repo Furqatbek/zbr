@@ -54,6 +54,7 @@ public class SecurityLogMetricsDto {
         private Long successfulLogins;
         private Long failedLogins;
         private Double loginFailureRate;
+        private Double failedLoginRate;
         private Long uniqueUsersWithFailedLogins;
         private Long uniqueIpsWithFailedLogins;
         private Long accountsLocked;
@@ -61,6 +62,10 @@ public class SecurityLogMetricsDto {
         private List<UserLoginRiskDto> highRiskUsers;
         private List<IpLoginRiskDto> highRiskIps;
         private Map<Integer, Long> failedLoginsByHour;
+
+        public Double getFailedLoginRate() {
+            return failedLoginRate != null ? failedLoginRate : loginFailureRate;
+        }
     }
 
     @Data
@@ -116,12 +121,17 @@ public class SecurityLogMetricsDto {
     @AllArgsConstructor
     public static class RateLimitMetricsDto {
         private Long totalRateLimitedRequests;
+        private Long totalRateLimitViolations;
         private Long uniqueRateLimitedUsers;
         private Long uniqueRateLimitedIps;
         private List<RateLimitedEntityDto> topRateLimitedUsers;
         private List<RateLimitedEntityDto> topRateLimitedIps;
         private Map<String, Long> rateLimitsByEndpoint;
         private Map<Integer, Long> rateLimitsByHour;
+
+        public Long getTotalRateLimitViolations() {
+            return totalRateLimitViolations != null ? totalRateLimitViolations : totalRateLimitedRequests;
+        }
     }
 
     @Data
@@ -148,9 +158,19 @@ public class SecurityLogMetricsDto {
         private Long proxyIps;
         private Double suspiciousIpRate;
         private Long flaggedIps;
+        private Long suspiciousIpCount;
         private List<FlaggedIpDto> flaggedIpsList;
+        private List<FlaggedIpDto> suspiciousIpsList;
         private Map<String, Long> ipsByCountry;
         private Map<String, Long> suspiciousIpsByCountry;
+
+        public Long getSuspiciousIpCount() {
+            return suspiciousIpCount != null ? suspiciousIpCount : flaggedIps;
+        }
+
+        public List<FlaggedIpDto> getSuspiciousIpsList() {
+            return suspiciousIpsList != null ? suspiciousIpsList : flaggedIpsList;
+        }
     }
 
     @Data
@@ -205,9 +225,15 @@ public class SecurityLogMetricsDto {
         private Long uniqueTargetedAccounts;
         private Long uniqueAttackingIps;
         private Long blockedAttacks;
+        private Long detectedAttacks;
         private List<BruteForceAttackDto> activeAttacks;
         private Integer bruteForceThreshold;
         private Integer timeWindowMinutes;
+
+        public Long getDetectedAttacks() {
+            if (detectedAttacks != null) return detectedAttacks;
+            return activeAttacks != null ? (long) activeAttacks.size() : 0L;
+        }
     }
 
     @Data

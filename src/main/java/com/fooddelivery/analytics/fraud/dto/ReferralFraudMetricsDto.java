@@ -23,7 +23,9 @@ public class ReferralFraudMetricsDto {
     private Long totalReferrals;
     private Long completedReferrals;
     private Long suspiciousReferrals;
+    private Long totalFraudulentReferrals;
     private Double fraudulentReferralRate;
+    private Double overallReferralFraudRate;
 
     // Device-based fraud
     private DeviceReferralFraudDto deviceFraud;
@@ -33,9 +35,27 @@ public class ReferralFraudMetricsDto {
 
     // Circular referral detection
     private CircularReferralMetricsDto circularReferrals;
+    private CircularReferralMetricsDto circularReferralMetrics;
 
     // Promo abuse metrics
     private PromoAbuseMetricsDto promoAbuse;
+    private PromoAbuseMetricsDto promoAbuseMetrics;
+
+    public Double getOverallReferralFraudRate() {
+        return overallReferralFraudRate != null ? overallReferralFraudRate : fraudulentReferralRate;
+    }
+
+    public Long getTotalFraudulentReferrals() {
+        return totalFraudulentReferrals != null ? totalFraudulentReferrals : suspiciousReferrals;
+    }
+
+    public CircularReferralMetricsDto getCircularReferralMetrics() {
+        return circularReferralMetrics != null ? circularReferralMetrics : circularReferrals;
+    }
+
+    public PromoAbuseMetricsDto getPromoAbuseMetrics() {
+        return promoAbuseMetrics != null ? promoAbuseMetrics : promoAbuse;
+    }
 
     // Top fraudulent referrers
     private List<FraudulentReferrerDto> topFraudulentReferrers;

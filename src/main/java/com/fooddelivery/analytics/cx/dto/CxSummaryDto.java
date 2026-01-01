@@ -64,10 +64,13 @@ public class CxSummaryDto {
     @AllArgsConstructor
     public static class RatingsSummary {
         private Double avgRestaurantRating;
+        private Double restaurantAverageRating; // Alias
         private Long restaurantRatingCount;
         private Double avgCourierRating;
+        private Double courierAverageRating; // Alias
         private Long courierRatingCount;
         private Double avgAppStoreRating;
+        private Double appStoreAverageRating; // Alias
         private Long appStoreReviewCount;
         private Double overallRatingChange;
         private Double overallAverageRating;

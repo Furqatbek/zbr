@@ -82,9 +82,16 @@ public class BehavioralFraudMetricsDto {
         private BigDecimal platformStdDeviation;
         private Long ordersAboveThreshold;
         private Long ordersBelowThreshold;
+        private Long anomalousOrderCount;
         private Double anomalyRate;
         private List<OrderValueAnomalyDto> anomalies;
         private Double zScoreThreshold;
+
+        public Long getAnomalousOrderCount() {
+            if (anomalousOrderCount != null) return anomalousOrderCount;
+            return (ordersAboveThreshold != null ? ordersAboveThreshold : 0L)
+                    + (ordersBelowThreshold != null ? ordersBelowThreshold : 0L);
+        }
     }
 
     @Data
@@ -109,10 +116,20 @@ public class BehavioralFraudMetricsDto {
         private Long totalRefunds;
         private BigDecimal totalRefundAmount;
         private Long usersWithHighRefundRate;
+        private Long highRefundUsers;
         private Double highRefundRateThreshold;
         private List<RefundAbuserDto> topRefundAbusers;
+        private List<RefundAbuserDto> refundAbusersList;
         private Map<String, Long> refundsByReason;
         private Map<String, Double> refundRateByReason;
+
+        public Long getHighRefundUsers() {
+            return highRefundUsers != null ? highRefundUsers : usersWithHighRefundRate;
+        }
+
+        public List<RefundAbuserDto> getRefundAbusersList() {
+            return refundAbusersList != null ? refundAbusersList : topRefundAbusers;
+        }
     }
 
     @Data
