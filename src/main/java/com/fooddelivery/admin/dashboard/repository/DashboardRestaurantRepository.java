@@ -167,13 +167,14 @@ public interface DashboardRestaurantRepository extends JpaRepository<Restaurant,
      */
     @Query("SELECT AVG(r.averagePrepTimeMinutes) FROM Restaurant r WHERE r.status = 'ACTIVE' " +
             "AND r.averagePrepTimeMinutes IS NOT NULL")
-    Double avgPreparationTime(@Param("startDate") LocalDateTime startDate, @Param("endDate") LocalDateTime endDate);
+    Double avgPreparationTime();
 
     /**
-     * Average order acceptance latency.
+     * Average order acceptance latency in seconds (using native query for timestamp math).
      */
-    @Query("SELECT AVG(o.acceptedAt - o.createdAt) FROM Order o " +
-            "WHERE o.acceptedAt IS NOT NULL AND o.createdAt BETWEEN :startDate AND :endDate")
+    @Query(value = "SELECT AVG(EXTRACT(EPOCH FROM (o.accepted_at - o.created_at))) FROM orders o " +
+            "WHERE o.accepted_at IS NOT NULL AND o.created_at BETWEEN :startDate AND :endDate",
+            nativeQuery = true)
     Double avgOrderAcceptanceLatency(@Param("startDate") LocalDateTime startDate, @Param("endDate") LocalDateTime endDate);
 
     /**

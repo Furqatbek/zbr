@@ -87,7 +87,7 @@ public class RestaurantCollector {
      * Collect performance summary across all restaurants.
      */
     private RestaurantPerformanceSummaryDto collectPerformanceSummary(LocalDateTime startDate, LocalDateTime endDate) {
-        Double avgPrepTime = restaurantRepository.avgPreparationTime(startDate, endDate);
+        Double avgPrepTime = restaurantRepository.avgPreparationTime();
         Double avgAcceptanceLatency = restaurantRepository.avgOrderAcceptanceLatency(startDate, endDate);
         Double avgRating = restaurantRepository.avgRestaurantRating();
         Double avgAcceptanceRate = restaurantRepository.avgOrderAcceptanceRate(startDate, endDate);
