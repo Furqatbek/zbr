@@ -1926,6 +1926,648 @@
           }
         }
       ]
+    },
+    {
+      "name": "Technical Analytics",
+      "description": "Platform health and performance metrics. Includes API performance, backend resources, database metrics, WebSocket status, and storage analytics.",
+      "item": [
+        {
+          "name": "Get Technical Summary",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/analytics/technical/summary?startDate=2024-01-01T00:00:00&endDate=2024-01-31T23:59:59",
+              "host": ["{{base_url}}"],
+              "path": ["analytics", "technical", "summary"],
+              "query": [
+                {"key": "startDate", "value": "2024-01-01T00:00:00"},
+                {"key": "endDate", "value": "2024-01-31T23:59:59"}
+              ]
+            },
+            "description": "Returns high-level summary of all technical metrics with health scores."
+          }
+        },
+        {
+          "name": "Get API Performance Metrics",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"startDate\": \"2024-01-01T00:00:00\",\n    \"endDate\": \"2024-01-31T23:59:59\",\n    \"includeEndpointBreakdown\": true,\n    \"includeErrorDetails\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/analytics/technical/api-performance",
+              "host": ["{{base_url}}"],
+              "path": ["analytics", "technical", "api-performance"]
+            },
+            "description": "Returns detailed API performance metrics including response times, error rates, and endpoint analysis."
+          }
+        },
+        {
+          "name": "Get Real-time API Metrics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/analytics/technical/api-performance/realtime",
+              "host": ["{{base_url}}"],
+              "path": ["analytics", "technical", "api-performance", "realtime"]
+            },
+            "description": "Returns current API performance from Micrometer metrics."
+          }
+        },
+        {
+          "name": "Get Backend Resource Metrics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/analytics/technical/backend-resources",
+              "host": ["{{base_url}}"],
+              "path": ["analytics", "technical", "backend-resources"]
+            },
+            "description": "Returns current backend resource usage (CPU, memory, JVM, DB pool, Redis)."
+          }
+        },
+        {
+          "name": "Get Historical Backend Metrics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/analytics/technical/backend-resources/historical?startDate=2024-01-01T00:00:00&endDate=2024-01-31T23:59:59",
+              "host": ["{{base_url}}"],
+              "path": ["analytics", "technical", "backend-resources", "historical"],
+              "query": [
+                {"key": "startDate", "value": "2024-01-01T00:00:00"},
+                {"key": "endDate", "value": "2024-01-31T23:59:59"}
+              ]
+            },
+            "description": "Returns averaged backend metrics for a time period."
+          }
+        },
+        {
+          "name": "Get Database Performance Metrics",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"startDate\": \"2024-01-01T00:00:00\",\n    \"endDate\": \"2024-01-31T23:59:59\",\n    \"includeSlowQueries\": true,\n    \"slowQueryThresholdMs\": 1000\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/analytics/technical/database-performance",
+              "host": ["{{base_url}}"],
+              "path": ["analytics", "technical", "database-performance"]
+            },
+            "description": "Returns database performance metrics including slow queries, index usage, and backup status."
+          }
+        },
+        {
+          "name": "Get WebSocket Metrics",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"startDate\": \"2024-01-01T00:00:00\",\n    \"endDate\": \"2024-01-31T23:59:59\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/analytics/technical/websocket",
+              "host": ["{{base_url}}"],
+              "path": ["analytics", "technical", "websocket"]
+            },
+            "description": "Returns WebSocket connection and message delivery metrics."
+          }
+        },
+        {
+          "name": "Get Real-time WebSocket Metrics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/analytics/technical/websocket/realtime",
+              "host": ["{{base_url}}"],
+              "path": ["analytics", "technical", "websocket", "realtime"]
+            },
+            "description": "Returns current WebSocket connection status."
+          }
+        },
+        {
+          "name": "Get Storage Metrics",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"startDate\": \"2024-01-01T00:00:00\",\n    \"endDate\": \"2024-01-31T23:59:59\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/analytics/technical/storage",
+              "host": ["{{base_url}}"],
+              "path": ["analytics", "technical", "storage"]
+            },
+            "description": "Returns storage and file upload metrics."
+          }
+        },
+        {
+          "name": "Get Storage Summary",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/analytics/technical/storage/summary",
+              "host": ["{{base_url}}"],
+              "path": ["analytics", "technical", "storage", "summary"]
+            },
+            "description": "Returns current storage totals."
+          }
+        },
+        {
+          "name": "Get Health Scores",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/analytics/technical/health-scores?startDate=2024-01-01T00:00:00&endDate=2024-01-31T23:59:59",
+              "host": ["{{base_url}}"],
+              "path": ["analytics", "technical", "health-scores"],
+              "query": [
+                {"key": "startDate", "value": "2024-01-01T00:00:00"},
+                {"key": "endDate", "value": "2024-01-31T23:59:59"}
+              ]
+            },
+            "description": "Returns health scores for all subsystems (API, backend, database, WebSocket, storage)."
+          }
+        },
+        {
+          "name": "Refresh Technical Metrics Cache",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/analytics/technical/refresh",
+              "host": ["{{base_url}}"],
+              "path": ["analytics", "technical", "refresh"]
+            },
+            "description": "Forces a refresh of all cached technical metrics."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Fraud Analytics",
+      "description": "Fraud detection and security metrics. Includes payment fraud, behavioral analysis, account integrity, referral fraud, and security logs. Requires ADMIN or FRAUD_ANALYST role.",
+      "item": [
+        {
+          "name": "Get Fraud Summary (GET)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/analytics/fraud/summary?startDate=2024-01-01T00:00:00&endDate=2024-01-31T23:59:59",
+              "host": ["{{base_url}}"],
+              "path": ["analytics", "fraud", "summary"],
+              "query": [
+                {"key": "startDate", "value": "2024-01-01T00:00:00"},
+                {"key": "endDate", "value": "2024-01-31T23:59:59"}
+              ]
+            },
+            "description": "Returns fraud summary for the specified period with default thresholds.\n\nRoles: ADMIN, FRAUD_ANALYST"
+          }
+        },
+        {
+          "name": "Get Fraud Summary (POST)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"startDate\": \"2024-01-01T00:00:00\",\n    \"endDate\": \"2024-01-31T23:59:59\",\n    \"includeDetails\": true,\n    \"maxListSize\": 100\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/analytics/fraud/summary",
+              "host": ["{{base_url}}"],
+              "path": ["analytics", "fraud", "summary"]
+            },
+            "description": "Returns comprehensive fraud summary with metrics from all categories.\n\nRoles: ADMIN, FRAUD_ANALYST"
+          }
+        },
+        {
+          "name": "Get Payment Fraud Metrics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/analytics/fraud/payment?startDate=2024-01-01T00:00:00&endDate=2024-01-31T23:59:59&failedThreshold=3&timeWindowMinutes=60&includeDetails=false&maxListSize=100",
+              "host": ["{{base_url}}"],
+              "path": ["analytics", "fraud", "payment"],
+              "query": [
+                {"key": "startDate", "value": "2024-01-01T00:00:00"},
+                {"key": "endDate", "value": "2024-01-31T23:59:59"},
+                {"key": "failedThreshold", "value": "3", "description": "Threshold for failed payments to flag a user"},
+                {"key": "timeWindowMinutes", "value": "60", "description": "Time window for velocity analysis"},
+                {"key": "includeDetails", "value": "false"},
+                {"key": "maxListSize", "value": "100"}
+              ]
+            },
+            "description": "Returns payment fraud metrics including failed payments, card testing patterns, and high-risk users.\n\nRoles: ADMIN, FRAUD_ANALYST, PAYMENT_ANALYST"
+          }
+        },
+        {
+          "name": "Get Behavioral Fraud Metrics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/analytics/fraud/behavioral?startDate=2024-01-01T00:00:00&endDate=2024-01-31T23:59:59&velocityThreshold=5&refundRateThreshold=30.0&orderValueZScore=3.0&addressUserThreshold=3&includeDetails=false&maxListSize=100",
+              "host": ["{{base_url}}"],
+              "path": ["analytics", "fraud", "behavioral"],
+              "query": [
+                {"key": "startDate", "value": "2024-01-01T00:00:00"},
+                {"key": "endDate", "value": "2024-01-31T23:59:59"},
+                {"key": "velocityThreshold", "value": "5", "description": "Max orders per hour threshold"},
+                {"key": "refundRateThreshold", "value": "30.0", "description": "High refund rate threshold (%)"},
+                {"key": "orderValueZScore", "value": "3.0", "description": "Z-score threshold for order value anomalies"},
+                {"key": "addressUserThreshold", "value": "3", "description": "Threshold for users per address"},
+                {"key": "includeDetails", "value": "false"},
+                {"key": "maxListSize", "value": "100"}
+              ]
+            },
+            "description": "Returns behavioral fraud metrics including velocity violations, refund abuse, and order value anomalies.\n\nRoles: ADMIN, FRAUD_ANALYST"
+          }
+        },
+        {
+          "name": "Get Account Integrity Metrics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/analytics/fraud/account-integrity?startDate=2024-01-01T00:00:00&endDate=2024-01-31T23:59:59&fakeAccountAgeThreshold=24&deviceThreshold=2&ipThreshold=5&includeDetails=false&maxListSize=100",
+              "host": ["{{base_url}}"],
+              "path": ["analytics", "fraud", "account-integrity"],
+              "query": [
+                {"key": "startDate", "value": "2024-01-01T00:00:00"},
+                {"key": "endDate", "value": "2024-01-31T23:59:59"},
+                {"key": "fakeAccountAgeThreshold", "value": "24", "description": "Account age threshold in hours"},
+                {"key": "deviceThreshold", "value": "2", "description": "Threshold for users per device"},
+                {"key": "ipThreshold", "value": "5", "description": "Threshold for users per IP"},
+                {"key": "includeDetails", "value": "false"},
+                {"key": "maxListSize", "value": "100"}
+              ]
+            },
+            "description": "Returns account integrity metrics including fake account detection and multi-account analysis.\n\nRoles: ADMIN, FRAUD_ANALYST"
+          }
+        },
+        {
+          "name": "Get Referral Fraud Metrics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/analytics/fraud/referral?startDate=2024-01-01T00:00:00&endDate=2024-01-31T23:59:59&deviceSignupThreshold=2&ipSignupThreshold=5&promoAbuseRate=80.0&includeDetails=false&maxListSize=100",
+              "host": ["{{base_url}}"],
+              "path": ["analytics", "fraud", "referral"],
+              "query": [
+                {"key": "startDate", "value": "2024-01-01T00:00:00"},
+                {"key": "endDate", "value": "2024-01-31T23:59:59"},
+                {"key": "deviceSignupThreshold", "value": "2", "description": "Threshold for signups per device"},
+                {"key": "ipSignupThreshold", "value": "5", "description": "Threshold for signups per IP"},
+                {"key": "promoAbuseRate", "value": "80.0", "description": "Promo abuse rate threshold (%)"},
+                {"key": "includeDetails", "value": "false"},
+                {"key": "maxListSize", "value": "100"}
+              ]
+            },
+            "description": "Returns referral fraud metrics including device/IP reuse and circular referral detection.\n\nRoles: ADMIN, FRAUD_ANALYST, MARKETING_ANALYST"
+          }
+        },
+        {
+          "name": "Get Security Log Metrics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/analytics/fraud/security?startDate=2024-01-01T00:00:00&endDate=2024-01-31T23:59:59&failedLoginThreshold=5&loginTimeWindowMinutes=15&rateLimitThreshold=100&includeDetails=false&maxListSize=100",
+              "host": ["{{base_url}}"],
+              "path": ["analytics", "fraud", "security"],
+              "query": [
+                {"key": "startDate", "value": "2024-01-01T00:00:00"},
+                {"key": "endDate", "value": "2024-01-31T23:59:59"},
+                {"key": "failedLoginThreshold", "value": "5", "description": "Threshold for failed logins"},
+                {"key": "loginTimeWindowMinutes", "value": "15", "description": "Time window for login velocity"},
+                {"key": "rateLimitThreshold", "value": "100", "description": "Rate limit violation threshold"},
+                {"key": "includeDetails", "value": "false"},
+                {"key": "maxListSize", "value": "100"}
+              ]
+            },
+            "description": "Returns security metrics including login failures, rate limits, and IP threat analysis.\n\nRoles: ADMIN, SECURITY_ANALYST"
+          }
+        },
+        {
+          "name": "Get Real-time Fraud Alerts",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"startDate\": \"2024-01-01T00:00:00\",\n    \"endDate\": \"2024-01-31T23:59:59\",\n    \"includeDetails\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/analytics/fraud/alerts/realtime",
+              "host": ["{{base_url}}"],
+              "path": ["analytics", "fraud", "alerts", "realtime"]
+            },
+            "description": "Returns current active fraud alerts based on real-time analysis.\n\nRoles: ADMIN, FRAUD_ANALYST, SECURITY_ANALYST"
+          }
+        },
+        {
+          "name": "Get User Fraud Risk Score",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/analytics/fraud/user/1/risk?startDate=2024-01-01T00:00:00&endDate=2024-01-31T23:59:59",
+              "host": ["{{base_url}}"],
+              "path": ["analytics", "fraud", "user", "1", "risk"],
+              "query": [
+                {"key": "startDate", "value": "2024-01-01T00:00:00"},
+                {"key": "endDate", "value": "2024-01-31T23:59:59"}
+              ]
+            },
+            "description": "Returns comprehensive fraud risk assessment for a specific user.\n\nRoles: ADMIN, FRAUD_ANALYST"
+          }
+        },
+        {
+          "name": "Invalidate All Fraud Cache",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/analytics/fraud/cache/invalidate",
+              "host": ["{{base_url}}"],
+              "path": ["analytics", "fraud", "cache", "invalidate"]
+            },
+            "description": "Clears all cached fraud metrics. Use after significant data changes.\n\nRoles: ADMIN only"
+          }
+        },
+        {
+          "name": "Invalidate Fraud Category Cache",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/analytics/fraud/cache/invalidate/PAYMENT",
+              "host": ["{{base_url}}"],
+              "path": ["analytics", "fraud", "cache", "invalidate", "PAYMENT"]
+            },
+            "description": "Clears cached metrics for a specific fraud category (PAYMENT, BEHAVIORAL, ACCOUNT, REFERRAL, SECURITY).\n\nRoles: ADMIN only"
+          }
+        },
+        {
+          "name": "Fraud Analytics Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/analytics/fraud/health",
+              "host": ["{{base_url}}"],
+              "path": ["analytics", "fraud", "health"]
+            },
+            "description": "Returns fraud analytics service health status."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Customer Experience Analytics",
+      "description": "Customer experience metrics including NPS, restaurant ratings, courier ratings, app store ratings, and support ticket analytics.",
+      "item": [
+        {
+          "name": "Get NPS Metrics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/analytics/cx/nps?startDate=2024-01-01T00:00:00&endDate=2024-01-31T23:59:59&includeDistribution=true&includeTrend=false&includeSegments=false",
+              "host": ["{{base_url}}"],
+              "path": ["analytics", "cx", "nps"],
+              "query": [
+                {"key": "startDate", "value": "2024-01-01T00:00:00"},
+                {"key": "endDate", "value": "2024-01-31T23:59:59"},
+                {"key": "includeDistribution", "value": "true", "description": "Include score distribution (0-10)"},
+                {"key": "includeTrend", "value": "false", "description": "Include daily trend data"},
+                {"key": "includeSegments", "value": "false", "description": "Include segment breakdowns"}
+              ]
+            },
+            "description": "Retrieve Net Promoter Score metrics for a date range."
+          }
+        },
+        {
+          "name": "Get Overall Restaurant Ratings",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/analytics/cx/ratings/restaurant?startDate=2024-01-01T00:00:00&endDate=2024-01-31T23:59:59&includeDistribution=true&includeTrend=false&includeTopRestaurants=false",
+              "host": ["{{base_url}}"],
+              "path": ["analytics", "cx", "ratings", "restaurant"],
+              "query": [
+                {"key": "startDate", "value": "2024-01-01T00:00:00"},
+                {"key": "endDate", "value": "2024-01-31T23:59:59"},
+                {"key": "includeDistribution", "value": "true", "description": "Include rating distribution (1-5)"},
+                {"key": "includeTrend", "value": "false", "description": "Include daily trend data"},
+                {"key": "includeTopRestaurants", "value": "false", "description": "Include top/bottom performers"}
+              ]
+            },
+            "description": "Retrieve overall restaurant rating metrics."
+          }
+        },
+        {
+          "name": "Get Restaurant Ratings by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/analytics/cx/ratings/restaurant/1?startDate=2024-01-01T00:00:00&endDate=2024-01-31T23:59:59&includeDistribution=true&includeTrend=false",
+              "host": ["{{base_url}}"],
+              "path": ["analytics", "cx", "ratings", "restaurant", "1"],
+              "query": [
+                {"key": "startDate", "value": "2024-01-01T00:00:00"},
+                {"key": "endDate", "value": "2024-01-31T23:59:59"},
+                {"key": "includeDistribution", "value": "true"},
+                {"key": "includeTrend", "value": "false"}
+              ]
+            },
+            "description": "Retrieve rating metrics for a specific restaurant."
+          }
+        },
+        {
+          "name": "Get Overall Courier Ratings",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/analytics/cx/ratings/courier?startDate=2024-01-01T00:00:00&endDate=2024-01-31T23:59:59&includeDistribution=true&includeTrend=false&includeTopCouriers=false",
+              "host": ["{{base_url}}"],
+              "path": ["analytics", "cx", "ratings", "courier"],
+              "query": [
+                {"key": "startDate", "value": "2024-01-01T00:00:00"},
+                {"key": "endDate", "value": "2024-01-31T23:59:59"},
+                {"key": "includeDistribution", "value": "true", "description": "Include rating distribution (1-5)"},
+                {"key": "includeTrend", "value": "false", "description": "Include daily trend data"},
+                {"key": "includeTopCouriers", "value": "false", "description": "Include top/bottom performers"}
+              ]
+            },
+            "description": "Retrieve overall courier rating metrics."
+          }
+        },
+        {
+          "name": "Get Courier Ratings by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/analytics/cx/ratings/courier/1?startDate=2024-01-01T00:00:00&endDate=2024-01-31T23:59:59&includeDistribution=true&includeTrend=false",
+              "host": ["{{base_url}}"],
+              "path": ["analytics", "cx", "ratings", "courier", "1"],
+              "query": [
+                {"key": "startDate", "value": "2024-01-01T00:00:00"},
+                {"key": "endDate", "value": "2024-01-31T23:59:59"},
+                {"key": "includeDistribution", "value": "true"},
+                {"key": "includeTrend", "value": "false"}
+              ]
+            },
+            "description": "Retrieve rating metrics for a specific courier."
+          }
+        },
+        {
+          "name": "Get App Store Ratings",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/analytics/cx/ratings/app-store?startDate=2024-01-01T00:00:00&endDate=2024-01-31T23:59:59&includeVersionBreakdown=false&includeCountryBreakdown=false&includeTrend=false",
+              "host": ["{{base_url}}"],
+              "path": ["analytics", "cx", "ratings", "app-store"],
+              "query": [
+                {"key": "startDate", "value": "2024-01-01T00:00:00"},
+                {"key": "endDate", "value": "2024-01-31T23:59:59"},
+                {"key": "includeVersionBreakdown", "value": "false", "description": "Include version breakdown"},
+                {"key": "includeCountryBreakdown", "value": "false", "description": "Include country breakdown"},
+                {"key": "includeTrend", "value": "false", "description": "Include daily trend data"}
+              ]
+            },
+            "description": "Retrieve app store rating metrics (iOS and Android)."
+          }
+        },
+        {
+          "name": "Get Support Ticket Metrics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/analytics/cx/support-tickets?startDate=2024-01-01T00:00:00&endDate=2024-01-31T23:59:59&slaHours=24&includeTrend=false&includeAgentPerformance=false",
+              "host": ["{{base_url}}"],
+              "path": ["analytics", "cx", "support-tickets"],
+              "query": [
+                {"key": "startDate", "value": "2024-01-01T00:00:00"},
+                {"key": "endDate", "value": "2024-01-31T23:59:59"},
+                {"key": "slaHours", "value": "24", "description": "SLA hours for compliance calculation"},
+                {"key": "includeTrend", "value": "false", "description": "Include daily trend data"},
+                {"key": "includeAgentPerformance", "value": "false", "description": "Include agent performance breakdown"}
+              ]
+            },
+            "description": "Retrieve support ticket metrics with SLA tracking."
+          }
+        },
+        {
+          "name": "Get CX Summary",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/analytics/cx/summary?startDate=2024-01-01T00:00:00&endDate=2024-01-31T23:59:59",
+              "host": ["{{base_url}}"],
+              "path": ["analytics", "cx", "summary"],
+              "query": [
+                {"key": "startDate", "value": "2024-01-01T00:00:00"},
+                {"key": "endDate", "value": "2024-01-31T23:59:59"}
+              ]
+            },
+            "description": "Retrieve comprehensive CX summary with overall score."
+          }
+        },
+        {
+          "name": "Invalidate NPS Cache",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/analytics/cx/cache/invalidate/nps",
+              "host": ["{{base_url}}"],
+              "path": ["analytics", "cx", "cache", "invalidate", "nps"]
+            },
+            "description": "Clear the NPS metrics cache."
+          }
+        },
+        {
+          "name": "Invalidate Ratings Cache",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/analytics/cx/cache/invalidate/ratings?restaurantId=&courierId=",
+              "host": ["{{base_url}}"],
+              "path": ["analytics", "cx", "cache", "invalidate", "ratings"],
+              "query": [
+                {"key": "restaurantId", "value": "", "description": "Specific restaurant ID to invalidate (optional)"},
+                {"key": "courierId", "value": "", "description": "Specific courier ID to invalidate (optional)"}
+              ]
+            },
+            "description": "Clear the ratings cache. Can target specific restaurant or courier."
+          }
+        },
+        {
+          "name": "Invalidate Support Ticket Cache",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/analytics/cx/cache/invalidate/support-tickets",
+              "host": ["{{base_url}}"],
+              "path": ["analytics", "cx", "cache", "invalidate", "support-tickets"]
+            },
+            "description": "Clear the support ticket metrics cache."
+          }
+        },
+        {
+          "name": "Invalidate All CX Caches",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/analytics/cx/cache/invalidate/all",
+              "host": ["{{base_url}}"],
+              "path": ["analytics", "cx", "cache", "invalidate", "all"]
+            },
+            "description": "Clear all CX analytics caches."
+          }
+        }
+      ]
     }
   ]
 }
