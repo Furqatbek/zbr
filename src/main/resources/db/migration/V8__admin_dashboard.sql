@@ -77,8 +77,8 @@ SELECT
     COUNT(*) as total_orders,
     COUNT(CASE WHEN o.status = 'DELIVERED' THEN 1 END) as completed_orders,
     COUNT(CASE WHEN o.status = 'CANCELLED' THEN 1 END) as cancelled_orders,
-    COALESCE(SUM(o.total_amount), 0) as total_revenue,
-    COALESCE(AVG(o.total_amount), 0) as avg_order_value,
+    COALESCE(SUM(o.total), 0) as total_revenue,
+    COALESCE(AVG(o.total), 0) as avg_order_value,
     COALESCE(AVG(EXTRACT(EPOCH FROM (o.delivered_at - o.created_at))/60), 0) as avg_delivery_time_minutes
 FROM orders o
 GROUP BY DATE(o.created_at);
@@ -90,16 +90,16 @@ CREATE MATERIALIZED VIEW IF NOT EXISTS mv_restaurant_performance AS
 SELECT
     r.id as restaurant_id,
     r.name as restaurant_name,
-    r.avg_rating,
+    r.average_rating,
     r.total_ratings,
-    r.is_online,
+    r.is_open,
     COUNT(o.id) as total_orders,
     COUNT(CASE WHEN o.status = 'DELIVERED' THEN 1 END) as completed_orders,
-    COALESCE(SUM(o.total_amount), 0) as total_revenue,
+    COALESCE(SUM(o.total), 0) as total_revenue,
     COALESCE(AVG(EXTRACT(EPOCH FROM (o.ready_at - o.accepted_at))/60), 0) as avg_prep_time_minutes
 FROM restaurants r
 LEFT JOIN orders o ON r.id = o.restaurant_id AND o.created_at >= CURRENT_DATE - INTERVAL '30 days'
-GROUP BY r.id, r.name, r.avg_rating, r.total_ratings, r.is_online;
+GROUP BY r.id, r.name, r.average_rating, r.total_ratings, r.is_open;
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_mv_restaurant_perf_id ON mv_restaurant_performance(restaurant_id);
 
@@ -107,8 +107,8 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_mv_restaurant_perf_id ON mv_restaurant_per
 CREATE MATERIALIZED VIEW IF NOT EXISTS mv_courier_performance AS
 SELECT
     c.id as courier_id,
-    c.name as courier_name,
-    c.avg_rating,
+    c.user_id,
+    c.average_rating,
     c.total_ratings,
     c.total_deliveries,
     c.status as current_status,
@@ -116,7 +116,7 @@ SELECT
     COALESCE(AVG(EXTRACT(EPOCH FROM (o.delivered_at - o.picked_up_at))/60), 0) as avg_delivery_time_minutes
 FROM couriers c
 LEFT JOIN orders o ON c.id = o.courier_id AND o.created_at >= CURRENT_DATE - INTERVAL '30 days' AND o.status = 'DELIVERED'
-GROUP BY c.id, c.name, c.avg_rating, c.total_ratings, c.total_deliveries, c.status;
+GROUP BY c.id, c.user_id, c.average_rating, c.total_ratings, c.total_deliveries, c.status;
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_mv_courier_perf_id ON mv_courier_performance(courier_id);
 
@@ -126,7 +126,7 @@ SELECT
     DATE(created_at) as date,
     EXTRACT(HOUR FROM created_at)::INTEGER as hour,
     COUNT(*) as order_count,
-    COALESCE(SUM(total_amount), 0) as revenue
+    COALESCE(SUM(total), 0) as revenue
 FROM orders
 WHERE created_at >= CURRENT_DATE - INTERVAL '7 days'
 GROUP BY DATE(created_at), EXTRACT(HOUR FROM created_at);
