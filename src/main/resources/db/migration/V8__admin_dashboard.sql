@@ -17,7 +17,7 @@ CREATE TABLE dashboard_widgets (
 CREATE TABLE user_dashboard_preferences (
     id BIGSERIAL PRIMARY KEY,
     user_id BIGINT NOT NULL,
-    widget_id BIGINT NOT NULL REFERENCES dashboard_widgets(id),
+    widget_id BIGINT NOT NULL,
     is_visible BOOLEAN DEFAULT TRUE,
     position_x INTEGER DEFAULT 0,
     position_y INTEGER DEFAULT 0,
@@ -53,7 +53,7 @@ CREATE INDEX idx_alert_rules_metric_type ON alert_rules(metric_type);
 -- Alert History
 CREATE TABLE alert_history (
     id BIGSERIAL PRIMARY KEY,
-    rule_id BIGINT NOT NULL REFERENCES alert_rules(id),
+    rule_id BIGINT NOT NULL,
     metric_value DOUBLE PRECISION NOT NULL,
     threshold_value DOUBLE PRECISION NOT NULL,
     severity VARCHAR(20) NOT NULL,
