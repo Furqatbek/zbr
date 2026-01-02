@@ -193,7 +193,7 @@ public interface DashboardRestaurantRepository extends JpaRepository<Restaurant,
     /**
      * Find restaurant details with filter.
      */
-    @Query("SELECT r.id, r.name, r.status, r.isOpen, r.address, r.city, r.cuisineType, " +
+    @Query("SELECT r.id, r.name, r.status, r.isOpen, r.addressLine1, r.city, " +
             "r.totalOrders, r.averageRating, r.totalRatings, r.averagePrepTimeMinutes " +
             "FROM Restaurant r WHERE r.id IN :ids")
     List<Object[]> findRestaurantDetailsFiltered(@Param("ids") List<Long> ids,
@@ -204,7 +204,7 @@ public interface DashboardRestaurantRepository extends JpaRepository<Restaurant,
     /**
      * Find all restaurant details.
      */
-    @Query("SELECT r.id, r.name, r.status, r.isOpen, r.address, r.city, r.cuisineType, " +
+    @Query("SELECT r.id, r.name, r.status, r.isOpen, r.addressLine1, r.city, " +
             "r.totalOrders, r.averageRating, r.totalRatings, r.averagePrepTimeMinutes " +
             "FROM Restaurant r WHERE r.status = 'ACTIVE'")
     List<Object[]> findAllRestaurantDetails(@Param("startDate") LocalDateTime startDate,
@@ -212,11 +212,10 @@ public interface DashboardRestaurantRepository extends JpaRepository<Restaurant,
                                              Pageable pageable);
 
     /**
-     * Count by cuisine type.
+     * Count by status.
      */
-    @Query("SELECT r.cuisineType, COUNT(r) FROM Restaurant r WHERE r.status = 'ACTIVE' " +
-            "GROUP BY r.cuisineType")
-    List<Object[]> countByCuisineType();
+    @Query("SELECT r.status, COUNT(r) FROM Restaurant r GROUP BY r.status")
+    List<Object[]> countByStatusGrouped();
 
     /**
      * Count by city.

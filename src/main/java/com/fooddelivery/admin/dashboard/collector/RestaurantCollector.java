@@ -142,35 +142,27 @@ public class RestaurantCollector {
 
     /**
      * Map raw query result to RestaurantDetailDto.
+     * Query returns: id, name, status, isOpen, addressLine1, city, totalOrders, averageRating, totalRatings, averagePrepTimeMinutes
      */
     private RestaurantDetailDto mapToRestaurantDetail(Object[] row) {
         int idx = 0;
         Long restaurantId = ((Number) row[idx++]).longValue();
         String name = (String) row[idx++];
-        String status = (String) row[idx++];
-        Double rating = row[idx] != null ? ((Number) row[idx]).doubleValue() : 0.0;
+        String status = row[idx] != null ? row[idx].toString() : "UNKNOWN";
         idx++;
-        Long totalOrders = row[idx] != null ? ((Number) row[idx]).longValue() : 0L;
+        Boolean isOnline = row[idx] != null ? (Boolean) row[idx] : false;
         idx++;
-        Double avgPrepTime = row[idx] != null ? ((Number) row[idx]).doubleValue() : 0.0;
-        idx++;
-        Double acceptanceLatency = row[idx] != null ? ((Number) row[idx]).doubleValue() : 0.0;
-        idx++;
-        Long acceptedOrders = row[idx] != null ? ((Number) row[idx]).longValue() : 0L;
-        idx++;
-        Long rejectedOrders = row[idx] != null ? ((Number) row[idx]).longValue() : 0L;
-        idx++;
-        String cuisineType = row[idx] != null ? (String) row[idx] : "Unknown";
+        String address = row[idx] != null ? (String) row[idx] : "";
         idx++;
         String city = row[idx] != null ? (String) row[idx] : "Unknown";
         idx++;
-        LocalDateTime lastOrderAt = row[idx] != null ? (LocalDateTime) row[idx] : null;
+        Long totalOrders = row[idx] != null ? ((Number) row[idx]).longValue() : 0L;
         idx++;
-        Boolean isOnline = row[idx] != null ? (Boolean) row[idx] : false;
-
-        Double acceptanceRate = (acceptedOrders + rejectedOrders) > 0
-                ? (acceptedOrders.doubleValue() / (acceptedOrders + rejectedOrders)) * 100
-                : 100.0;
+        Double rating = row[idx] != null ? ((Number) row[idx]).doubleValue() : 0.0;
+        idx++;
+        Integer totalRatings = row[idx] != null ? ((Number) row[idx]).intValue() : 0;
+        idx++;
+        Double avgPrepTime = row[idx] != null ? ((Number) row[idx]).doubleValue() : 0.0;
 
         String statusDisplay = determineRestaurantStatus(isOnline, status);
 
@@ -179,16 +171,14 @@ public class RestaurantCollector {
                 .name(name)
                 .status(statusDisplay)
                 .isOnline(isOnline)
+                .address(address)
+                .city(city)
                 .rating(roundToTwoDecimals(rating))
+                .totalRatings(totalRatings)
                 .totalOrdersToday(totalOrders)
                 .avgPreparationTimeMinutes(roundToTwoDecimals(avgPrepTime))
-                .orderAcceptanceLatencySeconds(roundToTwoDecimals(acceptanceLatency))
-                .acceptanceRate(roundToTwoDecimals(acceptanceRate))
-                .rejectedOrdersToday(rejectedOrders)
-                .cuisineType(cuisineType)
-                .city(city)
-                .lastOrderAt(lastOrderAt)
-                .performanceScore(calculatePerformanceScore(rating, acceptanceRate, avgPrepTime))
+                .acceptanceRate(100.0) // Default since we don't have this data
+                .performanceScore(calculatePerformanceScore(rating, 100.0, avgPrepTime))
                 .build();
     }
 
@@ -264,16 +254,17 @@ public class RestaurantCollector {
     }
 
     /**
-     * Collect cuisine type distribution.
+     * Collect status distribution (formerly cuisine type distribution).
      */
     private Map<String, Long> collectCuisineDistribution() {
-        List<Object[]> cuisineData = restaurantRepository.countByCuisineType();
+        // Return status distribution since cuisineType doesn't exist in the entity
+        List<Object[]> statusData = restaurantRepository.countByStatusGrouped();
         Map<String, Long> distribution = new LinkedHashMap<>();
 
-        for (Object[] row : cuisineData) {
-            String cuisine = row[0] != null ? (String) row[0] : "Other";
+        for (Object[] row : statusData) {
+            String status = row[0] != null ? row[0].toString() : "Other";
             Long count = ((Number) row[1]).longValue();
-            distribution.put(cuisine, count);
+            distribution.put(status, count);
         }
 
         return distribution;

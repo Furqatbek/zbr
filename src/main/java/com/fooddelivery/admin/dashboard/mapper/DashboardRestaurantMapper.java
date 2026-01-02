@@ -25,7 +25,7 @@ public interface DashboardRestaurantMapper {
     @Mapping(target = "orderAcceptanceLatencySeconds", source = "acceptanceLatency")
     @Mapping(target = "acceptanceRate", source = "acceptanceRate")
     @Mapping(target = "rejectedOrdersToday", source = "rejectedOrders")
-    @Mapping(target = "cuisineType", source = "cuisineType")
+    @Mapping(target = "cuisineType", ignore = true)
     @Mapping(target = "city", source = "city")
     @Mapping(target = "lastOrderAt", source = "lastOrderAt")
     @Mapping(target = "performanceScore", expression = "java(calculatePerformanceScore(rating, acceptanceRate, avgPrepTime))")
@@ -40,7 +40,6 @@ public interface DashboardRestaurantMapper {
             Double acceptanceLatency,
             Double acceptanceRate,
             Long rejectedOrders,
-            String cuisineType,
             String city,
             LocalDateTime lastOrderAt
     );
