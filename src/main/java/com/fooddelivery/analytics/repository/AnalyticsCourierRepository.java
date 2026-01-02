@@ -41,7 +41,7 @@ public interface AnalyticsCourierRepository extends JpaRepository<Courier, Long>
      * Count inactive couriers (no deliveries in period).
      */
     @Query(value = "SELECT COUNT(*) FROM couriers c " +
-            "WHERE c.verified = true " +
+            "WHERE c.is_verified = true " +
             "AND c.id NOT IN (" +
             "  SELECT DISTINCT courier_id FROM orders " +
             "  WHERE courier_id IS NOT NULL " +
@@ -60,7 +60,7 @@ public interface AnalyticsCourierRepository extends JpaRepository<Courier, Long>
             "  LEFT JOIN orders o ON c.id = o.courier_id " +
             "    AND o.delivered_at >= :since " +
             "    AND o.status IN ('DELIVERED', 'COMPLETED') " +
-            "  WHERE c.verified = true " +
+            "  WHERE c.is_verified = true " +
             "  GROUP BY c.id " +
             "  HAVING COUNT(o.id) BETWEEN :minDeliveries AND :maxDeliveries" +
             ") as at_risk", nativeQuery = true)
@@ -81,7 +81,7 @@ public interface AnalyticsCourierRepository extends JpaRepository<Courier, Long>
             "LEFT JOIN orders o ON c.id = o.courier_id " +
             "  AND o.delivered_at >= :since " +
             "  AND o.status IN ('DELIVERED', 'COMPLETED') " +
-            "WHERE c.verified = true " +
+            "WHERE c.is_verified = true " +
             "GROUP BY c.id, c.average_rating, c.total_earnings " +
             "ORDER BY delivery_count DESC", nativeQuery = true)
     List<Object[]> getCourierPerformanceSince(@Param("since") LocalDateTime since);

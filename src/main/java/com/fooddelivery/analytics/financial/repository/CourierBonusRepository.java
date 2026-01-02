@@ -23,7 +23,7 @@ public interface CourierBonusRepository extends JpaRepository<CourierBonus, Long
      */
     @Query("SELECT cb.bonusType, SUM(cb.bonusAmount), COUNT(DISTINCT cb.courierId), AVG(cb.bonusAmount) " +
            "FROM CourierBonus cb " +
-           "WHERE cb.earnedAt BETWEEN :startDate AND :endDate " +
+           "WHERE cb.bonusDate BETWEEN :startDate AND :endDate " +
            "GROUP BY cb.bonusType")
     List<Object[]> getBonusesByType(@Param("startDate") LocalDateTime startDate,
                                     @Param("endDate") LocalDateTime endDate);
@@ -32,7 +32,7 @@ public interface CourierBonusRepository extends JpaRepository<CourierBonus, Long
      * Get total bonus amount for period.
      */
     @Query("SELECT COALESCE(SUM(cb.bonusAmount), 0) FROM CourierBonus cb " +
-           "WHERE cb.earnedAt BETWEEN :startDate AND :endDate")
+           "WHERE cb.bonusDate BETWEEN :startDate AND :endDate")
     BigDecimal getTotalBonuses(@Param("startDate") LocalDateTime startDate,
                                @Param("endDate") LocalDateTime endDate);
 
@@ -42,7 +42,7 @@ public interface CourierBonusRepository extends JpaRepository<CourierBonus, Long
     @Query("SELECT COALESCE(SUM(cb.bonusAmount), 0), COUNT(cb), COUNT(DISTINCT cb.courierId), " +
            "COALESCE(AVG(cb.bonusAmount), 0) " +
            "FROM CourierBonus cb " +
-           "WHERE cb.earnedAt BETWEEN :startDate AND :endDate")
+           "WHERE cb.bonusDate BETWEEN :startDate AND :endDate")
     Object[] getBonusMetrics(@Param("startDate") LocalDateTime startDate,
                              @Param("endDate") LocalDateTime endDate);
 
@@ -51,7 +51,7 @@ public interface CourierBonusRepository extends JpaRepository<CourierBonus, Long
      */
     @Query("SELECT cb.status, SUM(cb.bonusAmount), COUNT(cb) " +
            "FROM CourierBonus cb " +
-           "WHERE cb.earnedAt BETWEEN :startDate AND :endDate " +
+           "WHERE cb.bonusDate BETWEEN :startDate AND :endDate " +
            "GROUP BY cb.status")
     List<Object[]> getBonusesByStatus(@Param("startDate") LocalDateTime startDate,
                                       @Param("endDate") LocalDateTime endDate);
@@ -59,11 +59,11 @@ public interface CourierBonusRepository extends JpaRepository<CourierBonus, Long
     /**
      * Get daily bonus trend.
      */
-    @Query(value = "SELECT DATE(earned_at) as date, SUM(bonus_amount), COUNT(*), " +
+    @Query(value = "SELECT DATE(bonus_date) as date, SUM(bonus_amount), COUNT(*), " +
                    "COUNT(DISTINCT courier_id) " +
                    "FROM courier_bonuses " +
-                   "WHERE earned_at BETWEEN :startDate AND :endDate " +
-                   "GROUP BY DATE(earned_at) " +
+                   "WHERE bonus_date BETWEEN :startDate AND :endDate " +
+                   "GROUP BY DATE(bonus_date) " +
                    "ORDER BY date", nativeQuery = true)
     List<Object[]> getDailyBonusTrend(@Param("startDate") LocalDateTime startDate,
                                       @Param("endDate") LocalDateTime endDate);
@@ -73,7 +73,7 @@ public interface CourierBonusRepository extends JpaRepository<CourierBonus, Long
      */
     @Query("SELECT cb.courierId, SUM(cb.bonusAmount), COUNT(cb) " +
            "FROM CourierBonus cb " +
-           "WHERE cb.earnedAt BETWEEN :startDate AND :endDate " +
+           "WHERE cb.bonusDate BETWEEN :startDate AND :endDate " +
            "GROUP BY cb.courierId " +
            "ORDER BY SUM(cb.bonusAmount) DESC")
     List<Object[]> getTopCouriersByBonus(@Param("startDate") LocalDateTime startDate,
@@ -84,11 +84,11 @@ public interface CourierBonusRepository extends JpaRepository<CourierBonus, Long
      */
     @Query("SELECT COALESCE(SUM(cb.bonusAmount), 0) FROM CourierBonus cb " +
            "WHERE cb.status = :status " +
-           "AND cb.earnedAt BETWEEN :startDate AND :endDate")
+           "AND cb.bonusDate BETWEEN :startDate AND :endDate")
     BigDecimal getTotalByStatus(@Param("status") PaymentStatus status,
                                 @Param("startDate") LocalDateTime startDate,
                                 @Param("endDate") LocalDateTime endDate);
 
-    List<CourierBonus> findByCourierIdAndEarnedAtBetween(
+    List<CourierBonus> findByCourierIdAndBonusDateBetween(
             Long courierId, LocalDateTime startDate, LocalDateTime endDate);
 }

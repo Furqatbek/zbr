@@ -75,7 +75,7 @@ public interface DashboardCourierRepository extends JpaRepository<Courier, Long>
      * Find available couriers near a location.
      */
     @Query(value = "SELECT * FROM couriers c WHERE c.status = 'AVAILABLE' " +
-            "AND c.verified = true AND c.current_order_count < c.max_concurrent_orders " +
+            "AND c.is_verified = true AND c.current_order_count < c.max_concurrent_orders " +
             "AND c.current_lat IS NOT NULL AND c.current_lng IS NOT NULL " +
             "AND ST_Distance_Sphere(point(c.current_lng, c.current_lat), point(:lng, :lat)) <= :radiusMeters " +
             "ORDER BY ST_Distance_Sphere(point(c.current_lng, c.current_lat), point(:lng, :lat))",
