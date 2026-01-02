@@ -602,10 +602,32 @@
     },
     {
       "name": "Restaurants",
-      "description": "Restaurant management endpoints",
+      "description": "Restaurant management endpoints - create, update, search, and manage restaurants",
       "item": [
         {
-          "name": "List All Restaurants",
+          "name": "Create Restaurant",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Pizza Palace\",\n    \"description\": \"Authentic Italian pizzas made with love\",\n    \"phone\": \"+12125551234\",\n    \"email\": \"contact@pizzapalace.com\",\n    \"addressLine1\": \"456 Food Street\",\n    \"addressLine2\": \"Suite 100\",\n    \"city\": \"New York\",\n    \"state\": \"NY\",\n    \"postalCode\": \"10002\",\n    \"country\": \"USA\",\n    \"latitude\": 40.7128,\n    \"longitude\": -74.0060,\n    \"acceptsDelivery\": true,\n    \"acceptsTakeaway\": true,\n    \"acceptsDineIn\": false,\n    \"minimumOrder\": 15.00,\n    \"deliveryFee\": 3.99,\n    \"deliveryRadiusKm\": 10,\n    \"averagePrepTimeMinutes\": 25,\n    \"opensAt\": \"10:00\",\n    \"closesAt\": \"22:00\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/restaurants",
+              "host": ["{{base_url}}"],
+              "path": ["restaurants"]
+            },
+            "description": "Create a new restaurant. Requires RESTAURANT_OWNER, PLATFORM, or ADMIN role."
+          }
+        },
+        {
+          "name": "Get Restaurant by ID",
           "request": {
             "auth": {
               "type": "noauth"
@@ -613,20 +635,11 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{base_url}}/restaurants?page=0&size=10",
+              "raw": "{{base_url}}/restaurants/1",
               "host": ["{{base_url}}"],
-              "path": ["restaurants"],
-              "query": [
-                {
-                  "key": "page",
-                  "value": "0"
-                },
-                {
-                  "key": "size",
-                  "value": "10"
-                }
-              ]
-            }
+              "path": ["restaurants", "1"]
+            },
+            "description": "Get restaurant details by ID. Public endpoint."
           }
         },
         {
@@ -641,7 +654,60 @@
               "raw": "{{base_url}}/restaurants/slug/pizza-palace",
               "host": ["{{base_url}}"],
               "path": ["restaurants", "slug", "pizza-palace"]
-            }
+            },
+            "description": "Get restaurant details by URL-friendly slug. Public endpoint."
+          }
+        },
+        {
+          "name": "Get All Restaurants",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/restaurants?page=0&size=20",
+              "host": ["{{base_url}}"],
+              "path": ["restaurants"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "Get all restaurants with pagination. Public endpoint."
+          }
+        },
+        {
+          "name": "Get Active Restaurants",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/restaurants/active?page=0&size=20",
+              "host": ["{{base_url}}"],
+              "path": ["restaurants", "active"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "Get only active restaurants. Public endpoint."
           }
         },
         {
@@ -653,24 +719,55 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{base_url}}/restaurants/search?query=pizza&cuisine=Italian",
+              "raw": "{{base_url}}/restaurants/search?q=pizza&page=0&size=20",
               "host": ["{{base_url}}"],
               "path": ["restaurants", "search"],
               "query": [
                 {
-                  "key": "query",
+                  "key": "q",
                   "value": "pizza"
                 },
                 {
-                  "key": "cuisine",
-                  "value": "Italian"
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "20"
                 }
               ]
-            }
+            },
+            "description": "Search restaurants by name or description. Public endpoint."
           }
         },
         {
-          "name": "Nearby Restaurants",
+          "name": "Get Featured Restaurants",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/restaurants/featured?page=0&size=10",
+              "host": ["{{base_url}}"],
+              "path": ["restaurants", "featured"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "Get featured restaurants. Public endpoint."
+          }
+        },
+        {
+          "name": "Get Nearby Restaurants",
           "request": {
             "auth": {
               "type": "noauth"
@@ -695,32 +792,12 @@
                   "value": "10"
                 }
               ]
-            }
-          }
-        },
-        {
-          "name": "Create Restaurant (Owner)",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n    \"name\": \"My New Restaurant\",\n    \"description\": \"A great place to eat\",\n    \"cuisineType\": \"American\",\n    \"addressLine1\": \"456 Food Street\",\n    \"city\": \"New York\",\n    \"state\": \"NY\",\n    \"postalCode\": \"10002\",\n    \"phone\": \"+1234567800\",\n    \"email\": \"contact@myrestaurant.com\",\n    \"minimumOrder\": 15.00,\n    \"deliveryFee\": 4.99,\n    \"deliveryRadiusKm\": 8.0,\n    \"acceptsPickup\": true,\n    \"acceptsDelivery\": true\n}"
             },
-            "url": {
-              "raw": "{{base_url}}/restaurants",
-              "host": ["{{base_url}}"],
-              "path": ["restaurants"]
-            }
+            "description": "Get restaurants near a location within radius (km). Public endpoint."
           }
         },
         {
-          "name": "Get My Restaurants (Owner)",
+          "name": "Get My Restaurants",
           "request": {
             "method": "GET",
             "header": [],
@@ -728,7 +805,8 @@
               "raw": "{{base_url}}/restaurants/my",
               "host": ["{{base_url}}"],
               "path": ["restaurants", "my"]
-            }
+            },
+            "description": "Get restaurants owned by authenticated user. Requires RESTAURANT_OWNER, PLATFORM, or ADMIN role."
           }
         },
         {
@@ -743,23 +821,62 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n    \"name\": \"Updated Restaurant Name\",\n    \"description\": \"Updated description\",\n    \"avgPrepTime\": 30\n}"
+              "raw": "{\n    \"name\": \"Pizza Palace Updated\",\n    \"description\": \"The best Italian pizzas in town\",\n    \"phone\": \"+12125551234\",\n    \"email\": \"info@pizzapalace.com\",\n    \"addressLine1\": \"456 Food Street\",\n    \"city\": \"New York\",\n    \"state\": \"NY\",\n    \"postalCode\": \"10002\",\n    \"minimumOrder\": 20.00,\n    \"deliveryFee\": 2.99,\n    \"averagePrepTimeMinutes\": 30\n}"
             },
             "url": {
               "raw": "{{base_url}}/restaurants/1",
               "host": ["{{base_url}}"],
               "path": ["restaurants", "1"]
-            }
+            },
+            "description": "Update restaurant details. Requires RESTAURANT_OWNER, RESTAURANT_STAFF, PLATFORM, or ADMIN role."
+          }
+        },
+        {
+          "name": "Update Restaurant Status",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/restaurants/1/status?status=ACTIVE",
+              "host": ["{{base_url}}"],
+              "path": ["restaurants", "1", "status"],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "ACTIVE"
+                }
+              ]
+            },
+            "description": "Update restaurant status (PENDING, ACTIVE, SUSPENDED, CLOSED, REJECTED). Requires PLATFORM or ADMIN role."
+          }
+        },
+        {
+          "name": "Toggle Open Status",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/restaurants/1/toggle-open?isOpen=true",
+              "host": ["{{base_url}}"],
+              "path": ["restaurants", "1", "toggle-open"],
+              "query": [
+                {
+                  "key": "isOpen",
+                  "value": "true"
+                }
+              ]
+            },
+            "description": "Toggle restaurant open/closed status. Requires RESTAURANT_OWNER, RESTAURANT_STAFF, PLATFORM, or ADMIN role."
           }
         }
       ]
     },
     {
       "name": "Menu",
-      "description": "Menu management endpoints",
+      "description": "Menu management endpoints - categories, items, variants, and options",
       "item": [
         {
-          "name": "Get Restaurant Menu",
+          "name": "Get Full Menu",
           "request": {
             "auth": {
               "type": "noauth"
@@ -770,11 +887,116 @@
               "raw": "{{base_url}}/restaurants/1/menu",
               "host": ["{{base_url}}"],
               "path": ["restaurants", "1", "menu"]
-            }
+            },
+            "description": "Get full menu with all categories and items. Public endpoint."
           }
         },
         {
-          "name": "Create Category",
+          "name": "Get Menu Categories",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/restaurants/1/menu/categories",
+              "host": ["{{base_url}}"],
+              "path": ["restaurants", "1", "menu", "categories"]
+            },
+            "description": "Get all menu categories for a restaurant. Public endpoint."
+          }
+        },
+        {
+          "name": "Get All Menu Items",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/restaurants/1/menu/items?page=0&size=20",
+              "host": ["{{base_url}}"],
+              "path": ["restaurants", "1", "menu", "items"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "Get all menu items with pagination. Public endpoint."
+          }
+        },
+        {
+          "name": "Get Featured Menu Items",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/restaurants/1/menu/items/featured",
+              "host": ["{{base_url}}"],
+              "path": ["restaurants", "1", "menu", "items", "featured"]
+            },
+            "description": "Get featured menu items. Public endpoint."
+          }
+        },
+        {
+          "name": "Search Menu Items",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/restaurants/1/menu/items/search?q=pizza&page=0&size=20",
+              "host": ["{{base_url}}"],
+              "path": ["restaurants", "1", "menu", "items", "search"],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "pizza"
+                },
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "Search menu items by name or description. Public endpoint."
+          }
+        },
+        {
+          "name": "Get Menu Item Details",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/restaurants/1/menu/items/1",
+              "host": ["{{base_url}}"],
+              "path": ["restaurants", "1", "menu", "items", "1"]
+            },
+            "description": "Get menu item details including variants and options. Public endpoint."
+          }
+        },
+        {
+          "name": "Create Menu Category",
           "request": {
             "method": "POST",
             "header": [
@@ -785,13 +1007,49 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n    \"name\": \"Specials\",\n    \"description\": \"Chef's special dishes\",\n    \"displayOrder\": 1\n}"
+              "raw": "{\n    \"name\": \"Pizzas\",\n    \"description\": \"Our famous wood-fired pizzas\",\n    \"imageUrl\": \"https://example.com/images/pizzas.jpg\",\n    \"sortOrder\": 1\n}"
             },
             "url": {
               "raw": "{{base_url}}/restaurants/1/menu/categories",
               "host": ["{{base_url}}"],
               "path": ["restaurants", "1", "menu", "categories"]
-            }
+            },
+            "description": "Create a new menu category. Requires RESTAURANT_OWNER, RESTAURANT_STAFF, PLATFORM, or ADMIN role."
+          }
+        },
+        {
+          "name": "Update Menu Category",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Specialty Pizzas\",\n    \"description\": \"Our chef's specialty pizzas\",\n    \"sortOrder\": 1\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/restaurants/1/menu/categories/1",
+              "host": ["{{base_url}}"],
+              "path": ["restaurants", "1", "menu", "categories", "1"]
+            },
+            "description": "Update menu category. Requires RESTAURANT_OWNER, RESTAURANT_STAFF, PLATFORM, or ADMIN role."
+          }
+        },
+        {
+          "name": "Delete Menu Category",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/restaurants/1/menu/categories/1",
+              "host": ["{{base_url}}"],
+              "path": ["restaurants", "1", "menu", "categories", "1"]
+            },
+            "description": "Delete (soft) menu category. Requires RESTAURANT_OWNER, RESTAURANT_STAFF, PLATFORM, or ADMIN role."
           }
         },
         {
@@ -806,13 +1064,14 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n    \"categoryId\": 1,\n    \"name\": \"Grilled Salmon\",\n    \"description\": \"Fresh Atlantic salmon grilled to perfection\",\n    \"basePrice\": 24.99,\n    \"isAvailable\": true,\n    \"isFeatured\": true,\n    \"prepTimeMinutes\": 20\n}"
+              "raw": "{\n    \"categoryId\": 1,\n    \"name\": \"Margherita Pizza\",\n    \"description\": \"Classic pizza with fresh mozzarella, tomatoes, and basil\",\n    \"price\": 14.99,\n    \"originalPrice\": 16.99,\n    \"imageUrl\": \"https://example.com/images/margherita.jpg\",\n    \"prepTimeMinutes\": 20,\n    \"calories\": 850,\n    \"vegetarian\": true,\n    \"vegan\": false,\n    \"glutenFree\": false,\n    \"spicy\": false,\n    \"allergens\": \"Gluten, Dairy\",\n    \"featured\": true,\n    \"sortOrder\": 1,\n    \"variants\": [\n        {\n            \"name\": \"Small (10\\\")\",\n            \"priceDelta\": -3.00,\n            \"sortOrder\": 1\n        },\n        {\n            \"name\": \"Large (14\\\")\",\n            \"priceDelta\": 4.00,\n            \"sortOrder\": 2\n        }\n    ],\n    \"options\": [\n        {\n            \"groupName\": \"Extra Toppings\",\n            \"name\": \"Extra Cheese\",\n            \"priceDelta\": 2.00,\n            \"isDefault\": false,\n            \"maxSelections\": 5,\n            \"required\": false\n        }\n    ]\n}"
             },
             "url": {
               "raw": "{{base_url}}/restaurants/1/menu/items",
               "host": ["{{base_url}}"],
               "path": ["restaurants", "1", "menu", "items"]
-            }
+            },
+            "description": "Create a new menu item with variants and options. Requires RESTAURANT_OWNER, RESTAURANT_STAFF, PLATFORM, or ADMIN role."
           }
         },
         {
@@ -827,31 +1086,82 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n    \"name\": \"Grilled Salmon (Updated)\",\n    \"basePrice\": 26.99,\n    \"isAvailable\": true\n}"
+              "raw": "{\n    \"categoryId\": 1,\n    \"name\": \"Margherita Pizza Deluxe\",\n    \"description\": \"Premium pizza with buffalo mozzarella\",\n    \"price\": 16.99,\n    \"prepTimeMinutes\": 25,\n    \"featured\": true\n}"
             },
             "url": {
               "raw": "{{base_url}}/restaurants/1/menu/items/1",
               "host": ["{{base_url}}"],
               "path": ["restaurants", "1", "menu", "items", "1"]
-            }
+            },
+            "description": "Update menu item. Requires RESTAURANT_OWNER, RESTAURANT_STAFF, PLATFORM, or ADMIN role."
           }
         },
         {
-          "name": "Toggle Item Availability",
+          "name": "Update Menu Item Stock",
           "request": {
             "method": "PATCH",
             "header": [],
             "url": {
-              "raw": "{{base_url}}/restaurants/1/menu/items/1/availability?available=false",
+              "raw": "{{base_url}}/restaurants/1/menu/items/1/stock?inStock=false",
               "host": ["{{base_url}}"],
-              "path": ["restaurants", "1", "menu", "items", "1", "availability"],
+              "path": ["restaurants", "1", "menu", "items", "1", "stock"],
               "query": [
                 {
-                  "key": "available",
+                  "key": "inStock",
                   "value": "false"
                 }
               ]
-            }
+            },
+            "description": "Update menu item stock status. Requires RESTAURANT_OWNER, RESTAURANT_STAFF, PLATFORM, or ADMIN role."
+          }
+        },
+        {
+          "name": "Delete Menu Item",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/restaurants/1/menu/items/1",
+              "host": ["{{base_url}}"],
+              "path": ["restaurants", "1", "menu", "items", "1"]
+            },
+            "description": "Delete (soft) menu item. Requires RESTAURANT_OWNER, RESTAURANT_STAFF, PLATFORM, or ADMIN role."
+          }
+        },
+        {
+          "name": "Upload Menu Item Image",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": ""
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/restaurants/1/menu/items/1/image",
+              "host": ["{{base_url}}"],
+              "path": ["restaurants", "1", "menu", "items", "1", "image"]
+            },
+            "description": "Upload image for menu item. Requires RESTAURANT_OWNER, RESTAURANT_STAFF, PLATFORM, or ADMIN role."
+          }
+        },
+        {
+          "name": "Delete Menu Item Image",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/restaurants/1/menu/items/1/image",
+              "host": ["{{base_url}}"],
+              "path": ["restaurants", "1", "menu", "items", "1", "image"]
+            },
+            "description": "Delete menu item image. Requires RESTAURANT_OWNER, RESTAURANT_STAFF, PLATFORM, or ADMIN role."
           }
         }
       ]
