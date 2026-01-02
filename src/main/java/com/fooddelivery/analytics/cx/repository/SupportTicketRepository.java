@@ -58,23 +58,23 @@ public interface SupportTicketRepository extends JpaRepository<SupportTicket, Lo
     /**
      * Get resolution time statistics.
      */
-    @Query("SELECT AVG(EXTRACT(EPOCH FROM (t.resolvedAt - t.createdAt)) / 3600), " +
-           "MIN(EXTRACT(EPOCH FROM (t.resolvedAt - t.createdAt)) / 3600), " +
-           "MAX(EXTRACT(EPOCH FROM (t.resolvedAt - t.createdAt)) / 3600), " +
-           "COUNT(t) " +
-           "FROM SupportTicket t WHERE t.createdAt BETWEEN :start AND :end " +
-           "AND t.resolvedAt IS NOT NULL")
+    @Query(value = "SELECT AVG(EXTRACT(EPOCH FROM (resolved_at - created_at)) / 3600), " +
+           "MIN(EXTRACT(EPOCH FROM (resolved_at - created_at)) / 3600), " +
+           "MAX(EXTRACT(EPOCH FROM (resolved_at - created_at)) / 3600), " +
+           "COUNT(*) " +
+           "FROM support_tickets WHERE created_at BETWEEN :start AND :end " +
+           "AND resolved_at IS NOT NULL", nativeQuery = true)
     Object[] getResolutionTimeStats(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
 
     /**
      * Get first response time statistics.
      */
-    @Query("SELECT AVG(EXTRACT(EPOCH FROM (t.firstResponseAt - t.createdAt)) / 60), " +
-           "MIN(EXTRACT(EPOCH FROM (t.firstResponseAt - t.createdAt)) / 60), " +
-           "MAX(EXTRACT(EPOCH FROM (t.firstResponseAt - t.createdAt)) / 60), " +
-           "COUNT(t) " +
-           "FROM SupportTicket t WHERE t.createdAt BETWEEN :start AND :end " +
-           "AND t.firstResponseAt IS NOT NULL")
+    @Query(value = "SELECT AVG(EXTRACT(EPOCH FROM (first_response_at - created_at)) / 60), " +
+           "MIN(EXTRACT(EPOCH FROM (first_response_at - created_at)) / 60), " +
+           "MAX(EXTRACT(EPOCH FROM (first_response_at - created_at)) / 60), " +
+           "COUNT(*) " +
+           "FROM support_tickets WHERE created_at BETWEEN :start AND :end " +
+           "AND first_response_at IS NOT NULL", nativeQuery = true)
     Object[] getFirstResponseTimeStats(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
 
     /**
@@ -87,9 +87,9 @@ public interface SupportTicketRepository extends JpaRepository<SupportTicket, Lo
     /**
      * Count tickets within SLA.
      */
-    @Query("SELECT COUNT(t) FROM SupportTicket t WHERE t.createdAt BETWEEN :start AND :end " +
-           "AND t.resolvedAt IS NOT NULL " +
-           "AND EXTRACT(EPOCH FROM (t.resolvedAt - t.createdAt)) / 3600 <= :slaHours")
+    @Query(value = "SELECT COUNT(*) FROM support_tickets WHERE created_at BETWEEN :start AND :end " +
+           "AND resolved_at IS NOT NULL " +
+           "AND EXTRACT(EPOCH FROM (resolved_at - created_at)) / 3600 <= :slaHours", nativeQuery = true)
     Long countWithinSla(@Param("start") LocalDateTime start,
                         @Param("end") LocalDateTime end,
                         @Param("slaHours") int slaHours);
@@ -113,40 +113,40 @@ public interface SupportTicketRepository extends JpaRepository<SupportTicket, Lo
     /**
      * Count currently breached open tickets.
      */
-    @Query("SELECT COUNT(t) FROM SupportTicket t WHERE t.status NOT IN ('RESOLVED', 'CLOSED') " +
-           "AND EXTRACT(EPOCH FROM (CURRENT_TIMESTAMP - t.createdAt)) / 3600 > :slaHours")
+    @Query(value = "SELECT COUNT(*) FROM support_tickets WHERE status NOT IN ('RESOLVED', 'CLOSED') " +
+           "AND EXTRACT(EPOCH FROM (CURRENT_TIMESTAMP - created_at)) / 3600 > :slaHours", nativeQuery = true)
     Long countCurrentlyBreached(@Param("slaHours") int slaHours);
 
     /**
      * Count tickets at risk of breach.
      */
-    @Query("SELECT COUNT(t) FROM SupportTicket t WHERE t.status NOT IN ('RESOLVED', 'CLOSED') " +
-           "AND EXTRACT(EPOCH FROM (CURRENT_TIMESTAMP - t.createdAt)) / 3600 BETWEEN :warningHours AND :slaHours")
+    @Query(value = "SELECT COUNT(*) FROM support_tickets WHERE status NOT IN ('RESOLVED', 'CLOSED') " +
+           "AND EXTRACT(EPOCH FROM (CURRENT_TIMESTAMP - created_at)) / 3600 BETWEEN :warningHours AND :slaHours", nativeQuery = true)
     Long countAtRiskOfBreach(@Param("warningHours") int warningHours, @Param("slaHours") int slaHours);
 
     /**
      * Get agent performance.
      */
-    @Query("SELECT t.assignedTo, COUNT(t), " +
-           "SUM(CASE WHEN t.status IN ('RESOLVED', 'CLOSED') THEN 1 ELSE 0 END), " +
-           "AVG(CASE WHEN t.resolvedAt IS NOT NULL THEN EXTRACT(EPOCH FROM (t.resolvedAt - t.createdAt)) / 3600 ELSE NULL END), " +
-           "AVG(CASE WHEN t.firstResponseAt IS NOT NULL THEN EXTRACT(EPOCH FROM (t.firstResponseAt - t.createdAt)) / 60 ELSE NULL END), " +
-           "AVG(t.customerSatisfactionScore), " +
-           "SUM(CASE WHEN t.slaBreach = true THEN 1 ELSE 0 END) " +
-           "FROM SupportTicket t WHERE t.createdAt BETWEEN :start AND :end AND t.assignedTo IS NOT NULL " +
-           "GROUP BY t.assignedTo ORDER BY COUNT(t) DESC")
+    @Query(value = "SELECT assigned_to, COUNT(*), " +
+           "SUM(CASE WHEN status IN ('RESOLVED', 'CLOSED') THEN 1 ELSE 0 END), " +
+           "AVG(CASE WHEN resolved_at IS NOT NULL THEN EXTRACT(EPOCH FROM (resolved_at - created_at)) / 3600 ELSE NULL END), " +
+           "AVG(CASE WHEN first_response_at IS NOT NULL THEN EXTRACT(EPOCH FROM (first_response_at - created_at)) / 60 ELSE NULL END), " +
+           "AVG(customer_satisfaction_score), " +
+           "SUM(CASE WHEN sla_breach = true THEN 1 ELSE 0 END) " +
+           "FROM support_tickets WHERE created_at BETWEEN :start AND :end AND assigned_to IS NOT NULL " +
+           "GROUP BY assigned_to ORDER BY COUNT(*) DESC", nativeQuery = true)
     List<Object[]> getAgentPerformance(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
 
     /**
      * Get daily ticket trend.
      */
-    @Query("SELECT CAST(t.createdAt AS date), " +
-           "COUNT(t), " +
-           "SUM(CASE WHEN t.resolvedAt IS NOT NULL THEN 1 ELSE 0 END), " +
-           "SUM(CASE WHEN t.status = 'CLOSED' THEN 1 ELSE 0 END), " +
-           "AVG(CASE WHEN t.resolvedAt IS NOT NULL THEN EXTRACT(EPOCH FROM (t.resolvedAt - t.createdAt)) / 3600 ELSE NULL END) " +
-           "FROM SupportTicket t WHERE t.createdAt BETWEEN :start AND :end " +
-           "GROUP BY CAST(t.createdAt AS date) ORDER BY CAST(t.createdAt AS date)")
+    @Query(value = "SELECT DATE(created_at), " +
+           "COUNT(*), " +
+           "SUM(CASE WHEN resolved_at IS NOT NULL THEN 1 ELSE 0 END), " +
+           "SUM(CASE WHEN status = 'CLOSED' THEN 1 ELSE 0 END), " +
+           "AVG(CASE WHEN resolved_at IS NOT NULL THEN EXTRACT(EPOCH FROM (resolved_at - created_at)) / 3600 ELSE NULL END) " +
+           "FROM support_tickets WHERE created_at BETWEEN :start AND :end " +
+           "GROUP BY DATE(created_at) ORDER BY DATE(created_at)", nativeQuery = true)
     List<Object[]> getDailyTicketTrend(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
 
     /**
@@ -191,9 +191,9 @@ public interface SupportTicketRepository extends JpaRepository<SupportTicket, Lo
     /**
      * Get resolution time percentiles (approximation via ordering).
      */
-    @Query("SELECT EXTRACT(EPOCH FROM (t.resolvedAt - t.createdAt)) / 3600 " +
-           "FROM SupportTicket t WHERE t.createdAt BETWEEN :start AND :end " +
-           "AND t.resolvedAt IS NOT NULL ORDER BY (t.resolvedAt - t.createdAt)")
+    @Query(value = "SELECT EXTRACT(EPOCH FROM (resolved_at - created_at)) / 3600 " +
+           "FROM support_tickets WHERE created_at BETWEEN :start AND :end " +
+           "AND resolved_at IS NOT NULL ORDER BY (resolved_at - created_at)", nativeQuery = true)
     List<Double> getResolutionTimesOrdered(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
 
     /**
