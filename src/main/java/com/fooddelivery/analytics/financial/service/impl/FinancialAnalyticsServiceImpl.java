@@ -227,7 +227,7 @@ public class FinancialAnalyticsServiceImpl implements FinancialAnalyticsService 
                 ? totalFeesCollected.divide(BigDecimal.valueOf(deliveryCount), 2, RoundingMode.HALF_UP)
                 : BigDecimal.ZERO;
 
-        BigDecimal averageDistance = courierPaymentRepository.getAverageDeliveryDistance(startDate, endDate);
+        BigDecimal averageDistance = courierPaymentRepository.getAverageDistanceBonus(startDate, endDate);
 
         // Build daily trend
         List<DeliveryFeeMetricsDto.DailyDeliveryFeeDto> dailyTrend = new ArrayList<>();
