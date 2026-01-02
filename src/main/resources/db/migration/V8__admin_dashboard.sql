@@ -165,6 +165,28 @@ CREATE TABLE dashboard_snapshots (
 
 CREATE UNIQUE INDEX idx_dash_snapshots_date_hour ON dashboard_snapshots(snapshot_date, snapshot_hour);
 
+-- Dashboard Refresh Logs (matching DashboardRefreshLog entity)
+CREATE TABLE dashboard_refresh_logs (
+    id BIGSERIAL PRIMARY KEY,
+    panel_name VARCHAR(50) NOT NULL,
+    component VARCHAR(100),
+    admin_user_id BIGINT,
+    query_duration_ms INTEGER,
+    duration_ms BIGINT,
+    cache_hit BOOLEAN DEFAULT FALSE,
+    records_returned INTEGER,
+    filter_params VARCHAR(1000),
+    error_message VARCHAR(500),
+    successful BOOLEAN DEFAULT TRUE,
+    success BOOLEAN DEFAULT TRUE,
+    message VARCHAR(500),
+    refreshed_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_refresh_panel ON dashboard_refresh_logs(panel_name);
+CREATE INDEX idx_refresh_time ON dashboard_refresh_logs(refreshed_at);
+CREATE INDEX idx_refresh_user ON dashboard_refresh_logs(admin_user_id);
+
 -- Function to refresh materialized views
 CREATE OR REPLACE FUNCTION refresh_dashboard_views()
 RETURNS void AS $$
