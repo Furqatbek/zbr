@@ -40,11 +40,14 @@ spring:
     validate-on-migrate: true
 
   # Redis Configuration
+  redis:
+    host: ${REDIS_HOST:localhost}
+    port: ${REDIS_PORT:6379}
+    timeout: 2000ms
   data:
     redis:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
-      password: ${REDIS_PASSWORD:}
       timeout: 2000ms
       lettuce:
         pool:
@@ -277,6 +280,16 @@ spring:
     # In Docker, allow modified migrations and out-of-order execution
     validate-on-migrate: false
     out-of-order: true
+
+  # Redis configuration for Docker (no password)
+  redis:
+    host: redis
+    port: 6379
+
+  data:
+    redis:
+      host: redis
+      port: 6379
 
 ---
 # Test Profile
