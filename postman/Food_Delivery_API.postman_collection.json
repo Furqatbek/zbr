@@ -2898,6 +2898,306 @@
           }
         }
       ]
+    },
+    {
+      "name": "Notifications",
+      "description": "Notification management endpoints. Supports creating, reading, updating, and deleting notifications with filtering and bulk operations.",
+      "item": [
+        {
+          "name": "Create Notification (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"userId\": 1,\n    \"role\": \"CUSTOMER\",\n    \"title\": \"Order Update\",\n    \"message\": \"Your order #12345 has been confirmed\",\n    \"category\": \"ORDER\",\n    \"priority\": \"NORMAL\",\n    \"relatedEntityType\": \"ORDER\",\n    \"relatedEntityId\": 12345,\n    \"actionUrl\": \"/orders/12345\",\n    \"icon\": \"shopping-bag\",\n    \"ttlHours\": 720\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/notifications",
+              "host": ["{{base_url}}"],
+              "path": ["notifications"]
+            },
+            "description": "Create a new notification for a user or role.\n\nRoles: ADMIN, SYSTEM\n\nCategories: ORDER, FINANCE, SUPPORT, SYSTEM, PROMOTION, ACCOUNT, DELIVERY, RESTAURANT_OPS, ALERT\n\nPriorities: LOW, NORMAL, HIGH, URGENT"
+          }
+        },
+        {
+          "name": "Get Notification by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/notifications/1",
+              "host": ["{{base_url}}"],
+              "path": ["notifications", "1"]
+            },
+            "description": "Retrieve a specific notification by its ID."
+          }
+        },
+        {
+          "name": "Get Notifications (with filters)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/notifications?userId=1&isRead=false&category=ORDER&page=0&pageSize=20&sortBy=createdAt&sortDirection=DESC",
+              "host": ["{{base_url}}"],
+              "path": ["notifications"],
+              "query": [
+                {"key": "userId", "value": "1", "description": "User ID to filter by"},
+                {"key": "isRead", "value": "false", "description": "Filter by read status"},
+                {"key": "category", "value": "ORDER", "description": "Filter by category"},
+                {"key": "page", "value": "0"},
+                {"key": "pageSize", "value": "20"},
+                {"key": "sortBy", "value": "createdAt"},
+                {"key": "sortDirection", "value": "DESC"}
+              ]
+            },
+            "description": "Get notifications with optional filters and pagination.\n\nAdditional filters: role, orderId, createdFrom, createdTo, searchTerm, includeDismissed"
+          }
+        },
+        {
+          "name": "Search Notifications (POST)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"userId\": 1,\n    \"role\": \"CUSTOMER\",\n    \"isRead\": false,\n    \"category\": \"ORDER\",\n    \"createdFrom\": \"2024-01-01T00:00:00\",\n    \"createdTo\": \"2024-01-31T23:59:59\",\n    \"searchTerm\": \"order\",\n    \"includeDismissed\": false,\n    \"page\": 0,\n    \"pageSize\": 20,\n    \"sortBy\": \"createdAt\",\n    \"sortDirection\": \"DESC\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/notifications/search",
+              "host": ["{{base_url}}"],
+              "path": ["notifications", "search"]
+            },
+            "description": "Search notifications with advanced filter in request body."
+          }
+        },
+        {
+          "name": "Get My Notifications",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/notifications/me?isRead=false&category=ORDER&page=0&pageSize=20",
+              "host": ["{{base_url}}"],
+              "path": ["notifications", "me"],
+              "query": [
+                {"key": "isRead", "value": "false"},
+                {"key": "category", "value": "ORDER"},
+                {"key": "page", "value": "0"},
+                {"key": "pageSize", "value": "20"}
+              ]
+            },
+            "description": "Get notifications for the currently authenticated user."
+          }
+        },
+        {
+          "name": "Get Unread Notifications",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/notifications/user/1/unread?role=CUSTOMER&page=0&pageSize=20",
+              "host": ["{{base_url}}"],
+              "path": ["notifications", "user", "1", "unread"],
+              "query": [
+                {"key": "role", "value": "CUSTOMER", "description": "Optional role filter"},
+                {"key": "page", "value": "0"},
+                {"key": "pageSize", "value": "20"}
+              ]
+            },
+            "description": "Get all unread notifications for a specific user."
+          }
+        },
+        {
+          "name": "Get Notification Counts",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/notifications/user/1/counts?role=CUSTOMER",
+              "host": ["{{base_url}}"],
+              "path": ["notifications", "user", "1", "counts"],
+              "query": [
+                {"key": "role", "value": "CUSTOMER", "description": "Optional role filter"}
+              ]
+            },
+            "description": "Get notification counts (total, unread, by category) for a user."
+          }
+        },
+        {
+          "name": "Get Unread Count",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/notifications/user/1/unread-count?role=CUSTOMER",
+              "host": ["{{base_url}}"],
+              "path": ["notifications", "user", "1", "unread-count"],
+              "query": [
+                {"key": "role", "value": "CUSTOMER", "description": "Optional role filter"}
+              ]
+            },
+            "description": "Get the count of unread notifications for a user.\n\nReturns: { \"unreadCount\": 5 }"
+          }
+        },
+        {
+          "name": "Mark as Read",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/notifications/1/read",
+              "host": ["{{base_url}}"],
+              "path": ["notifications", "1", "read"]
+            },
+            "description": "Mark a specific notification as read."
+          }
+        },
+        {
+          "name": "Mark All as Read",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/notifications/read-all?userId=1&role=CUSTOMER",
+              "host": ["{{base_url}}"],
+              "path": ["notifications", "read-all"],
+              "query": [
+                {"key": "userId", "value": "1"},
+                {"key": "role", "value": "CUSTOMER", "description": "Optional role filter"}
+              ]
+            },
+            "description": "Mark all notifications as read for a user.\n\nReturns: { \"status\": \"success\", \"markedCount\": 10 }"
+          }
+        },
+        {
+          "name": "Mark Batch as Read",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "[1, 2, 3, 4, 5]"
+            },
+            "url": {
+              "raw": "{{base_url}}/notifications/read-batch",
+              "host": ["{{base_url}}"],
+              "path": ["notifications", "read-batch"]
+            },
+            "description": "Mark multiple notifications as read by IDs.\n\nBody: Array of notification IDs"
+          }
+        },
+        {
+          "name": "Dismiss Notification",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/notifications/1/dismiss",
+              "host": ["{{base_url}}"],
+              "path": ["notifications", "1", "dismiss"]
+            },
+            "description": "Dismiss (soft delete) a notification."
+          }
+        },
+        {
+          "name": "Bulk Action",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"notificationIds\": [1, 2, 3, 4, 5],\n    \"action\": \"MARK_READ\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/notifications/bulk-action",
+              "host": ["{{base_url}}"],
+              "path": ["notifications", "bulk-action"]
+            },
+            "description": "Perform bulk actions on multiple notifications.\n\nActions: MARK_READ, MARK_UNREAD, DISMISS, DELETE"
+          }
+        },
+        {
+          "name": "Delete Notification",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/notifications/1",
+              "host": ["{{base_url}}"],
+              "path": ["notifications", "1"]
+            },
+            "description": "Permanently delete a notification."
+          }
+        },
+        {
+          "name": "Delete All for User",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/notifications/user/1",
+              "host": ["{{base_url}}"],
+              "path": ["notifications", "user", "1"]
+            },
+            "description": "Delete all notifications for a specific user.\n\nRoles: ADMIN or own user"
+          }
+        },
+        {
+          "name": "Cleanup Expired (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/notifications/admin/cleanup/expired",
+              "host": ["{{base_url}}"],
+              "path": ["notifications", "admin", "cleanup", "expired"]
+            },
+            "description": "Remove all expired notifications.\n\nRoles: ADMIN only"
+          }
+        },
+        {
+          "name": "Cleanup Dismissed (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/notifications/admin/cleanup/dismissed?daysOld=7",
+              "host": ["{{base_url}}"],
+              "path": ["notifications", "admin", "cleanup", "dismissed"],
+              "query": [
+                {"key": "daysOld", "value": "7", "description": "Delete dismissed notifications older than X days (default: 7)"}
+              ]
+            },
+            "description": "Remove old dismissed notifications.\n\nRoles: ADMIN only"
+          }
+        },
+        {
+          "name": "Cleanup Old Read (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/notifications/admin/cleanup/read?daysOld=90",
+              "host": ["{{base_url}}"],
+              "path": ["notifications", "admin", "cleanup", "read"],
+              "query": [
+                {"key": "daysOld", "value": "90", "description": "Delete read notifications older than X days (default: 90)"}
+              ]
+            },
+            "description": "Remove old read notifications.\n\nRoles: ADMIN only"
+          }
+        }
+      ]
     }
   ]
 }
