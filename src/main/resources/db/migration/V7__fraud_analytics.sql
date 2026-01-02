@@ -95,22 +95,34 @@ CREATE INDEX idx_referral_events_code ON referral_events(referral_code);
 CREATE INDEX idx_referral_events_is_suspicious ON referral_events(is_suspicious);
 CREATE INDEX idx_referral_events_created_at ON referral_events(created_at);
 
--- Device Fingerprints
+-- Device Fingerprints (matching DeviceFingerprint entity)
 CREATE TABLE device_fingerprints (
     id BIGSERIAL PRIMARY KEY,
-    fingerprint VARCHAR(255) NOT NULL UNIQUE,
-    user_ids BIGINT[],
+    user_id BIGINT NOT NULL,
+    device_id VARCHAR(255) NOT NULL,
+    fingerprint_hash VARCHAR(64),
+    device_type VARCHAR(50),
+    device_brand VARCHAR(100),
+    device_model VARCHAR(100),
+    os_name VARCHAR(50),
+    os_version VARCHAR(50),
+    app_version VARCHAR(50),
+    screen_resolution VARCHAR(20),
+    timezone VARCHAR(50),
+    language VARCHAR(10),
+    is_emulator BOOLEAN,
+    is_rooted BOOLEAN,
+    is_trusted BOOLEAN,
+    trust_score INTEGER,
     first_seen_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    last_seen_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    total_sessions INTEGER DEFAULT 1,
-    is_suspicious BOOLEAN DEFAULT FALSE,
-    risk_score DOUBLE PRECISION DEFAULT 0,
-    device_info JSONB,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    last_seen_at TIMESTAMP,
+    times_seen INTEGER
 );
 
-CREATE INDEX idx_device_fingerprints_fingerprint ON device_fingerprints(fingerprint);
-CREATE INDEX idx_device_fingerprints_is_suspicious ON device_fingerprints(is_suspicious);
+CREATE INDEX idx_device_fingerprint_user_id ON device_fingerprints(user_id);
+CREATE INDEX idx_device_fingerprint_device_id ON device_fingerprints(device_id);
+CREATE INDEX idx_device_fingerprint_fingerprint ON device_fingerprints(fingerprint_hash);
+CREATE INDEX idx_device_fingerprint_first_seen ON device_fingerprints(first_seen_at);
 
 -- IP Reputation
 CREATE TABLE ip_reputation (
