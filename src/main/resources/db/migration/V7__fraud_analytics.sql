@@ -71,29 +71,34 @@ CREATE INDEX idx_fraud_events_risk_level ON fraud_events(risk_level);
 CREATE INDEX idx_fraud_events_created_at ON fraud_events(created_at);
 CREATE INDEX idx_fraud_events_is_confirmed ON fraud_events(is_confirmed_fraud);
 
--- Referral Events (with is_suspicious column)
+-- Referral Events (matching ReferralEvent entity)
 CREATE TABLE referral_events (
     id BIGSERIAL PRIMARY KEY,
     referrer_id BIGINT NOT NULL,
-    referred_id BIGINT,
-    referral_code VARCHAR(50) NOT NULL,
-    event_type VARCHAR(50) NOT NULL,
-    status VARCHAR(30) NOT NULL DEFAULT 'PENDING',
-    ip_address VARCHAR(45),
+    referred_user_id BIGINT NOT NULL,
+    referral_code VARCHAR(50),
+    device_id VARCHAR(255),
     device_fingerprint VARCHAR(255),
-    is_suspicious BOOLEAN DEFAULT FALSE,
-    fraud_indicators TEXT[],
-    reward_amount DECIMAL(10,2),
-    reward_issued BOOLEAN DEFAULT FALSE,
-    reward_issued_at TIMESTAMP,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    ip_address VARCHAR(45),
+    status VARCHAR(20) NOT NULL,
+    referrer_bonus DECIMAL(10, 2),
+    referred_bonus DECIMAL(10, 2),
+    phone_number_hash VARCHAR(64),
+    email_domain VARCHAR(255),
+    first_order_completed BOOLEAN,
+    first_order_id BIGINT,
+    is_suspicious BOOLEAN,
+    fraud_flags VARCHAR(500),
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    completed_at TIMESTAMP
 );
 
 CREATE INDEX idx_referral_events_referrer_id ON referral_events(referrer_id);
-CREATE INDEX idx_referral_events_referred_id ON referral_events(referred_id);
-CREATE INDEX idx_referral_events_code ON referral_events(referral_code);
-CREATE INDEX idx_referral_events_is_suspicious ON referral_events(is_suspicious);
+CREATE INDEX idx_referral_events_referred_user_id ON referral_events(referred_user_id);
+CREATE INDEX idx_referral_events_device_id ON referral_events(device_id);
+CREATE INDEX idx_referral_events_ip_address ON referral_events(ip_address);
 CREATE INDEX idx_referral_events_created_at ON referral_events(created_at);
+CREATE INDEX idx_referral_events_status ON referral_events(status);
 
 -- Device Fingerprints (matching DeviceFingerprint entity)
 CREATE TABLE device_fingerprints (
