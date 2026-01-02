@@ -298,6 +298,75 @@ CREATE INDEX idx_activity_user_id ON activity_logs(user_id);
 CREATE INDEX idx_activity_event_type ON activity_logs(event_type);
 CREATE INDEX idx_activity_created_at ON activity_logs(created_at);
 
+-- Password reset tokens table
+CREATE TABLE password_reset_tokens (
+    id BIGSERIAL PRIMARY KEY,
+    user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    token VARCHAR(255) NOT NULL UNIQUE,
+    used BOOLEAN DEFAULT FALSE,
+    used_at TIMESTAMP,
+    expires_at TIMESTAMP NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_password_reset_tokens_token ON password_reset_tokens(token);
+CREATE INDEX idx_password_reset_tokens_user_id ON password_reset_tokens(user_id);
+
+-- Referrals table
+CREATE TABLE referrals (
+    id BIGSERIAL PRIMARY KEY,
+    code VARCHAR(20) NOT NULL UNIQUE,
+    referrer_user_id BIGINT NOT NULL REFERENCES users(id),
+    referred_user_id BIGINT REFERENCES users(id),
+    status VARCHAR(20) NOT NULL DEFAULT 'PENDING',
+    reward_amount DECIMAL(10, 2),
+    currency VARCHAR(3) DEFAULT 'USD',
+    referrer_rewarded BOOLEAN DEFAULT FALSE,
+    referred_rewarded BOOLEAN DEFAULT FALSE,
+    expires_at TIMESTAMP,
+    completed_at TIMESTAMP,
+    version BIGINT DEFAULT 0,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_referrals_code ON referrals(code);
+CREATE INDEX idx_referrals_referrer ON referrals(referrer_user_id);
+CREATE INDEX idx_referrals_referred ON referrals(referred_user_id);
+CREATE INDEX idx_referrals_status ON referrals(status);
+
+-- Item variants (size/type variations)
+CREATE TABLE item_variants (
+    id BIGSERIAL PRIMARY KEY,
+    menu_item_id BIGINT NOT NULL REFERENCES menu_items(id) ON DELETE CASCADE,
+    name VARCHAR(100) NOT NULL,
+    price_delta DECIMAL(10, 2) NOT NULL DEFAULT 0,
+    in_stock BOOLEAN NOT NULL DEFAULT TRUE,
+    sort_order INTEGER DEFAULT 0,
+    active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_item_variants_menu_item ON item_variants(menu_item_id);
+
+-- Item options (add-ons and modifiers)
+CREATE TABLE item_options (
+    id BIGSERIAL PRIMARY KEY,
+    menu_item_id BIGINT NOT NULL REFERENCES menu_items(id) ON DELETE CASCADE,
+    group_name VARCHAR(100),
+    name VARCHAR(100) NOT NULL,
+    price_delta DECIMAL(10, 2) NOT NULL DEFAULT 0,
+    is_default BOOLEAN DEFAULT FALSE,
+    max_selections INTEGER DEFAULT 1,
+    is_required BOOLEAN DEFAULT FALSE,
+    in_stock BOOLEAN NOT NULL DEFAULT TRUE,
+    sort_order INTEGER DEFAULT 0,
+    active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_item_options_menu_item ON item_options(menu_item_id);
+
 -- Functions for updated_at trigger
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$

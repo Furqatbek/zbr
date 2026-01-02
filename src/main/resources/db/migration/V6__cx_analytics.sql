@@ -1,8 +1,8 @@
 -- Customer Experience Analytics Tables
 -- V6: NPS, ratings, and support tickets
 
--- Restaurant Ratings
-CREATE TABLE restaurant_ratings (
+-- Restaurant Ratings (matching RestaurantRating entity)
+CREATE TABLE rating_restaurant (
     id BIGSERIAL PRIMARY KEY,
     restaurant_id BIGINT NOT NULL,
     user_id BIGINT NOT NULL,
@@ -11,20 +11,23 @@ CREATE TABLE restaurant_ratings (
     food_quality_score INTEGER CHECK (food_quality_score >= 1 AND food_quality_score <= 5),
     portion_size_score INTEGER CHECK (portion_size_score >= 1 AND portion_size_score <= 5),
     value_for_money_score INTEGER CHECK (value_for_money_score >= 1 AND value_for_money_score <= 5),
-    comment TEXT,
-    restaurant_response TEXT,
+    comment VARCHAR(2000),
+    is_verified_purchase BOOLEAN DEFAULT TRUE,
+    is_anonymous BOOLEAN DEFAULT FALSE,
+    helpful_count INTEGER DEFAULT 0,
+    restaurant_response VARCHAR(1000),
+    restaurant_responded_at TIMESTAMP,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    updated_at TIMESTAMP
 );
 
-CREATE INDEX idx_restaurant_ratings_restaurant_id ON restaurant_ratings(restaurant_id);
-CREATE INDEX idx_restaurant_ratings_user_id ON restaurant_ratings(user_id);
-CREATE INDEX idx_restaurant_ratings_order_id ON restaurant_ratings(order_id);
-CREATE INDEX idx_restaurant_ratings_created_at ON restaurant_ratings(created_at);
-CREATE INDEX idx_restaurant_ratings_score ON restaurant_ratings(score);
+CREATE INDEX idx_rating_restaurant_restaurant ON rating_restaurant(restaurant_id);
+CREATE INDEX idx_rating_restaurant_user ON rating_restaurant(user_id);
+CREATE INDEX idx_rating_restaurant_created ON rating_restaurant(created_at);
+CREATE INDEX idx_rating_restaurant_score ON rating_restaurant(score);
 
--- Courier Ratings
-CREATE TABLE courier_ratings (
+-- Courier Ratings (matching CourierRating entity)
+CREATE TABLE rating_courier (
     id BIGSERIAL PRIMARY KEY,
     courier_id BIGINT NOT NULL,
     user_id BIGINT NOT NULL,
@@ -34,41 +37,43 @@ CREATE TABLE courier_ratings (
     professionalism_score INTEGER CHECK (professionalism_score >= 1 AND professionalism_score <= 5),
     communication_score INTEGER CHECK (communication_score >= 1 AND communication_score <= 5),
     timeliness_score INTEGER CHECK (timeliness_score >= 1 AND timeliness_score <= 5),
-    comment TEXT,
-    tip_amount DECIMAL(10,2) DEFAULT 0,
+    comment VARCHAR(2000),
+    tip_amount DOUBLE PRECISION,
+    is_verified_delivery BOOLEAN DEFAULT TRUE,
+    is_anonymous BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    updated_at TIMESTAMP
 );
 
-CREATE INDEX idx_courier_ratings_courier_id ON courier_ratings(courier_id);
-CREATE INDEX idx_courier_ratings_user_id ON courier_ratings(user_id);
-CREATE INDEX idx_courier_ratings_order_id ON courier_ratings(order_id);
-CREATE INDEX idx_courier_ratings_created_at ON courier_ratings(created_at);
-CREATE INDEX idx_courier_ratings_score ON courier_ratings(score);
+CREATE INDEX idx_rating_courier_courier ON rating_courier(courier_id);
+CREATE INDEX idx_rating_courier_user ON rating_courier(user_id);
+CREATE INDEX idx_rating_courier_created ON rating_courier(created_at);
+CREATE INDEX idx_rating_courier_score ON rating_courier(score);
 
--- App Store Ratings
-CREATE TABLE app_store_ratings (
+-- App Store Ratings (matching AppStoreRating entity)
+CREATE TABLE rating_app_store (
     id BIGSERIAL PRIMARY KEY,
     platform VARCHAR(20) NOT NULL CHECK (platform IN ('IOS', 'ANDROID')),
     score INTEGER NOT NULL CHECK (score >= 1 AND score <= 5),
-    title VARCHAR(500),
-    comment TEXT,
-    review_id VARCHAR(255) UNIQUE,
     country VARCHAR(10),
-    app_version VARCHAR(50),
-    device_type VARCHAR(100),
-    os_version VARCHAR(50),
+    app_version VARCHAR(20),
+    review_id VARCHAR(100),
+    author_name VARCHAR(100),
+    title VARCHAR(500),
+    comment VARCHAR(5000),
+    developer_response VARCHAR(2000),
+    developer_responded_at TIMESTAMP,
+    helpful_count INTEGER DEFAULT 0,
     sentiment_score DOUBLE PRECISION,
-    is_featured BOOLEAN DEFAULT FALSE,
-    developer_response TEXT,
-    developer_response_at TIMESTAMP,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    review_date TIMESTAMP
 );
 
-CREATE INDEX idx_app_store_ratings_platform ON app_store_ratings(platform);
-CREATE INDEX idx_app_store_ratings_created_at ON app_store_ratings(created_at);
-CREATE INDEX idx_app_store_ratings_score ON app_store_ratings(score);
+CREATE INDEX idx_rating_app_platform ON rating_app_store(platform);
+CREATE INDEX idx_rating_app_country ON rating_app_store(country);
+CREATE INDEX idx_rating_app_created ON rating_app_store(created_at);
+CREATE INDEX idx_rating_app_score ON rating_app_store(score);
+CREATE INDEX idx_rating_app_version ON rating_app_store(app_version);
 
 -- NPS Surveys
 CREATE TABLE nps_surveys (
@@ -143,16 +148,12 @@ BEGIN
 END;
 $$ language 'plpgsql';
 
-CREATE TRIGGER update_restaurant_ratings_updated_at
-    BEFORE UPDATE ON restaurant_ratings
+CREATE TRIGGER update_rating_restaurant_updated_at
+    BEFORE UPDATE ON rating_restaurant
     FOR EACH ROW EXECUTE FUNCTION update_cx_updated_at();
 
-CREATE TRIGGER update_courier_ratings_updated_at
-    BEFORE UPDATE ON courier_ratings
-    FOR EACH ROW EXECUTE FUNCTION update_cx_updated_at();
-
-CREATE TRIGGER update_app_store_ratings_updated_at
-    BEFORE UPDATE ON app_store_ratings
+CREATE TRIGGER update_rating_courier_updated_at
+    BEFORE UPDATE ON rating_courier
     FOR EACH ROW EXECUTE FUNCTION update_cx_updated_at();
 
 CREATE TRIGGER update_nps_surveys_updated_at
@@ -163,8 +164,8 @@ CREATE TRIGGER update_support_tickets_updated_at
     BEFORE UPDATE ON support_tickets
     FOR EACH ROW EXECUTE FUNCTION update_cx_updated_at();
 
-COMMENT ON TABLE restaurant_ratings IS 'Customer ratings for restaurants with sub-ratings';
-COMMENT ON TABLE courier_ratings IS 'Customer ratings for couriers with sub-ratings';
-COMMENT ON TABLE app_store_ratings IS 'App store reviews from iOS and Android';
+COMMENT ON TABLE rating_restaurant IS 'Customer ratings for restaurants with sub-ratings';
+COMMENT ON TABLE rating_courier IS 'Customer ratings for couriers with sub-ratings';
+COMMENT ON TABLE rating_app_store IS 'App store reviews from iOS and Android';
 COMMENT ON TABLE nps_surveys IS 'Net Promoter Score surveys (score 0-10)';
 COMMENT ON TABLE support_tickets IS 'Customer support tickets with SLA tracking';

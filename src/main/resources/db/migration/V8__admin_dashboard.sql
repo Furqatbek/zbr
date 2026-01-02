@@ -165,6 +165,33 @@ CREATE TABLE dashboard_snapshots (
 
 CREATE UNIQUE INDEX idx_dash_snapshots_date_hour ON dashboard_snapshots(snapshot_date, snapshot_hour);
 
+-- System Health Snapshots (matching SystemHealthSnapshot entity)
+CREATE TABLE system_health_snapshots (
+    id BIGSERIAL PRIMARY KEY,
+    component VARCHAR(50) NOT NULL,
+    api_latency_p50 INTEGER,
+    api_latency_p90 INTEGER,
+    api_latency_p99 INTEGER,
+    db_active_connections INTEGER,
+    db_idle_connections INTEGER,
+    db_waiting_connections INTEGER,
+    redis_latency_ms INTEGER,
+    redis_memory_used_mb INTEGER,
+    redis_connected_clients INTEGER,
+    queue_backlog BIGINT,
+    queue_processing_rate DOUBLE PRECISION,
+    cpu_usage_percent DOUBLE PRECISION,
+    memory_usage_percent DOUBLE PRECISION,
+    disk_usage_percent DOUBLE PRECISION,
+    error_rate_percent DOUBLE PRECISION,
+    requests_per_second DOUBLE PRECISION,
+    health_status VARCHAR(20) DEFAULT 'HEALTHY',
+    captured_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_health_snapshot_time ON system_health_snapshots(captured_at);
+CREATE INDEX idx_health_snapshot_component ON system_health_snapshots(component);
+
 -- Dashboard Refresh Logs (matching DashboardRefreshLog entity)
 CREATE TABLE dashboard_refresh_logs (
     id BIGSERIAL PRIMARY KEY,

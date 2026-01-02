@@ -216,6 +216,121 @@ CREATE INDEX idx_chargeback_user_id ON chargeback_events(user_id);
 CREATE INDEX idx_chargeback_status ON chargeback_events(status);
 CREATE INDEX idx_chargeback_created_at ON chargeback_events(created_at);
 
+-- Fraud Order History (matching FraudOrderHistory entity)
+CREATE TABLE fraud_order_history (
+    id BIGSERIAL PRIMARY KEY,
+    order_id BIGINT NOT NULL UNIQUE,
+    user_id BIGINT NOT NULL,
+    restaurant_id BIGINT,
+    courier_id BIGINT,
+    amount DECIMAL(10, 2) NOT NULL,
+    discount_amount DECIMAL(10, 2),
+    user_paid_amount DECIMAL(10, 2),
+    delivery_address VARCHAR(500),
+    delivery_address_hash VARCHAR(64),
+    delivery_lat DOUBLE PRECISION,
+    delivery_lng DOUBLE PRECISION,
+    device_id VARCHAR(255),
+    ip_address VARCHAR(45),
+    status VARCHAR(30) NOT NULL,
+    is_refunded BOOLEAN,
+    refund_amount DECIMAL(10, 2),
+    refund_reason VARCHAR(255),
+    is_promo_order BOOLEAN,
+    promo_code VARCHAR(50),
+    user_account_age_hours INTEGER,
+    is_first_order BOOLEAN,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    completed_at TIMESTAMP
+);
+
+CREATE INDEX idx_fraud_order_user_id ON fraud_order_history(user_id);
+CREATE INDEX idx_fraud_order_device_id ON fraud_order_history(device_id);
+CREATE INDEX idx_fraud_order_created_at ON fraud_order_history(created_at);
+CREATE INDEX idx_fraud_order_address_hash ON fraud_order_history(delivery_address_hash);
+CREATE INDEX idx_fraud_order_status ON fraud_order_history(status);
+CREATE INDEX idx_fraud_order_user_created ON fraud_order_history(user_id, created_at);
+
+-- Payment Attempts (matching PaymentAttempt entity)
+CREATE TABLE payment_attempts (
+    id BIGSERIAL PRIMARY KEY,
+    user_id BIGINT NOT NULL,
+    order_id BIGINT,
+    amount DECIMAL(10, 2) NOT NULL,
+    status VARCHAR(20) NOT NULL,
+    payment_method VARCHAR(30),
+    failure_reason VARCHAR(255),
+    failure_code VARCHAR(50),
+    card_last_four VARCHAR(4),
+    card_bin VARCHAR(6),
+    payment_token_hash VARCHAR(64),
+    ip_address VARCHAR(45),
+    device_id VARCHAR(255),
+    gateway_response VARCHAR(500),
+    is_3ds_verified BOOLEAN,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_payment_attempts_user_id ON payment_attempts(user_id);
+CREATE INDEX idx_payment_attempts_order_id ON payment_attempts(order_id);
+CREATE INDEX idx_payment_attempts_status ON payment_attempts(status);
+CREATE INDEX idx_payment_attempts_created_at ON payment_attempts(created_at);
+CREATE INDEX idx_payment_attempts_user_status_created ON payment_attempts(user_id, status, created_at);
+
+-- Promo Usage Logs (matching PromoUsageLog entity)
+CREATE TABLE promo_usage_logs (
+    id BIGSERIAL PRIMARY KEY,
+    user_id BIGINT NOT NULL,
+    promo_code VARCHAR(50) NOT NULL,
+    order_id BIGINT,
+    promo_type VARCHAR(30),
+    discount_value DECIMAL(10, 2) NOT NULL,
+    order_total DECIMAL(10, 2),
+    user_paid_amount DECIMAL(10, 2),
+    device_id VARCHAR(255),
+    ip_address VARCHAR(45),
+    is_first_order BOOLEAN,
+    is_referral_promo BOOLEAN,
+    status VARCHAR(20),
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_promo_usage_user_id ON promo_usage_logs(user_id);
+CREATE INDEX idx_promo_usage_promo_code ON promo_usage_logs(promo_code);
+CREATE INDEX idx_promo_usage_order_id ON promo_usage_logs(order_id);
+CREATE INDEX idx_promo_usage_created_at ON promo_usage_logs(created_at);
+CREATE INDEX idx_promo_usage_device_id ON promo_usage_logs(device_id);
+
+-- Security Flags (matching SecurityFlag entity)
+CREATE TABLE security_flags (
+    id BIGSERIAL PRIMARY KEY,
+    user_id BIGINT NOT NULL,
+    flag_type VARCHAR(50) NOT NULL,
+    severity VARCHAR(20) NOT NULL,
+    status VARCHAR(20) NOT NULL,
+    description VARCHAR(500),
+    evidence VARCHAR(1000),
+    risk_score INTEGER,
+    related_entity_type VARCHAR(50),
+    related_entity_id BIGINT,
+    ip_address VARCHAR(45),
+    device_id VARCHAR(255),
+    auto_detected BOOLEAN,
+    detection_rule VARCHAR(100),
+    reviewed_by BIGINT,
+    reviewed_at TIMESTAMP,
+    review_notes VARCHAR(500),
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    resolved_at TIMESTAMP
+);
+
+CREATE INDEX idx_security_flag_user_id ON security_flags(user_id);
+CREATE INDEX idx_security_flag_type ON security_flags(flag_type);
+CREATE INDEX idx_security_flag_severity ON security_flags(severity);
+CREATE INDEX idx_security_flag_status ON security_flags(status);
+CREATE INDEX idx_security_flag_created_at ON security_flags(created_at);
+CREATE INDEX idx_security_flag_user_type ON security_flags(user_id, flag_type);
+
 -- Trigger for updated_at
 CREATE OR REPLACE FUNCTION update_fraud_updated_at()
 RETURNS TRIGGER AS $$
