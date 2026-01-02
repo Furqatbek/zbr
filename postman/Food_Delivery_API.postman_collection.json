@@ -1267,7 +1267,7 @@
     },
     {
       "name": "Referrals",
-      "description": "Referral program endpoints",
+      "description": "Referral program endpoints for users to generate and track referral codes",
       "item": [
         {
           "name": "Generate Referral Code",
@@ -1278,7 +1278,8 @@
               "raw": "{{base_url}}/referrals/generate",
               "host": ["{{base_url}}"],
               "path": ["referrals", "generate"]
-            }
+            },
+            "description": "Generate a new referral code for the authenticated user. Code expires after 30 days by default."
           }
         },
         {
@@ -1287,10 +1288,21 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{base_url}}/referrals/my",
+              "raw": "{{base_url}}/referrals/my?page=0&size=20",
               "host": ["{{base_url}}"],
-              "path": ["referrals", "my"]
-            }
+              "path": ["referrals", "my"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "Get all referrals created by the authenticated user with pagination."
           }
         },
         {
@@ -1302,7 +1314,8 @@
               "raw": "{{base_url}}/referrals/my/stats",
               "host": ["{{base_url}}"],
               "path": ["referrals", "my", "stats"]
-            }
+            },
+            "description": "Get referral statistics for the authenticated user including completed referrals count and total rewards earned."
           }
         },
         {
@@ -1311,10 +1324,11 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{base_url}}/referrals/ADMIN2024",
+              "raw": "{{base_url}}/referrals/REF-ABC123",
               "host": ["{{base_url}}"],
-              "path": ["referrals", "ADMIN2024"]
-            }
+              "path": ["referrals", "REF-ABC123"]
+            },
+            "description": "Get referral details by referral code."
           }
         }
       ]
@@ -1450,8 +1464,8 @@
       ]
     },
     {
-      "name": "Admin",
-      "description": "Platform administration endpoints",
+      "name": "Platform Admin",
+      "description": "Platform administration endpoints for analytics and referral management. Requires ADMIN or PLATFORM role.",
       "item": [
         {
           "name": "Get Order Analytics",
@@ -1468,19 +1482,31 @@
                   "value": "7"
                 }
               ]
-            }
+            },
+            "description": "Get basic order metrics including total orders, GMV, and average order value for the specified period. Requires ADMIN or PLATFORM role."
           }
         },
         {
-          "name": "Get All Referrals",
+          "name": "Get All Referrals (Admin)",
           "request": {
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{base_url}}/admin/referrals",
+              "raw": "{{base_url}}/admin/referrals?page=0&size=20",
               "host": ["{{base_url}}"],
-              "path": ["admin", "referrals"]
-            }
+              "path": ["admin", "referrals"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "List all referrals in the system with pagination. Admin view for monitoring referral program. Requires ADMIN or PLATFORM role."
           }
         }
       ]
