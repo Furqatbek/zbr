@@ -48,31 +48,31 @@ VALUES (
     true
 );
 
--- Insert menu categories
-INSERT INTO menu_categories (restaurant_id, name, description, display_order, is_active)
+-- Insert menu categories (using sort_order and active to match entity)
+INSERT INTO menu_categories (restaurant_id, name, description, sort_order, active)
 SELECT id, 'Pizzas', 'Our signature hand-tossed pizzas', 1, true FROM restaurants WHERE slug = 'pizza-palace';
 
-INSERT INTO menu_categories (restaurant_id, name, description, display_order, is_active)
+INSERT INTO menu_categories (restaurant_id, name, description, sort_order, active)
 SELECT id, 'Pastas', 'Fresh pasta dishes', 2, true FROM restaurants WHERE slug = 'pizza-palace';
 
-INSERT INTO menu_categories (restaurant_id, name, description, display_order, is_active)
+INSERT INTO menu_categories (restaurant_id, name, description, sort_order, active)
 SELECT id, 'Appetizers', 'Start your meal right', 3, true FROM restaurants WHERE slug = 'pizza-palace';
 
-INSERT INTO menu_categories (restaurant_id, name, description, display_order, is_active)
+INSERT INTO menu_categories (restaurant_id, name, description, sort_order, active)
 SELECT id, 'Beverages', 'Drinks and refreshments', 4, true FROM restaurants WHERE slug = 'pizza-palace';
 
--- Insert menu items - Pizzas
-INSERT INTO menu_items (restaurant_id, category_id, name, description, base_price, is_available, is_featured, is_vegetarian, spice_level, prep_time_minutes, display_order)
-SELECT r.id, c.id, 'Margherita', 'Classic tomato sauce, fresh mozzarella, basil', 14.99, true, true, true, 0, 20, 1
-FROM restaurants r JOIN menu_categories c ON r.id = c.restaurant_id WHERE r.slug = 'pizza-palace' AND c.name = 'Pizzas';
+-- Insert menu items - Pizzas (using price, in_stock, featured, is_spicy, sort_order to match entity)
+INSERT INTO menu_items (category_id, name, description, price, in_stock, featured, is_vegetarian, is_spicy, prep_time_minutes, sort_order)
+SELECT c.id, 'Margherita', 'Classic tomato sauce, fresh mozzarella, basil', 14.99, true, true, true, false, 20, 1
+FROM menu_categories c JOIN restaurants r ON r.id = c.restaurant_id WHERE r.slug = 'pizza-palace' AND c.name = 'Pizzas';
 
-INSERT INTO menu_items (restaurant_id, category_id, name, description, base_price, is_available, is_featured, is_vegetarian, spice_level, prep_time_minutes, display_order)
-SELECT r.id, c.id, 'Pepperoni', 'Tomato sauce, mozzarella, pepperoni', 16.99, true, true, false, 1, 20, 2
-FROM restaurants r JOIN menu_categories c ON r.id = c.restaurant_id WHERE r.slug = 'pizza-palace' AND c.name = 'Pizzas';
+INSERT INTO menu_items (category_id, name, description, price, in_stock, featured, is_vegetarian, is_spicy, prep_time_minutes, sort_order)
+SELECT c.id, 'Pepperoni', 'Tomato sauce, mozzarella, pepperoni', 16.99, true, true, false, false, 20, 2
+FROM menu_categories c JOIN restaurants r ON r.id = c.restaurant_id WHERE r.slug = 'pizza-palace' AND c.name = 'Pizzas';
 
-INSERT INTO menu_items (restaurant_id, category_id, name, description, base_price, is_available, is_featured, is_vegetarian, spice_level, prep_time_minutes, display_order)
-SELECT r.id, c.id, 'Supreme', 'Pepperoni, sausage, mushrooms, peppers, onions', 19.99, true, false, false, 1, 25, 3
-FROM restaurants r JOIN menu_categories c ON r.id = c.restaurant_id WHERE r.slug = 'pizza-palace' AND c.name = 'Pizzas';
+INSERT INTO menu_items (category_id, name, description, price, in_stock, featured, is_vegetarian, is_spicy, prep_time_minutes, sort_order)
+SELECT c.id, 'Supreme', 'Pepperoni, sausage, mushrooms, peppers, onions', 19.99, true, false, false, false, 25, 3
+FROM menu_categories c JOIN restaurants r ON r.id = c.restaurant_id WHERE r.slug = 'pizza-palace' AND c.name = 'Pizzas';
 
 -- Insert courier for demo user
 INSERT INTO couriers (user_id, status, vehicle_type)
