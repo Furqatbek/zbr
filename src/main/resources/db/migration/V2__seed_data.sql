@@ -2,33 +2,32 @@
 -- Flyway Migration V2
 
 -- Insert admin user (password: Admin@123)
-INSERT INTO users (email, password_hash, full_name, phone, role, status, email_verified)
-VALUES ('admin@fooddelivery.com', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 'System Admin', '+1234567890', 'ADMIN', 'ACTIVE', true);
+INSERT INTO users (email, password_hash, first_name, last_name, phone, role, status, email_verified)
+VALUES ('admin@fooddelivery.com', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 'System', 'Admin', '+1234567890', 'ADMIN', 'ACTIVE', true);
 
 -- Insert platform user (password: Platform@123)
-INSERT INTO users (email, password_hash, full_name, phone, role, status, email_verified)
-VALUES ('platform@fooddelivery.com', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 'Platform Manager', '+1234567891', 'PLATFORM', 'ACTIVE', true);
+INSERT INTO users (email, password_hash, first_name, last_name, phone, role, status, email_verified)
+VALUES ('platform@fooddelivery.com', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 'Platform', 'Manager', '+1234567891', 'PLATFORM', 'ACTIVE', true);
 
 -- Insert demo restaurant owner (password: Owner@123)
-INSERT INTO users (email, password_hash, full_name, phone, role, status, email_verified)
-VALUES ('owner@pizzapalace.com', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 'Mario Rossi', '+1234567892', 'RESTAURANT_OWNER', 'ACTIVE', true);
+INSERT INTO users (email, password_hash, first_name, last_name, phone, role, status, email_verified)
+VALUES ('owner@pizzapalace.com', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 'Mario', 'Rossi', '+1234567892', 'RESTAURANT_OWNER', 'ACTIVE', true);
 
 -- Insert demo consumer (password: Consumer@123)
-INSERT INTO users (email, password_hash, full_name, phone, role, status, email_verified)
-VALUES ('john.doe@example.com', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 'John Doe', '+1234567893', 'CONSUMER', 'ACTIVE', true);
+INSERT INTO users (email, password_hash, first_name, last_name, phone, role, status, email_verified)
+VALUES ('john.doe@example.com', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 'John', 'Doe', '+1234567893', 'CONSUMER', 'ACTIVE', true);
 
 -- Insert demo courier (password: Courier@123)
-INSERT INTO users (email, password_hash, full_name, phone, role, status, email_verified)
-VALUES ('courier@fooddelivery.com', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 'Fast Eddie', '+1234567894', 'COURIER', 'ACTIVE', true);
+INSERT INTO users (email, password_hash, first_name, last_name, phone, role, status, email_verified)
+VALUES ('courier@fooddelivery.com', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 'Fast', 'Eddie', '+1234567894', 'COURIER', 'ACTIVE', true);
 
 -- Insert demo restaurant
-INSERT INTO restaurants (owner_id, name, slug, description, cuisine_type, address_line1, city, state, postal_code, country, latitude, longitude, phone, email, status, avg_prep_time, minimum_order, delivery_fee, delivery_radius_km, accepts_pickup, accepts_delivery, is_featured, is_online)
+INSERT INTO restaurants (owner_id, name, slug, description, address_line1, city, state, postal_code, country, latitude, longitude, phone, email, status, average_prep_time_minutes, minimum_order, delivery_fee, delivery_radius_km, accepts_takeaway, accepts_delivery, is_featured, is_open)
 VALUES (
     (SELECT id FROM users WHERE email = 'owner@pizzapalace.com'),
     'Pizza Palace',
     'pizza-palace',
     'Authentic Italian pizza made with love. Fresh ingredients, traditional recipes.',
-    'Italian',
     '123 Main Street',
     'New York',
     'NY',
@@ -42,18 +41,12 @@ VALUES (
     25,
     15.00,
     3.99,
-    10.00,
+    10,
     true,
     true,
     true,
     true
 );
-
--- Insert operating hours for Pizza Palace (Mon-Sun, 11:00-22:00)
-INSERT INTO restaurant_operating_hours (restaurant_id, day_of_week, open_time, close_time, is_closed)
-SELECT id, day, '11:00:00', '22:00:00', false
-FROM restaurants, generate_series(0, 6) AS day
-WHERE slug = 'pizza-palace';
 
 -- Insert menu categories
 INSERT INTO menu_categories (restaurant_id, name, description, display_order, is_active)
@@ -82,9 +75,5 @@ SELECT r.id, c.id, 'Supreme', 'Pepperoni, sausage, mushrooms, peppers, onions', 
 FROM restaurants r JOIN menu_categories c ON r.id = c.restaurant_id WHERE r.slug = 'pizza-palace' AND c.name = 'Pizzas';
 
 -- Insert courier for demo user
-INSERT INTO couriers (user_id, name, vehicle_type, license_plate, status, is_available)
-SELECT id, 'Fast Eddie', 'BICYCLE', NULL, 'ONLINE', true FROM users WHERE email = 'courier@fooddelivery.com';
-
--- Insert a referral code for the admin
-INSERT INTO referrals (referrer_id, code, status, referrer_reward, referred_reward, expires_at)
-SELECT id, 'ADMIN2024', 'PENDING', 20.00, 15.00, CURRENT_TIMESTAMP + INTERVAL '90 days' FROM users WHERE email = 'admin@fooddelivery.com';
+INSERT INTO couriers (user_id, status, vehicle_type)
+SELECT id, 'AVAILABLE', 'BICYCLE' FROM users WHERE email = 'courier@fooddelivery.com';
