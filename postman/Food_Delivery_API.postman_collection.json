@@ -1093,31 +1093,29 @@
     },
     {
       "name": "Couriers",
-      "description": "Courier management endpoints",
+      "description": "Courier management and delivery operations. Includes registration, status management, location updates, and order handling.",
       "item": [
         {
           "name": "Register as Courier",
           "request": {
             "method": "POST",
             "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
+              {"key": "Content-Type", "value": "application/json"}
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n    \"vehicleType\": \"BICYCLE\",\n    \"licensePlate\": null\n}"
+              "raw": "{\n    \"vehicleType\": \"MOTORCYCLE\",\n    \"vehicleNumber\": \"01A123BC\",\n    \"licenseNumber\": \"DL12345678\",\n    \"preferredRadiusKm\": 10\n}"
             },
             "url": {
               "raw": "{{base_url}}/couriers/register",
               "host": ["{{base_url}}"],
               "path": ["couriers", "register"]
-            }
+            },
+            "description": "Register current authenticated user as a courier.\n\nVehicle types: WALKING, BICYCLE, E_BIKE, MOTORCYCLE, CAR, VAN\n\nAfter registration, courier status is PENDING_APPROVAL until verified by admin."
           }
         },
         {
-          "name": "Get My Profile (Courier)",
+          "name": "Get My Courier Profile",
           "request": {
             "method": "GET",
             "header": [],
@@ -1125,59 +1123,41 @@
               "raw": "{{base_url}}/couriers/me",
               "host": ["{{base_url}}"],
               "path": ["couriers", "me"]
-            }
+            },
+            "description": "Get the courier profile of the currently authenticated user.\n\nRoles: COURIER"
           }
         },
         {
-          "name": "Go Online",
+          "name": "Update Status (Go Online/Offline)",
           "request": {
-            "method": "PUT",
+            "method": "PATCH",
             "header": [],
             "url": {
-              "raw": "{{base_url}}/couriers/status?status=ONLINE",
+              "raw": "{{base_url}}/couriers/me/status?status=AVAILABLE",
               "host": ["{{base_url}}"],
-              "path": ["couriers", "status"],
+              "path": ["couriers", "me", "status"],
               "query": [
-                {
-                  "key": "status",
-                  "value": "ONLINE"
-                }
+                {"key": "status", "value": "AVAILABLE", "description": "OFFLINE, AVAILABLE, BUSY, ON_BREAK"}
               ]
-            }
+            },
+            "description": "Update courier availability status.\n\nStatuses:\n- OFFLINE: Not accepting orders\n- AVAILABLE: Ready to accept orders\n- BUSY: At maximum concurrent orders\n- ON_BREAK: Temporarily unavailable\n\nRoles: COURIER"
           }
         },
         {
           "name": "Update Location",
           "request": {
-            "method": "PUT",
+            "method": "POST",
             "header": [],
             "url": {
-              "raw": "{{base_url}}/couriers/location?lat=40.7128&lng=-74.0060",
+              "raw": "{{base_url}}/couriers/me/location?lat=41.2995&lng=69.2401",
               "host": ["{{base_url}}"],
-              "path": ["couriers", "location"],
+              "path": ["couriers", "me", "location"],
               "query": [
-                {
-                  "key": "lat",
-                  "value": "40.7128"
-                },
-                {
-                  "key": "lng",
-                  "value": "-74.0060"
-                }
+                {"key": "lat", "value": "41.2995", "description": "Latitude"},
+                {"key": "lng", "value": "69.2401", "description": "Longitude"}
               ]
-            }
-          }
-        },
-        {
-          "name": "Get Available Orders",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{base_url}}/couriers/orders/available",
-              "host": ["{{base_url}}"],
-              "path": ["couriers", "orders", "available"]
-            }
+            },
+            "description": "Update courier's current GPS location.\n\nShould be called frequently (every 10-30 seconds) while courier is online.\n\nRoles: COURIER"
           }
         },
         {
@@ -1186,46 +1166,72 @@
             "method": "POST",
             "header": [],
             "url": {
-              "raw": "{{base_url}}/couriers/orders/1/accept",
+              "raw": "{{base_url}}/couriers/1/accept/100",
               "host": ["{{base_url}}"],
-              "path": ["couriers", "orders", "1", "accept"]
-            }
-          }
-        },
-        {
-          "name": "Pick Up Order",
-          "request": {
-            "method": "PUT",
-            "header": [],
-            "url": {
-              "raw": "{{base_url}}/couriers/orders/1/pickup",
-              "host": ["{{base_url}}"],
-              "path": ["couriers", "orders", "1", "pickup"]
-            }
-          }
-        },
-        {
-          "name": "Start Delivery",
-          "request": {
-            "method": "PUT",
-            "header": [],
-            "url": {
-              "raw": "{{base_url}}/couriers/orders/1/transit",
-              "host": ["{{base_url}}"],
-              "path": ["couriers", "orders", "1", "transit"]
-            }
+              "path": ["couriers", "1", "accept", "100"]
+            },
+            "description": "Accept an order assignment.\n\nReplace:\n- '1' with courier ID\n- '100' with order ID\n\nRoles: COURIER"
           }
         },
         {
           "name": "Complete Delivery",
           "request": {
-            "method": "PUT",
+            "method": "POST",
             "header": [],
             "url": {
-              "raw": "{{base_url}}/couriers/orders/1/deliver",
+              "raw": "{{base_url}}/couriers/1/complete/100",
               "host": ["{{base_url}}"],
-              "path": ["couriers", "orders", "1", "deliver"]
-            }
+              "path": ["couriers", "1", "complete", "100"]
+            },
+            "description": "Mark a delivery as completed.\n\nReplace:\n- '1' with courier ID\n- '100' with order ID\n\nRoles: COURIER"
+          }
+        },
+        {
+          "name": "Find Available Couriers",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/couriers/available?lat=41.2995&lng=69.2401&radius=5",
+              "host": ["{{base_url}}"],
+              "path": ["couriers", "available"],
+              "query": [
+                {"key": "lat", "value": "41.2995", "description": "Latitude of pickup location"},
+                {"key": "lng", "value": "69.2401", "description": "Longitude of pickup location"},
+                {"key": "radius", "value": "5", "description": "Search radius in km (default: 5)"}
+              ]
+            },
+            "description": "Find available couriers near a location for order assignment.\n\nRoles: PLATFORM, ADMIN, RESTAURANT_OWNER"
+          }
+        },
+        {
+          "name": "Get All Couriers (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/couriers?page=0&size=20",
+              "host": ["{{base_url}}"],
+              "path": ["couriers"],
+              "query": [
+                {"key": "page", "value": "0"},
+                {"key": "size", "value": "20"}
+              ]
+            },
+            "description": "Get all couriers with pagination.\n\nRoles: PLATFORM, ADMIN"
+          }
+        },
+        {
+          "name": "Verify Courier (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/couriers/1/verify",
+              "host": ["{{base_url}}"],
+              "path": ["couriers", "1", "verify"]
+            },
+            "description": "Verify a courier after document review.\n\nChanges courier status from PENDING_APPROVAL to AVAILABLE.\n\nRoles: PLATFORM, ADMIN"
           }
         }
       ]
