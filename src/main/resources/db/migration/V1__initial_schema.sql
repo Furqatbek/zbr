@@ -2,7 +2,7 @@
 -- Flyway Migration V1
 -- All core tables matching JPA entities exactly
 
--- Users table
+-- Users table (matching User entity)
 CREATE TABLE users (
     id BIGSERIAL PRIMARY KEY,
     email VARCHAR(255) UNIQUE,
@@ -37,21 +37,58 @@ CREATE TABLE user_roles (
     PRIMARY KEY (user_id, role)
 );
 
--- Refresh tokens table
+-- Refresh tokens table (matching RefreshToken entity)
 CREATE TABLE refresh_tokens (
     id BIGSERIAL PRIMARY KEY,
-    user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     token VARCHAR(500) NOT NULL UNIQUE,
-    expires_at TIMESTAMP NOT NULL,
-    revoked BOOLEAN DEFAULT FALSE,
+    user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     device_info VARCHAR(500),
+    ip_address VARCHAR(45),
+    user_agent VARCHAR(500),
+    revoked BOOLEAN DEFAULT FALSE,
+    revoked_at TIMESTAMP,
+    revoked_reason VARCHAR(500),
+    expires_at TIMESTAMP NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE INDEX idx_refresh_tokens_token ON refresh_tokens(token);
 CREATE INDEX idx_refresh_tokens_user_id ON refresh_tokens(user_id);
+CREATE INDEX idx_refresh_tokens_expires_at ON refresh_tokens(expires_at);
 
--- Restaurants table
+-- OTP codes table (matching OtpCode entity)
+CREATE TABLE otp_codes (
+    id BIGSERIAL PRIMARY KEY,
+    phone VARCHAR(20) NOT NULL,
+    code VARCHAR(6) NOT NULL,
+    expires_at TIMESTAMP NOT NULL,
+    verified_at TIMESTAMP,
+    attempts INTEGER NOT NULL DEFAULT 0,
+    max_attempts INTEGER NOT NULL DEFAULT 3,
+    is_used BOOLEAN NOT NULL DEFAULT FALSE,
+    purpose VARCHAR(20) NOT NULL DEFAULT 'LOGIN',
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_otp_phone ON otp_codes(phone);
+CREATE INDEX idx_otp_phone_code ON otp_codes(phone, code);
+CREATE INDEX idx_otp_expires_at ON otp_codes(expires_at);
+
+-- Password reset tokens table (matching PasswordResetToken entity)
+CREATE TABLE password_reset_tokens (
+    id BIGSERIAL PRIMARY KEY,
+    user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    token VARCHAR(255) NOT NULL UNIQUE,
+    used BOOLEAN DEFAULT FALSE,
+    used_at TIMESTAMP,
+    expires_at TIMESTAMP NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_password_reset_tokens_token ON password_reset_tokens(token);
+CREATE INDEX idx_password_reset_tokens_user_id ON password_reset_tokens(user_id);
+
+-- Restaurants table (matching Restaurant entity)
 CREATE TABLE restaurants (
     id BIGSERIAL PRIMARY KEY,
     owner_id BIGINT NOT NULL REFERENCES users(id),
@@ -97,51 +134,89 @@ CREATE INDEX idx_restaurants_owner ON restaurants(owner_id);
 CREATE INDEX idx_restaurants_status ON restaurants(status);
 CREATE INDEX idx_restaurants_slug ON restaurants(slug);
 
--- Menu categories
+-- Menu categories (matching MenuCategory entity)
 CREATE TABLE menu_categories (
     id BIGSERIAL PRIMARY KEY,
     restaurant_id BIGINT NOT NULL REFERENCES restaurants(id) ON DELETE CASCADE,
-    name VARCHAR(255) NOT NULL,
-    description TEXT,
-    display_order INT DEFAULT 0,
-    is_active BOOLEAN DEFAULT TRUE,
+    name VARCHAR(100) NOT NULL,
+    description VARCHAR(500),
+    image_url VARCHAR(500),
+    sort_order INTEGER DEFAULT 0,
+    active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE INDEX idx_menu_categories_restaurant ON menu_categories(restaurant_id);
+CREATE INDEX idx_menu_categories_active ON menu_categories(active);
 
--- Menu items
+-- Menu items (matching MenuItem entity)
 CREATE TABLE menu_items (
     id BIGSERIAL PRIMARY KEY,
-    restaurant_id BIGINT NOT NULL REFERENCES restaurants(id) ON DELETE CASCADE,
-    category_id BIGINT REFERENCES menu_categories(id) ON DELETE SET NULL,
-    name VARCHAR(255) NOT NULL,
-    description TEXT,
-    base_price DECIMAL(10, 2) NOT NULL,
+    category_id BIGINT NOT NULL REFERENCES menu_categories(id) ON DELETE CASCADE,
+    name VARCHAR(200) NOT NULL,
+    description VARCHAR(1000),
+    price DECIMAL(10, 2) NOT NULL,
+    price_with_margin DECIMAL(10, 2),
+    original_price DECIMAL(10, 2),
     image_url VARCHAR(500),
     image_path VARCHAR(500),
     image_name VARCHAR(255),
     image_size BIGINT,
     image_content_type VARCHAR(100),
-    is_available BOOLEAN DEFAULT TRUE,
-    is_featured BOOLEAN DEFAULT FALSE,
+    in_stock BOOLEAN NOT NULL DEFAULT TRUE,
+    featured BOOLEAN DEFAULT FALSE,
+    sort_order INTEGER DEFAULT 0,
+    prep_time_minutes INTEGER,
+    calories INTEGER,
     is_vegetarian BOOLEAN DEFAULT FALSE,
     is_vegan BOOLEAN DEFAULT FALSE,
     is_gluten_free BOOLEAN DEFAULT FALSE,
-    spice_level INT DEFAULT 0,
-    calories INT,
-    prep_time_minutes INT,
-    display_order INT DEFAULT 0,
+    is_spicy BOOLEAN DEFAULT FALSE,
+    allergens VARCHAR(500),
+    active BOOLEAN DEFAULT TRUE,
     version BIGINT DEFAULT 0,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX idx_menu_items_restaurant ON menu_items(restaurant_id);
 CREATE INDEX idx_menu_items_category ON menu_items(category_id);
+CREATE INDEX idx_menu_items_in_stock ON menu_items(in_stock);
+CREATE INDEX idx_menu_items_featured ON menu_items(featured);
 
--- Couriers table
+-- Item variants (matching ItemVariant entity)
+CREATE TABLE item_variants (
+    id BIGSERIAL PRIMARY KEY,
+    menu_item_id BIGINT NOT NULL REFERENCES menu_items(id) ON DELETE CASCADE,
+    name VARCHAR(100) NOT NULL,
+    price_delta DECIMAL(10, 2) NOT NULL DEFAULT 0,
+    in_stock BOOLEAN NOT NULL DEFAULT TRUE,
+    sort_order INTEGER DEFAULT 0,
+    active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_item_variants_menu_item ON item_variants(menu_item_id);
+
+-- Item options (matching ItemOption entity)
+CREATE TABLE item_options (
+    id BIGSERIAL PRIMARY KEY,
+    menu_item_id BIGINT NOT NULL REFERENCES menu_items(id) ON DELETE CASCADE,
+    group_name VARCHAR(100),
+    name VARCHAR(100) NOT NULL,
+    price_delta DECIMAL(10, 2) NOT NULL DEFAULT 0,
+    is_default BOOLEAN DEFAULT FALSE,
+    max_selections INTEGER DEFAULT 1,
+    is_required BOOLEAN DEFAULT FALSE,
+    in_stock BOOLEAN NOT NULL DEFAULT TRUE,
+    sort_order INTEGER DEFAULT 0,
+    active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_item_options_menu_item ON item_options(menu_item_id);
+
+-- Couriers table (matching Courier entity)
 CREATE TABLE couriers (
     id BIGSERIAL PRIMARY KEY,
     user_id BIGINT NOT NULL UNIQUE REFERENCES users(id),
@@ -172,7 +247,7 @@ CREATE INDEX idx_couriers_user ON couriers(user_id);
 CREATE INDEX idx_couriers_status ON couriers(status);
 CREATE INDEX idx_couriers_location ON couriers(current_lat, current_lng);
 
--- Orders table
+-- Orders table (matching Order entity)
 CREATE TABLE orders (
     id BIGSERIAL PRIMARY KEY,
     external_order_no VARCHAR(50) NOT NULL UNIQUE,
@@ -222,59 +297,76 @@ CREATE INDEX idx_orders_status ON orders(status);
 CREATE INDEX idx_orders_external_no ON orders(external_order_no);
 CREATE INDEX idx_orders_created_at ON orders(created_at);
 
--- Order items
+-- Order items (matching OrderItem entity)
 CREATE TABLE order_items (
     id BIGSERIAL PRIMARY KEY,
     order_id BIGINT NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
-    menu_item_id BIGINT REFERENCES menu_items(id),
-    name VARCHAR(255) NOT NULL,
-    quantity INT NOT NULL,
+    menu_item_id BIGINT NOT NULL REFERENCES menu_items(id),
+    item_name VARCHAR(200) NOT NULL,
+    quantity INTEGER NOT NULL DEFAULT 1,
     unit_price DECIMAL(10, 2) NOT NULL,
     total_price DECIMAL(10, 2) NOT NULL,
+    variant_id BIGINT,
     variant_name VARCHAR(100),
-    options TEXT,
-    special_instructions TEXT
+    variant_price_delta DECIMAL(10, 2) DEFAULT 0,
+    modifiers_json TEXT,
+    modifiers_total DECIMAL(10, 2) DEFAULT 0,
+    special_instructions VARCHAR(500),
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE INDEX idx_order_items_order ON order_items(order_id);
+CREATE INDEX idx_order_items_menu_item ON order_items(menu_item_id);
 
--- Payments table
+-- Payments table (matching Payment entity)
 CREATE TABLE payments (
     id BIGSERIAL PRIMARY KEY,
     order_id BIGINT NOT NULL REFERENCES orders(id),
+    provider VARCHAR(50) NOT NULL,
+    provider_payment_id VARCHAR(255),
     payment_intent_id VARCHAR(255),
-    external_payment_id VARCHAR(255),
+    payment_method VARCHAR(50),
     amount DECIMAL(10, 2) NOT NULL,
     currency VARCHAR(3) DEFAULT 'USD',
-    status VARCHAR(50) NOT NULL DEFAULT 'PENDING',
-    payment_method VARCHAR(50),
-    provider VARCHAR(50) DEFAULT 'STRIPE',
-    failure_reason TEXT,
+    status VARCHAR(20) NOT NULL DEFAULT 'PENDING',
+    raw_response TEXT,
+    error_code VARCHAR(100),
+    error_message VARCHAR(500),
     refund_amount DECIMAL(10, 2),
+    refund_reason VARCHAR(500),
     refunded_at TIMESTAMP,
-    metadata JSONB,
+    confirmed_at TIMESTAMP,
+    version BIGINT DEFAULT 0,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE INDEX idx_payments_order ON payments(order_id);
+CREATE INDEX idx_payments_provider_id ON payments(provider_payment_id);
 CREATE INDEX idx_payments_status ON payments(status);
 
--- OTP codes table
-CREATE TABLE otp_codes (
+-- Referrals table (matching Referral entity)
+CREATE TABLE referrals (
     id BIGSERIAL PRIMARY KEY,
-    phone VARCHAR(20) NOT NULL,
-    code VARCHAR(6) NOT NULL,
-    expires_at TIMESTAMP NOT NULL,
-    verified_at TIMESTAMP,
-    attempts INTEGER NOT NULL DEFAULT 0,
-    max_attempts INTEGER NOT NULL DEFAULT 3,
-    is_used BOOLEAN NOT NULL DEFAULT FALSE,
-    purpose VARCHAR(20) NOT NULL DEFAULT 'LOGIN',
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    code VARCHAR(20) NOT NULL UNIQUE,
+    referrer_user_id BIGINT NOT NULL REFERENCES users(id),
+    referred_user_id BIGINT REFERENCES users(id),
+    status VARCHAR(20) NOT NULL DEFAULT 'PENDING',
+    reward_amount DECIMAL(10, 2),
+    currency VARCHAR(3) DEFAULT 'USD',
+    referrer_rewarded BOOLEAN DEFAULT FALSE,
+    referred_rewarded BOOLEAN DEFAULT FALSE,
+    expires_at TIMESTAMP,
+    completed_at TIMESTAMP,
+    version BIGINT DEFAULT 0,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX idx_otp_phone ON otp_codes(phone);
+CREATE INDEX idx_referrals_code ON referrals(code);
+CREATE INDEX idx_referrals_referrer ON referrals(referrer_user_id);
+CREATE INDEX idx_referrals_referred ON referrals(referred_user_id);
+CREATE INDEX idx_referrals_status ON referrals(status);
 
 -- Activity logs table
 CREATE TABLE activity_logs (
@@ -298,75 +390,6 @@ CREATE INDEX idx_activity_user_id ON activity_logs(user_id);
 CREATE INDEX idx_activity_event_type ON activity_logs(event_type);
 CREATE INDEX idx_activity_created_at ON activity_logs(created_at);
 
--- Password reset tokens table
-CREATE TABLE password_reset_tokens (
-    id BIGSERIAL PRIMARY KEY,
-    user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    token VARCHAR(255) NOT NULL UNIQUE,
-    used BOOLEAN DEFAULT FALSE,
-    used_at TIMESTAMP,
-    expires_at TIMESTAMP NOT NULL,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE INDEX idx_password_reset_tokens_token ON password_reset_tokens(token);
-CREATE INDEX idx_password_reset_tokens_user_id ON password_reset_tokens(user_id);
-
--- Referrals table
-CREATE TABLE referrals (
-    id BIGSERIAL PRIMARY KEY,
-    code VARCHAR(20) NOT NULL UNIQUE,
-    referrer_user_id BIGINT NOT NULL REFERENCES users(id),
-    referred_user_id BIGINT REFERENCES users(id),
-    status VARCHAR(20) NOT NULL DEFAULT 'PENDING',
-    reward_amount DECIMAL(10, 2),
-    currency VARCHAR(3) DEFAULT 'USD',
-    referrer_rewarded BOOLEAN DEFAULT FALSE,
-    referred_rewarded BOOLEAN DEFAULT FALSE,
-    expires_at TIMESTAMP,
-    completed_at TIMESTAMP,
-    version BIGINT DEFAULT 0,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE INDEX idx_referrals_code ON referrals(code);
-CREATE INDEX idx_referrals_referrer ON referrals(referrer_user_id);
-CREATE INDEX idx_referrals_referred ON referrals(referred_user_id);
-CREATE INDEX idx_referrals_status ON referrals(status);
-
--- Item variants (size/type variations)
-CREATE TABLE item_variants (
-    id BIGSERIAL PRIMARY KEY,
-    menu_item_id BIGINT NOT NULL REFERENCES menu_items(id) ON DELETE CASCADE,
-    name VARCHAR(100) NOT NULL,
-    price_delta DECIMAL(10, 2) NOT NULL DEFAULT 0,
-    in_stock BOOLEAN NOT NULL DEFAULT TRUE,
-    sort_order INTEGER DEFAULT 0,
-    active BOOLEAN NOT NULL DEFAULT TRUE,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE INDEX idx_item_variants_menu_item ON item_variants(menu_item_id);
-
--- Item options (add-ons and modifiers)
-CREATE TABLE item_options (
-    id BIGSERIAL PRIMARY KEY,
-    menu_item_id BIGINT NOT NULL REFERENCES menu_items(id) ON DELETE CASCADE,
-    group_name VARCHAR(100),
-    name VARCHAR(100) NOT NULL,
-    price_delta DECIMAL(10, 2) NOT NULL DEFAULT 0,
-    is_default BOOLEAN DEFAULT FALSE,
-    max_selections INTEGER DEFAULT 1,
-    is_required BOOLEAN DEFAULT FALSE,
-    in_stock BOOLEAN NOT NULL DEFAULT TRUE,
-    sort_order INTEGER DEFAULT 0,
-    active BOOLEAN NOT NULL DEFAULT TRUE,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE INDEX idx_item_options_menu_item ON item_options(menu_item_id);
-
 -- Functions for updated_at trigger
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
@@ -383,13 +406,32 @@ CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON users
 CREATE TRIGGER update_restaurants_updated_at BEFORE UPDATE ON restaurants
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+CREATE TRIGGER update_menu_categories_updated_at BEFORE UPDATE ON menu_categories
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_menu_items_updated_at BEFORE UPDATE ON menu_items
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
 CREATE TRIGGER update_couriers_updated_at BEFORE UPDATE ON couriers
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 CREATE TRIGGER update_orders_updated_at BEFORE UPDATE ON orders
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+CREATE TRIGGER update_payments_updated_at BEFORE UPDATE ON payments
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_referrals_updated_at BEFORE UPDATE ON referrals
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
 COMMENT ON TABLE users IS 'Platform users';
 COMMENT ON TABLE restaurants IS 'Restaurant profiles';
+COMMENT ON TABLE menu_categories IS 'Menu categories for organizing items';
+COMMENT ON TABLE menu_items IS 'Menu items/dishes';
+COMMENT ON TABLE item_variants IS 'Menu item size/type variations';
+COMMENT ON TABLE item_options IS 'Menu item add-ons and modifiers';
 COMMENT ON TABLE couriers IS 'Delivery couriers';
 COMMENT ON TABLE orders IS 'Customer orders';
+COMMENT ON TABLE order_items IS 'Individual items in orders';
+COMMENT ON TABLE payments IS 'Payment transactions';
+COMMENT ON TABLE referrals IS 'Referral program tracking';
