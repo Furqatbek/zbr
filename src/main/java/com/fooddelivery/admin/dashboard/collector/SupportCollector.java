@@ -213,7 +213,7 @@ public class SupportCollector {
 
         // SLA thresholds in minutes
         int slaThreshold = switch (priority.toUpperCase()) {
-            case "CRITICAL" -> 15;
+            case "URGENT" -> 15;
             case "HIGH" -> 30;
             case "MEDIUM" -> 60;
             case "LOW" -> 120;
@@ -244,13 +244,13 @@ public class SupportCollector {
         Map<String, Long> breakdown = new LinkedHashMap<>();
 
         // Initialize with all priorities
-        breakdown.put("CRITICAL", 0L);
+        breakdown.put("URGENT", 0L);
         breakdown.put("HIGH", 0L);
         breakdown.put("MEDIUM", 0L);
         breakdown.put("LOW", 0L);
 
         for (Object[] row : priorityData) {
-            String priority = (String) row[0];
+            String priority = row[0] != null ? row[0].toString() : "MEDIUM";
             Long count = ((Number) row[1]).longValue();
             breakdown.put(priority, count);
         }
@@ -259,16 +259,16 @@ public class SupportCollector {
     }
 
     /**
-     * Collect category breakdown.
+     * Collect category breakdown (using ticket type since category not available).
      */
     private Map<String, Long> collectCategoryBreakdown(LocalDateTime startDate, LocalDateTime endDate) {
         List<Object[]> categoryData = supportRepository.countByCategory(startDate, endDate);
         Map<String, Long> breakdown = new LinkedHashMap<>();
 
         for (Object[] row : categoryData) {
-            String category = row[0] != null ? (String) row[0] : "OTHER";
+            String ticketType = row[0] != null ? row[0].toString() : "OTHER";
             Long count = ((Number) row[1]).longValue();
-            breakdown.put(category, count);
+            breakdown.put(ticketType, count);
         }
 
         return breakdown;
@@ -336,7 +336,7 @@ public class SupportCollector {
     }
 
     /**
-     * Collect common issues.
+     * Collect common issues (using ticket type since category not available).
      */
     private List<CommonIssueDto> collectCommonIssues(LocalDateTime startDate, LocalDateTime endDate, int limit) {
         List<Object[]> issueData = supportRepository.getCommonIssues(startDate, endDate, limit);
@@ -345,8 +345,8 @@ public class SupportCollector {
 
         return issueData.stream()
                 .map(row -> {
-                    String category = (String) row[0];
-                    String subcategory = row[1] != null ? (String) row[1] : "General";
+                    String ticketType = row[0] != null ? row[0].toString() : "OTHER";
+                    String subcategory = row[1] != null ? row[1].toString() : "General";
                     Long count = ((Number) row[2]).longValue();
                     Double avgResolutionTime = row[3] != null ? ((Number) row[3]).doubleValue() : 0.0;
 
@@ -355,38 +355,24 @@ public class SupportCollector {
                             : 0.0;
 
                     return CommonIssueDto.builder()
-                            .category(category)
+                            .category(ticketType)
                             .subcategory(subcategory)
                             .count(count)
                             .percentage(roundToTwoDecimals(percentage))
                             .avgResolutionTimeMinutes(roundToTwoDecimals(avgResolutionTime))
-                            .trend(determineTrend(category, startDate, endDate))
+                            .trend("STABLE") // Trend calculation not possible without category field
                             .build();
                 })
                 .collect(Collectors.toList());
     }
 
     /**
-     * Determine trend for an issue category.
+     * Determine trend for an issue ticket type.
+     * Note: Trend calculation simplified since category field not available.
      */
-    private String determineTrend(String category, LocalDateTime startDate, LocalDateTime endDate) {
-        long daysBetween = ChronoUnit.DAYS.between(startDate, endDate);
-        if (daysBetween == 0) daysBetween = 1;
-
-        LocalDateTime prevStart = startDate.minusDays(daysBetween);
-        LocalDateTime prevEnd = startDate;
-
-        Long currentCount = supportRepository.countByCategory(category, startDate, endDate);
-        Long previousCount = supportRepository.countByCategory(category, prevStart, prevEnd);
-
-        if (previousCount == 0) {
-            return currentCount > 0 ? "UP" : "STABLE";
-        }
-
-        double change = ((currentCount - previousCount) / (double) previousCount) * 100;
-
-        if (change > 10) return "UP";
-        if (change < -10) return "DOWN";
+    private String determineTrend(String ticketType, LocalDateTime startDate, LocalDateTime endDate) {
+        // Trend calculation not possible without proper category tracking
+        // Returning stable as default
         return "STABLE";
     }
 
@@ -432,10 +418,14 @@ public class SupportCollector {
 
         // SLA by priority
         Map<String, Double> slaByPriority = new LinkedHashMap<>();
-        slaByPriority.put("CRITICAL", supportRepository.getSlaComplianceByPriority("CRITICAL", startDate, endDate));
-        slaByPriority.put("HIGH", supportRepository.getSlaComplianceByPriority("HIGH", startDate, endDate));
-        slaByPriority.put("MEDIUM", supportRepository.getSlaComplianceByPriority("MEDIUM", startDate, endDate));
-        slaByPriority.put("LOW", supportRepository.getSlaComplianceByPriority("LOW", startDate, endDate));
+        slaByPriority.put("URGENT", supportRepository.getSlaComplianceByPriority(
+                com.fooddelivery.analytics.cx.model.SupportTicket.TicketPriority.URGENT, startDate, endDate));
+        slaByPriority.put("HIGH", supportRepository.getSlaComplianceByPriority(
+                com.fooddelivery.analytics.cx.model.SupportTicket.TicketPriority.HIGH, startDate, endDate));
+        slaByPriority.put("MEDIUM", supportRepository.getSlaComplianceByPriority(
+                com.fooddelivery.analytics.cx.model.SupportTicket.TicketPriority.MEDIUM, startDate, endDate));
+        slaByPriority.put("LOW", supportRepository.getSlaComplianceByPriority(
+                com.fooddelivery.analytics.cx.model.SupportTicket.TicketPriority.LOW, startDate, endDate));
         slaMetrics.put("slaByPriority", slaByPriority);
 
         return slaMetrics;

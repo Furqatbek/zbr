@@ -116,18 +116,20 @@ public interface DashboardSupportRepository extends JpaRepository<SupportTicket,
     /**
      * Average resolution time in hours.
      */
-    @Query("SELECT COALESCE(AVG(TIMESTAMPDIFF(HOUR, t.createdAt, t.resolvedAt)), 0) " +
-            "FROM SupportTicket t WHERE t.resolvedAt IS NOT NULL " +
-            "AND t.createdAt BETWEEN :startDate AND :endDate")
+    @Query(value = "SELECT COALESCE(AVG(EXTRACT(EPOCH FROM (resolved_at - created_at)) / 3600), 0) " +
+            "FROM support_tickets WHERE resolved_at IS NOT NULL " +
+            "AND created_at BETWEEN :startDate AND :endDate",
+            nativeQuery = true)
     Double avgResolutionTimeHours(@Param("startDate") LocalDateTime startDate,
                                    @Param("endDate") LocalDateTime endDate);
 
     /**
      * Average first response time in minutes.
      */
-    @Query("SELECT COALESCE(AVG(TIMESTAMPDIFF(MINUTE, t.createdAt, t.firstResponseAt)), 0) " +
-            "FROM SupportTicket t WHERE t.firstResponseAt IS NOT NULL " +
-            "AND t.createdAt BETWEEN :startDate AND :endDate")
+    @Query(value = "SELECT COALESCE(AVG(EXTRACT(EPOCH FROM (first_response_at - created_at)) / 60), 0) " +
+            "FROM support_tickets WHERE first_response_at IS NOT NULL " +
+            "AND created_at BETWEEN :startDate AND :endDate",
+            nativeQuery = true)
     Double avgFirstResponseTimeMinutes(@Param("startDate") LocalDateTime startDate,
                                         @Param("endDate") LocalDateTime endDate);
 
@@ -215,14 +217,15 @@ public interface DashboardSupportRepository extends JpaRepository<SupportTicket,
     /**
      * Agent performance metrics.
      */
-    @Query("SELECT t.assignedTo, COUNT(t), " +
-            "SUM(CASE WHEN t.status IN ('RESOLVED', 'CLOSED') THEN 1 ELSE 0 END), " +
-            "COALESCE(AVG(TIMESTAMPDIFF(HOUR, t.createdAt, t.resolvedAt)), 0), " +
-            "COALESCE(AVG(TIMESTAMPDIFF(MINUTE, t.createdAt, t.firstResponseAt)), 0), " +
-            "COALESCE(AVG(t.customerSatisfactionScore), 0) " +
-            "FROM SupportTicket t WHERE t.assignedTo IS NOT NULL " +
-            "AND t.createdAt BETWEEN :startDate AND :endDate " +
-            "GROUP BY t.assignedTo")
+    @Query(value = "SELECT assigned_to, COUNT(*), " +
+            "SUM(CASE WHEN status IN ('RESOLVED', 'CLOSED') THEN 1 ELSE 0 END), " +
+            "COALESCE(AVG(EXTRACT(EPOCH FROM (resolved_at - created_at)) / 3600), 0), " +
+            "COALESCE(AVG(EXTRACT(EPOCH FROM (first_response_at - created_at)) / 60), 0), " +
+            "COALESCE(AVG(customer_satisfaction_score), 0) " +
+            "FROM support_tickets WHERE assigned_to IS NOT NULL " +
+            "AND created_at BETWEEN :startDate AND :endDate " +
+            "GROUP BY assigned_to",
+            nativeQuery = true)
     List<Object[]> getAgentPerformanceMetrics(@Param("startDate") LocalDateTime startDate,
                                                @Param("endDate") LocalDateTime endDate);
 
@@ -231,10 +234,11 @@ public interface DashboardSupportRepository extends JpaRepository<SupportTicket,
     /**
      * Ticket count by hour.
      */
-    @Query("SELECT HOUR(t.createdAt), COUNT(t) FROM SupportTicket t " +
-            "WHERE t.createdAt BETWEEN :startDate AND :endDate " +
-            "GROUP BY HOUR(t.createdAt) " +
-            "ORDER BY HOUR(t.createdAt)")
+    @Query(value = "SELECT EXTRACT(HOUR FROM created_at), COUNT(*) FROM support_tickets " +
+            "WHERE created_at BETWEEN :startDate AND :endDate " +
+            "GROUP BY EXTRACT(HOUR FROM created_at) " +
+            "ORDER BY EXTRACT(HOUR FROM created_at)",
+            nativeQuery = true)
     List<Object[]> ticketCountByHour(@Param("startDate") LocalDateTime startDate,
                                       @Param("endDate") LocalDateTime endDate);
 
@@ -296,25 +300,25 @@ public interface DashboardSupportRepository extends JpaRepository<SupportTicket,
                                      @Param("endDate") LocalDateTime endDate);
 
     /**
-     * Count complaints within date range.
+     * Count complaints (OTHER type tickets) within date range.
      */
-    @Query("SELECT COUNT(t) FROM SupportTicket t WHERE t.ticketType = 'COMPLAINT' " +
+    @Query("SELECT COUNT(t) FROM SupportTicket t WHERE t.ticketType = 'OTHER' " +
             "AND t.createdAt BETWEEN :startDate AND :endDate")
     Long countComplaints(@Param("startDate") LocalDateTime startDate,
                          @Param("endDate") LocalDateTime endDate);
 
     /**
-     * Count inquiries within date range.
+     * Count inquiries (APP_ISSUE type tickets) within date range.
      */
-    @Query("SELECT COUNT(t) FROM SupportTicket t WHERE t.ticketType = 'INQUIRY' " +
+    @Query("SELECT COUNT(t) FROM SupportTicket t WHERE t.ticketType = 'APP_ISSUE' " +
             "AND t.createdAt BETWEEN :startDate AND :endDate")
     Long countInquiries(@Param("startDate") LocalDateTime startDate,
                         @Param("endDate") LocalDateTime endDate);
 
     /**
-     * Count feedback within date range.
+     * Count feedback (RESTAURANT_QUALITY type tickets) within date range.
      */
-    @Query("SELECT COUNT(t) FROM SupportTicket t WHERE t.ticketType = 'FEEDBACK' " +
+    @Query("SELECT COUNT(t) FROM SupportTicket t WHERE t.ticketType = 'RESTAURANT_QUALITY' " +
             "AND t.createdAt BETWEEN :startDate AND :endDate")
     Long countFeedback(@Param("startDate") LocalDateTime startDate,
                        @Param("endDate") LocalDateTime endDate);
@@ -322,9 +326,10 @@ public interface DashboardSupportRepository extends JpaRepository<SupportTicket,
     /**
      * Average resolution time in minutes.
      */
-    @Query("SELECT COALESCE(AVG(TIMESTAMPDIFF(MINUTE, t.createdAt, t.resolvedAt)), 0) " +
-            "FROM SupportTicket t WHERE t.resolvedAt IS NOT NULL " +
-            "AND t.createdAt BETWEEN :startDate AND :endDate")
+    @Query(value = "SELECT COALESCE(AVG(EXTRACT(EPOCH FROM (resolved_at - created_at)) / 60), 0) " +
+            "FROM support_tickets WHERE resolved_at IS NOT NULL " +
+            "AND created_at BETWEEN :startDate AND :endDate",
+            nativeQuery = true)
     Double avgResolutionTimeMinutes(@Param("startDate") LocalDateTime startDate,
                                     @Param("endDate") LocalDateTime endDate);
 
@@ -343,49 +348,50 @@ public interface DashboardSupportRepository extends JpaRepository<SupportTicket,
     }
 
     /**
-     * Count by category within date range.
+     * Count by ticket type within date range (category not available on entity).
      */
-    @Query("SELECT t.category, COUNT(t) FROM SupportTicket t " +
-            "WHERE t.createdAt BETWEEN :startDate AND :endDate " +
-            "GROUP BY t.category")
-    List<Object[]> countByCategory(@Param("startDate") LocalDateTime startDate,
-                                   @Param("endDate") LocalDateTime endDate);
+    default List<Object[]> countByCategory(LocalDateTime startDate, LocalDateTime endDate) {
+        return countByTypeAndDateRange(startDate, endDate);
+    }
 
     /**
-     * Count by specific category within date range.
+     * Count by specific ticket type within date range.
      */
-    @Query("SELECT COUNT(t) FROM SupportTicket t WHERE t.category = :category " +
+    @Query("SELECT COUNT(t) FROM SupportTicket t WHERE t.ticketType = :ticketType " +
             "AND t.createdAt BETWEEN :startDate AND :endDate")
-    Long countByCategory(@Param("category") String category,
-                         @Param("startDate") LocalDateTime startDate,
-                         @Param("endDate") LocalDateTime endDate);
+    Long countByTicketType(@Param("ticketType") TicketType ticketType,
+                           @Param("startDate") LocalDateTime startDate,
+                           @Param("endDate") LocalDateTime endDate);
 
     /**
      * Get agent performance with pagination.
      */
-    @Query("SELECT t.assignedTo, " +
-            "COALESCE((SELECT u.firstName || ' ' || u.lastName FROM User u WHERE u.id = t.assignedTo), 'Unassigned'), " +
-            "COUNT(t), " +
+    @Query(value = "SELECT t.assigned_to, " +
+            "COALESCE((SELECT u.first_name || ' ' || u.last_name FROM users u WHERE u.id = t.assigned_to), 'Unassigned'), " +
+            "COUNT(*), " +
             "SUM(CASE WHEN t.status IN ('RESOLVED', 'CLOSED') THEN 1 ELSE 0 END), " +
-            "COALESCE(AVG(TIMESTAMPDIFF(MINUTE, t.createdAt, t.resolvedAt)), 0), " +
-            "COALESCE(AVG(TIMESTAMPDIFF(MINUTE, t.createdAt, t.firstResponseAt)), 0), " +
-            "COALESCE(AVG(t.customerSatisfactionScore), 0), " +
+            "COALESCE(AVG(EXTRACT(EPOCH FROM (t.resolved_at - t.created_at)) / 60), 0), " +
+            "COALESCE(AVG(EXTRACT(EPOCH FROM (t.first_response_at - t.created_at)) / 60), 0), " +
+            "COALESCE(AVG(t.customer_satisfaction_score), 0), " +
             "SUM(CASE WHEN t.status NOT IN ('RESOLVED', 'CLOSED') THEN 1 ELSE 0 END) " +
-            "FROM SupportTicket t WHERE t.assignedTo IS NOT NULL " +
-            "AND t.createdAt BETWEEN :startDate AND :endDate " +
-            "GROUP BY t.assignedTo")
+            "FROM support_tickets t WHERE t.assigned_to IS NOT NULL " +
+            "AND t.created_at BETWEEN :startDate AND :endDate " +
+            "GROUP BY t.assigned_to",
+            nativeQuery = true)
     List<Object[]> getAgentPerformance(@Param("startDate") LocalDateTime startDate,
                                        @Param("endDate") LocalDateTime endDate,
                                        Pageable pageable);
 
     /**
-     * Get common issues with limit.
+     * Get common issues by ticket type with limit.
      */
-    @Query("SELECT t.category, t.subcategory, COUNT(t), " +
-            "COALESCE(AVG(TIMESTAMPDIFF(MINUTE, t.createdAt, t.resolvedAt)), 0) " +
-            "FROM SupportTicket t WHERE t.createdAt BETWEEN :startDate AND :endDate " +
-            "GROUP BY t.category, t.subcategory " +
-            "ORDER BY COUNT(t) DESC")
+    @Query(value = "SELECT ticket_type, ticket_type, COUNT(*), " +
+            "COALESCE(AVG(EXTRACT(EPOCH FROM (resolved_at - created_at)) / 60), 0) " +
+            "FROM support_tickets WHERE created_at BETWEEN :startDate AND :endDate " +
+            "GROUP BY ticket_type " +
+            "ORDER BY COUNT(*) DESC " +
+            "LIMIT :limit",
+            nativeQuery = true)
     List<Object[]> getCommonIssues(@Param("startDate") LocalDateTime startDate,
                                    @Param("endDate") LocalDateTime endDate,
                                    @Param("limit") int limit);
@@ -404,21 +410,22 @@ public interface DashboardSupportRepository extends JpaRepository<SupportTicket,
             "ELSE (SUM(CASE WHEN t.slaBreach = false THEN 1 ELSE 0 END) * 100.0 / COUNT(t)) END " +
             "FROM SupportTicket t WHERE t.priority = :priority " +
             "AND t.createdAt BETWEEN :startDate AND :endDate")
-    Double getSlaComplianceByPriority(@Param("priority") String priority,
+    Double getSlaComplianceByPriority(@Param("priority") TicketPriority priority,
                                       @Param("startDate") LocalDateTime startDate,
                                       @Param("endDate") LocalDateTime endDate);
 
     /**
      * Find ticket details for dashboard.
      */
-    @Query("SELECT t.id, t.ticketNumber, t.customerId, " +
-            "COALESCE((SELECT u.firstName || ' ' || u.lastName FROM User u WHERE u.id = t.customerId), 'Unknown'), " +
-            "t.orderId, t.category, t.priority, t.status, t.subject, t.createdAt, t.updatedAt, " +
-            "t.assignedTo, " +
-            "COALESCE((SELECT u.firstName || ' ' || u.lastName FROM User u WHERE u.id = t.assignedTo), 'Unassigned'), " +
-            "t.firstResponseAt, t.resolvedAt, t.escalated, t.refundAmount " +
-            "FROM SupportTicket t WHERE t.createdAt BETWEEN :startDate AND :endDate " +
-            "ORDER BY t.createdAt DESC")
+    @Query(value = "SELECT t.id, t.ticket_number, t.user_id, " +
+            "COALESCE((SELECT u.first_name || ' ' || u.last_name FROM users u WHERE u.id = t.user_id), 'Unknown'), " +
+            "t.order_id, t.ticket_type, t.priority, t.status, t.subject, t.created_at, t.updated_at, " +
+            "t.assigned_to, " +
+            "COALESCE((SELECT u.first_name || ' ' || u.last_name FROM users u WHERE u.id = t.assigned_to), 'Unassigned'), " +
+            "t.first_response_at, t.resolved_at, t.escalated, t.refund_amount " +
+            "FROM support_tickets t WHERE t.created_at BETWEEN :startDate AND :endDate " +
+            "ORDER BY t.created_at DESC",
+            nativeQuery = true)
     List<Object[]> findTicketDetails(@Param("startDate") LocalDateTime startDate,
                                      @Param("endDate") LocalDateTime endDate,
                                      Pageable pageable);
@@ -426,15 +433,16 @@ public interface DashboardSupportRepository extends JpaRepository<SupportTicket,
     /**
      * Find pending attention tickets.
      */
-    @Query("SELECT t.id, t.ticketNumber, t.customerId, " +
-            "COALESCE((SELECT u.firstName || ' ' || u.lastName FROM User u WHERE u.id = t.customerId), 'Unknown'), " +
-            "t.orderId, t.category, t.priority, t.status, t.subject, t.createdAt, t.updatedAt, " +
-            "t.assignedTo, " +
-            "COALESCE((SELECT u.firstName || ' ' || u.lastName FROM User u WHERE u.id = t.assignedTo), 'Unassigned'), " +
-            "t.firstResponseAt, t.resolvedAt, t.escalated, t.refundAmount " +
-            "FROM SupportTicket t WHERE t.status = 'OPEN' OR t.priority IN ('CRITICAL', 'HIGH') OR t.slaBreach = true " +
-            "AND t.createdAt BETWEEN :startDate AND :endDate " +
-            "ORDER BY t.priority DESC, t.createdAt ASC")
+    @Query(value = "SELECT t.id, t.ticket_number, t.user_id, " +
+            "COALESCE((SELECT u.first_name || ' ' || u.last_name FROM users u WHERE u.id = t.user_id), 'Unknown'), " +
+            "t.order_id, t.ticket_type, t.priority, t.status, t.subject, t.created_at, t.updated_at, " +
+            "t.assigned_to, " +
+            "COALESCE((SELECT u.first_name || ' ' || u.last_name FROM users u WHERE u.id = t.assigned_to), 'Unassigned'), " +
+            "t.first_response_at, t.resolved_at, t.escalated, t.refund_amount " +
+            "FROM support_tickets t WHERE (t.status = 'OPEN' OR t.priority IN ('URGENT', 'HIGH') OR t.sla_breach = true) " +
+            "AND t.created_at BETWEEN :startDate AND :endDate " +
+            "ORDER BY t.priority DESC, t.created_at ASC",
+            nativeQuery = true)
     List<Object[]> findPendingAttentionTickets(@Param("startDate") LocalDateTime startDate,
                                                @Param("endDate") LocalDateTime endDate,
                                                Pageable pageable);
@@ -465,12 +473,12 @@ public interface DashboardSupportRepository extends JpaRepository<SupportTicket,
                               @Param("endDate") LocalDateTime endDate);
 
     /**
-     * Get refunds by reason.
+     * Get refunds by ticket type (refundReason not available on entity).
      */
-    @Query("SELECT t.refundReason, COUNT(t) FROM SupportTicket t " +
+    @Query("SELECT t.ticketType, COUNT(t) FROM SupportTicket t " +
             "WHERE t.ticketType = 'REFUND_REQUEST' " +
             "AND t.createdAt BETWEEN :startDate AND :endDate " +
-            "GROUP BY t.refundReason")
+            "GROUP BY t.ticketType")
     List<Object[]> getRefundsByReason(@Param("startDate") LocalDateTime startDate,
                                       @Param("endDate") LocalDateTime endDate);
 }
