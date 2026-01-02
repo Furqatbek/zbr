@@ -39,12 +39,12 @@ public interface ReferralEventRepository extends JpaRepository<ReferralEvent, Lo
      * Detect devices with multiple signups.
      * Returns: deviceId, signupCount, referredUserIds as comma-separated
      */
-    @Query("SELECT r.deviceId, COUNT(r), STRING_AGG(CAST(r.referredUserId AS string), ',') " +
-            "FROM ReferralEvent r " +
-            "WHERE r.deviceId IS NOT NULL AND r.createdAt BETWEEN :start AND :end " +
-            "GROUP BY r.deviceId " +
-            "HAVING COUNT(r) >= :threshold " +
-            "ORDER BY COUNT(r) DESC")
+    @Query(value = "SELECT device_id, COUNT(*), STRING_AGG(CAST(referred_user_id AS VARCHAR), ',') " +
+            "FROM referral_events " +
+            "WHERE device_id IS NOT NULL AND created_at BETWEEN :start AND :end " +
+            "GROUP BY device_id " +
+            "HAVING COUNT(*) >= :threshold " +
+            "ORDER BY COUNT(*) DESC", nativeQuery = true)
     List<Object[]> getDevicesWithMultipleSignups(@Param("start") LocalDateTime start,
                                                   @Param("end") LocalDateTime end,
                                                   @Param("threshold") int threshold);
@@ -63,12 +63,12 @@ public interface ReferralEventRepository extends JpaRepository<ReferralEvent, Lo
      * Get device fingerprint clusters.
      * Returns: fingerprintHash, deviceId, signupCount, referredUserIds
      */
-    @Query("SELECT r.deviceFingerprint, r.deviceId, COUNT(r), STRING_AGG(CAST(r.referredUserId AS string), ',') " +
-            "FROM ReferralEvent r " +
-            "WHERE r.deviceFingerprint IS NOT NULL AND r.createdAt BETWEEN :start AND :end " +
-            "GROUP BY r.deviceFingerprint, r.deviceId " +
-            "HAVING COUNT(r) >= :threshold " +
-            "ORDER BY COUNT(r) DESC")
+    @Query(value = "SELECT device_fingerprint, device_id, COUNT(*), STRING_AGG(CAST(referred_user_id AS VARCHAR), ',') " +
+            "FROM referral_events " +
+            "WHERE device_fingerprint IS NOT NULL AND created_at BETWEEN :start AND :end " +
+            "GROUP BY device_fingerprint, device_id " +
+            "HAVING COUNT(*) >= :threshold " +
+            "ORDER BY COUNT(*) DESC", nativeQuery = true)
     List<Object[]> getDeviceFingerprintClusters(@Param("start") LocalDateTime start,
                                                  @Param("end") LocalDateTime end,
                                                  @Param("threshold") int threshold);
@@ -79,12 +79,12 @@ public interface ReferralEventRepository extends JpaRepository<ReferralEvent, Lo
      * Detect IPs with multiple signups.
      * Returns: ipAddress, signupCount, referredUserIds
      */
-    @Query("SELECT r.ipAddress, COUNT(r), STRING_AGG(CAST(r.referredUserId AS string), ',') " +
-            "FROM ReferralEvent r " +
-            "WHERE r.ipAddress IS NOT NULL AND r.createdAt BETWEEN :start AND :end " +
-            "GROUP BY r.ipAddress " +
-            "HAVING COUNT(r) >= :threshold " +
-            "ORDER BY COUNT(r) DESC")
+    @Query(value = "SELECT ip_address, COUNT(*), STRING_AGG(CAST(referred_user_id AS VARCHAR), ',') " +
+            "FROM referral_events " +
+            "WHERE ip_address IS NOT NULL AND created_at BETWEEN :start AND :end " +
+            "GROUP BY ip_address " +
+            "HAVING COUNT(*) >= :threshold " +
+            "ORDER BY COUNT(*) DESC", nativeQuery = true)
     List<Object[]> getIpsWithMultipleSignups(@Param("start") LocalDateTime start,
                                               @Param("end") LocalDateTime end,
                                               @Param("threshold") int threshold);
@@ -143,13 +143,13 @@ public interface ReferralEventRepository extends JpaRepository<ReferralEvent, Lo
      * Detect phone number reuse.
      * Returns: phoneHash, userCount, userIds
      */
-    @Query("SELECT r.phoneNumberHash, COUNT(DISTINCT r.referredUserId), " +
-            "STRING_AGG(CAST(r.referredUserId AS string), ',') " +
-            "FROM ReferralEvent r " +
-            "WHERE r.phoneNumberHash IS NOT NULL AND r.createdAt BETWEEN :start AND :end " +
-            "GROUP BY r.phoneNumberHash " +
-            "HAVING COUNT(DISTINCT r.referredUserId) > 1 " +
-            "ORDER BY COUNT(DISTINCT r.referredUserId) DESC")
+    @Query(value = "SELECT phone_number_hash, COUNT(DISTINCT referred_user_id), " +
+            "STRING_AGG(CAST(referred_user_id AS VARCHAR), ',') " +
+            "FROM referral_events " +
+            "WHERE phone_number_hash IS NOT NULL AND created_at BETWEEN :start AND :end " +
+            "GROUP BY phone_number_hash " +
+            "HAVING COUNT(DISTINCT referred_user_id) > 1 " +
+            "ORDER BY COUNT(DISTINCT referred_user_id) DESC", nativeQuery = true)
     List<Object[]> detectPhoneNumberReuse(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
 
     // ==================== Financial Impact ====================
@@ -167,10 +167,10 @@ public interface ReferralEventRepository extends JpaRepository<ReferralEvent, Lo
     /**
      * Get signups by device type.
      */
-    @Query("SELECT SUBSTRING(r.deviceId, 1, POSITION('-' IN r.deviceId) - 1), COUNT(r) " +
-            "FROM ReferralEvent r " +
-            "WHERE r.deviceId IS NOT NULL AND r.createdAt BETWEEN :start AND :end " +
-            "GROUP BY SUBSTRING(r.deviceId, 1, POSITION('-' IN r.deviceId) - 1)")
+    @Query(value = "SELECT SUBSTRING(device_id, 1, POSITION('-' IN device_id) - 1), COUNT(*) " +
+            "FROM referral_events " +
+            "WHERE device_id IS NOT NULL AND created_at BETWEEN :start AND :end " +
+            "GROUP BY SUBSTRING(device_id, 1, POSITION('-' IN device_id) - 1)", nativeQuery = true)
     List<Object[]> getSignupsByDeviceType(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
 
     // ==================== User-Specific Referral Queries ====================

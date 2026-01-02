@@ -57,11 +57,11 @@ public interface FraudOrderHistoryRepository extends JpaRepository<FraudOrderHis
      * Get order value statistics for anomaly detection.
      * Returns: avg, stddev, median, min, max
      */
-    @Query("SELECT AVG(o.amount), STDDEV(o.amount), " +
-            "PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY o.amount), " +
-            "MIN(o.amount), MAX(o.amount) " +
-            "FROM FraudOrderHistory o " +
-            "WHERE o.createdAt BETWEEN :start AND :end")
+    @Query(value = "SELECT AVG(amount), STDDEV(amount), " +
+            "PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY amount), " +
+            "MIN(amount), MAX(amount) " +
+            "FROM fraud_order_history " +
+            "WHERE created_at BETWEEN :start AND :end", nativeQuery = true)
     Object[] getOrderValueStats(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
 
     /**
@@ -140,13 +140,13 @@ public interface FraudOrderHistoryRepository extends JpaRepository<FraudOrderHis
      * Detect addresses used by multiple users.
      * Returns: addressHash, userCount, totalOrders, userIds
      */
-    @Query("SELECT o.deliveryAddressHash, COUNT(DISTINCT o.userId), COUNT(o), " +
-            "STRING_AGG(DISTINCT CAST(o.userId AS string), ',') " +
-            "FROM FraudOrderHistory o " +
-            "WHERE o.deliveryAddressHash IS NOT NULL AND o.createdAt BETWEEN :start AND :end " +
-            "GROUP BY o.deliveryAddressHash " +
-            "HAVING COUNT(DISTINCT o.userId) >= :threshold " +
-            "ORDER BY COUNT(DISTINCT o.userId) DESC")
+    @Query(value = "SELECT delivery_address_hash, COUNT(DISTINCT user_id), COUNT(*), " +
+            "STRING_AGG(DISTINCT CAST(user_id AS VARCHAR), ',') " +
+            "FROM fraud_order_history " +
+            "WHERE delivery_address_hash IS NOT NULL AND created_at BETWEEN :start AND :end " +
+            "GROUP BY delivery_address_hash " +
+            "HAVING COUNT(DISTINCT user_id) >= :threshold " +
+            "ORDER BY COUNT(DISTINCT user_id) DESC", nativeQuery = true)
     List<Object[]> getAddressesWithMultipleUsers(@Param("start") LocalDateTime start,
                                                   @Param("end") LocalDateTime end,
                                                   @Param("threshold") int threshold);
@@ -186,13 +186,13 @@ public interface FraudOrderHistoryRepository extends JpaRepository<FraudOrderHis
      * Detect devices used by multiple users.
      * Returns: deviceId, userCount, totalOrders, userIds
      */
-    @Query("SELECT o.deviceId, COUNT(DISTINCT o.userId), COUNT(o), " +
-            "STRING_AGG(DISTINCT CAST(o.userId AS string), ',') " +
-            "FROM FraudOrderHistory o " +
-            "WHERE o.deviceId IS NOT NULL AND o.createdAt BETWEEN :start AND :end " +
-            "GROUP BY o.deviceId " +
-            "HAVING COUNT(DISTINCT o.userId) >= :threshold " +
-            "ORDER BY COUNT(DISTINCT o.userId) DESC")
+    @Query(value = "SELECT device_id, COUNT(DISTINCT user_id), COUNT(*), " +
+            "STRING_AGG(DISTINCT CAST(user_id AS VARCHAR), ',') " +
+            "FROM fraud_order_history " +
+            "WHERE device_id IS NOT NULL AND created_at BETWEEN :start AND :end " +
+            "GROUP BY device_id " +
+            "HAVING COUNT(DISTINCT user_id) >= :threshold " +
+            "ORDER BY COUNT(DISTINCT user_id) DESC", nativeQuery = true)
     List<Object[]> getDevicesWithMultipleUsers(@Param("start") LocalDateTime start,
                                                 @Param("end") LocalDateTime end,
                                                 @Param("threshold") int threshold);

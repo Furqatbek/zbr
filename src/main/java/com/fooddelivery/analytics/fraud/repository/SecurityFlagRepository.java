@@ -65,13 +65,13 @@ public interface SecurityFlagRepository extends JpaRepository<SecurityFlag, Long
      * Get high risk users (multiple active flags or high severity).
      * Returns: userId, flagCount, highestSeverity, flagTypes
      */
-    @Query("SELECT f.userId, COUNT(f), MAX(f.severity), STRING_AGG(DISTINCT CAST(f.flagType AS string), ',') " +
-            "FROM SecurityFlag f " +
-            "WHERE f.status IN ('ACTIVE', 'UNDER_REVIEW') " +
-            "AND f.createdAt BETWEEN :start AND :end " +
-            "GROUP BY f.userId " +
-            "HAVING COUNT(f) >= :minFlags OR MAX(f.severity) IN ('HIGH', 'CRITICAL') " +
-            "ORDER BY COUNT(f) DESC")
+    @Query(value = "SELECT user_id, COUNT(*), MAX(severity), STRING_AGG(DISTINCT CAST(flag_type AS VARCHAR), ',') " +
+            "FROM security_flags " +
+            "WHERE status IN ('ACTIVE', 'UNDER_REVIEW') " +
+            "AND created_at BETWEEN :start AND :end " +
+            "GROUP BY user_id " +
+            "HAVING COUNT(*) >= :minFlags OR MAX(severity) IN ('HIGH', 'CRITICAL') " +
+            "ORDER BY COUNT(*) DESC", nativeQuery = true)
     List<Object[]> getHighRiskUsers(@Param("start") LocalDateTime start,
                                      @Param("end") LocalDateTime end,
                                      @Param("minFlags") int minFlags);

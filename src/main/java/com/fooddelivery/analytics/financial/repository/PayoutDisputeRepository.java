@@ -20,12 +20,12 @@ public interface PayoutDisputeRepository extends JpaRepository<PayoutDispute, Lo
     /**
      * Get dispute summary by status.
      */
-    @Query("SELECT pd.status, COUNT(pd), SUM(pd.disputedAmount), " +
-           "AVG(CASE WHEN pd.resolvedAt IS NOT NULL THEN " +
-           "    FUNCTION('TIMESTAMPDIFF', DAY, pd.raisedAt, pd.resolvedAt) ELSE NULL END) " +
-           "FROM PayoutDispute pd " +
-           "WHERE pd.raisedAt BETWEEN :startDate AND :endDate " +
-           "GROUP BY pd.status")
+    @Query(value = "SELECT status, COUNT(*), SUM(disputed_amount), " +
+           "AVG(CASE WHEN resolved_at IS NOT NULL THEN " +
+           "    EXTRACT(DAY FROM (resolved_at - created_at)) ELSE NULL END) " +
+           "FROM payout_disputes " +
+           "WHERE created_at BETWEEN :startDate AND :endDate " +
+           "GROUP BY status", nativeQuery = true)
     List<Object[]> getDisputeSummaryByStatus(@Param("startDate") LocalDateTime startDate,
                                              @Param("endDate") LocalDateTime endDate);
 
@@ -34,7 +34,7 @@ public interface PayoutDisputeRepository extends JpaRepository<PayoutDispute, Lo
      */
     @Query("SELECT pd.disputeType, COUNT(pd), SUM(pd.disputedAmount) " +
            "FROM PayoutDispute pd " +
-           "WHERE pd.raisedAt BETWEEN :startDate AND :endDate " +
+           "WHERE pd.createdAt BETWEEN :startDate AND :endDate " +
            "GROUP BY pd.disputeType")
     List<Object[]> getDisputeSummaryByType(@Param("startDate") LocalDateTime startDate,
                                            @Param("endDate") LocalDateTime endDate);
@@ -50,7 +50,7 @@ public interface PayoutDisputeRepository extends JpaRepository<PayoutDispute, Lo
      * Get dispute count for period.
      */
     @Query("SELECT COUNT(pd) FROM PayoutDispute pd " +
-           "WHERE pd.raisedAt BETWEEN :startDate AND :endDate")
+           "WHERE pd.createdAt BETWEEN :startDate AND :endDate")
     Long getDisputeCount(@Param("startDate") LocalDateTime startDate,
                          @Param("endDate") LocalDateTime endDate);
 
@@ -59,7 +59,7 @@ public interface PayoutDisputeRepository extends JpaRepository<PayoutDispute, Lo
      */
     @Query("SELECT pd.entityType, COUNT(pd), SUM(pd.disputedAmount) " +
            "FROM PayoutDispute pd " +
-           "WHERE pd.raisedAt BETWEEN :startDate AND :endDate " +
+           "WHERE pd.createdAt BETWEEN :startDate AND :endDate " +
            "GROUP BY pd.entityType")
     List<Object[]> getDisputesByEntityType(@Param("startDate") LocalDateTime startDate,
                                            @Param("endDate") LocalDateTime endDate);
@@ -67,10 +67,10 @@ public interface PayoutDisputeRepository extends JpaRepository<PayoutDispute, Lo
     /**
      * Get daily dispute trend.
      */
-    @Query(value = "SELECT DATE(raised_at) as date, COUNT(*), SUM(disputed_amount) " +
+    @Query(value = "SELECT DATE(created_at) as date, COUNT(*), SUM(disputed_amount) " +
                    "FROM payout_disputes " +
-                   "WHERE raised_at BETWEEN :startDate AND :endDate " +
-                   "GROUP BY DATE(raised_at) " +
+                   "WHERE created_at BETWEEN :startDate AND :endDate " +
+                   "GROUP BY DATE(created_at) " +
                    "ORDER BY date", nativeQuery = true)
     List<Object[]> getDailyDisputeTrend(@Param("startDate") LocalDateTime startDate,
                                         @Param("endDate") LocalDateTime endDate);
@@ -86,7 +86,7 @@ public interface PayoutDisputeRepository extends JpaRepository<PayoutDispute, Lo
     List<Object[]> getResolutionStatistics(@Param("startDate") LocalDateTime startDate,
                                            @Param("endDate") LocalDateTime endDate);
 
-    List<PayoutDispute> findByEntityIdAndEntityTypeAndRaisedAtBetween(
+    List<PayoutDispute> findByEntityIdAndEntityTypeAndCreatedAtBetween(
             Long entityId, String entityType, LocalDateTime startDate, LocalDateTime endDate);
 
     List<PayoutDispute> findByStatusIn(List<DisputeStatus> statuses);

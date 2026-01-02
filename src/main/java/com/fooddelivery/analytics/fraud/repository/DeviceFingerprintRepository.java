@@ -41,16 +41,16 @@ public interface DeviceFingerprintRepository extends JpaRepository<DeviceFingerp
      * Get devices shared across multiple users.
      * Returns: deviceId, fingerprintHash, userCount, userIds, isEmulator, isRooted, trustScore
      */
-    @Query("SELECT d.deviceId, d.fingerprintHash, COUNT(DISTINCT d.userId), " +
-            "STRING_AGG(CAST(d.userId AS string), ','), " +
-            "MAX(CASE WHEN d.isEmulator = true THEN 1 ELSE 0 END), " +
-            "MAX(CASE WHEN d.isRooted = true THEN 1 ELSE 0 END), " +
-            "MIN(d.trustScore) " +
-            "FROM DeviceFingerprint d " +
-            "WHERE d.firstSeenAt BETWEEN :start AND :end " +
-            "GROUP BY d.deviceId, d.fingerprintHash " +
-            "HAVING COUNT(DISTINCT d.userId) >= :threshold " +
-            "ORDER BY COUNT(DISTINCT d.userId) DESC")
+    @Query(value = "SELECT device_id, fingerprint_hash, COUNT(DISTINCT user_id), " +
+            "STRING_AGG(DISTINCT CAST(user_id AS VARCHAR), ','), " +
+            "MAX(CASE WHEN is_emulator = true THEN 1 ELSE 0 END), " +
+            "MAX(CASE WHEN is_rooted = true THEN 1 ELSE 0 END), " +
+            "MIN(trust_score) " +
+            "FROM device_fingerprints " +
+            "WHERE first_seen_at BETWEEN :start AND :end " +
+            "GROUP BY device_id, fingerprint_hash " +
+            "HAVING COUNT(DISTINCT user_id) >= :threshold " +
+            "ORDER BY COUNT(DISTINCT user_id) DESC", nativeQuery = true)
     List<Object[]> getDevicesSharedAcrossUsers(@Param("start") LocalDateTime start,
                                                 @Param("end") LocalDateTime end,
                                                 @Param("threshold") int threshold);
