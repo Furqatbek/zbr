@@ -326,13 +326,11 @@ public interface DashboardOrderRepository extends JpaRepository<Order, Long> {
                                            @Param("endDate") LocalDateTime endDate);
 
     /**
-     * Calculate courier payouts.
+     * Calculate courier payouts placeholder (field not on Order entity).
      */
-    @Query("SELECT COALESCE(SUM(o.courierPayout), 0) FROM Order o " +
-            "WHERE o.status = 'DELIVERED' " +
-            "AND o.createdAt BETWEEN :startDate AND :endDate")
-    BigDecimal calculateCourierPayouts(@Param("startDate") LocalDateTime startDate,
-                                       @Param("endDate") LocalDateTime endDate);
+    default BigDecimal calculateCourierPayouts(LocalDateTime startDate, LocalDateTime endDate) {
+        return BigDecimal.ZERO;
+    }
 
     /**
      * Calculate discounts used.
@@ -342,22 +340,18 @@ public interface DashboardOrderRepository extends JpaRepository<Order, Long> {
     }
 
     /**
-     * Calculate unsettled restaurant payouts.
+     * Calculate unsettled restaurant payouts placeholder (field not on Order entity).
      */
-    @Query("SELECT COALESCE(SUM(o.restaurantPayout), 0) FROM Order o " +
-            "WHERE o.status = 'DELIVERED' AND o.restaurantPayoutSettled = false " +
-            "AND o.createdAt BETWEEN :startDate AND :endDate")
-    BigDecimal calculateUnsettledRestaurantPayouts(@Param("startDate") LocalDateTime startDate,
-                                                   @Param("endDate") LocalDateTime endDate);
+    default BigDecimal calculateUnsettledRestaurantPayouts(LocalDateTime startDate, LocalDateTime endDate) {
+        return BigDecimal.ZERO;
+    }
 
     /**
-     * Calculate unsettled courier payouts.
+     * Calculate unsettled courier payouts placeholder (field not on Order entity).
      */
-    @Query("SELECT COALESCE(SUM(o.courierPayout), 0) FROM Order o " +
-            "WHERE o.status = 'DELIVERED' AND o.courierPayoutSettled = false " +
-            "AND o.createdAt BETWEEN :startDate AND :endDate")
-    BigDecimal calculateUnsettledCourierPayouts(@Param("startDate") LocalDateTime startDate,
-                                                @Param("endDate") LocalDateTime endDate);
+    default BigDecimal calculateUnsettledCourierPayouts(LocalDateTime startDate, LocalDateTime endDate) {
+        return BigDecimal.ZERO;
+    }
 
     /**
      * Count orders today (within date range).
@@ -367,41 +361,32 @@ public interface DashboardOrderRepository extends JpaRepository<Order, Long> {
     }
 
     /**
-     * Count pending restaurant payouts.
+     * Count pending restaurant payouts placeholder (field not on Order entity).
      */
-    @Query("SELECT COUNT(DISTINCT o.restaurant.id) FROM Order o " +
-            "WHERE o.status = 'DELIVERED' AND o.restaurantPayoutSettled = false " +
-            "AND o.createdAt BETWEEN :startDate AND :endDate")
-    Long countPendingRestaurantPayouts(@Param("startDate") LocalDateTime startDate,
-                                       @Param("endDate") LocalDateTime endDate);
+    default Long countPendingRestaurantPayouts(LocalDateTime startDate, LocalDateTime endDate) {
+        return 0L;
+    }
 
     /**
-     * Count pending courier payouts.
+     * Count pending courier payouts placeholder (field not on Order entity).
      */
-    @Query("SELECT COUNT(DISTINCT o.courier.id) FROM Order o " +
-            "WHERE o.status = 'DELIVERED' AND o.courierPayoutSettled = false " +
-            "AND o.createdAt BETWEEN :startDate AND :endDate")
-    Long countPendingCourierPayouts(@Param("startDate") LocalDateTime startDate,
-                                    @Param("endDate") LocalDateTime endDate);
+    default Long countPendingCourierPayouts(LocalDateTime startDate, LocalDateTime endDate) {
+        return 0L;
+    }
 
     /**
-     * Count completed payouts.
+     * Count completed payouts placeholder (field not on Order entity).
      */
-    @Query("SELECT COUNT(o) FROM Order o " +
-            "WHERE o.status = 'DELIVERED' " +
-            "AND o.restaurantPayoutSettled = true AND o.courierPayoutSettled = true " +
-            "AND o.createdAt BETWEEN :startDate AND :endDate")
-    Long countCompletedPayouts(@Param("startDate") LocalDateTime startDate,
-                               @Param("endDate") LocalDateTime endDate);
+    default Long countCompletedPayouts(LocalDateTime startDate, LocalDateTime endDate) {
+        return 0L;
+    }
 
     /**
-     * Average payout settlement time in minutes.
+     * Average payout settlement time placeholder (field not on Order entity).
      */
-    @Query("SELECT COALESCE(AVG(TIMESTAMPDIFF(MINUTE, o.deliveredAt, o.payoutSettledAt)), 0) " +
-            "FROM Order o WHERE o.payoutSettledAt IS NOT NULL " +
-            "AND o.createdAt BETWEEN :startDate AND :endDate")
-    Double avgPayoutSettlementTimeMinutes(@Param("startDate") LocalDateTime startDate,
-                                          @Param("endDate") LocalDateTime endDate);
+    default Double avgPayoutSettlementTimeMinutes(LocalDateTime startDate, LocalDateTime endDate) {
+        return 0.0;
+    }
 
     /**
      * Count orders with discount.
@@ -412,26 +397,18 @@ public interface DashboardOrderRepository extends JpaRepository<Order, Long> {
                                  @Param("endDate") LocalDateTime endDate);
 
     /**
-     * Get discounts by type.
+     * Get discounts by type placeholder (field not on Order entity).
      */
-    @Query("SELECT o.discountType, COALESCE(SUM(o.discount), 0) FROM Order o " +
-            "WHERE o.discount > 0 " +
-            "AND o.createdAt BETWEEN :startDate AND :endDate " +
-            "GROUP BY o.discountType")
-    List<Object[]> getDiscountsByType(@Param("startDate") LocalDateTime startDate,
-                                      @Param("endDate") LocalDateTime endDate);
+    default List<Object[]> getDiscountsByType(LocalDateTime startDate, LocalDateTime endDate) {
+        return java.util.Collections.emptyList();
+    }
 
     /**
-     * Get top promo codes.
+     * Get top promo codes placeholder (field not on Order entity).
      */
-    @Query("SELECT o.promoCode, COUNT(o), COALESCE(SUM(o.discount), 0) FROM Order o " +
-            "WHERE o.promoCode IS NOT NULL " +
-            "AND o.createdAt BETWEEN :startDate AND :endDate " +
-            "GROUP BY o.promoCode " +
-            "ORDER BY COUNT(o) DESC")
-    List<Object[]> getTopPromoCodes(@Param("startDate") LocalDateTime startDate,
-                                    @Param("endDate") LocalDateTime endDate,
-                                    @Param("limit") int limit);
+    default List<Object[]> getTopPromoCodes(LocalDateTime startDate, LocalDateTime endDate, int limit) {
+        return java.util.Collections.emptyList();
+    }
 
     /**
      * Get daily revenue.
@@ -446,14 +423,11 @@ public interface DashboardOrderRepository extends JpaRepository<Order, Long> {
                                    @Param("endDate") LocalDateTime endDate);
 
     /**
-     * Get revenue by payment method.
+     * Get revenue by payment method placeholder (field not on Order entity).
      */
-    @Query("SELECT o.paymentMethod, COALESCE(SUM(o.total), 0) FROM Order o " +
-            "WHERE o.status NOT IN ('CANCELLED', 'REFUNDED') " +
-            "AND o.createdAt BETWEEN :startDate AND :endDate " +
-            "GROUP BY o.paymentMethod")
-    List<Object[]> getRevenueByPaymentMethod(@Param("startDate") LocalDateTime startDate,
-                                             @Param("endDate") LocalDateTime endDate);
+    default List<Object[]> getRevenueByPaymentMethod(LocalDateTime startDate, LocalDateTime endDate) {
+        return java.util.Collections.emptyList();
+    }
 
     // ==================== Rejected Orders Queries ====================
 
