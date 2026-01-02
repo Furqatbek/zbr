@@ -74,13 +74,13 @@ public interface AppStoreRatingRepository extends JpaRepository<AppStoreRating, 
     /**
      * Get weekly rating trend.
      */
-    @Query("SELECT EXTRACT(YEAR FROM r.createdAt), EXTRACT(WEEK FROM r.createdAt), " +
-           "AVG(r.score), COUNT(r), " +
-           "AVG(CASE WHEN r.platform = 'IOS' THEN r.score ELSE NULL END), " +
-           "AVG(CASE WHEN r.platform = 'ANDROID' THEN r.score ELSE NULL END) " +
-           "FROM AppStoreRating r WHERE r.createdAt BETWEEN :start AND :end " +
-           "GROUP BY EXTRACT(YEAR FROM r.createdAt), EXTRACT(WEEK FROM r.createdAt) " +
-           "ORDER BY EXTRACT(YEAR FROM r.createdAt), EXTRACT(WEEK FROM r.createdAt)")
+    @Query(value = "SELECT EXTRACT(YEAR FROM created_at), EXTRACT(WEEK FROM created_at), " +
+           "AVG(score), COUNT(*), " +
+           "AVG(CASE WHEN platform = 'IOS' THEN score ELSE NULL END), " +
+           "AVG(CASE WHEN platform = 'ANDROID' THEN score ELSE NULL END) " +
+           "FROM app_store_ratings WHERE created_at BETWEEN :start AND :end " +
+           "GROUP BY EXTRACT(YEAR FROM created_at), EXTRACT(WEEK FROM created_at) " +
+           "ORDER BY EXTRACT(YEAR FROM created_at), EXTRACT(WEEK FROM created_at)", nativeQuery = true)
     List<Object[]> getWeeklyRatingTrend(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
 
     /**
@@ -120,8 +120,8 @@ public interface AppStoreRatingRepository extends JpaRepository<AppStoreRating, 
     /**
      * Get latest version by platform.
      */
-    @Query("SELECT r.appVersion FROM AppStoreRating r WHERE r.platform = :platform " +
-           "ORDER BY r.createdAt DESC LIMIT 1")
+    @Query(value = "SELECT app_version FROM app_store_ratings WHERE platform = :#{#platform.name()} " +
+           "ORDER BY created_at DESC LIMIT 1", nativeQuery = true)
     String getLatestVersion(@Param("platform") AppStoreRating.Platform platform);
 
     /**

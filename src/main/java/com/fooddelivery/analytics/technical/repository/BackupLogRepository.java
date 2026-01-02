@@ -39,9 +39,9 @@ public interface BackupLogRepository extends JpaRepository<BackupLog, Long> {
     /**
      * Get average backup duration.
      */
-    @Query("SELECT AVG(EXTRACT(EPOCH FROM (b.completedAt - b.startedAt))) " +
-           "FROM BackupLog b WHERE b.startedAt BETWEEN :start AND :end " +
-           "AND b.status = 'COMPLETED' AND b.completedAt IS NOT NULL")
+    @Query(value = "SELECT AVG(EXTRACT(EPOCH FROM (completed_at - started_at))) " +
+           "FROM backup_logs WHERE started_at BETWEEN :start AND :end " +
+           "AND status = 'COMPLETED' AND completed_at IS NOT NULL", nativeQuery = true)
     Double getAverageBackupDurationSeconds(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
 
     /**
@@ -54,13 +54,13 @@ public interface BackupLogRepository extends JpaRepository<BackupLog, Long> {
     /**
      * Get last successful backup.
      */
-    @Query("SELECT b FROM BackupLog b WHERE b.status = 'COMPLETED' ORDER BY b.completedAt DESC LIMIT 1")
+    @Query(value = "SELECT * FROM backup_logs WHERE status = 'COMPLETED' ORDER BY completed_at DESC LIMIT 1", nativeQuery = true)
     Optional<BackupLog> findLastSuccessfulBackup();
 
     /**
      * Get last backup (any status).
      */
-    @Query("SELECT b FROM BackupLog b ORDER BY b.startedAt DESC LIMIT 1")
+    @Query(value = "SELECT * FROM backup_logs ORDER BY started_at DESC LIMIT 1", nativeQuery = true)
     Optional<BackupLog> findLastBackup();
 
     /**

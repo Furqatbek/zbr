@@ -19,8 +19,8 @@ public interface MessageQueueStatsRepository extends JpaRepository<MessageQueueS
     /**
      * Get latest stats for a queue.
      */
-    @Query("SELECT m FROM MessageQueueStats m WHERE m.queueName = :queueName " +
-           "ORDER BY m.collectedAt DESC LIMIT 1")
+    @Query(value = "SELECT * FROM message_queue_stats WHERE queue_name = :queueName " +
+           "ORDER BY collected_at DESC LIMIT 1", nativeQuery = true)
     Optional<MessageQueueStats> findLatestByQueueName(@Param("queueName") String queueName);
 
     /**
@@ -100,9 +100,9 @@ public interface MessageQueueStatsRepository extends JpaRepository<MessageQueueS
     /**
      * Get hourly queue depth average.
      */
-    @Query("SELECT EXTRACT(HOUR FROM m.collectedAt) as hour, AVG(m.queueDepth) " +
-           "FROM MessageQueueStats m WHERE m.collectedAt BETWEEN :start AND :end " +
-           "GROUP BY EXTRACT(HOUR FROM m.collectedAt) ORDER BY hour")
+    @Query(value = "SELECT EXTRACT(HOUR FROM collected_at) as hour, AVG(queue_depth) " +
+           "FROM message_queue_stats WHERE collected_at BETWEEN :start AND :end " +
+           "GROUP BY EXTRACT(HOUR FROM collected_at) ORDER BY hour", nativeQuery = true)
     List<Object[]> getHourlyQueueDepthAverage(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
 
     /**

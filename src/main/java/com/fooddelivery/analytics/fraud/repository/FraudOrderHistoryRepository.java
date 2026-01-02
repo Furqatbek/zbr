@@ -35,9 +35,9 @@ public interface FraudOrderHistoryRepository extends JpaRepository<FraudOrderHis
     /**
      * Get hourly order distribution for a user.
      */
-    @Query("SELECT EXTRACT(HOUR FROM o.createdAt), COUNT(o) FROM FraudOrderHistory o " +
-            "WHERE o.userId = :userId AND o.createdAt BETWEEN :start AND :end " +
-            "GROUP BY EXTRACT(HOUR FROM o.createdAt)")
+    @Query(value = "SELECT EXTRACT(HOUR FROM created_at), COUNT(*) FROM fraud_order_history " +
+            "WHERE user_id = :userId AND created_at BETWEEN :start AND :end " +
+            "GROUP BY EXTRACT(HOUR FROM created_at)", nativeQuery = true)
     List<Object[]> getUserOrdersByHour(@Param("userId") Long userId,
                                         @Param("start") LocalDateTime start,
                                         @Param("end") LocalDateTime end);
@@ -45,10 +45,10 @@ public interface FraudOrderHistoryRepository extends JpaRepository<FraudOrderHis
     /**
      * Get overall hourly order distribution.
      */
-    @Query("SELECT EXTRACT(HOUR FROM o.createdAt), COUNT(o) FROM FraudOrderHistory o " +
-            "WHERE o.createdAt BETWEEN :start AND :end " +
-            "GROUP BY EXTRACT(HOUR FROM o.createdAt) " +
-            "ORDER BY EXTRACT(HOUR FROM o.createdAt)")
+    @Query(value = "SELECT EXTRACT(HOUR FROM created_at), COUNT(*) FROM fraud_order_history " +
+            "WHERE created_at BETWEEN :start AND :end " +
+            "GROUP BY EXTRACT(HOUR FROM created_at) " +
+            "ORDER BY EXTRACT(HOUR FROM created_at)", nativeQuery = true)
     List<Object[]> getHourlyOrderDistribution(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
 
     // ==================== Order Value Anomaly Detection ====================

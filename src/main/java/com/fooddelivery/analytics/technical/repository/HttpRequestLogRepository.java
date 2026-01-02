@@ -108,10 +108,10 @@ public interface HttpRequestLogRepository extends JpaRepository<HttpRequestLog, 
     /**
      * Get hourly request distribution.
      */
-    @Query("SELECT EXTRACT(HOUR FROM h.requestTimestamp) as hour, COUNT(h), AVG(h.responseTimeMs), " +
-           "SUM(CASE WHEN h.statusCode >= 400 THEN 1 ELSE 0 END) " +
-           "FROM HttpRequestLog h WHERE h.requestTimestamp BETWEEN :start AND :end " +
-           "GROUP BY EXTRACT(HOUR FROM h.requestTimestamp) ORDER BY hour")
+    @Query(value = "SELECT EXTRACT(HOUR FROM request_timestamp) as hour, COUNT(*), AVG(response_time_ms), " +
+           "SUM(CASE WHEN status_code >= 400 THEN 1 ELSE 0 END) " +
+           "FROM http_request_logs WHERE request_timestamp BETWEEN :start AND :end " +
+           "GROUP BY EXTRACT(HOUR FROM request_timestamp) ORDER BY hour", nativeQuery = true)
     List<Object[]> getHourlyDistribution(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
 
     /**

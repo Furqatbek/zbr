@@ -50,18 +50,18 @@ public interface WebSocketConnectionLogRepository extends JpaRepository<WebSocke
     /**
      * Get average connection duration in period.
      */
-    @Query("SELECT AVG(EXTRACT(EPOCH FROM (w.disconnectedAt - w.connectedAt))) " +
-           "FROM WebSocketConnectionLog w WHERE w.disconnectedAt IS NOT NULL " +
-           "AND w.connectedAt BETWEEN :start AND :end")
+    @Query(value = "SELECT AVG(EXTRACT(EPOCH FROM (disconnected_at - connected_at))) " +
+           "FROM websocket_connection_logs WHERE disconnected_at IS NOT NULL " +
+           "AND connected_at BETWEEN :start AND :end", nativeQuery = true)
     Double getAverageConnectionDurationSeconds(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
 
     /**
      * Get max concurrent connections estimate.
      */
-    @Query("SELECT MAX(concurrent) FROM (" +
-           "SELECT COUNT(*) as concurrent FROM WebSocketConnectionLog w " +
-           "WHERE w.connectedAt <= :checkTime AND (w.disconnectedAt IS NULL OR w.disconnectedAt > :checkTime) " +
-           "GROUP BY EXTRACT(HOUR FROM w.connectedAt)) subq")
+    @Query(value = "SELECT MAX(concurrent) FROM (" +
+           "SELECT COUNT(*) as concurrent FROM websocket_connection_logs " +
+           "WHERE connected_at <= :checkTime AND (disconnected_at IS NULL OR disconnected_at > :checkTime) " +
+           "GROUP BY EXTRACT(HOUR FROM connected_at)) subq", nativeQuery = true)
     Long getMaxConcurrentConnections(@Param("checkTime") LocalDateTime checkTime);
 
     /**
@@ -104,21 +104,21 @@ public interface WebSocketConnectionLogRepository extends JpaRepository<WebSocke
     /**
      * Get hourly connection distribution.
      */
-    @Query("SELECT EXTRACT(HOUR FROM w.connectedAt) as hour, " +
-           "SUM(CASE WHEN w.disconnectedAt IS NULL OR w.disconnectedAt > :end THEN 1 ELSE 0 END), " +
-           "COUNT(w), " +
-           "SUM(CASE WHEN w.disconnectedAt BETWEEN :start AND :end THEN 1 ELSE 0 END), " +
-           "SUM(w.messagesSent) " +
-           "FROM WebSocketConnectionLog w WHERE w.connectedAt BETWEEN :start AND :end " +
-           "GROUP BY EXTRACT(HOUR FROM w.connectedAt) ORDER BY hour")
+    @Query(value = "SELECT EXTRACT(HOUR FROM connected_at) as hour, " +
+           "SUM(CASE WHEN disconnected_at IS NULL OR disconnected_at > :end THEN 1 ELSE 0 END), " +
+           "COUNT(*), " +
+           "SUM(CASE WHEN disconnected_at BETWEEN :start AND :end THEN 1 ELSE 0 END), " +
+           "SUM(messages_sent) " +
+           "FROM websocket_connection_logs WHERE connected_at BETWEEN :start AND :end " +
+           "GROUP BY EXTRACT(HOUR FROM connected_at) ORDER BY hour", nativeQuery = true)
     List<Object[]> getHourlyDistribution(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
 
     /**
      * Get peak connection hour.
      */
-    @Query("SELECT EXTRACT(HOUR FROM w.connectedAt) as hour, COUNT(w) as cnt " +
-           "FROM WebSocketConnectionLog w WHERE w.connectedAt BETWEEN :start AND :end " +
-           "GROUP BY EXTRACT(HOUR FROM w.connectedAt) ORDER BY cnt DESC")
+    @Query(value = "SELECT EXTRACT(HOUR FROM connected_at) as hour, COUNT(*) as cnt " +
+           "FROM websocket_connection_logs WHERE connected_at BETWEEN :start AND :end " +
+           "GROUP BY EXTRACT(HOUR FROM connected_at) ORDER BY cnt DESC", nativeQuery = true)
     List<Object[]> getPeakHour(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
 
     /**

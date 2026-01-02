@@ -19,8 +19,8 @@ public interface SystemMetricSnapshotRepository extends JpaRepository<SystemMetr
     /**
      * Get latest snapshot for a metric.
      */
-    @Query("SELECT s FROM SystemMetricSnapshot s WHERE s.metricName = :metricName " +
-           "ORDER BY s.collectedAt DESC LIMIT 1")
+    @Query(value = "SELECT * FROM system_metric_snapshots WHERE metric_name = :metricName " +
+           "ORDER BY collected_at DESC LIMIT 1", nativeQuery = true)
     Optional<SystemMetricSnapshot> findLatestByMetricName(@Param("metricName") String metricName);
 
     /**
@@ -105,10 +105,10 @@ public interface SystemMetricSnapshotRepository extends JpaRepository<SystemMetr
     /**
      * Get hourly average for a metric.
      */
-    @Query("SELECT EXTRACT(HOUR FROM s.collectedAt) as hour, AVG(s.metricValue) " +
-           "FROM SystemMetricSnapshot s WHERE s.metricName = :metricName " +
-           "AND s.collectedAt BETWEEN :start AND :end " +
-           "GROUP BY EXTRACT(HOUR FROM s.collectedAt) ORDER BY hour")
+    @Query(value = "SELECT EXTRACT(HOUR FROM collected_at) as hour, AVG(metric_value) " +
+           "FROM system_metric_snapshots WHERE metric_name = :metricName " +
+           "AND collected_at BETWEEN :start AND :end " +
+           "GROUP BY EXTRACT(HOUR FROM collected_at) ORDER BY hour", nativeQuery = true)
     List<Object[]> getHourlyAverage(@Param("metricName") String metricName,
                                     @Param("start") LocalDateTime start,
                                     @Param("end") LocalDateTime end);

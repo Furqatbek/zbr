@@ -21,10 +21,10 @@ public interface OperationsOrderRepository extends JpaRepository<Order, Long> {
     /**
      * Get average acceptance time (minutes from placed to accepted).
      */
-    @Query("SELECT AVG(EXTRACT(EPOCH FROM (o.acceptedAt - o.createdAt)) / 60) " +
-            "FROM Order o " +
-            "WHERE o.acceptedAt IS NOT NULL " +
-            "AND o.createdAt >= :startTime AND o.createdAt <= :endTime")
+    @Query(value = "SELECT AVG(EXTRACT(EPOCH FROM (accepted_at - created_at)) / 60) " +
+            "FROM orders " +
+            "WHERE accepted_at IS NOT NULL " +
+            "AND created_at >= :startTime AND created_at <= :endTime", nativeQuery = true)
     Double getAverageAcceptanceTimeMinutes(
             @Param("startTime") LocalDateTime startTime,
             @Param("endTime") LocalDateTime endTime);
@@ -32,10 +32,10 @@ public interface OperationsOrderRepository extends JpaRepository<Order, Long> {
     /**
      * Get average preparation time (minutes from accepted to ready).
      */
-    @Query("SELECT AVG(EXTRACT(EPOCH FROM (o.readyAt - o.acceptedAt)) / 60) " +
-            "FROM Order o " +
-            "WHERE o.readyAt IS NOT NULL AND o.acceptedAt IS NOT NULL " +
-            "AND o.createdAt >= :startTime AND o.createdAt <= :endTime")
+    @Query(value = "SELECT AVG(EXTRACT(EPOCH FROM (ready_at - accepted_at)) / 60) " +
+            "FROM orders " +
+            "WHERE ready_at IS NOT NULL AND accepted_at IS NOT NULL " +
+            "AND created_at >= :startTime AND created_at <= :endTime", nativeQuery = true)
     Double getAveragePreparationTimeMinutes(
             @Param("startTime") LocalDateTime startTime,
             @Param("endTime") LocalDateTime endTime);
@@ -43,10 +43,10 @@ public interface OperationsOrderRepository extends JpaRepository<Order, Long> {
     /**
      * Get average pickup wait time (minutes from ready to picked up).
      */
-    @Query("SELECT AVG(EXTRACT(EPOCH FROM (o.pickedUpAt - o.readyAt)) / 60) " +
-            "FROM Order o " +
-            "WHERE o.pickedUpAt IS NOT NULL AND o.readyAt IS NOT NULL " +
-            "AND o.createdAt >= :startTime AND o.createdAt <= :endTime")
+    @Query(value = "SELECT AVG(EXTRACT(EPOCH FROM (picked_up_at - ready_at)) / 60) " +
+            "FROM orders " +
+            "WHERE picked_up_at IS NOT NULL AND ready_at IS NOT NULL " +
+            "AND created_at >= :startTime AND created_at <= :endTime", nativeQuery = true)
     Double getAveragePickupWaitTimeMinutes(
             @Param("startTime") LocalDateTime startTime,
             @Param("endTime") LocalDateTime endTime);
@@ -54,10 +54,10 @@ public interface OperationsOrderRepository extends JpaRepository<Order, Long> {
     /**
      * Get average delivery time (minutes from picked up to delivered).
      */
-    @Query("SELECT AVG(EXTRACT(EPOCH FROM (o.deliveredAt - o.pickedUpAt)) / 60) " +
-            "FROM Order o " +
-            "WHERE o.deliveredAt IS NOT NULL AND o.pickedUpAt IS NOT NULL " +
-            "AND o.createdAt >= :startTime AND o.createdAt <= :endTime")
+    @Query(value = "SELECT AVG(EXTRACT(EPOCH FROM (delivered_at - picked_up_at)) / 60) " +
+            "FROM orders " +
+            "WHERE delivered_at IS NOT NULL AND picked_up_at IS NOT NULL " +
+            "AND created_at >= :startTime AND created_at <= :endTime", nativeQuery = true)
     Double getAverageDeliveryTimeMinutes(
             @Param("startTime") LocalDateTime startTime,
             @Param("endTime") LocalDateTime endTime);
@@ -65,10 +65,10 @@ public interface OperationsOrderRepository extends JpaRepository<Order, Long> {
     /**
      * Get average total fulfillment time (minutes from placed to delivered).
      */
-    @Query("SELECT AVG(EXTRACT(EPOCH FROM (o.deliveredAt - o.createdAt)) / 60) " +
-            "FROM Order o " +
-            "WHERE o.deliveredAt IS NOT NULL " +
-            "AND o.createdAt >= :startTime AND o.createdAt <= :endTime")
+    @Query(value = "SELECT AVG(EXTRACT(EPOCH FROM (delivered_at - created_at)) / 60) " +
+            "FROM orders " +
+            "WHERE delivered_at IS NOT NULL " +
+            "AND created_at >= :startTime AND created_at <= :endTime", nativeQuery = true)
     Double getAverageTotalFulfillmentTimeMinutes(
             @Param("startTime") LocalDateTime startTime,
             @Param("endTime") LocalDateTime endTime);
@@ -121,12 +121,12 @@ public interface OperationsOrderRepository extends JpaRepository<Order, Long> {
     /**
      * Count orders with major delays (> 15 min late).
      */
-    @Query("SELECT COUNT(o) FROM Order o " +
-            "WHERE o.status IN ('DELIVERED', 'COMPLETED') " +
-            "AND o.estimatedDeliveryTime IS NOT NULL " +
-            "AND o.deliveredAt IS NOT NULL " +
-            "AND EXTRACT(EPOCH FROM (o.deliveredAt - o.estimatedDeliveryTime)) / 60 > 15 " +
-            "AND o.createdAt >= :startTime AND o.createdAt <= :endTime")
+    @Query(value = "SELECT COUNT(*) FROM orders " +
+            "WHERE status IN ('DELIVERED', 'COMPLETED') " +
+            "AND estimated_delivery_time IS NOT NULL " +
+            "AND delivered_at IS NOT NULL " +
+            "AND EXTRACT(EPOCH FROM (delivered_at - estimated_delivery_time)) / 60 > 15 " +
+            "AND created_at >= :startTime AND created_at <= :endTime", nativeQuery = true)
     Long countOrdersWithMajorDelays(
             @Param("startTime") LocalDateTime startTime,
             @Param("endTime") LocalDateTime endTime);
@@ -134,12 +134,12 @@ public interface OperationsOrderRepository extends JpaRepository<Order, Long> {
     /**
      * Count on-time deliveries (within 5 min of estimate).
      */
-    @Query("SELECT COUNT(o) FROM Order o " +
-            "WHERE o.status IN ('DELIVERED', 'COMPLETED') " +
-            "AND o.estimatedDeliveryTime IS NOT NULL " +
-            "AND o.deliveredAt IS NOT NULL " +
-            "AND ABS(EXTRACT(EPOCH FROM (o.deliveredAt - o.estimatedDeliveryTime)) / 60) <= 5 " +
-            "AND o.createdAt >= :startTime AND o.createdAt <= :endTime")
+    @Query(value = "SELECT COUNT(*) FROM orders " +
+            "WHERE status IN ('DELIVERED', 'COMPLETED') " +
+            "AND estimated_delivery_time IS NOT NULL " +
+            "AND delivered_at IS NOT NULL " +
+            "AND ABS(EXTRACT(EPOCH FROM (delivered_at - estimated_delivery_time)) / 60) <= 5 " +
+            "AND created_at >= :startTime AND created_at <= :endTime", nativeQuery = true)
     Long countOnTimeDeliveries(
             @Param("startTime") LocalDateTime startTime,
             @Param("endTime") LocalDateTime endTime);
@@ -218,11 +218,11 @@ public interface OperationsOrderRepository extends JpaRepository<Order, Long> {
     /**
      * Get average acceptance time for a specific restaurant.
      */
-    @Query("SELECT AVG(EXTRACT(EPOCH FROM (o.acceptedAt - o.createdAt)) / 60) " +
-            "FROM Order o " +
-            "WHERE o.restaurant.id = :restaurantId " +
-            "AND o.acceptedAt IS NOT NULL " +
-            "AND o.createdAt >= :startTime AND o.createdAt <= :endTime")
+    @Query(value = "SELECT AVG(EXTRACT(EPOCH FROM (accepted_at - created_at)) / 60) " +
+            "FROM orders " +
+            "WHERE restaurant_id = :restaurantId " +
+            "AND accepted_at IS NOT NULL " +
+            "AND created_at >= :startTime AND created_at <= :endTime", nativeQuery = true)
     Double getRestaurantAvgAcceptanceTime(
             @Param("restaurantId") Long restaurantId,
             @Param("startTime") LocalDateTime startTime,
@@ -244,11 +244,11 @@ public interface OperationsOrderRepository extends JpaRepository<Order, Long> {
     /**
      * Get average delivery time for a specific courier.
      */
-    @Query("SELECT AVG(EXTRACT(EPOCH FROM (o.deliveredAt - o.pickedUpAt)) / 60) " +
-            "FROM Order o " +
-            "WHERE o.courier.id = :courierId " +
-            "AND o.deliveredAt IS NOT NULL AND o.pickedUpAt IS NOT NULL " +
-            "AND o.createdAt >= :startTime AND o.createdAt <= :endTime")
+    @Query(value = "SELECT AVG(EXTRACT(EPOCH FROM (delivered_at - picked_up_at)) / 60) " +
+            "FROM orders " +
+            "WHERE courier_id = :courierId " +
+            "AND delivered_at IS NOT NULL AND picked_up_at IS NOT NULL " +
+            "AND created_at >= :startTime AND created_at <= :endTime", nativeQuery = true)
     Double getCourierAvgDeliveryTime(
             @Param("courierId") Long courierId,
             @Param("startTime") LocalDateTime startTime,
@@ -270,14 +270,14 @@ public interface OperationsOrderRepository extends JpaRepository<Order, Long> {
      * Get delivery time statistics for a courier.
      * Returns [avg, min, max, count].
      */
-    @Query("SELECT AVG(EXTRACT(EPOCH FROM (o.deliveredAt - o.pickedUpAt)) / 60), " +
-            "MIN(EXTRACT(EPOCH FROM (o.deliveredAt - o.pickedUpAt)) / 60), " +
-            "MAX(EXTRACT(EPOCH FROM (o.deliveredAt - o.pickedUpAt)) / 60), " +
-            "COUNT(o) " +
-            "FROM Order o " +
-            "WHERE o.courier.id = :courierId " +
-            "AND o.deliveredAt IS NOT NULL AND o.pickedUpAt IS NOT NULL " +
-            "AND o.createdAt >= :startTime AND o.createdAt <= :endTime")
+    @Query(value = "SELECT AVG(EXTRACT(EPOCH FROM (delivered_at - picked_up_at)) / 60), " +
+            "MIN(EXTRACT(EPOCH FROM (delivered_at - picked_up_at)) / 60), " +
+            "MAX(EXTRACT(EPOCH FROM (delivered_at - picked_up_at)) / 60), " +
+            "COUNT(*) " +
+            "FROM orders " +
+            "WHERE courier_id = :courierId " +
+            "AND delivered_at IS NOT NULL AND picked_up_at IS NOT NULL " +
+            "AND created_at >= :startTime AND created_at <= :endTime", nativeQuery = true)
     Object[] getCourierDeliveryTimeStats(
             @Param("courierId") Long courierId,
             @Param("startTime") LocalDateTime startTime,

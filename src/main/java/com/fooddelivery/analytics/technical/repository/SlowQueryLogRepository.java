@@ -84,9 +84,9 @@ public interface SlowQueryLogRepository extends JpaRepository<SlowQueryLog, Long
     /**
      * Get hourly slow query distribution.
      */
-    @Query("SELECT EXTRACT(HOUR FROM s.executedAt) as hour, COUNT(s), AVG(s.durationMs) " +
-           "FROM SlowQueryLog s WHERE s.executedAt BETWEEN :start AND :end " +
-           "GROUP BY EXTRACT(HOUR FROM s.executedAt) ORDER BY hour")
+    @Query(value = "SELECT EXTRACT(HOUR FROM executed_at) as hour, COUNT(*), AVG(duration_ms) " +
+           "FROM slow_query_logs WHERE executed_at BETWEEN :start AND :end " +
+           "GROUP BY EXTRACT(HOUR FROM executed_at) ORDER BY hour", nativeQuery = true)
     List<Object[]> getHourlyDistribution(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
 
     /**

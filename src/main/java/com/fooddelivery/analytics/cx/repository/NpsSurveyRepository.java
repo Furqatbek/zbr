@@ -85,14 +85,14 @@ public interface NpsSurveyRepository extends JpaRepository<NpsSurvey, Long> {
     /**
      * Get weekly NPS trend.
      */
-    @Query("SELECT EXTRACT(YEAR FROM n.createdAt), EXTRACT(WEEK FROM n.createdAt), " +
-           "COUNT(n), " +
-           "SUM(CASE WHEN n.score >= 9 THEN 1 ELSE 0 END), " +
-           "SUM(CASE WHEN n.score >= 7 AND n.score <= 8 THEN 1 ELSE 0 END), " +
-           "SUM(CASE WHEN n.score <= 6 THEN 1 ELSE 0 END) " +
-           "FROM NpsSurvey n WHERE n.createdAt BETWEEN :start AND :end " +
-           "GROUP BY EXTRACT(YEAR FROM n.createdAt), EXTRACT(WEEK FROM n.createdAt) " +
-           "ORDER BY EXTRACT(YEAR FROM n.createdAt), EXTRACT(WEEK FROM n.createdAt)")
+    @Query(value = "SELECT EXTRACT(YEAR FROM created_at), EXTRACT(WEEK FROM created_at), " +
+           "COUNT(*), " +
+           "SUM(CASE WHEN score >= 9 THEN 1 ELSE 0 END), " +
+           "SUM(CASE WHEN score >= 7 AND score <= 8 THEN 1 ELSE 0 END), " +
+           "SUM(CASE WHEN score <= 6 THEN 1 ELSE 0 END) " +
+           "FROM nps_surveys WHERE created_at BETWEEN :start AND :end " +
+           "GROUP BY EXTRACT(YEAR FROM created_at), EXTRACT(WEEK FROM created_at) " +
+           "ORDER BY EXTRACT(YEAR FROM created_at), EXTRACT(WEEK FROM created_at)", nativeQuery = true)
     List<Object[]> getWeeklyNpsTrend(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
 
     /**
