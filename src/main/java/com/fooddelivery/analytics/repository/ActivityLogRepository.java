@@ -111,9 +111,9 @@ public interface ActivityLogRepository extends JpaRepository<ActivityLog, Long> 
      * @param limit  Max number of activities
      * @return List of recent activities
      */
-    @Query("SELECT a FROM ActivityLog a WHERE a.userId = :userId " +
-            "ORDER BY a.createdAt DESC")
-    List<ActivityLog> findRecentByUserId(@Param("userId") Long userId, int limit);
+    @Query(value = "SELECT * FROM activity_logs WHERE user_id = :userId " +
+            "ORDER BY created_at DESC LIMIT :limit", nativeQuery = true)
+    List<ActivityLog> findRecentByUserId(@Param("userId") Long userId, @Param("limit") int limit);
 
     /**
      * Check if user has performed a specific event type.
