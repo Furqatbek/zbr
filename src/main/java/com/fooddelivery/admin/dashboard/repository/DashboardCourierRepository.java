@@ -200,12 +200,11 @@ public interface DashboardCourierRepository extends JpaRepository<Courier, Long>
     Long countOfflineCouriers(@Param("since") LocalDateTime since);
 
     /**
-     * Average delivery time.
+     * Average delivery time placeholder (field not tracked on entity).
      */
-    @Query("SELECT COALESCE(AVG(c.avgDeliveryTimeMinutes), 0) FROM Courier c " +
-            "WHERE c.verified = true AND c.totalDeliveries > 0")
-    Double avgDeliveryTime(@Param("startDate") LocalDateTime startDate,
-                           @Param("endDate") LocalDateTime endDate);
+    default Double avgDeliveryTime() {
+        return 0.0;
+    }
 
     /**
      * Average courier rating.
@@ -215,65 +214,56 @@ public interface DashboardCourierRepository extends JpaRepository<Courier, Long>
     Double avgCourierRating();
 
     /**
-     * Count total deliveries within date range.
+     * Count total deliveries.
      */
     @Query("SELECT COALESCE(SUM(c.totalDeliveries), 0) FROM Courier c WHERE c.verified = true")
-    Long countTotalDeliveries(@Param("startDate") LocalDateTime startDate,
-                              @Param("endDate") LocalDateTime endDate);
+    Long countTotalDeliveries();
 
     /**
-     * Count on-time deliveries within date range.
+     * Count on-time deliveries placeholder (field not tracked on entity).
      */
-    @Query("SELECT COALESCE(SUM(c.onTimeDeliveries), 0) FROM Courier c WHERE c.verified = true")
-    Long countOnTimeDeliveries(@Param("startDate") LocalDateTime startDate,
-                               @Param("endDate") LocalDateTime endDate);
+    default Long countOnTimeDeliveries() {
+        return 0L;
+    }
 
     /**
      * Average deliveries per courier.
      */
     @Query("SELECT COALESCE(AVG(c.totalDeliveries), 0) FROM Courier c WHERE c.verified = true")
-    Double avgDeliveriesPerCourier(@Param("startDate") LocalDateTime startDate,
-                                   @Param("endDate") LocalDateTime endDate);
+    Double avgDeliveriesPerCourier();
 
     /**
-     * Average distance per delivery.
+     * Average distance per delivery placeholder (field not tracked on entity).
      */
-    @Query("SELECT COALESCE(AVG(c.avgDistancePerDeliveryKm), 0) FROM Courier c WHERE c.verified = true")
-    Double avgDistancePerDelivery(@Param("startDate") LocalDateTime startDate,
-                                  @Param("endDate") LocalDateTime endDate);
+    default Double avgDistancePerDelivery() {
+        return 0.0;
+    }
 
     /**
      * Find courier details with filtering.
      */
-    @Query("SELECT c.id, CONCAT(c.firstName, ' ', c.lastName), c.status, c.averageRating, " +
-            "c.totalDeliveries, c.avgDeliveryTimeMinutes, c.onTimeDeliveries, c.vehicleType, " +
-            "c.currentLat, c.currentLng, c.locationUpdatedAt, c.currentOrderId, " +
+    @Query("SELECT c.id, c.status, c.averageRating, c.totalDeliveries, c.vehicleType, " +
+            "c.currentLat, c.currentLng, c.locationUpdatedAt, c.currentOrderCount, " +
             "(c.locationUpdatedAt > :activeThreshold) " +
             "FROM Courier c WHERE c.id IN :courierIds AND c.verified = true")
     List<Object[]> findCourierDetailsFiltered(@Param("courierIds") List<Long> courierIds,
-                                               @Param("startDate") LocalDateTime startDate,
-                                               @Param("endDate") LocalDateTime endDate,
                                                @Param("activeThreshold") LocalDateTime activeThreshold,
                                                Pageable pageable);
 
     /**
      * Find all courier details.
      */
-    @Query("SELECT c.id, CONCAT(c.firstName, ' ', c.lastName), c.status, c.averageRating, " +
-            "c.totalDeliveries, c.avgDeliveryTimeMinutes, c.onTimeDeliveries, c.vehicleType, " +
-            "c.currentLat, c.currentLng, c.locationUpdatedAt, c.currentOrderId, " +
+    @Query("SELECT c.id, c.status, c.averageRating, c.totalDeliveries, c.vehicleType, " +
+            "c.currentLat, c.currentLng, c.locationUpdatedAt, c.currentOrderCount, " +
             "(c.locationUpdatedAt > :activeThreshold) " +
             "FROM Courier c WHERE c.verified = true")
-    List<Object[]> findAllCourierDetails(@Param("startDate") LocalDateTime startDate,
-                                          @Param("endDate") LocalDateTime endDate,
-                                          @Param("activeThreshold") LocalDateTime activeThreshold,
+    List<Object[]> findAllCourierDetails(@Param("activeThreshold") LocalDateTime activeThreshold,
                                           Pageable pageable);
 
     /**
      * Find active courier locations.
      */
-    @Query("SELECT c.id, CONCAT(c.firstName, ' ', c.lastName), c.currentLat, c.currentLng, " +
-            "c.status, c.currentOrderId, c.locationUpdatedAt " +
+    @Query("SELECT c.id, c.currentLat, c.currentLng, c.status, c.currentOrderCount, c.locationUpdatedAt " +
             "FROM Courier c WHERE c.locationUpdatedAt > :since " +
             "AND c.currentLat IS NOT NULL AND c.currentLng IS NOT NULL")
     List<Object[]> findActiveCourierLocations(@Param("since") LocalDateTime since);
@@ -292,14 +282,11 @@ public interface DashboardCourierRepository extends JpaRepository<Courier, Long>
     /**
      * Find top performing couriers.
      */
-    @Query("SELECT c.id, CONCAT(c.firstName, ' ', c.lastName), c.status, c.averageRating, " +
-            "c.totalDeliveries, c.avgDeliveryTimeMinutes, c.onTimeDeliveries, c.vehicleType, " +
-            "c.currentLat, c.currentLng, c.locationUpdatedAt, c.currentOrderId, " +
+    @Query("SELECT c.id, c.status, c.averageRating, c.totalDeliveries, c.vehicleType, " +
+            "c.currentLat, c.currentLng, c.locationUpdatedAt, c.currentOrderCount, " +
             "(c.locationUpdatedAt > :activeThreshold) " +
             "FROM Courier c WHERE c.verified = true " +
             "ORDER BY c.averageRating DESC, c.totalDeliveries DESC")
-    List<Object[]> findTopPerformingCouriers(@Param("startDate") LocalDateTime startDate,
-                                              @Param("endDate") LocalDateTime endDate,
-                                              @Param("activeThreshold") LocalDateTime activeThreshold,
+    List<Object[]> findTopPerformingCouriers(@Param("activeThreshold") LocalDateTime activeThreshold,
                                               Pageable pageable);
 }
