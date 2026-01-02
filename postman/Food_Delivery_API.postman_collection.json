@@ -167,42 +167,285 @@
           ],
           "request": {
             "method": "POST",
-            "header": [],
+            "header": [
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"refreshToken\": \"{{refresh_token}}\"\n}"
+            },
             "url": {
-              "raw": "{{base_url}}/auth/refresh?refreshToken={{refresh_token}}",
+              "raw": "{{base_url}}/auth/refresh",
               "host": ["{{base_url}}"],
-              "path": ["auth", "refresh"],
-              "query": [
-                {
-                  "key": "refreshToken",
-                  "value": "{{refresh_token}}"
-                }
-              ]
-            }
-          }
-        },
-        {
-          "name": "Get Current User",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{base_url}}/auth/me",
-              "host": ["{{base_url}}"],
-              "path": ["auth", "me"]
-            }
+              "path": ["auth", "refresh"]
+            },
+            "description": "Get a new access token using refresh token.\n\nReturns new access and refresh tokens."
           }
         },
         {
           "name": "Logout",
           "request": {
             "method": "POST",
-            "header": [],
+            "header": [
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"refreshToken\": \"{{refresh_token}}\"\n}"
+            },
             "url": {
               "raw": "{{base_url}}/auth/logout",
               "host": ["{{base_url}}"],
               "path": ["auth", "logout"]
-            }
+            },
+            "description": "Revoke the refresh token to logout."
+          }
+        },
+        {
+          "name": "Request Password Reset",
+          "request": {
+            "auth": {"type": "noauth"},
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"user@example.com\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/password-reset",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "password-reset"]
+            },
+            "description": "Request password reset email.\n\nRate limited: 5 requests per minute per IP.\n\nAlways returns success to prevent email enumeration."
+          }
+        },
+        {
+          "name": "Confirm Password Reset",
+          "request": {
+            "auth": {"type": "noauth"},
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"token\": \"reset-token-from-email\",\n    \"newPassword\": \"NewPassword123!\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/password-reset/confirm",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "password-reset", "confirm"]
+            },
+            "description": "Reset password using token from email.\n\nToken expires after 1 hour.\n\nPassword requirements:\n- Minimum 8 characters\n- At least one uppercase letter\n- At least one lowercase letter\n- At least one number\n- At least one special character"
+          }
+        }
+      ]
+    },
+    {
+      "name": "User Management",
+      "description": "User profile and admin user management endpoints. Some endpoints require ADMIN or PLATFORM role.",
+      "item": [
+        {
+          "name": "Get Current User Profile",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/users/me",
+              "host": ["{{base_url}}"],
+              "path": ["users", "me"]
+            },
+            "description": "Get the profile of the currently authenticated user."
+          }
+        },
+        {
+          "name": "Update Current User Profile",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"fullName\": \"John Doe\",\n    \"phone\": \"+1234567890\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/users/me",
+              "host": ["{{base_url}}"],
+              "path": ["users", "me"]
+            },
+            "description": "Update the profile of the currently authenticated user."
+          }
+        },
+        {
+          "name": "Change Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"currentPassword\": \"OldPassword123!\",\n    \"newPassword\": \"NewPassword123!\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/users/me/change-password",
+              "host": ["{{base_url}}"],
+              "path": ["users", "me", "change-password"]
+            },
+            "description": "Change password for the currently authenticated user.\n\nRequires current password verification."
+          }
+        },
+        {
+          "name": "Logout from All Devices",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/users/me/logout-all",
+              "host": ["{{base_url}}"],
+              "path": ["users", "me", "logout-all"]
+            },
+            "description": "Revoke all refresh tokens for the current user, logging out from all devices."
+          }
+        },
+        {
+          "name": "Get User by ID (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/users/1",
+              "host": ["{{base_url}}"],
+              "path": ["users", "1"]
+            },
+            "description": "Get user details by ID.\n\nRoles: ADMIN, PLATFORM"
+          }
+        },
+        {
+          "name": "Get All Users (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/users?page=0&size=20",
+              "host": ["{{base_url}}"],
+              "path": ["users"],
+              "query": [
+                {"key": "page", "value": "0"},
+                {"key": "size", "value": "20"}
+              ]
+            },
+            "description": "Get all users with pagination.\n\nRoles: ADMIN, PLATFORM"
+          }
+        },
+        {
+          "name": "Search Users (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/users/search?q=john&page=0&size=20",
+              "host": ["{{base_url}}"],
+              "path": ["users", "search"],
+              "query": [
+                {"key": "q", "value": "john", "description": "Search by name or email"},
+                {"key": "page", "value": "0"},
+                {"key": "size", "value": "20"}
+              ]
+            },
+            "description": "Search users by name or email.\n\nRoles: ADMIN, PLATFORM"
+          }
+        },
+        {
+          "name": "Get Users by Role (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/users/role/CONSUMER?page=0&size=20",
+              "host": ["{{base_url}}"],
+              "path": ["users", "role", "CONSUMER"],
+              "query": [
+                {"key": "page", "value": "0"},
+                {"key": "size", "value": "20"}
+              ]
+            },
+            "description": "Get users with a specific role.\n\nAvailable roles: CONSUMER, COURIER, RESTAURANT_OWNER, ADMIN, PLATFORM\n\nRoles: ADMIN, PLATFORM"
+          }
+        },
+        {
+          "name": "Get Users by Status (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/users/status/ACTIVE?page=0&size=20",
+              "host": ["{{base_url}}"],
+              "path": ["users", "status", "ACTIVE"],
+              "query": [
+                {"key": "page", "value": "0"},
+                {"key": "size", "value": "20"}
+              ]
+            },
+            "description": "Get users with a specific status.\n\nAvailable statuses: ACTIVE, INACTIVE, SUSPENDED, DELETED\n\nRoles: ADMIN, PLATFORM"
+          }
+        },
+        {
+          "name": "Update User Status (Admin)",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/users/1/status?status=SUSPENDED",
+              "host": ["{{base_url}}"],
+              "path": ["users", "1", "status"],
+              "query": [
+                {"key": "status", "value": "SUSPENDED", "description": "ACTIVE, INACTIVE, SUSPENDED, DELETED"}
+              ]
+            },
+            "description": "Update a user's status.\n\nRoles: ADMIN, PLATFORM"
+          }
+        },
+        {
+          "name": "Add Role to User (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/users/1/roles/RESTAURANT_OWNER",
+              "host": ["{{base_url}}"],
+              "path": ["users", "1", "roles", "RESTAURANT_OWNER"]
+            },
+            "description": "Add a role to a user.\n\nRoles: ADMIN only"
+          }
+        },
+        {
+          "name": "Remove Role from User (Admin)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/users/1/roles/RESTAURANT_OWNER",
+              "host": ["{{base_url}}"],
+              "path": ["users", "1", "roles", "RESTAURANT_OWNER"]
+            },
+            "description": "Remove a role from a user.\n\nRoles: ADMIN only"
+          }
+        },
+        {
+          "name": "Delete User (Admin)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/users/1",
+              "host": ["{{base_url}}"],
+              "path": ["users", "1"]
+            },
+            "description": "Soft delete a user.\n\nRoles: ADMIN only"
           }
         }
       ]
