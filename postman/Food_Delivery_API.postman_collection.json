@@ -858,7 +858,7 @@
     },
     {
       "name": "Orders",
-      "description": "Order management endpoints",
+      "description": "Order management endpoints - create, track, and manage food orders",
       "item": [
         {
           "name": "Create Order",
@@ -872,35 +872,14 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n    \"restaurantId\": 1,\n    \"orderType\": \"DELIVERY\",\n    \"items\": [\n        {\n            \"menuItemId\": 1,\n            \"quantity\": 2,\n            \"variantId\": 1,\n            \"optionIds\": [1],\n            \"specialInstructions\": \"Extra cheese please\"\n        },\n        {\n            \"menuItemId\": 2,\n            \"quantity\": 1\n        }\n    ],\n    \"deliveryAddressLine1\": \"789 Customer Street\",\n    \"deliveryCity\": \"New York\",\n    \"deliveryState\": \"NY\",\n    \"deliveryPostalCode\": \"10003\",\n    \"deliveryLatitude\": 40.7282,\n    \"deliveryLongitude\": -73.9942,\n    \"deliveryInstructions\": \"Ring doorbell twice\",\n    \"tipAmount\": 5.00\n}"
+              "raw": "{\n    \"restaurantId\": 1,\n    \"orderType\": \"DELIVERY\",\n    \"items\": [\n        {\n            \"menuItemId\": 1,\n            \"quantity\": 2,\n            \"variantId\": 1,\n            \"optionIds\": [1, 2],\n            \"specialInstructions\": \"Extra cheese please\"\n        },\n        {\n            \"menuItemId\": 2,\n            \"quantity\": 1\n        }\n    ],\n    \"deliveryAddress\": \"789 Customer Street, New York, NY 10003\",\n    \"deliveryLatitude\": 40.7282,\n    \"deliveryLongitude\": -73.9942,\n    \"deliveryInstructions\": \"Ring doorbell twice\",\n    \"customerName\": \"John Doe\",\n    \"customerPhone\": \"+12125551234\",\n    \"notes\": \"Please include extra napkins\",\n    \"tipAmount\": 5.00,\n    \"discountCode\": \"SAVE10\"\n}"
             },
             "url": {
               "raw": "{{base_url}}/orders",
               "host": ["{{base_url}}"],
               "path": ["orders"]
-            }
-          }
-        },
-        {
-          "name": "Get My Orders (Consumer)",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{base_url}}/orders/my?page=0&size=10",
-              "host": ["{{base_url}}"],
-              "path": ["orders", "my"],
-              "query": [
-                {
-                  "key": "page",
-                  "value": "0"
-                },
-                {
-                  "key": "size",
-                  "value": "10"
-                }
-              ]
-            }
+            },
+            "description": "Create a new order. Requires CONSUMER, PLATFORM, or ADMIN role."
           }
         },
         {
@@ -912,7 +891,8 @@
               "raw": "{{base_url}}/orders/1",
               "host": ["{{base_url}}"],
               "path": ["orders", "1"]
-            }
+            },
+            "description": "Get order details by ID."
           }
         },
         {
@@ -924,79 +904,31 @@
               "raw": "{{base_url}}/orders/number/ORD-2024-001",
               "host": ["{{base_url}}"],
               "path": ["orders", "number", "ORD-2024-001"]
-            }
+            },
+            "description": "Get order details by external order number."
           }
         },
         {
-          "name": "Accept Order (Restaurant)",
+          "name": "Get My Orders",
           "request": {
-            "method": "PUT",
+            "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{base_url}}/orders/1/status?status=ACCEPTED",
+              "raw": "{{base_url}}/orders/my?page=0&size=20",
               "host": ["{{base_url}}"],
-              "path": ["orders", "1", "status"],
+              "path": ["orders", "my"],
               "query": [
                 {
-                  "key": "status",
-                  "value": "ACCEPTED"
-                }
-              ]
-            }
-          }
-        },
-        {
-          "name": "Start Preparing Order",
-          "request": {
-            "method": "PUT",
-            "header": [],
-            "url": {
-              "raw": "{{base_url}}/orders/1/status?status=PREPARING",
-              "host": ["{{base_url}}"],
-              "path": ["orders", "1", "status"],
-              "query": [
+                  "key": "page",
+                  "value": "0"
+                },
                 {
-                  "key": "status",
-                  "value": "PREPARING"
+                  "key": "size",
+                  "value": "20"
                 }
               ]
-            }
-          }
-        },
-        {
-          "name": "Mark Order Ready",
-          "request": {
-            "method": "PUT",
-            "header": [],
-            "url": {
-              "raw": "{{base_url}}/orders/1/status?status=READY",
-              "host": ["{{base_url}}"],
-              "path": ["orders", "1", "status"],
-              "query": [
-                {
-                  "key": "status",
-                  "value": "READY"
-                }
-              ]
-            }
-          }
-        },
-        {
-          "name": "Cancel Order",
-          "request": {
-            "method": "PUT",
-            "header": [],
-            "url": {
-              "raw": "{{base_url}}/orders/1/cancel?reason=Customer%20requested%20cancellation",
-              "host": ["{{base_url}}"],
-              "path": ["orders", "1", "cancel"],
-              "query": [
-                {
-                  "key": "reason",
-                  "value": "Customer requested cancellation"
-                }
-              ]
-            }
+            },
+            "description": "Get all orders for the currently authenticated user."
           }
         },
         {
@@ -1005,16 +937,113 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{base_url}}/orders/restaurant/1?status=CREATED",
+              "raw": "{{base_url}}/orders/restaurant/1?page=0&size=20",
               "host": ["{{base_url}}"],
               "path": ["orders", "restaurant", "1"],
               "query": [
                 {
-                  "key": "status",
-                  "value": "CREATED"
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "20"
                 }
               ]
-            }
+            },
+            "description": "Get all orders for a restaurant. Requires RESTAURANT_OWNER, RESTAURANT_STAFF, PLATFORM, or ADMIN role."
+          }
+        },
+        {
+          "name": "Get Active Restaurant Orders",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/orders/restaurant/1/active",
+              "host": ["{{base_url}}"],
+              "path": ["orders", "restaurant", "1", "active"]
+            },
+            "description": "Get active (non-terminal) orders for a restaurant. Requires RESTAURANT_OWNER, RESTAURANT_STAFF, PLATFORM, or ADMIN role."
+          }
+        },
+        {
+          "name": "Update Order Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"status\": \"ACCEPTED\",\n    \"estimatedPrepTimeMinutes\": 25,\n    \"notes\": \"Order accepted, starting preparation soon\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/orders/1/status",
+              "host": ["{{base_url}}"],
+              "path": ["orders", "1", "status"]
+            },
+            "description": "Update order status. Valid statuses: CREATED, ACCEPTED, PREPARING, READY, PICKED_UP, IN_TRANSIT, DELIVERED, COMPLETED, CANCELLED, REFUNDED."
+          }
+        },
+        {
+          "name": "Cancel Order",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"reason\": \"Customer requested cancellation\",\n    \"requestRefund\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/orders/1/cancel",
+              "host": ["{{base_url}}"],
+              "path": ["orders", "1", "cancel"]
+            },
+            "description": "Cancel an existing order. Only cancellable in CREATED, ACCEPTED, PREPARING, or READY states."
+          }
+        },
+        {
+          "name": "Create Payment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"paymentMethod\": \"card\",\n    \"returnUrl\": \"https://example.com/payment/callback\",\n    \"metadata\": \"optional metadata\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/orders/1/payment",
+              "host": ["{{base_url}}"],
+              "path": ["orders", "1", "payment"]
+            },
+            "description": "Create a payment intent for an order."
+          }
+        },
+        {
+          "name": "Get Payment",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/orders/1/payment",
+              "host": ["{{base_url}}"],
+              "path": ["orders", "1", "payment"]
+            },
+            "description": "Get payment details for an order."
           }
         }
       ]
