@@ -101,12 +101,12 @@ public interface CourierPaymentRepository extends JpaRepository<CourierPayment, 
                                 @Param("endDate") LocalDateTime endDate);
 
     /**
-     * Get average delivery distance.
+     * Get average distance bonus (proxy for delivery distance).
      */
-    @Query("SELECT COALESCE(AVG(cp.deliveryDistanceKm), 0) FROM CourierPayment cp " +
+    @Query("SELECT COALESCE(AVG(cp.distanceBonus), 0) FROM CourierPayment cp " +
            "WHERE cp.paymentDate BETWEEN :startDate AND :endDate")
-    BigDecimal getAverageDeliveryDistance(@Param("startDate") LocalDateTime startDate,
-                                          @Param("endDate") LocalDateTime endDate);
+    BigDecimal getAverageDistanceBonus(@Param("startDate") LocalDateTime startDate,
+                                       @Param("endDate") LocalDateTime endDate);
 
     List<CourierPayment> findByCourierIdAndPaymentDateBetween(
             Long courierId, LocalDateTime startDate, LocalDateTime endDate);

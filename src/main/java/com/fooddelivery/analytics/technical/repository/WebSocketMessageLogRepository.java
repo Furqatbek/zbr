@@ -95,9 +95,9 @@ public interface WebSocketMessageLogRepository extends JpaRepository<WebSocketMe
     /**
      * Get failed messages by reason.
      */
-    @Query("SELECT m.failureReason, COUNT(m) FROM WebSocketMessageLog m " +
+    @Query("SELECT m.errorMessage, COUNT(m) FROM WebSocketMessageLog m " +
            "WHERE m.publishedAt BETWEEN :start AND :end AND m.isDelivered = false " +
-           "GROUP BY m.failureReason")
+           "GROUP BY m.errorMessage")
     List<Object[]> getFailedByReason(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
 
     /**
