@@ -276,8 +276,7 @@ public class RestaurantCollector {
     private List<RestaurantDetailDto> collectTopPerformers(LocalDateTime startDate,
                                                            LocalDateTime endDate, int limit) {
         Pageable pageable = PageRequest.of(0, limit);
-        List<com.fooddelivery.restaurant.entity.Restaurant> topPerformers = restaurantRepository.findTopPerformingRestaurants(
-                startDate, endDate, pageable);
+        List<com.fooddelivery.restaurant.entity.Restaurant> topPerformers = restaurantRepository.findTopPerformingRestaurants(pageable);
 
         return topPerformers.stream()
                 .map(this::mapRestaurantToDetail)
@@ -291,7 +290,7 @@ public class RestaurantCollector {
                                                               LocalDateTime endDate, int limit) {
         Pageable pageable = PageRequest.of(0, limit);
         List<com.fooddelivery.restaurant.entity.Restaurant> underperformers = restaurantRepository.findUnderperformingRestaurants(
-                startDate, endDate, 3.0, 70.0, pageable); // rating < 3.0 or acceptance < 70%
+                3.0, 70.0, pageable); // rating < 3.0 or prepTime > 70min
 
         return underperformers.stream()
                 .map(this::mapRestaurantToDetail)

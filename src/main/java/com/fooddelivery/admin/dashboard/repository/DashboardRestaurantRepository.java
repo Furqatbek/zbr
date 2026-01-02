@@ -229,9 +229,7 @@ public interface DashboardRestaurantRepository extends JpaRepository<Restaurant,
      */
     @Query("SELECT r FROM Restaurant r WHERE r.status = 'ACTIVE' " +
             "AND r.totalRatings > 0 ORDER BY r.averageRating DESC, r.totalOrders DESC")
-    List<Restaurant> findTopPerformingRestaurants(@Param("startDate") LocalDateTime startDate,
-                                                   @Param("endDate") LocalDateTime endDate,
-                                                   Pageable pageable);
+    List<Restaurant> findTopPerformingRestaurants(Pageable pageable);
 
     /**
      * Find underperforming restaurants.
@@ -239,9 +237,7 @@ public interface DashboardRestaurantRepository extends JpaRepository<Restaurant,
     @Query("SELECT r FROM Restaurant r WHERE r.status = 'ACTIVE' " +
             "AND (r.averageRating < :minRating OR r.averagePrepTimeMinutes > :maxPrepTime) " +
             "ORDER BY r.averageRating ASC")
-    List<Restaurant> findUnderperformingRestaurants(@Param("startDate") LocalDateTime startDate,
-                                                     @Param("endDate") LocalDateTime endDate,
-                                                     @Param("minRating") double minRating,
+    List<Restaurant> findUnderperformingRestaurants(@Param("minRating") double minRating,
                                                      @Param("maxPrepTime") double maxPrepTime,
                                                      Pageable pageable);
 }
