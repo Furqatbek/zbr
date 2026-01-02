@@ -233,7 +233,66 @@ Returns cancelled orders with breakdown by reason.
 
 ---
 
-### 5. Restaurant Metrics
+### 5. Rejected Orders
+
+**POST** `/orders/rejected`
+
+Returns rejected orders with restaurant breakdown.
+
+**Request Body:**
+```json
+{
+  "startDate": "2024-01-15T00:00:00",
+  "endDate": "2024-01-15T23:59:59",
+  "restaurantIds": [1, 2, 3],
+  "page": 0,
+  "pageSize": 50
+}
+```
+
+**Response:**
+```json
+{
+  "totalRejectedOrders": 15,
+  "orders": [
+    {
+      "orderId": 1010,
+      "orderNumber": "ORD-1010",
+      "customerId": 505,
+      "customerName": "Jane Doe",
+      "restaurantId": 10,
+      "restaurantName": "Pizza Palace",
+      "rejectedAt": "2024-01-15T11:30:00",
+      "rejectionReason": "Out of stock",
+      "orderTotal": 35.00,
+      "createdAt": "2024-01-15T11:15:00"
+    }
+  ],
+  "restaurantBreakdown": {
+    "Pizza Palace": 5,
+    "Burger Joint": 3,
+    "Sushi House": 7
+  },
+  "reasonBreakdown": {
+    "OUT_OF_STOCK": 8,
+    "TOO_BUSY": 4,
+    "CLOSING_SOON": 2,
+    "OTHER": 1
+  },
+  "hourlyDistribution": {
+    "11": 2,
+    "12": 5,
+    "13": 4,
+    "18": 2,
+    "19": 2
+  },
+  "generatedAt": "2024-01-15T10:30:00"
+}
+```
+
+---
+
+### 6. Restaurant Metrics
 
 **GET** `/restaurants`
 
@@ -293,7 +352,7 @@ Returns restaurant metrics with advanced filtering.
 
 ---
 
-### 6. Courier Metrics
+### 7. Courier Metrics
 
 **GET** `/couriers`
 
@@ -367,7 +426,7 @@ Returns courier metrics with advanced filtering.
 
 ---
 
-### 7. Finance Metrics
+### 8. Finance Metrics
 
 **GET** `/finance`
 
@@ -448,7 +507,7 @@ Returns finance metrics with date range.
 
 ---
 
-### 8. Support Metrics
+### 9. Support Metrics
 
 **GET** `/support`
 
@@ -542,7 +601,7 @@ Returns support metrics with filtering.
 
 ---
 
-### 9. Cache Management
+### 10. Cache Management
 
 **POST** `/cache/refresh`
 

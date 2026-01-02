@@ -1412,6 +1412,314 @@
       ]
     },
     {
+      "name": "Admin Dashboard",
+      "description": "Real-time operational dashboard for administrators. Provides live insights on orders, restaurants, couriers, finance, and support metrics.",
+      "item": [
+        {
+          "name": "Get Dashboard Overview",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/admin/dashboard/overview?startDate=2024-01-01&endDate=2024-01-31",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "dashboard", "overview"],
+              "query": [
+                {"key": "startDate", "value": "2024-01-01", "description": "Start date (ISO format, defaults to today)"},
+                {"key": "endDate", "value": "2024-01-31", "description": "End date (ISO format, defaults to now)"}
+              ]
+            },
+            "description": "Returns comprehensive dashboard overview with key metrics including orders, revenue, active entities, and system status.\n\nRoles: ADMIN, OPERATIONS_MANAGER\n\nCache TTL: 15 seconds"
+          }
+        },
+        {
+          "name": "Get Active Orders (GET)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/admin/dashboard/orders/active?date=2024-01-15&page=0&pageSize=50",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "dashboard", "orders", "active"],
+              "query": [
+                {"key": "date", "value": "2024-01-15", "description": "Filter by date (defaults to today)"},
+                {"key": "page", "value": "0", "description": "Page number (0-indexed)"},
+                {"key": "pageSize", "value": "50", "description": "Items per page (default: 50, max: 200)"}
+              ]
+            },
+            "description": "Returns all active orders with default filters.\n\nRoles: ADMIN, OPERATIONS_MANAGER, SUPPORT_AGENT\n\nCache TTL: 5 seconds"
+          }
+        },
+        {
+          "name": "Get Active Orders (POST)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"startDate\": \"2024-01-15T00:00:00\",\n    \"endDate\": \"2024-01-15T23:59:59\",\n    \"restaurantIds\": [1, 2, 3],\n    \"courierIds\": [10, 20],\n    \"orderStatuses\": [\"PENDING\", \"PREPARING\"],\n    \"page\": 0,\n    \"pageSize\": 50,\n    \"sortBy\": \"createdAt\",\n    \"sortDirection\": \"DESC\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/admin/dashboard/orders/active",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "dashboard", "orders", "active"]
+            },
+            "description": "Returns active orders with advanced filtering options.\n\nRoles: ADMIN, OPERATIONS_MANAGER, SUPPORT_AGENT\n\nCache TTL: 5 seconds"
+          }
+        },
+        {
+          "name": "Get Stuck Orders (GET)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/admin/dashboard/orders/stuck?page=0&pageSize=50",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "dashboard", "orders", "stuck"],
+              "query": [
+                {"key": "page", "value": "0"},
+                {"key": "pageSize", "value": "50"}
+              ]
+            },
+            "description": "Returns orders that have exceeded their stage thresholds with default thresholds.\n\nDefault thresholds: PENDING=10min, ACCEPTED=15min, PREPARING=30min, READY=15min, IN_TRANSIT=45min\n\nRoles: ADMIN, OPERATIONS_MANAGER\n\nCache TTL: 10 seconds"
+          }
+        },
+        {
+          "name": "Get Stuck Orders (POST)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"startDate\": \"2024-01-15T00:00:00\",\n    \"endDate\": \"2024-01-15T23:59:59\",\n    \"pendingThresholdMinutes\": 10,\n    \"acceptedThresholdMinutes\": 15,\n    \"preparingThresholdMinutes\": 30,\n    \"readyThresholdMinutes\": 15,\n    \"inTransitThresholdMinutes\": 45,\n    \"page\": 0,\n    \"pageSize\": 50\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/admin/dashboard/orders/stuck",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "dashboard", "orders", "stuck"]
+            },
+            "description": "Returns stuck orders with custom threshold configuration.\n\nRoles: ADMIN, OPERATIONS_MANAGER\n\nCache TTL: 10 seconds"
+          }
+        },
+        {
+          "name": "Get Cancelled Orders",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"startDate\": \"2024-01-15T00:00:00\",\n    \"endDate\": \"2024-01-15T23:59:59\",\n    \"page\": 0,\n    \"pageSize\": 50\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/admin/dashboard/orders/cancelled",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "dashboard", "orders", "cancelled"]
+            },
+            "description": "Returns cancelled orders with breakdown by reason (customer, restaurant, system).\n\nRoles: ADMIN, OPERATIONS_MANAGER"
+          }
+        },
+        {
+          "name": "Get Rejected Orders",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"startDate\": \"2024-01-15T00:00:00\",\n    \"endDate\": \"2024-01-15T23:59:59\",\n    \"page\": 0,\n    \"pageSize\": 50\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/admin/dashboard/orders/rejected",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "dashboard", "orders", "rejected"]
+            },
+            "description": "Returns rejected orders with restaurant breakdown.\n\nRoles: ADMIN, OPERATIONS_MANAGER"
+          }
+        },
+        {
+          "name": "Get Restaurant Metrics (GET)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/admin/dashboard/restaurants?date=2024-01-15&page=0&pageSize=50",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "dashboard", "restaurants"],
+              "query": [
+                {"key": "date", "value": "2024-01-15"},
+                {"key": "page", "value": "0"},
+                {"key": "pageSize", "value": "50"}
+              ]
+            },
+            "description": "Returns restaurant metrics with online/offline status and performance.\n\nRoles: ADMIN, OPERATIONS_MANAGER, RESTAURANT_MANAGER\n\nCache TTL: 30 seconds"
+          }
+        },
+        {
+          "name": "Get Restaurant Metrics (POST)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"startDate\": \"2024-01-15T00:00:00\",\n    \"endDate\": \"2024-01-15T23:59:59\",\n    \"restaurantIds\": [1, 2, 3],\n    \"page\": 0,\n    \"pageSize\": 50\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/admin/dashboard/restaurants",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "dashboard", "restaurants"]
+            },
+            "description": "Returns restaurant metrics with advanced filtering.\n\nRoles: ADMIN, OPERATIONS_MANAGER, RESTAURANT_MANAGER\n\nCache TTL: 30 seconds"
+          }
+        },
+        {
+          "name": "Get Courier Metrics (GET)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/admin/dashboard/couriers?date=2024-01-15&page=0&pageSize=50",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "dashboard", "couriers"],
+              "query": [
+                {"key": "date", "value": "2024-01-15"},
+                {"key": "page", "value": "0"},
+                {"key": "pageSize", "value": "50"}
+              ]
+            },
+            "description": "Returns courier metrics including locations and availability.\n\nRoles: ADMIN, OPERATIONS_MANAGER, FLEET_MANAGER\n\nCache TTL: 15 seconds"
+          }
+        },
+        {
+          "name": "Get Courier Metrics (POST)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"startDate\": \"2024-01-15T00:00:00\",\n    \"endDate\": \"2024-01-15T23:59:59\",\n    \"courierIds\": [1, 2, 3],\n    \"page\": 0,\n    \"pageSize\": 50\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/admin/dashboard/couriers",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "dashboard", "couriers"]
+            },
+            "description": "Returns courier metrics with advanced filtering.\n\nRoles: ADMIN, OPERATIONS_MANAGER, FLEET_MANAGER\n\nCache TTL: 15 seconds"
+          }
+        },
+        {
+          "name": "Get Finance Metrics (GET)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/admin/dashboard/finance?startDate=2024-01-01&endDate=2024-01-31",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "dashboard", "finance"],
+              "query": [
+                {"key": "startDate", "value": "2024-01-01"},
+                {"key": "endDate", "value": "2024-01-31"}
+              ]
+            },
+            "description": "Returns financial metrics including GMV, revenue, and payouts.\n\nRoles: ADMIN, FINANCE_MANAGER\n\nCache TTL: 30 seconds"
+          }
+        },
+        {
+          "name": "Get Finance Metrics (POST)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"startDate\": \"2024-01-01T00:00:00\",\n    \"endDate\": \"2024-01-31T23:59:59\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/admin/dashboard/finance",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "dashboard", "finance"]
+            },
+            "description": "Returns financial metrics with date range filter.\n\nRoles: ADMIN, FINANCE_MANAGER\n\nCache TTL: 30 seconds"
+          }
+        },
+        {
+          "name": "Get Support Metrics (GET)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/admin/dashboard/support?startDate=2024-01-01&endDate=2024-01-31&page=0&pageSize=50",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "dashboard", "support"],
+              "query": [
+                {"key": "startDate", "value": "2024-01-01"},
+                {"key": "endDate", "value": "2024-01-31"},
+                {"key": "page", "value": "0"},
+                {"key": "pageSize", "value": "50"}
+              ]
+            },
+            "description": "Returns support metrics including tickets and agent performance.\n\nRoles: ADMIN, SUPPORT_MANAGER, SUPPORT_AGENT\n\nCache TTL: 30 seconds"
+          }
+        },
+        {
+          "name": "Get Support Metrics (POST)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"startDate\": \"2024-01-01T00:00:00\",\n    \"endDate\": \"2024-01-31T23:59:59\",\n    \"ticketStatuses\": [\"OPEN\", \"IN_PROGRESS\"],\n    \"ticketPriorities\": [\"HIGH\", \"CRITICAL\"],\n    \"page\": 0,\n    \"pageSize\": 50\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/admin/dashboard/support",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "dashboard", "support"]
+            },
+            "description": "Returns support metrics with advanced filtering.\n\nRoles: ADMIN, SUPPORT_MANAGER, SUPPORT_AGENT\n\nCache TTL: 30 seconds"
+          }
+        },
+        {
+          "name": "Refresh All Caches",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/admin/dashboard/cache/refresh",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "dashboard", "cache", "refresh"]
+            },
+            "description": "Clears all dashboard caches to force data refresh.\n\nRoles: ADMIN only\n\nUse sparingly as it triggers recalculation of all metrics."
+          }
+        },
+        {
+          "name": "Refresh Specific Cache",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/admin/dashboard/cache/refresh/overview",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "dashboard", "cache", "refresh", "overview"]
+            },
+            "description": "Clears a specific dashboard cache.\n\nValid cache keys: overview, activeOrders, stuckOrders, restaurants, couriers, finance, support\n\nRoles: ADMIN only"
+          }
+        }
+      ]
+    },
+    {
       "name": "Financial Analytics",
       "description": "Financial analytics endpoints for GMV, commission revenue, delivery fees, promotions, payouts, and contribution margin. Requires ADMIN or PLATFORM role.",
       "item": [
