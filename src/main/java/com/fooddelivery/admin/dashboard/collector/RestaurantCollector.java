@@ -123,16 +123,13 @@ public class RestaurantCollector {
      * Collect detailed restaurant information with performance metrics.
      */
     private List<RestaurantDetailDto> collectRestaurantDetails(DashboardFilterRequest filter, Pageable pageable) {
-        LocalDateTime startDate = filter.getStartDate();
-        LocalDateTime endDate = filter.getEndDate();
-
         List<Object[]> restaurantData;
 
         if (filter.getRestaurantIds() != null && !filter.getRestaurantIds().isEmpty()) {
             restaurantData = restaurantRepository.findRestaurantDetailsFiltered(
-                    filter.getRestaurantIds(), startDate, endDate, pageable);
+                    filter.getRestaurantIds(), pageable);
         } else {
-            restaurantData = restaurantRepository.findAllRestaurantDetails(startDate, endDate, pageable);
+            restaurantData = restaurantRepository.findAllRestaurantDetails(pageable);
         }
 
         return restaurantData.stream()

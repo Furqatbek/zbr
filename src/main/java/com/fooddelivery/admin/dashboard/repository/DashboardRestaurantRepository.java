@@ -196,10 +196,7 @@ public interface DashboardRestaurantRepository extends JpaRepository<Restaurant,
     @Query("SELECT r.id, r.name, r.status, r.isOpen, r.addressLine1, r.city, " +
             "r.totalOrders, r.averageRating, r.totalRatings, r.averagePrepTimeMinutes " +
             "FROM Restaurant r WHERE r.id IN :ids")
-    List<Object[]> findRestaurantDetailsFiltered(@Param("ids") List<Long> ids,
-                                                  @Param("startDate") LocalDateTime startDate,
-                                                  @Param("endDate") LocalDateTime endDate,
-                                                  Pageable pageable);
+    List<Object[]> findRestaurantDetailsFiltered(@Param("ids") List<Long> ids, Pageable pageable);
 
     /**
      * Find all restaurant details.
@@ -207,9 +204,7 @@ public interface DashboardRestaurantRepository extends JpaRepository<Restaurant,
     @Query("SELECT r.id, r.name, r.status, r.isOpen, r.addressLine1, r.city, " +
             "r.totalOrders, r.averageRating, r.totalRatings, r.averagePrepTimeMinutes " +
             "FROM Restaurant r WHERE r.status = 'ACTIVE'")
-    List<Object[]> findAllRestaurantDetails(@Param("startDate") LocalDateTime startDate,
-                                             @Param("endDate") LocalDateTime endDate,
-                                             Pageable pageable);
+    List<Object[]> findAllRestaurantDetails(Pageable pageable);
 
     /**
      * Count by status.
