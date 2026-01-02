@@ -1,10 +1,10 @@
 -- Operations Analytics Tables
--- V3: Courier and restaurant operational metrics
+-- V3: Courier and restaurant operational metrics (matching JPA entities)
 
--- Courier Location Events
+-- Courier Location Events (matching CourierLocationEvent entity)
 CREATE TABLE courier_location_events (
     id BIGSERIAL PRIMARY KEY,
-    courier_id BIGINT NOT NULL REFERENCES couriers(id) ON DELETE CASCADE,
+    courier_id BIGINT NOT NULL,
     latitude DECIMAL(10, 7) NOT NULL,
     longitude DECIMAL(10, 7) NOT NULL,
     accuracy_meters DOUBLE PRECISION,
@@ -20,66 +20,66 @@ CREATE INDEX idx_cle_courier_id ON courier_location_events(courier_id);
 CREATE INDEX idx_cle_recorded_at ON courier_location_events(recorded_at);
 CREATE INDEX idx_cle_courier_recorded ON courier_location_events(courier_id, recorded_at);
 
--- Courier Order Events
+-- Courier Order Events (matching CourierOrderEvent entity)
 CREATE TABLE courier_order_events (
     id BIGSERIAL PRIMARY KEY,
-    courier_id BIGINT NOT NULL REFERENCES couriers(id) ON DELETE CASCADE,
-    order_id BIGINT NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+    courier_id BIGINT NOT NULL,
+    order_id BIGINT NOT NULL,
     event_type VARCHAR(20) NOT NULL,
     reason VARCHAR(500),
     response_time_seconds BIGINT,
     distance_to_restaurant_km DOUBLE PRECISION,
     distance_to_customer_km DOUBLE PRECISION,
     event_timestamp TIMESTAMP NOT NULL,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT chk_coe_event_type CHECK (event_type IN ('OFFERED', 'ACCEPTED', 'REJECTED', 'TIMED_OUT', 'CANCELLED', 'PICKED_UP', 'DELIVERED', 'REASSIGNED'))
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE INDEX idx_coe_courier_id ON courier_order_events(courier_id);
 CREATE INDEX idx_coe_order_id ON courier_order_events(order_id);
 CREATE INDEX idx_coe_event_type ON courier_order_events(event_type);
 CREATE INDEX idx_coe_timestamp ON courier_order_events(event_timestamp);
+CREATE INDEX idx_coe_courier_timestamp ON courier_order_events(courier_id, event_timestamp);
 
--- Courier Availability Events
+-- Courier Availability Events (matching CourierAvailabilityEvent entity)
 CREATE TABLE courier_availability_events (
     id BIGSERIAL PRIMARY KEY,
-    courier_id BIGINT NOT NULL REFERENCES couriers(id) ON DELETE CASCADE,
+    courier_id BIGINT NOT NULL,
     status VARCHAR(20) NOT NULL,
     previous_status VARCHAR(20),
     reason VARCHAR(500),
     status_changed_at TIMESTAMP NOT NULL,
     previous_status_duration_minutes BIGINT,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT chk_cae_status CHECK (status IN ('AVAILABLE', 'BUSY', 'OFFLINE', 'ON_BREAK', 'RETURNING'))
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE INDEX idx_cae_courier_id ON courier_availability_events(courier_id);
 CREATE INDEX idx_cae_status_changed_at ON courier_availability_events(status_changed_at);
 CREATE INDEX idx_cae_status ON courier_availability_events(status);
+CREATE INDEX idx_cae_courier_changed ON courier_availability_events(courier_id, status_changed_at);
 
--- Restaurant Order Events
+-- Restaurant Order Events (matching RestaurantOrderEvent entity)
 CREATE TABLE restaurant_order_events (
     id BIGSERIAL PRIMARY KEY,
-    restaurant_id BIGINT NOT NULL REFERENCES restaurants(id) ON DELETE CASCADE,
-    order_id BIGINT NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+    restaurant_id BIGINT NOT NULL,
+    order_id BIGINT NOT NULL,
     event_type VARCHAR(30) NOT NULL,
     reason VARCHAR(500),
     estimated_prep_minutes INTEGER,
     actual_prep_minutes INTEGER,
     event_timestamp TIMESTAMP NOT NULL,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT chk_roe_event_type CHECK (event_type IN ('RECEIVED', 'ACCEPTED', 'REJECTED', 'PREPARING_STARTED', 'READY', 'CANCELLED', 'WENT_OFFLINE', 'PREP_TIME_EXTENDED'))
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE INDEX idx_roe_restaurant_id ON restaurant_order_events(restaurant_id);
 CREATE INDEX idx_roe_order_id ON restaurant_order_events(order_id);
 CREATE INDEX idx_roe_event_type ON restaurant_order_events(event_type);
 CREATE INDEX idx_roe_timestamp ON restaurant_order_events(event_timestamp);
+CREATE INDEX idx_roe_restaurant_timestamp ON restaurant_order_events(restaurant_id, event_timestamp);
 
--- Restaurant Online Status
+-- Restaurant Online Status (matching RestaurantOnlineStatus entity)
 CREATE TABLE restaurant_online_status (
     id BIGSERIAL PRIMARY KEY,
-    restaurant_id BIGINT NOT NULL REFERENCES restaurants(id) ON DELETE CASCADE,
+    restaurant_id BIGINT NOT NULL,
     is_online BOOLEAN NOT NULL,
     reason VARCHAR(500),
     status_changed_at TIMESTAMP NOT NULL,
@@ -89,32 +89,33 @@ CREATE TABLE restaurant_online_status (
 
 CREATE INDEX idx_ros_restaurant_id ON restaurant_online_status(restaurant_id);
 CREATE INDEX idx_ros_status_changed_at ON restaurant_online_status(status_changed_at);
+CREATE INDEX idx_ros_restaurant_changed ON restaurant_online_status(restaurant_id, status_changed_at);
 
--- Menu Update History
+-- Menu Update History (matching MenuUpdateHistory entity)
 CREATE TABLE menu_update_history (
     id BIGSERIAL PRIMARY KEY,
-    restaurant_id BIGINT NOT NULL REFERENCES restaurants(id) ON DELETE CASCADE,
+    restaurant_id BIGINT NOT NULL,
     update_type VARCHAR(30) NOT NULL,
     items_added INTEGER DEFAULT 0,
     items_removed INTEGER DEFAULT 0,
     items_modified INTEGER DEFAULT 0,
     categories_changed INTEGER DEFAULT 0,
     prices_updated INTEGER DEFAULT 0,
-    updated_by_user_id BIGINT REFERENCES users(id) ON DELETE SET NULL,
+    updated_by_user_id BIGINT,
     updated_at TIMESTAMP NOT NULL,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT chk_muh_update_type CHECK (update_type IN ('ITEM_ADDED', 'ITEM_REMOVED', 'ITEM_MODIFIED', 'PRICE_CHANGED', 'AVAILABILITY_CHANGED', 'CATEGORY_CHANGED', 'BULK_UPDATE', 'MENU_IMPORTED'))
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE INDEX idx_muh_restaurant_id ON menu_update_history(restaurant_id);
 CREATE INDEX idx_muh_updated_at ON menu_update_history(updated_at);
+CREATE INDEX idx_muh_restaurant_updated ON menu_update_history(restaurant_id, updated_at);
 
--- ETA History
+-- ETA History (matching EtaHistory entity)
 CREATE TABLE eta_history (
     id BIGSERIAL PRIMARY KEY,
-    order_id BIGINT NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
-    restaurant_id BIGINT NOT NULL REFERENCES restaurants(id) ON DELETE CASCADE,
-    courier_id BIGINT REFERENCES couriers(id) ON DELETE SET NULL,
+    order_id BIGINT NOT NULL,
+    restaurant_id BIGINT NOT NULL,
+    courier_id BIGINT,
     eta_shown_minutes INTEGER NOT NULL,
     predicted_delivery_time TIMESTAMP NOT NULL,
     predicted_at TIMESTAMP NOT NULL,
@@ -137,6 +138,7 @@ CREATE INDEX idx_eta_order_id ON eta_history(order_id);
 CREATE INDEX idx_eta_restaurant_id ON eta_history(restaurant_id);
 CREATE INDEX idx_eta_courier_id ON eta_history(courier_id);
 CREATE INDEX idx_eta_predicted_at ON eta_history(predicted_at);
+CREATE INDEX idx_eta_delivered_at ON eta_history(actual_delivered_at);
 
 COMMENT ON TABLE courier_location_events IS 'Tracks courier GPS location updates';
 COMMENT ON TABLE courier_order_events IS 'Tracks courier responses to order offers';
