@@ -113,11 +113,11 @@ public interface ReferralEventRepository extends JpaRepository<ReferralEvent, Lo
      * Check if user has been both referrer and referred.
      * Returns: userId, asReferrer, asReferred
      */
-    @Query("SELECT u.userId, " +
-            "(SELECT COUNT(r1) FROM ReferralEvent r1 WHERE r1.referrerId = u.userId AND r1.createdAt BETWEEN :start AND :end), " +
-            "(SELECT COUNT(r2) FROM ReferralEvent r2 WHERE r2.referredUserId = u.userId AND r2.createdAt BETWEEN :start AND :end) " +
-            "FROM (SELECT DISTINCT r.referrerId as userId FROM ReferralEvent r WHERE r.createdAt BETWEEN :start AND :end " +
-            "      UNION SELECT DISTINCT r.referredUserId FROM ReferralEvent r WHERE r.createdAt BETWEEN :start AND :end) u")
+    @Query(value = "SELECT u.user_id, " +
+            "(SELECT COUNT(*) FROM referral_events r1 WHERE r1.referrer_id = u.user_id AND r1.created_at BETWEEN :start AND :end), " +
+            "(SELECT COUNT(*) FROM referral_events r2 WHERE r2.referred_user_id = u.user_id AND r2.created_at BETWEEN :start AND :end) " +
+            "FROM (SELECT DISTINCT referrer_id as user_id FROM referral_events WHERE created_at BETWEEN :start AND :end " +
+            "      UNION SELECT DISTINCT referred_user_id FROM referral_events WHERE created_at BETWEEN :start AND :end) u", nativeQuery = true)
     List<Object[]> getUsersInBothRoles(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
 
     // ==================== Fraudulent Referrers ====================
