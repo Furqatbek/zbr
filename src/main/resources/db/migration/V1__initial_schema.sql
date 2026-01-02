@@ -32,7 +32,7 @@ CREATE INDEX idx_users_status ON users(status);
 
 -- User roles collection table
 CREATE TABLE user_roles (
-    user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    user_id BIGINT NOT NULL,
     role VARCHAR(20) NOT NULL,
     PRIMARY KEY (user_id, role)
 );
@@ -41,7 +41,7 @@ CREATE TABLE user_roles (
 CREATE TABLE refresh_tokens (
     id BIGSERIAL PRIMARY KEY,
     token VARCHAR(500) NOT NULL UNIQUE,
-    user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    user_id BIGINT NOT NULL,
     device_info VARCHAR(500),
     ip_address VARCHAR(45),
     user_agent VARCHAR(500),
@@ -77,7 +77,7 @@ CREATE INDEX idx_otp_expires_at ON otp_codes(expires_at);
 -- Password reset tokens table (matching PasswordResetToken entity)
 CREATE TABLE password_reset_tokens (
     id BIGSERIAL PRIMARY KEY,
-    user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    user_id BIGINT NOT NULL,
     token VARCHAR(255) NOT NULL UNIQUE,
     used BOOLEAN DEFAULT FALSE,
     used_at TIMESTAMP,
@@ -91,7 +91,7 @@ CREATE INDEX idx_password_reset_tokens_user_id ON password_reset_tokens(user_id)
 -- Restaurants table (matching Restaurant entity)
 CREATE TABLE restaurants (
     id BIGSERIAL PRIMARY KEY,
-    owner_id BIGINT NOT NULL REFERENCES users(id),
+    owner_id BIGINT NOT NULL,
     name VARCHAR(200) NOT NULL,
     slug VARCHAR(250) UNIQUE,
     description VARCHAR(1000),
@@ -137,7 +137,7 @@ CREATE INDEX idx_restaurants_slug ON restaurants(slug);
 -- Menu categories (matching MenuCategory entity)
 CREATE TABLE menu_categories (
     id BIGSERIAL PRIMARY KEY,
-    restaurant_id BIGINT NOT NULL REFERENCES restaurants(id) ON DELETE CASCADE,
+    restaurant_id BIGINT NOT NULL,
     name VARCHAR(100) NOT NULL,
     description VARCHAR(500),
     image_url VARCHAR(500),
@@ -153,7 +153,7 @@ CREATE INDEX idx_menu_categories_active ON menu_categories(active);
 -- Menu items (matching MenuItem entity)
 CREATE TABLE menu_items (
     id BIGSERIAL PRIMARY KEY,
-    category_id BIGINT NOT NULL REFERENCES menu_categories(id) ON DELETE CASCADE,
+    category_id BIGINT NOT NULL,
     name VARCHAR(200) NOT NULL,
     description VARCHAR(1000),
     price DECIMAL(10, 2) NOT NULL,
@@ -187,7 +187,7 @@ CREATE INDEX idx_menu_items_featured ON menu_items(featured);
 -- Item variants (matching ItemVariant entity)
 CREATE TABLE item_variants (
     id BIGSERIAL PRIMARY KEY,
-    menu_item_id BIGINT NOT NULL REFERENCES menu_items(id) ON DELETE CASCADE,
+    menu_item_id BIGINT NOT NULL,
     name VARCHAR(100) NOT NULL,
     price_delta DECIMAL(10, 2) NOT NULL DEFAULT 0,
     in_stock BOOLEAN NOT NULL DEFAULT TRUE,
@@ -201,7 +201,7 @@ CREATE INDEX idx_item_variants_menu_item ON item_variants(menu_item_id);
 -- Item options (matching ItemOption entity)
 CREATE TABLE item_options (
     id BIGSERIAL PRIMARY KEY,
-    menu_item_id BIGINT NOT NULL REFERENCES menu_items(id) ON DELETE CASCADE,
+    menu_item_id BIGINT NOT NULL,
     group_name VARCHAR(100),
     name VARCHAR(100) NOT NULL,
     price_delta DECIMAL(10, 2) NOT NULL DEFAULT 0,
@@ -219,7 +219,7 @@ CREATE INDEX idx_item_options_menu_item ON item_options(menu_item_id);
 -- Couriers table (matching Courier entity)
 CREATE TABLE couriers (
     id BIGSERIAL PRIMARY KEY,
-    user_id BIGINT NOT NULL UNIQUE REFERENCES users(id),
+    user_id BIGINT NOT NULL UNIQUE,
     status VARCHAR(20) NOT NULL DEFAULT 'OFFLINE',
     vehicle_type VARCHAR(20) NOT NULL DEFAULT 'BICYCLE',
     vehicle_number VARCHAR(50),
@@ -251,9 +251,9 @@ CREATE INDEX idx_couriers_location ON couriers(current_lat, current_lng);
 CREATE TABLE orders (
     id BIGSERIAL PRIMARY KEY,
     external_order_no VARCHAR(50) NOT NULL UNIQUE,
-    consumer_id BIGINT NOT NULL REFERENCES users(id),
-    restaurant_id BIGINT NOT NULL REFERENCES restaurants(id),
-    courier_id BIGINT REFERENCES couriers(id),
+    consumer_id BIGINT NOT NULL,
+    restaurant_id BIGINT NOT NULL,
+    courier_id BIGINT,
     order_type VARCHAR(20) NOT NULL,
     status VARCHAR(20) NOT NULL DEFAULT 'CREATED',
     payment_status VARCHAR(20) NOT NULL DEFAULT 'PENDING',
@@ -300,8 +300,8 @@ CREATE INDEX idx_orders_created_at ON orders(created_at);
 -- Order items (matching OrderItem entity)
 CREATE TABLE order_items (
     id BIGSERIAL PRIMARY KEY,
-    order_id BIGINT NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
-    menu_item_id BIGINT NOT NULL REFERENCES menu_items(id),
+    order_id BIGINT NOT NULL,
+    menu_item_id BIGINT NOT NULL,
     item_name VARCHAR(200) NOT NULL,
     quantity INTEGER NOT NULL DEFAULT 1,
     unit_price DECIMAL(10, 2) NOT NULL,
@@ -321,7 +321,7 @@ CREATE INDEX idx_order_items_menu_item ON order_items(menu_item_id);
 -- Payments table (matching Payment entity)
 CREATE TABLE payments (
     id BIGSERIAL PRIMARY KEY,
-    order_id BIGINT NOT NULL REFERENCES orders(id),
+    order_id BIGINT NOT NULL,
     provider VARCHAR(50) NOT NULL,
     provider_payment_id VARCHAR(255),
     payment_intent_id VARCHAR(255),
@@ -349,8 +349,8 @@ CREATE INDEX idx_payments_status ON payments(status);
 CREATE TABLE referrals (
     id BIGSERIAL PRIMARY KEY,
     code VARCHAR(20) NOT NULL UNIQUE,
-    referrer_user_id BIGINT NOT NULL REFERENCES users(id),
-    referred_user_id BIGINT REFERENCES users(id),
+    referrer_user_id BIGINT NOT NULL,
+    referred_user_id BIGINT,
     status VARCHAR(20) NOT NULL DEFAULT 'PENDING',
     reward_amount DECIMAL(10, 2),
     currency VARCHAR(3) DEFAULT 'USD',
@@ -371,10 +371,10 @@ CREATE INDEX idx_referrals_status ON referrals(status);
 -- Activity logs table
 CREATE TABLE activity_logs (
     id BIGSERIAL PRIMARY KEY,
-    user_id BIGINT REFERENCES users(id) ON DELETE SET NULL,
+    user_id BIGINT,
     event_type VARCHAR(50) NOT NULL,
-    restaurant_id BIGINT REFERENCES restaurants(id) ON DELETE SET NULL,
-    order_id BIGINT REFERENCES orders(id) ON DELETE SET NULL,
+    restaurant_id BIGINT,
+    order_id BIGINT,
     menu_item_id BIGINT,
     session_id VARCHAR(100),
     device_type VARCHAR(20),
