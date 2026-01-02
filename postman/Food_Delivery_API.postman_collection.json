@@ -2811,6 +2811,87 @@
           }
         }
       ]
+    },
+    {
+      "name": "Images",
+      "description": "Image upload and retrieval API. Supports restaurant images, menu item images, and profile pictures.",
+      "item": [
+        {
+          "name": "Upload Image",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": "",
+                  "description": "Image file (jpg, png, gif, webp)"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/images/upload/restaurants",
+              "host": ["{{base_url}}"],
+              "path": ["images", "upload", "restaurants"]
+            },
+            "description": "Upload an image to the specified category.\n\nCategories:\n- restaurants: Restaurant logos and banners\n- menu-items: Food item images\n- profiles: User profile pictures\n- documents: Verification documents\n\nSupported formats: JPEG, PNG, GIF, WebP\nMax file size: 5MB\n\nRoles: ADMIN, PLATFORM, RESTAURANT_OWNER, RESTAURANT_STAFF"
+          }
+        },
+        {
+          "name": "Upload Menu Item Image",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": "",
+                  "description": "Menu item image file"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/images/menu-items/1",
+              "host": ["{{base_url}}"],
+              "path": ["images", "menu-items", "1"]
+            },
+            "description": "Upload an image for a specific menu item.\n\nReplace '1' with the actual menu item ID.\n\nSupported formats: JPEG, PNG, GIF, WebP\nMax file size: 5MB\n\nRoles: ADMIN, PLATFORM, RESTAURANT_OWNER, RESTAURANT_STAFF"
+          }
+        },
+        {
+          "name": "Get Image",
+          "request": {
+            "auth": {"type": "noauth"},
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/images/restaurants/example.jpg",
+              "host": ["{{base_url}}"],
+              "path": ["images", "restaurants", "example.jpg"]
+            },
+            "description": "Retrieve an image by category and filename.\n\nReturns the image file with appropriate content-type header.\n\nCache: max-age=31536000 (1 year)\n\nNo authentication required - images are publicly accessible."
+          }
+        },
+        {
+          "name": "Delete Image",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/images/restaurants/example.jpg",
+              "host": ["{{base_url}}"],
+              "path": ["images", "restaurants", "example.jpg"]
+            },
+            "description": "Delete an image by category and filename.\n\nRoles: ADMIN, PLATFORM, RESTAURANT_OWNER, RESTAURANT_STAFF"
+          }
+        }
+      ]
     }
   ]
 }
