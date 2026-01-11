@@ -207,6 +207,9 @@ management:
       show-components: when_authorized
     prometheus:
       enabled: true
+  health:
+    mail:
+      enabled: false
   metrics:
     export:
       prometheus:
