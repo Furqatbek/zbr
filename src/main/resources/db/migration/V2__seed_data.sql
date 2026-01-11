@@ -3,23 +3,23 @@
 
 -- Insert admin user (password: password)
 INSERT INTO users (email, password_hash, first_name, last_name, phone, role, status, email_verified)
-VALUES ('admin@fooddelivery.com', '$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/X4.KPa7I0TyFHCwPe', 'System', 'Admin', '+1234567890', 'ADMIN', 'ACTIVE', true);
+VALUES ('admin@fooddelivery.com', '$2a$12$VOI3I3JDdZyxdFeKh55p.upfoSP.FJVVok.qcXr1zFBGRiFfYr1He', 'System', 'Admin', '+1234567890', 'ADMIN', 'ACTIVE', true);
 
 -- Insert platform user (password: password)
 INSERT INTO users (email, password_hash, first_name, last_name, phone, role, status, email_verified)
-VALUES ('platform@fooddelivery.com', '$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/X4.KPa7I0TyFHCwPe', 'Platform', 'Manager', '+1234567891', 'PLATFORM', 'ACTIVE', true);
+VALUES ('platform@fooddelivery.com', '$2a$12$VOI3I3JDdZyxdFeKh55p.upfoSP.FJVVok.qcXr1zFBGRiFfYr1He', 'Platform', 'Manager', '+1234567891', 'PLATFORM', 'ACTIVE', true);
 
 -- Insert demo restaurant owner (password: password)
 INSERT INTO users (email, password_hash, first_name, last_name, phone, role, status, email_verified)
-VALUES ('owner@pizzapalace.com', '$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/X4.KPa7I0TyFHCwPe', 'Mario', 'Rossi', '+1234567892', 'RESTAURANT_OWNER', 'ACTIVE', true);
+VALUES ('owner@pizzapalace.com', '$2a$12$VOI3I3JDdZyxdFeKh55p.upfoSP.FJVVok.qcXr1zFBGRiFfYr1He', 'Mario', 'Rossi', '+1234567892', 'RESTAURANT_OWNER', 'ACTIVE', true);
 
 -- Insert demo consumer (password: password)
 INSERT INTO users (email, password_hash, first_name, last_name, phone, role, status, email_verified)
-VALUES ('john.doe@example.com', '$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/X4.KPa7I0TyFHCwPe', 'John', 'Doe', '+1234567893', 'CONSUMER', 'ACTIVE', true);
+VALUES ('john.doe@example.com', '$2a$12$VOI3I3JDdZyxdFeKh55p.upfoSP.FJVVok.qcXr1zFBGRiFfYr1He', 'John', 'Doe', '+1234567893', 'CONSUMER', 'ACTIVE', true);
 
 -- Insert demo courier (password: password)
 INSERT INTO users (email, password_hash, first_name, last_name, phone, role, status, email_verified)
-VALUES ('courier@fooddelivery.com', '$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/X4.KPa7I0TyFHCwPe', 'Fast', 'Eddie', '+1234567894', 'COURIER', 'ACTIVE', true);
+VALUES ('courier@fooddelivery.com', '$2a$12$VOI3I3JDdZyxdFeKh55p.upfoSP.FJVVok.qcXr1zFBGRiFfYr1He', 'Fast', 'Eddie', '+1234567894', 'COURIER', 'ACTIVE', true);
 
 -- Insert demo restaurant
 INSERT INTO restaurants (owner_id, name, slug, description, address_line1, city, state, postal_code, country, latitude, longitude, phone, email, status, average_prep_time_minutes, minimum_order, delivery_fee, delivery_radius_km, accepts_takeaway, accepts_delivery, is_featured, is_open)
