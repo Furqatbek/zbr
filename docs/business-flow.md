@@ -375,6 +375,149 @@ COURIER STATUS FLOW:
 
 ---
 
+## System ↔ Courier Connection Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────────────┐
+│                         SYSTEM ↔ COURIER CONNECTION LOGIC                                │
+└─────────────────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────────────────┐
+│                                  COMMUNICATION CHANNELS                                  │
+├─────────────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                          │
+│  ┌─────────────┐          ┌─────────────┐          ┌─────────────┐                      │
+│  │   REST API  │          │  WebSocket  │          │  RabbitMQ   │                      │
+│  │  (Request/  │          │   (STOMP)   │          │   (Async)   │                      │
+│  │  Response)  │          │ (Real-time) │          │   Events    │                      │
+│  └──────┬──────┘          └──────┬──────┘          └──────┬──────┘                      │
+│         │                        │                        │                              │
+│         ▼                        ▼                        ▼                              │
+│  • Register courier       • Location stream       • CourierAssignedEvent                │
+│  • Update status          • Order updates         • OrderStatusChangedEvent             │
+│  • Accept order           • ETA updates           • NotificationEvent                   │
+│  • Complete delivery      • Chat messages         • PayoutIssuedEvent                   │
+│                                                                                          │
+└─────────────────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────────────────┐
+│                             COURIER LOCATION TRACKING FLOW                               │
+└─────────────────────────────────────────────────────────────────────────────────────────┘
+
+  COURIER APP                      BACKEND                         CONSUMER APP
+      │                               │                                 │
+      │ 1. Connect WebSocket          │                                 │
+      │   /ws (STOMP + JWT Auth)      │                                 │
+      │ ─────────────────────────────▶│                                 │
+      │                               │                                 │
+      │ 2. GPS Update (REST)          │                                 │
+      │   PUT /couriers/{id}/location │                                 │
+      │ ─────────────────────────────▶│                                 │
+      │                               │                                 │
+      │                               │ 3. Broadcast via STOMP          │
+      │                               │  /topic/couriers/{id}/location  │
+      │                               │ ───────────────────────────────▶│
+      │                               │                                 │
+      │                               │         ┌──────────────────┐    │
+      │                               │         │ CourierLocationDto│   │
+      │                               │         │ • courierId       │   │
+      │                               │         │ • lat, lng        │   │
+      │                               │         │ • timestamp       │   │
+      │                               │         └──────────────────┘    │
+      ▼                               ▼                                 ▼
+
+
+┌─────────────────────────────────────────────────────────────────────────────────────────┐
+│                              ORDER ASSIGNMENT FLOW                                       │
+└─────────────────────────────────────────────────────────────────────────────────────────┘
+
+  RESTAURANT                PLATFORM SYSTEM                    COURIER
+      │                           │                               │
+      │ 1. Mark Order READY       │                               │
+      │ ─────────────────────────▶│                               │
+      │                           │                               │
+      │                           │ 2. Find Nearby Couriers       │
+      │                           │    findAvailableCouriers()    │
+      │                           │    (lat, lng, radius)         │
+      │                           │                               │
+      │                           │ 3. Send Notification          │
+      │                           │ ─────────────────────────────▶│
+      │                           │    (Push + In-App)            │
+      │                           │                               │
+      │                           │ 4. Courier Accepts            │
+      │                           │    POST /couriers/{id}/       │
+      │                           │         orders/{orderId}/accept
+      │                           │ ◀─────────────────────────────│
+      │                           │                               │
+      │                           │ 5. Publish Event (RabbitMQ)   │
+      │                           │    CourierAssignedEvent       │
+      │                           │    → courier.exchange         │
+      │                           │    → courier.assigned.queue   │
+      │                           │                               │
+      │ 6. Notification           │                               │
+      │ ◀─────────────────────────│                               │
+      │    "Courier en route"     │                               │
+      ▼                           ▼                               ▼
+
+
+┌─────────────────────────────────────────────────────────────────────────────────────────┐
+│                              EVENT-DRIVEN ARCHITECTURE                                   │
+└─────────────────────────────────────────────────────────────────────────────────────────┘
+
+                              ┌─────────────────────┐
+                              │    RabbitMQ         │
+                              │  Message Broker     │
+                              └──────────┬──────────┘
+                                         │
+              ┌──────────────────────────┼──────────────────────────┐
+              │                          │                          │
+              ▼                          ▼                          ▼
+    ┌─────────────────┐        ┌─────────────────┐        ┌─────────────────┐
+    │ courier.exchange│        │ order.exchange  │        │notification.    │
+    │                 │        │                 │        │ exchange        │
+    └────────┬────────┘        └────────┬────────┘        └────────┬────────┘
+             │                          │                          │
+    ┌────────┴────────┐        ┌────────┴────────┐        ┌────────┴────────┐
+    │                 │        │                 │        │                 │
+    ▼                 ▼        ▼                 ▼        ▼                 ▼
+┌────────┐      ┌────────┐ ┌────────┐      ┌────────┐ ┌────────┐      ┌────────┐
+│courier.│      │courier.│ │order.  │      │payment.│ │notif.  │      │notif.  │
+│assigned│      │location│ │status. │      │confirm │ │push    │      │sms     │
+│.queue  │      │.queue  │ │changed │      │.queue  │ │.queue  │      │.queue  │
+└────────┘      └────────┘ └────────┘      └────────┘ └────────┘      └────────┘
+
+
+┌─────────────────────────────────────────────────────────────────────────────────────────┐
+│                              COURIER API ENDPOINTS                                       │
+└─────────────────────────────────────────────────────────────────────────────────────────┘
+
+  Endpoint                              Method    Description
+  ─────────────────────────────────────────────────────────────────────────────────────────
+  /api/v1/couriers/register             POST      Register as courier (requires CONSUMER role)
+  /api/v1/couriers/{id}                 GET       Get courier details
+  /api/v1/couriers/{id}/status          PUT       Update status (AVAILABLE/OFFLINE/ON_BREAK)
+  /api/v1/couriers/{id}/location        PUT       Update GPS location (lat, lng)
+  /api/v1/couriers/nearby               GET       Find available couriers near location
+  /api/v1/couriers/{id}/orders/{oid}/accept POST  Accept order assignment
+  /api/v1/couriers/{id}/orders/{oid}/complete POST Complete delivery
+  /api/v1/couriers/{id}/verify          POST      Verify courier (ADMIN/PLATFORM only)
+
+
+┌─────────────────────────────────────────────────────────────────────────────────────────┐
+│                              WEBSOCKET TOPICS                                            │
+└─────────────────────────────────────────────────────────────────────────────────────────┘
+
+  Topic                                 Subscribers         Data
+  ─────────────────────────────────────────────────────────────────────────────────────────
+  /topic/couriers/{id}/location         Consumer App        CourierLocationDto (lat, lng, time)
+  /topic/orders/{id}/status             All parties         OrderStatusDto (status, ETA)
+  /topic/kitchen/{restaurantId}         Restaurant Staff    KitchenTicketDto (new orders)
+  /user/queue/notifications             Specific user       NotificationDto (personal alerts)
+
+```
+
+---
+
 ## Payment Flow
 
 ```
