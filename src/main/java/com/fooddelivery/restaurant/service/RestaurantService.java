@@ -270,6 +270,38 @@ public class RestaurantService {
         return restaurant.getOwner().getId().equals(userId);
     }
 
+    /**
+     * Validate that user owns the restaurant or has admin/platform role.
+     * Throws BusinessException if not authorized.
+     */
+    @Transactional(readOnly = true)
+    public void validateRestaurantAccess(Long restaurantId, Long userId, boolean isAdminOrPlatform) {
+        if (isAdminOrPlatform) {
+            return; // Admin and Platform can access any restaurant
+        }
+
+        Restaurant restaurant = getRestaurantEntityById(restaurantId);
+        if (!restaurant.getOwner().getId().equals(userId)) {
+            log.warn("User {} attempted to access restaurant {} without ownership", userId, restaurantId);
+            throw new BusinessException("You don't have permission to access this restaurant");
+        }
+    }
+
+    /**
+     * Check if user has access to restaurant (owner or staff).
+     */
+    @Transactional(readOnly = true)
+    public boolean hasRestaurantAccess(Long restaurantId, Long userId) {
+        Restaurant restaurant = getRestaurantEntityById(restaurantId);
+        // Owner always has access
+        if (restaurant.getOwner().getId().equals(userId)) {
+            return true;
+        }
+        // TODO: Check if user is staff of this restaurant
+        // return restaurantStaffRepository.existsByRestaurantIdAndUserId(restaurantId, userId);
+        return false;
+    }
+
     private String generateUniqueSlug(String name) {
         String baseSlug = SlugUtils.toSlug(name);
         String slug = baseSlug;

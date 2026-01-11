@@ -1,9 +1,11 @@
 package com.fooddelivery.restaurant.controller;
 
+import com.fooddelivery.auth.security.UserPrincipal;
 import com.fooddelivery.common.dto.ApiResponse;
 import com.fooddelivery.common.dto.PagedResponse;
 import com.fooddelivery.restaurant.dto.*;
 import com.fooddelivery.restaurant.service.MenuService;
+import com.fooddelivery.restaurant.service.RestaurantService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -17,6 +19,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -33,6 +36,16 @@ import java.util.List;
 public class MenuController {
 
     private final MenuService menuService;
+    private final RestaurantService restaurantService;
+
+    /**
+     * Helper method to validate restaurant access.
+     */
+    private void validateAccess(Long restaurantId, UserPrincipal currentUser) {
+        boolean isAdminOrPlatform = currentUser.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ROLE_PLATFORM"));
+        restaurantService.validateRestaurantAccess(restaurantId, currentUser.getId(), isAdminOrPlatform);
+    }
 
     // ============== Public Endpoints ==============
 
@@ -101,9 +114,11 @@ public class MenuController {
     @SecurityRequirement(name = "bearerAuth")
     @Operation(summary = "Create category", description = "Create a new menu category")
     public ResponseEntity<ApiResponse<MenuCategoryDto>> createCategory(
+            @AuthenticationPrincipal UserPrincipal currentUser,
             @PathVariable Long restaurantId,
             @Valid @RequestBody CreateMenuCategoryRequest request) {
 
+        validateAccess(restaurantId, currentUser);
         MenuCategoryDto category = menuService.createCategory(restaurantId, request);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success("Category created successfully", category));
@@ -114,10 +129,12 @@ public class MenuController {
     @SecurityRequirement(name = "bearerAuth")
     @Operation(summary = "Update category", description = "Update a menu category")
     public ResponseEntity<ApiResponse<MenuCategoryDto>> updateCategory(
+            @AuthenticationPrincipal UserPrincipal currentUser,
             @PathVariable Long restaurantId,
             @PathVariable Long categoryId,
             @Valid @RequestBody CreateMenuCategoryRequest request) {
 
+        validateAccess(restaurantId, currentUser);
         MenuCategoryDto category = menuService.updateCategory(categoryId, request);
         return ResponseEntity.ok(ApiResponse.success("Category updated successfully", category));
     }
@@ -127,9 +144,11 @@ public class MenuController {
     @SecurityRequirement(name = "bearerAuth")
     @Operation(summary = "Delete category", description = "Delete a menu category (soft delete)")
     public ResponseEntity<ApiResponse<Void>> deleteCategory(
+            @AuthenticationPrincipal UserPrincipal currentUser,
             @PathVariable Long restaurantId,
             @PathVariable Long categoryId) {
 
+        validateAccess(restaurantId, currentUser);
         menuService.deleteCategory(categoryId);
         return ResponseEntity.ok(ApiResponse.success("Category deleted successfully"));
     }
@@ -139,9 +158,11 @@ public class MenuController {
     @SecurityRequirement(name = "bearerAuth")
     @Operation(summary = "Create item", description = "Create a new menu item")
     public ResponseEntity<ApiResponse<MenuItemDto>> createItem(
+            @AuthenticationPrincipal UserPrincipal currentUser,
             @PathVariable Long restaurantId,
             @Valid @RequestBody CreateMenuItemRequest request) {
 
+        validateAccess(restaurantId, currentUser);
         MenuItemDto item = menuService.createItem(restaurantId, request);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success("Menu item created successfully", item));
@@ -152,10 +173,12 @@ public class MenuController {
     @SecurityRequirement(name = "bearerAuth")
     @Operation(summary = "Update item", description = "Update a menu item")
     public ResponseEntity<ApiResponse<MenuItemDto>> updateItem(
+            @AuthenticationPrincipal UserPrincipal currentUser,
             @PathVariable Long restaurantId,
             @PathVariable Long itemId,
             @Valid @RequestBody CreateMenuItemRequest request) {
 
+        validateAccess(restaurantId, currentUser);
         MenuItemDto item = menuService.updateItem(itemId, request);
         return ResponseEntity.ok(ApiResponse.success("Menu item updated successfully", item));
     }
@@ -165,10 +188,12 @@ public class MenuController {
     @SecurityRequirement(name = "bearerAuth")
     @Operation(summary = "Update item stock", description = "Update menu item stock status")
     public ResponseEntity<ApiResponse<MenuItemDto>> updateItemStock(
+            @AuthenticationPrincipal UserPrincipal currentUser,
             @PathVariable Long restaurantId,
             @PathVariable Long itemId,
             @RequestParam Boolean inStock) {
 
+        validateAccess(restaurantId, currentUser);
         MenuItemDto item = menuService.updateItemStock(itemId, inStock);
         return ResponseEntity.ok(ApiResponse.success(
                 "Item is now " + (inStock ? "in stock" : "out of stock"), item));
@@ -179,9 +204,11 @@ public class MenuController {
     @SecurityRequirement(name = "bearerAuth")
     @Operation(summary = "Delete item", description = "Delete a menu item (soft delete)")
     public ResponseEntity<ApiResponse<Void>> deleteItem(
+            @AuthenticationPrincipal UserPrincipal currentUser,
             @PathVariable Long restaurantId,
             @PathVariable Long itemId) {
 
+        validateAccess(restaurantId, currentUser);
         menuService.deleteItem(itemId);
         return ResponseEntity.ok(ApiResponse.success("Menu item deleted successfully"));
     }
@@ -191,10 +218,12 @@ public class MenuController {
     @SecurityRequirement(name = "bearerAuth")
     @Operation(summary = "Upload item image", description = "Upload or update menu item image")
     public ResponseEntity<ApiResponse<MenuItemDto>> uploadItemImage(
+            @AuthenticationPrincipal UserPrincipal currentUser,
             @PathVariable Long restaurantId,
             @PathVariable Long itemId,
             @RequestParam("file") MultipartFile file) {
 
+        validateAccess(restaurantId, currentUser);
         log.info("Uploading image for menu item: {} in restaurant: {}", itemId, restaurantId);
         MenuItemDto item = menuService.updateItemImage(itemId, file);
         return ResponseEntity.ok(ApiResponse.success("Image uploaded successfully", item));
@@ -205,9 +234,11 @@ public class MenuController {
     @SecurityRequirement(name = "bearerAuth")
     @Operation(summary = "Delete item image", description = "Delete menu item image")
     public ResponseEntity<ApiResponse<MenuItemDto>> deleteItemImage(
+            @AuthenticationPrincipal UserPrincipal currentUser,
             @PathVariable Long restaurantId,
             @PathVariable Long itemId) {
 
+        validateAccess(restaurantId, currentUser);
         log.info("Deleting image for menu item: {} in restaurant: {}", itemId, restaurantId);
         MenuItemDto item = menuService.deleteItemImage(itemId);
         return ResponseEntity.ok(ApiResponse.success("Image deleted successfully", item));

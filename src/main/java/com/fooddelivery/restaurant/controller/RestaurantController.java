@@ -128,8 +128,14 @@ public class RestaurantController {
     @SecurityRequirement(name = "bearerAuth")
     @Operation(summary = "Update restaurant", description = "Update restaurant details")
     public ResponseEntity<ApiResponse<RestaurantDto>> updateRestaurant(
+            @AuthenticationPrincipal UserPrincipal currentUser,
             @PathVariable Long id,
             @Valid @RequestBody CreateRestaurantRequest request) {
+
+        // Validate ownership (Admin/Platform can update any restaurant)
+        boolean isAdminOrPlatform = currentUser.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ROLE_PLATFORM"));
+        restaurantService.validateRestaurantAccess(id, currentUser.getId(), isAdminOrPlatform);
 
         RestaurantDto restaurant = restaurantService.updateRestaurant(id, request);
         return ResponseEntity.ok(ApiResponse.success("Restaurant updated successfully", restaurant));
@@ -152,8 +158,14 @@ public class RestaurantController {
     @SecurityRequirement(name = "bearerAuth")
     @Operation(summary = "Toggle open status", description = "Toggle restaurant open/closed status")
     public ResponseEntity<ApiResponse<RestaurantDto>> toggleOpenStatus(
+            @AuthenticationPrincipal UserPrincipal currentUser,
             @PathVariable Long id,
             @RequestParam Boolean isOpen) {
+
+        // Validate ownership (Admin/Platform can toggle any restaurant)
+        boolean isAdminOrPlatform = currentUser.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ROLE_PLATFORM"));
+        restaurantService.validateRestaurantAccess(id, currentUser.getId(), isAdminOrPlatform);
 
         RestaurantDto restaurant = restaurantService.toggleOpenStatus(id, isOpen);
         return ResponseEntity.ok(ApiResponse.success(
