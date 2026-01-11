@@ -527,4 +527,51 @@ public class OrderService {
             default -> "";
         };
     }
+
+    // ============== Access Validation Methods ==============
+
+    /**
+     * Validate that user has access to the order.
+     * Consumer can only access their own orders.
+     * Restaurant owner/staff can access orders for their restaurants.
+     * Courier can access orders assigned to them.
+     * Admin/Platform can access all orders.
+     */
+    @Transactional(readOnly = true)
+    public void validateOrderAccess(Long orderId, Long userId, boolean isAdminOrPlatform,
+                                    boolean isRestaurantRole, boolean isCourier) {
+        if (isAdminOrPlatform) {
+            return; // Admin and Platform can access any order
+        }
+
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Order", "id", orderId));
+
+        // Consumer can access their own orders
+        if (order.getConsumer().getId().equals(userId)) {
+            return;
+        }
+
+        // Restaurant owner/staff can access orders for their restaurants
+        if (isRestaurantRole && restaurantService.isRestaurantOwner(order.getRestaurant().getId(), userId)) {
+            return;
+        }
+
+        // Courier can access orders assigned to them
+        if (isCourier && order.getCourier() != null && order.getCourier().getUser().getId().equals(userId)) {
+            return;
+        }
+
+        log.warn("User {} attempted to access order {} without permission", userId, orderId);
+        throw new BusinessException("You don't have permission to access this order");
+    }
+
+    /**
+     * Get order entity by ID (internal use with access check).
+     */
+    @Transactional(readOnly = true)
+    public Order getOrderEntityById(Long id) {
+        return orderRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Order", "id", id));
+    }
 }

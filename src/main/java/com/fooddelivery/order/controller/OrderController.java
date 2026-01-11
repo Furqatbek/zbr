@@ -6,6 +6,7 @@ import com.fooddelivery.common.dto.PagedResponse;
 import com.fooddelivery.order.dto.*;
 import com.fooddelivery.order.service.OrderService;
 import com.fooddelivery.order.service.PaymentService;
+import com.fooddelivery.restaurant.service.RestaurantService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -35,6 +36,30 @@ public class OrderController {
 
     private final OrderService orderService;
     private final PaymentService paymentService;
+    private final RestaurantService restaurantService;
+
+    /**
+     * Helper method to validate restaurant access for order endpoints.
+     */
+    private void validateRestaurantAccess(Long restaurantId, UserPrincipal currentUser) {
+        boolean isAdminOrPlatform = currentUser.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ROLE_PLATFORM"));
+        restaurantService.validateRestaurantAccess(restaurantId, currentUser.getId(), isAdminOrPlatform);
+    }
+
+    /**
+     * Helper method to validate order access based on user roles.
+     */
+    private void validateAccess(Long orderId, UserPrincipal currentUser) {
+        boolean isAdminOrPlatform = currentUser.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ROLE_PLATFORM"));
+        boolean isRestaurantRole = currentUser.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_RESTAURANT_OWNER") || a.getAuthority().equals("ROLE_RESTAURANT_STAFF"));
+        boolean isCourier = currentUser.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_COURIER"));
+
+        orderService.validateOrderAccess(orderId, currentUser.getId(), isAdminOrPlatform, isRestaurantRole, isCourier);
+    }
 
     @PostMapping
     @PreAuthorize("hasAnyRole('CONSUMER', 'PLATFORM', 'ADMIN')")
@@ -50,15 +75,24 @@ public class OrderController {
 
     @GetMapping("/{id}")
     @Operation(summary = "Get order by ID", description = "Get order details by ID")
-    public ResponseEntity<ApiResponse<OrderDto>> getOrderById(@PathVariable Long id) {
+    public ResponseEntity<ApiResponse<OrderDto>> getOrderById(
+            @AuthenticationPrincipal UserPrincipal currentUser,
+            @PathVariable Long id) {
+
+        validateAccess(id, currentUser);
         OrderDto order = orderService.getOrderById(id);
         return ResponseEntity.ok(ApiResponse.success(order));
     }
 
     @GetMapping("/number/{orderNo}")
     @Operation(summary = "Get order by number", description = "Get order details by external order number")
-    public ResponseEntity<ApiResponse<OrderDto>> getOrderByNumber(@PathVariable String orderNo) {
+    public ResponseEntity<ApiResponse<OrderDto>> getOrderByNumber(
+            @AuthenticationPrincipal UserPrincipal currentUser,
+            @PathVariable String orderNo) {
+
         OrderDto order = orderService.getOrderByExternalNo(orderNo);
+        // Validate access using order ID
+        validateAccess(order.getId(), currentUser);
         return ResponseEntity.ok(ApiResponse.success(order));
     }
 
@@ -76,9 +110,11 @@ public class OrderController {
     @PreAuthorize("hasAnyRole('RESTAURANT_OWNER', 'RESTAURANT_STAFF', 'PLATFORM', 'ADMIN')")
     @Operation(summary = "Get restaurant orders", description = "Get orders for a restaurant")
     public ResponseEntity<ApiResponse<PagedResponse<OrderDto>>> getRestaurantOrders(
+            @AuthenticationPrincipal UserPrincipal currentUser,
             @PathVariable Long restaurantId,
             @PageableDefault(size = 20) Pageable pageable) {
 
+        validateRestaurantAccess(restaurantId, currentUser);
         PagedResponse<OrderDto> orders = orderService.getOrdersByRestaurant(restaurantId, pageable);
         return ResponseEntity.ok(ApiResponse.success(orders));
     }
@@ -87,8 +123,10 @@ public class OrderController {
     @PreAuthorize("hasAnyRole('RESTAURANT_OWNER', 'RESTAURANT_STAFF', 'PLATFORM', 'ADMIN')")
     @Operation(summary = "Get active restaurant orders", description = "Get active orders for a restaurant")
     public ResponseEntity<ApiResponse<List<OrderDto>>> getActiveRestaurantOrders(
+            @AuthenticationPrincipal UserPrincipal currentUser,
             @PathVariable Long restaurantId) {
 
+        validateRestaurantAccess(restaurantId, currentUser);
         List<OrderDto> orders = orderService.getActiveOrdersForRestaurant(restaurantId);
         return ResponseEntity.ok(ApiResponse.success(orders));
     }
@@ -97,9 +135,11 @@ public class OrderController {
     @PreAuthorize("hasAnyRole('RESTAURANT_OWNER', 'RESTAURANT_STAFF', 'COURIER', 'PLATFORM', 'ADMIN')")
     @Operation(summary = "Update order status", description = "Update order status")
     public ResponseEntity<ApiResponse<OrderDto>> updateOrderStatus(
+            @AuthenticationPrincipal UserPrincipal currentUser,
             @PathVariable Long id,
             @Valid @RequestBody UpdateOrderStatusRequest request) {
 
+        validateAccess(id, currentUser);
         OrderDto order = orderService.updateOrderStatus(id, request);
         return ResponseEntity.ok(ApiResponse.success("Order status updated", order));
     }
@@ -111,6 +151,7 @@ public class OrderController {
             @AuthenticationPrincipal UserPrincipal currentUser,
             @Valid @RequestBody CancelOrderRequest request) {
 
+        validateAccess(id, currentUser);
         OrderDto order = orderService.cancelOrder(id, request, currentUser.getId());
         return ResponseEntity.ok(ApiResponse.success("Order cancelled", order));
     }
@@ -119,9 +160,11 @@ public class OrderController {
     @PostMapping("/{orderId}/payment")
     @Operation(summary = "Create payment", description = "Create a payment intent for an order")
     public ResponseEntity<ApiResponse<PaymentDto>> createPayment(
+            @AuthenticationPrincipal UserPrincipal currentUser,
             @PathVariable Long orderId,
             @Valid @RequestBody CreatePaymentRequest request) {
 
+        validateAccess(orderId, currentUser);
         PaymentDto payment = paymentService.createPaymentIntent(orderId, request);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success("Payment intent created", payment));
@@ -129,7 +172,11 @@ public class OrderController {
 
     @GetMapping("/{orderId}/payment")
     @Operation(summary = "Get payment", description = "Get payment details for an order")
-    public ResponseEntity<ApiResponse<PaymentDto>> getPayment(@PathVariable Long orderId) {
+    public ResponseEntity<ApiResponse<PaymentDto>> getPayment(
+            @AuthenticationPrincipal UserPrincipal currentUser,
+            @PathVariable Long orderId) {
+
+        validateAccess(orderId, currentUser);
         PaymentDto payment = paymentService.getPaymentByOrderId(orderId);
         return ResponseEntity.ok(ApiResponse.success(payment));
     }
