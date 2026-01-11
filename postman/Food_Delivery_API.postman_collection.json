@@ -3563,6 +3563,109 @@
           }
         }
       ]
+    },
+    {
+      "name": "Webhooks",
+      "description": "External webhook endpoints for payment provider callbacks. These endpoints are publicly accessible (no authentication required).",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/webhooks/health",
+              "host": ["{{base_url}}"],
+              "path": ["webhooks", "health"]
+            },
+            "description": "Verify webhook endpoint is reachable. Useful for payment provider configuration verification.\n\nNo authentication required."
+          }
+        },
+        {
+          "name": "Payment Webhook",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Stripe-Signature",
+                "value": "t=1234567890,v1=abc123...",
+                "description": "Stripe webhook signature (optional for testing)",
+                "disabled": true
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"id\": \"evt_test_123\",\n    \"type\": \"payment_intent.succeeded\",\n    \"api_version\": \"2023-10-16\",\n    \"created\": 1704067200,\n    \"data\": {\n        \"payment_intent_id\": \"pi_test_456\",\n        \"payment_id\": \"ch_test_789\",\n        \"amount\": 2999,\n        \"amount_decimal\": 29.99,\n        \"currency\": \"usd\",\n        \"status\": \"succeeded\",\n        \"payment_method_type\": \"card\",\n        \"customer_id\": \"cus_abc123\"\n    }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/webhooks/payments",
+              "host": ["{{base_url}}"],
+              "path": ["webhooks", "payments"]
+            },
+            "description": "Receives payment event notifications from the payment provider (Stripe).\n\nSupported events:\n- payment_intent.succeeded\n- payment_intent.payment_failed\n- charge.refunded\n\nNo authentication required (validated via Stripe-Signature header in production)."
+          }
+        },
+        {
+          "name": "Payment Failed Webhook",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"id\": \"evt_test_failed_123\",\n    \"type\": \"payment_intent.payment_failed\",\n    \"api_version\": \"2023-10-16\",\n    \"created\": 1704067200,\n    \"data\": {\n        \"payment_intent_id\": \"pi_test_456\",\n        \"payment_id\": \"ch_test_789\",\n        \"amount\": 2999,\n        \"currency\": \"usd\",\n        \"status\": \"failed\",\n        \"error_code\": \"card_declined\",\n        \"error_message\": \"Your card was declined.\"\n    }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/webhooks/payments",
+              "host": ["{{base_url}}"],
+              "path": ["webhooks", "payments"]
+            },
+            "description": "Test payment failure webhook event.\n\nNo authentication required."
+          }
+        },
+        {
+          "name": "Refund Webhook",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"id\": \"evt_refund_123\",\n    \"type\": \"refund.succeeded\",\n    \"api_version\": \"2023-10-16\",\n    \"created\": 1704067200,\n    \"data\": {\n        \"payment_id\": \"ch_test_789\",\n        \"amount\": 2999,\n        \"currency\": \"usd\",\n        \"status\": \"succeeded\"\n    }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/webhooks/refund",
+              "host": ["{{base_url}}"],
+              "path": ["webhooks", "refund"]
+            },
+            "description": "Receives refund event notifications from the payment provider.\n\nNo authentication required."
+          }
+        }
+      ]
     }
   ]
 }
