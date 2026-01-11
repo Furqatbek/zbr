@@ -114,7 +114,7 @@ server:
 
 # JWT Configuration
 jwt:
-  secret: ${JWT_SECRET:your-256-bit-secret-key-for-jwt-signing-minimum-32-chars}
+  secret: ${JWT_SECRET:K8mX2sP4vQ9wE1rT6yU0iO3aS7dF5gH2jL4zN6bV8cM0}
   access-token:
     expiration: ${JWT_ACCESS_EXPIRATION:900000} # 15 minutes in ms
   refresh-token:
