@@ -22,8 +22,19 @@ INSERT INTO users (email, password_hash, first_name, last_name, phone, role, sta
 VALUES ('courier@fooddelivery.com', '$2a$12$VOI3I3JDdZyxdFeKh55p.upfoSP.FJVVok.qcXr1zFBGRiFfYr1He', 'Fast', 'Eddie', '+1234567894', 'COURIER', 'ACTIVE', true);
 
 -- Populate user_roles junction table
+-- Admin gets ALL roles for full system access
 INSERT INTO user_roles (user_id, role)
 SELECT id, 'ADMIN' FROM users WHERE email = 'admin@fooddelivery.com';
+INSERT INTO user_roles (user_id, role)
+SELECT id, 'PLATFORM' FROM users WHERE email = 'admin@fooddelivery.com';
+INSERT INTO user_roles (user_id, role)
+SELECT id, 'RESTAURANT_OWNER' FROM users WHERE email = 'admin@fooddelivery.com';
+INSERT INTO user_roles (user_id, role)
+SELECT id, 'RESTAURANT_STAFF' FROM users WHERE email = 'admin@fooddelivery.com';
+INSERT INTO user_roles (user_id, role)
+SELECT id, 'COURIER' FROM users WHERE email = 'admin@fooddelivery.com';
+INSERT INTO user_roles (user_id, role)
+SELECT id, 'CONSUMER' FROM users WHERE email = 'admin@fooddelivery.com';
 
 INSERT INTO user_roles (user_id, role)
 SELECT id, 'PLATFORM' FROM users WHERE email = 'platform@fooddelivery.com';
