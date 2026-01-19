@@ -234,6 +234,157 @@ public class CourierService {
                 .toList());
     }
 
+    /**
+     * Get pending couriers awaiting approval.
+     */
+    @Transactional(readOnly = true)
+    public PagedResponse<CourierDto> getPendingCouriers(Pageable pageable) {
+        Page<Courier> couriers = courierRepository.findPendingApproval(pageable);
+        return PagedResponse.from(couriers, couriers.getContent().stream()
+                .map(this::toDto)
+                .toList());
+    }
+
+    /**
+     * Get couriers by status.
+     */
+    @Transactional(readOnly = true)
+    public PagedResponse<CourierDto> getCouriersByStatus(CourierStatus status, Pageable pageable) {
+        Page<Courier> couriers = courierRepository.findByStatus(status, pageable);
+        return PagedResponse.from(couriers, couriers.getContent().stream()
+                .map(this::toDto)
+                .toList());
+    }
+
+    /**
+     * Get all online couriers with location data (for map display).
+     */
+    @Transactional(readOnly = true)
+    public List<CourierDto> getOnlineCouriers() {
+        List<Courier> couriers = courierRepository.findOnlineCouriersWithLocation();
+        return couriers.stream().map(this::toDto).toList();
+    }
+
+    /**
+     * Reject a pending courier application.
+     */
+    @Transactional
+    @Auditable(action = "REJECT_COURIER", entityType = "Courier")
+    public CourierDto rejectCourier(Long courierId, String reason) {
+        Courier courier = courierRepository.findById(courierId)
+                .orElseThrow(() -> new ResourceNotFoundException("Courier", "id", courierId));
+
+        if (courier.getStatus() != CourierStatus.PENDING_APPROVAL) {
+            throw new BusinessException("Only pending couriers can be rejected");
+        }
+
+        courier.setStatus(CourierStatus.SUSPENDED);
+        courier.setVerified(false);
+        courier = courierRepository.save(courier);
+
+        log.info("Courier {} rejected. Reason: {}", courierId, reason);
+        return toDto(courier);
+    }
+
+    /**
+     * Suspend a courier.
+     */
+    @Transactional
+    @Auditable(action = "SUSPEND_COURIER", entityType = "Courier")
+    public CourierDto suspendCourier(Long courierId, String reason) {
+        Courier courier = courierRepository.findById(courierId)
+                .orElseThrow(() -> new ResourceNotFoundException("Courier", "id", courierId));
+
+        if (courier.getStatus() == CourierStatus.SUSPENDED) {
+            throw new BusinessException("Courier is already suspended");
+        }
+
+        courier.setStatus(CourierStatus.SUSPENDED);
+        courier = courierRepository.save(courier);
+
+        log.info("Courier {} suspended. Reason: {}", courierId, reason);
+        return toDto(courier);
+    }
+
+    /**
+     * Activate/reactivate a courier.
+     */
+    @Transactional
+    @Auditable(action = "ACTIVATE_COURIER", entityType = "Courier")
+    public CourierDto activateCourier(Long courierId) {
+        Courier courier = courierRepository.findById(courierId)
+                .orElseThrow(() -> new ResourceNotFoundException("Courier", "id", courierId));
+
+        if (courier.getStatus() != CourierStatus.SUSPENDED &&
+            courier.getStatus() != CourierStatus.PENDING_APPROVAL) {
+            throw new BusinessException("Only suspended or pending couriers can be activated");
+        }
+
+        courier.setStatus(CourierStatus.OFFLINE);
+        courier.setVerified(true);
+        courier.setVerifiedAt(java.time.LocalDateTime.now());
+        courier = courierRepository.save(courier);
+
+        log.info("Courier {} activated", courierId);
+        return toDto(courier);
+    }
+
+    /**
+     * Update courier profile (admin).
+     */
+    @Transactional
+    @Auditable(action = "UPDATE_COURIER", entityType = "Courier")
+    public CourierDto updateCourierProfile(Long courierId, UpdateCourierRequest request) {
+        Courier courier = courierRepository.findById(courierId)
+                .orElseThrow(() -> new ResourceNotFoundException("Courier", "id", courierId));
+
+        if (request.getVehicleType() != null) {
+            courier.setVehicleType(request.getVehicleType());
+        }
+        if (request.getVehicleNumber() != null) {
+            courier.setVehicleNumber(request.getVehicleNumber());
+        }
+        if (request.getLicenseNumber() != null) {
+            courier.setLicenseNumber(request.getLicenseNumber());
+        }
+        if (request.getPreferredRadiusKm() != null) {
+            courier.setPreferredRadiusKm(request.getPreferredRadiusKm());
+        }
+        if (request.getMaxConcurrentOrders() != null) {
+            courier.setMaxConcurrentOrders(request.getMaxConcurrentOrders());
+        }
+
+        courier = courierRepository.save(courier);
+        log.info("Courier {} profile updated", courierId);
+        return toDto(courier);
+    }
+
+    /**
+     * Get courier statistics.
+     */
+    @Transactional(readOnly = true)
+    public CourierStatisticsDto getCourierStatistics() {
+        long totalCouriers = courierRepository.count();
+        long pendingCouriers = courierRepository.countByStatus(CourierStatus.PENDING_APPROVAL);
+        long onlineCouriers = courierRepository.countByStatus(CourierStatus.AVAILABLE) +
+                              courierRepository.countByStatus(CourierStatus.BUSY);
+        long offlineCouriers = courierRepository.countByStatus(CourierStatus.OFFLINE);
+        long suspendedCouriers = courierRepository.countByStatus(CourierStatus.SUSPENDED);
+        long verifiedCouriers = courierRepository.countByVerified(true);
+
+        return CourierStatisticsDto.builder()
+                .totalCouriers(totalCouriers)
+                .pendingApproval(pendingCouriers)
+                .online(onlineCouriers)
+                .offline(offlineCouriers)
+                .suspended(suspendedCouriers)
+                .verified(verifiedCouriers)
+                .available(courierRepository.countByStatus(CourierStatus.AVAILABLE))
+                .busy(courierRepository.countByStatus(CourierStatus.BUSY))
+                .onBreak(courierRepository.countByStatus(CourierStatus.ON_BREAK))
+                .build();
+    }
+
     private void broadcastLocation(Courier courier) {
         try {
             CourierLocationDto location = CourierLocationDto.builder()

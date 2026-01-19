@@ -4,7 +4,9 @@ import com.fooddelivery.auth.security.UserPrincipal;
 import com.fooddelivery.common.dto.ApiResponse;
 import com.fooddelivery.common.dto.PagedResponse;
 import com.fooddelivery.courier.dto.CourierDto;
+import com.fooddelivery.courier.dto.CourierStatisticsDto;
 import com.fooddelivery.courier.dto.CreateCourierRequest;
+import com.fooddelivery.courier.dto.UpdateCourierRequest;
 import com.fooddelivery.courier.entity.CourierStatus;
 import com.fooddelivery.courier.service.CourierService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -128,5 +130,88 @@ public class CourierController {
     public ResponseEntity<ApiResponse<CourierDto>> verifyCourier(@PathVariable Long courierId) {
         CourierDto courier = courierService.verifyCourier(courierId);
         return ResponseEntity.ok(ApiResponse.success("Courier verified", courier));
+    }
+
+    // ===== Platform/Admin Courier Management =====
+
+    @GetMapping("/{courierId}")
+    @PreAuthorize("hasAnyRole('PLATFORM', 'ADMIN')")
+    @Operation(summary = "Get courier by ID", description = "Get a specific courier by ID")
+    public ResponseEntity<ApiResponse<CourierDto>> getCourierById(@PathVariable Long courierId) {
+        CourierDto courier = courierService.getCourierById(courierId);
+        return ResponseEntity.ok(ApiResponse.success(courier));
+    }
+
+    @GetMapping("/pending")
+    @PreAuthorize("hasAnyRole('PLATFORM', 'ADMIN')")
+    @Operation(summary = "Get pending couriers", description = "Get all couriers awaiting approval")
+    public ResponseEntity<ApiResponse<PagedResponse<CourierDto>>> getPendingCouriers(
+            @PageableDefault(size = 20) Pageable pageable) {
+        PagedResponse<CourierDto> couriers = courierService.getPendingCouriers(pageable);
+        return ResponseEntity.ok(ApiResponse.success(couriers));
+    }
+
+    @GetMapping("/online")
+    @PreAuthorize("hasAnyRole('PLATFORM', 'ADMIN')")
+    @Operation(summary = "Get online couriers", description = "Get all online couriers with location data (for map display)")
+    public ResponseEntity<ApiResponse<List<CourierDto>>> getOnlineCouriers() {
+        List<CourierDto> couriers = courierService.getOnlineCouriers();
+        return ResponseEntity.ok(ApiResponse.success(couriers));
+    }
+
+    @GetMapping("/by-status/{status}")
+    @PreAuthorize("hasAnyRole('PLATFORM', 'ADMIN')")
+    @Operation(summary = "Get couriers by status", description = "Get all couriers with a specific status")
+    public ResponseEntity<ApiResponse<PagedResponse<CourierDto>>> getCouriersByStatus(
+            @PathVariable CourierStatus status,
+            @PageableDefault(size = 20) Pageable pageable) {
+        PagedResponse<CourierDto> couriers = courierService.getCouriersByStatus(status, pageable);
+        return ResponseEntity.ok(ApiResponse.success(couriers));
+    }
+
+    @GetMapping("/statistics")
+    @PreAuthorize("hasAnyRole('PLATFORM', 'ADMIN')")
+    @Operation(summary = "Get courier statistics", description = "Get courier statistics for dashboard")
+    public ResponseEntity<ApiResponse<CourierStatisticsDto>> getCourierStatistics() {
+        CourierStatisticsDto stats = courierService.getCourierStatistics();
+        return ResponseEntity.ok(ApiResponse.success(stats));
+    }
+
+    @PostMapping("/{courierId}/reject")
+    @PreAuthorize("hasAnyRole('PLATFORM', 'ADMIN')")
+    @Operation(summary = "Reject courier", description = "Reject a pending courier application")
+    public ResponseEntity<ApiResponse<CourierDto>> rejectCourier(
+            @PathVariable Long courierId,
+            @RequestParam(required = false) String reason) {
+        CourierDto courier = courierService.rejectCourier(courierId, reason);
+        return ResponseEntity.ok(ApiResponse.success("Courier rejected", courier));
+    }
+
+    @PostMapping("/{courierId}/suspend")
+    @PreAuthorize("hasAnyRole('PLATFORM', 'ADMIN')")
+    @Operation(summary = "Suspend courier", description = "Suspend a courier account")
+    public ResponseEntity<ApiResponse<CourierDto>> suspendCourier(
+            @PathVariable Long courierId,
+            @RequestParam(required = false) String reason) {
+        CourierDto courier = courierService.suspendCourier(courierId, reason);
+        return ResponseEntity.ok(ApiResponse.success("Courier suspended", courier));
+    }
+
+    @PostMapping("/{courierId}/activate")
+    @PreAuthorize("hasAnyRole('PLATFORM', 'ADMIN')")
+    @Operation(summary = "Activate courier", description = "Activate/reactivate a suspended or pending courier")
+    public ResponseEntity<ApiResponse<CourierDto>> activateCourier(@PathVariable Long courierId) {
+        CourierDto courier = courierService.activateCourier(courierId);
+        return ResponseEntity.ok(ApiResponse.success("Courier activated", courier));
+    }
+
+    @PutMapping("/{courierId}")
+    @PreAuthorize("hasAnyRole('PLATFORM', 'ADMIN')")
+    @Operation(summary = "Update courier profile", description = "Update a courier's profile (admin)")
+    public ResponseEntity<ApiResponse<CourierDto>> updateCourierProfile(
+            @PathVariable Long courierId,
+            @Valid @RequestBody UpdateCourierRequest request) {
+        CourierDto courier = courierService.updateCourierProfile(courierId, request);
+        return ResponseEntity.ok(ApiResponse.success("Courier profile updated", courier));
     }
 }

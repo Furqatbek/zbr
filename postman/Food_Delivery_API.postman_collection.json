@@ -1572,6 +1572,143 @@
             },
             "description": "Verify a courier after document review.\n\nChanges courier status from PENDING_APPROVAL to AVAILABLE.\n\nRoles: PLATFORM, ADMIN"
           }
+        },
+        {
+          "name": "Get Courier by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/couriers/1",
+              "host": ["{{base_url}}"],
+              "path": ["couriers", "1"]
+            },
+            "description": "Get a specific courier by ID.\n\nRoles: PLATFORM, ADMIN"
+          }
+        },
+        {
+          "name": "Get Pending Couriers",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/couriers/pending?page=0&size=20",
+              "host": ["{{base_url}}"],
+              "path": ["couriers", "pending"],
+              "query": [
+                {"key": "page", "value": "0"},
+                {"key": "size", "value": "20"}
+              ]
+            },
+            "description": "Get all couriers awaiting approval.\n\nRoles: PLATFORM, ADMIN"
+          }
+        },
+        {
+          "name": "Get Online Couriers (Map)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/couriers/online",
+              "host": ["{{base_url}}"],
+              "path": ["couriers", "online"]
+            },
+            "description": "Get all online couriers with location data for map display.\n\nReturns couriers with status AVAILABLE or BUSY.\n\nRoles: PLATFORM, ADMIN"
+          }
+        },
+        {
+          "name": "Get Couriers by Status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/couriers/by-status/SUSPENDED?page=0&size=20",
+              "host": ["{{base_url}}"],
+              "path": ["couriers", "by-status", "SUSPENDED"],
+              "query": [
+                {"key": "page", "value": "0"},
+                {"key": "size", "value": "20"}
+              ]
+            },
+            "description": "Get couriers by status.\n\nStatuses: OFFLINE, AVAILABLE, BUSY, ON_BREAK, SUSPENDED, PENDING_APPROVAL\n\nRoles: PLATFORM, ADMIN"
+          }
+        },
+        {
+          "name": "Get Courier Statistics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/couriers/statistics",
+              "host": ["{{base_url}}"],
+              "path": ["couriers", "statistics"]
+            },
+            "description": "Get courier statistics for dashboard.\n\nReturns total, pending, online, offline, suspended, verified counts.\n\nRoles: PLATFORM, ADMIN"
+          }
+        },
+        {
+          "name": "Reject Courier",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/couriers/1/reject?reason=Documents not valid",
+              "host": ["{{base_url}}"],
+              "path": ["couriers", "1", "reject"],
+              "query": [
+                {"key": "reason", "value": "Documents not valid", "description": "Rejection reason (optional)"}
+              ]
+            },
+            "description": "Reject a pending courier application.\n\nRoles: PLATFORM, ADMIN"
+          }
+        },
+        {
+          "name": "Suspend Courier",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/couriers/1/suspend?reason=Policy violation",
+              "host": ["{{base_url}}"],
+              "path": ["couriers", "1", "suspend"],
+              "query": [
+                {"key": "reason", "value": "Policy violation", "description": "Suspension reason (optional)"}
+              ]
+            },
+            "description": "Suspend a courier account.\n\nRoles: PLATFORM, ADMIN"
+          }
+        },
+        {
+          "name": "Activate Courier",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/couriers/1/activate",
+              "host": ["{{base_url}}"],
+              "path": ["couriers", "1", "activate"]
+            },
+            "description": "Activate/reactivate a suspended or pending courier.\n\nRoles: PLATFORM, ADMIN"
+          }
+        },
+        {
+          "name": "Update Courier Profile (Admin)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"vehicleType\": \"CAR\",\n    \"vehicleNumber\": \"01B456CD\",\n    \"licenseNumber\": \"DL98765432\",\n    \"preferredRadiusKm\": 15,\n    \"maxConcurrentOrders\": 5\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/couriers/1",
+              "host": ["{{base_url}}"],
+              "path": ["couriers", "1"]
+            },
+            "description": "Update a courier's profile.\n\nAll fields are optional.\n\nRoles: PLATFORM, ADMIN"
+          }
         }
       ]
     },

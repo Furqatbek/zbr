@@ -17,7 +17,8 @@ Courier management and delivery operations for the Food Delivery Platform.
 3. [Status & Location](#3-status--location)
 4. [Order Operations](#4-order-operations)
 5. [Admin Operations](#5-admin-operations)
-6. [Enumerations](#enumerations)
+6. [Platform Management](#6-platform-management)
+7. [Enumerations](#enumerations)
 
 ---
 
@@ -338,6 +339,321 @@ Verify a courier after document review.
     "id": 1,
     "status": "OFFLINE",
     "isVerified": true,
+    ...
+  }
+}
+```
+
+**Roles:** PLATFORM, ADMIN
+
+---
+
+## 6. Platform Management
+
+### Get Courier by ID
+
+**GET** `/{courierId}`
+
+Get a specific courier by ID.
+
+**Path Parameters:**
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| courierId | Long | Courier ID |
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "data": {
+    "id": 1,
+    "userId": 100,
+    "userName": "John Courier",
+    "email": "courier@example.com",
+    "phone": "+1234567890",
+    "vehicleType": "MOTORCYCLE",
+    "vehicleNumber": "01A123BC",
+    "status": "AVAILABLE",
+    "verified": true,
+    "totalDeliveries": 150,
+    "averageRating": 4.8,
+    "currentLat": 41.2995,
+    "currentLng": 69.2401,
+    "currentOrderCount": 1
+  }
+}
+```
+
+**Roles:** PLATFORM, ADMIN
+
+---
+
+### Get Pending Couriers
+
+**GET** `/pending`
+
+Get all couriers awaiting approval.
+
+**Query Parameters:**
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| page | int | 0 | Page number |
+| size | int | 20 | Page size |
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "data": {
+    "content": [
+      {
+        "id": 5,
+        "userName": "New Courier",
+        "email": "newcourier@example.com",
+        "vehicleType": "MOTORCYCLE",
+        "status": "PENDING_APPROVAL",
+        "verified": false,
+        "createdAt": "2024-01-15T10:00:00"
+      }
+    ],
+    "page": 0,
+    "size": 20,
+    "totalElements": 3,
+    "totalPages": 1
+  }
+}
+```
+
+**Roles:** PLATFORM, ADMIN
+
+---
+
+### Get Online Couriers (Map View)
+
+**GET** `/online`
+
+Get all online couriers with location data for map display.
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": 1,
+      "userName": "John Courier",
+      "vehicleType": "MOTORCYCLE",
+      "status": "AVAILABLE",
+      "currentLat": 41.2995,
+      "currentLng": 69.2401,
+      "currentOrderCount": 0
+    },
+    {
+      "id": 2,
+      "userName": "Jane Rider",
+      "vehicleType": "BICYCLE",
+      "status": "BUSY",
+      "currentLat": 41.3100,
+      "currentLng": 69.2500,
+      "currentOrderCount": 2
+    }
+  ]
+}
+```
+
+**Roles:** PLATFORM, ADMIN
+
+---
+
+### Get Couriers by Status
+
+**GET** `/by-status/{status}`
+
+Get all couriers with a specific status.
+
+**Path Parameters:**
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| status | CourierStatus | Status to filter by |
+
+**Query Parameters:**
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| page | int | 0 | Page number |
+| size | int | 20 | Page size |
+
+**Example:**
+```
+GET /couriers/by-status/SUSPENDED?page=0&size=20
+```
+
+**Roles:** PLATFORM, ADMIN
+
+---
+
+### Get Courier Statistics
+
+**GET** `/statistics`
+
+Get courier statistics for dashboard.
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "data": {
+    "totalCouriers": 150,
+    "pendingApproval": 5,
+    "online": 45,
+    "offline": 80,
+    "suspended": 3,
+    "verified": 142,
+    "available": 30,
+    "busy": 15,
+    "onBreak": 5
+  }
+}
+```
+
+**Roles:** PLATFORM, ADMIN
+
+---
+
+### Reject Courier
+
+**POST** `/{courierId}/reject`
+
+Reject a pending courier application.
+
+**Path Parameters:**
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| courierId | Long | Courier ID to reject |
+
+**Query Parameters:**
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| reason | string | No | Rejection reason |
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "message": "Courier rejected",
+  "data": {
+    "id": 5,
+    "status": "SUSPENDED",
+    "verified": false,
+    ...
+  }
+}
+```
+
+**Roles:** PLATFORM, ADMIN
+
+---
+
+### Suspend Courier
+
+**POST** `/{courierId}/suspend`
+
+Suspend a courier account.
+
+**Path Parameters:**
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| courierId | Long | Courier ID to suspend |
+
+**Query Parameters:**
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| reason | string | No | Suspension reason |
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "message": "Courier suspended",
+  "data": {
+    "id": 1,
+    "status": "SUSPENDED",
+    ...
+  }
+}
+```
+
+**Roles:** PLATFORM, ADMIN
+
+---
+
+### Activate Courier
+
+**POST** `/{courierId}/activate`
+
+Activate/reactivate a suspended or pending courier.
+
+**Path Parameters:**
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| courierId | Long | Courier ID to activate |
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "message": "Courier activated",
+  "data": {
+    "id": 1,
+    "status": "OFFLINE",
+    "verified": true,
+    ...
+  }
+}
+```
+
+**Roles:** PLATFORM, ADMIN
+
+---
+
+### Update Courier Profile
+
+**PUT** `/{courierId}`
+
+Update a courier's profile (admin).
+
+**Path Parameters:**
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| courierId | Long | Courier ID |
+
+**Request Body:**
+```json
+{
+  "vehicleType": "CAR",
+  "vehicleNumber": "01B456CD",
+  "licenseNumber": "DL98765432",
+  "preferredRadiusKm": 15,
+  "maxConcurrentOrders": 5
+}
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| vehicleType | VehicleType | No | New vehicle type |
+| vehicleNumber | string | No | New vehicle number |
+| licenseNumber | string | No | New license number |
+| preferredRadiusKm | int | No | Preferred delivery radius |
+| maxConcurrentOrders | int | No | Max concurrent orders |
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "message": "Courier profile updated",
+  "data": {
+    "id": 1,
+    "vehicleType": "CAR",
+    "vehicleNumber": "01B456CD",
     ...
   }
 }

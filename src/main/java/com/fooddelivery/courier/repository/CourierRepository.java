@@ -58,4 +58,34 @@ public interface CourierRepository extends JpaRepository<Courier, Long> {
 
     @Query("SELECT COUNT(c) FROM Courier c WHERE c.status = :status")
     long countByStatus(@Param("status") CourierStatus status);
+
+    /**
+     * Find all online couriers (AVAILABLE or BUSY).
+     */
+    @Query("SELECT c FROM Courier c WHERE c.status IN ('AVAILABLE', 'BUSY') AND c.verified = true")
+    List<Courier> findOnlineCouriers();
+
+    /**
+     * Find all pending approval couriers.
+     */
+    @Query("SELECT c FROM Courier c WHERE c.status = 'PENDING_APPROVAL'")
+    Page<Courier> findPendingApproval(Pageable pageable);
+
+    /**
+     * Find couriers by multiple statuses.
+     */
+    @Query("SELECT c FROM Courier c WHERE c.status IN :statuses")
+    Page<Courier> findByStatusIn(@Param("statuses") List<CourierStatus> statuses, Pageable pageable);
+
+    /**
+     * Count couriers by verified status.
+     */
+    long countByVerified(boolean verified);
+
+    /**
+     * Find couriers with location data for map display.
+     */
+    @Query("SELECT c FROM Courier c WHERE c.status IN ('AVAILABLE', 'BUSY') " +
+            "AND c.verified = true AND c.currentLat IS NOT NULL AND c.currentLng IS NOT NULL")
+    List<Courier> findOnlineCouriersWithLocation();
 }
