@@ -17,8 +17,10 @@ Notification management for the Food Delivery Platform. Provides endpoints for c
 3. [Update Operations](#3-update-operations)
 4. [Delete Operations](#4-delete-operations)
 5. [Admin Operations](#5-admin-operations)
-6. [Enumerations](#enumerations)
-7. [Caching & Performance](#caching--performance)
+6. [Reference Data Endpoints](#6-reference-data-endpoints)
+7. [Template Management](#7-template-management)
+8. [Enumerations](#enumerations)
+9. [Caching & Performance](#caching--performance)
 
 ---
 
@@ -468,6 +470,308 @@ Remove old read notifications.
 {
   "status": "success",
   "deletedCount": 1500
+}
+```
+
+**Roles:** ADMIN
+
+---
+
+## 6. Reference Data Endpoints
+
+### Get Notification Types
+
+**GET** `/types`
+
+Get all available notification types with their display names and default settings.
+
+**Response (200):**
+```json
+[
+  {
+    "value": "ORDER_CREATED",
+    "displayName": "Order Created",
+    "defaultCategory": "ORDER",
+    "defaultPriority": "NORMAL"
+  },
+  {
+    "value": "PAYMENT_FAILED",
+    "displayName": "Payment Failed",
+    "defaultCategory": "FINANCE",
+    "defaultPriority": "URGENT"
+  }
+]
+```
+
+---
+
+### Get Notification Roles
+
+**GET** `/roles`
+
+Get all available notification roles with their display names.
+
+**Response (200):**
+```json
+[
+  {
+    "value": "CUSTOMER",
+    "displayName": "Customer"
+  },
+  {
+    "value": "COURIER",
+    "displayName": "Courier"
+  },
+  {
+    "value": "RESTAURANT",
+    "displayName": "Restaurant"
+  }
+]
+```
+
+---
+
+### Get Notification Categories
+
+**GET** `/categories`
+
+Get all available notification categories with their display names and codes.
+
+**Response (200):**
+```json
+[
+  {
+    "value": "ORDER",
+    "displayName": "Order Updates",
+    "code": "order"
+  },
+  {
+    "value": "FINANCE",
+    "displayName": "Financial",
+    "code": "finance"
+  }
+]
+```
+
+---
+
+### Get Notification Priorities
+
+**GET** `/priorities`
+
+Get all available notification priorities with their display names and weights.
+
+**Response (200):**
+```json
+[
+  {
+    "value": "LOW",
+    "displayName": "Low",
+    "weight": 1,
+    "requiresImmediateDisplay": false
+  },
+  {
+    "value": "URGENT",
+    "displayName": "Urgent",
+    "weight": 4,
+    "requiresImmediateDisplay": true
+  }
+]
+```
+
+---
+
+### Get All Reference Data
+
+**GET** `/reference-data`
+
+Get all notification reference data (types, roles, categories, priorities) in a single call.
+
+**Response (200):**
+```json
+{
+  "types": [...],
+  "roles": [...],
+  "categories": [...],
+  "priorities": [...]
+}
+```
+
+---
+
+## 7. Template Management
+
+### Get All Templates
+
+**GET** `/templates`
+
+Get all notification templates.
+
+**Query Parameters:**
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| activeOnly | Boolean | false | Return only active templates |
+
+**Response (200):**
+```json
+[
+  {
+    "id": 1,
+    "notificationType": "ORDER_CREATED",
+    "role": "CUSTOMER",
+    "titleTemplate": "Order #{orderId} Created",
+    "messageTemplate": "Your order has been placed successfully. We'll notify you when the restaurant confirms it.",
+    "icon": "shopping-bag",
+    "actionUrlTemplate": "/orders/{orderId}",
+    "active": true,
+    "defaultTtlHours": 720,
+    "createdAt": "2024-01-15T10:00:00",
+    "updatedAt": null
+  }
+]
+```
+
+---
+
+### Get Template by ID
+
+**GET** `/templates/{id}`
+
+Get a specific notification template by its ID.
+
+**Response (200):**
+```json
+{
+  "id": 1,
+  "notificationType": "ORDER_CREATED",
+  "role": "CUSTOMER",
+  "titleTemplate": "Order #{orderId} Created",
+  "messageTemplate": "Your order has been placed successfully.",
+  "icon": "shopping-bag",
+  "actionUrlTemplate": "/orders/{orderId}",
+  "active": true,
+  "defaultTtlHours": 720
+}
+```
+
+---
+
+### Get Templates by Type
+
+**GET** `/templates/by-type/{type}`
+
+Get all templates for a specific notification type.
+
+**Path Parameters:**
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| type | NotificationType | The notification type |
+
+---
+
+### Get Templates by Role
+
+**GET** `/templates/by-role/{role}`
+
+Get all templates for a specific role.
+
+**Path Parameters:**
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| role | NotificationRole | The target role |
+
+---
+
+### Get Template by Type and Role
+
+**GET** `/templates/by-type-and-role`
+
+Get a specific template for a notification type and role combination.
+
+**Query Parameters:**
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| type | NotificationType | Yes | The notification type |
+| role | NotificationRole | Yes | The target role |
+
+---
+
+### Create Template
+
+**POST** `/templates`
+
+Create a new notification template.
+
+**Request Body:**
+```json
+{
+  "notificationType": "ORDER_DELIVERED",
+  "role": "CUSTOMER",
+  "titleTemplate": "Order #{orderId} Delivered!",
+  "messageTemplate": "Your order has been delivered. Enjoy your meal! Rate your experience.",
+  "icon": "check-circle",
+  "actionUrlTemplate": "/orders/{orderId}/rate",
+  "active": true,
+  "defaultTtlHours": 168
+}
+```
+
+**Response (201):** Created template
+
+**Response (409):** Template for type/role combination already exists
+
+**Roles:** ADMIN
+
+---
+
+### Update Template
+
+**PUT** `/templates/{id}`
+
+Update an existing notification template.
+
+**Request Body:**
+```json
+{
+  "titleTemplate": "Order #{orderId} Delivered Successfully!",
+  "messageTemplate": "Your order has arrived. We hope you enjoy it!",
+  "icon": "check-circle",
+  "actionUrlTemplate": "/orders/{orderId}/rate",
+  "active": true,
+  "defaultTtlHours": 168
+}
+```
+
+**Response (200):** Updated template
+
+**Roles:** ADMIN
+
+---
+
+### Delete Template
+
+**DELETE** `/templates/{id}`
+
+Delete a notification template.
+
+**Response:** 204 No Content
+
+**Roles:** ADMIN
+
+---
+
+### Toggle Template Active Status
+
+**PATCH** `/templates/{id}/toggle-active`
+
+Toggle the active status of a notification template.
+
+**Response (200):**
+```json
+{
+  "id": 1,
+  "active": false,
+  ...
 }
 ```
 

@@ -3561,6 +3561,207 @@
             },
             "description": "Remove old read notifications.\n\nRoles: ADMIN only"
           }
+        },
+        {
+          "name": "Get Notification Types",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/notifications/types",
+              "host": ["{{base_url}}"],
+              "path": ["notifications", "types"]
+            },
+            "description": "Get all available notification types with their display names, default category, and default priority."
+          }
+        },
+        {
+          "name": "Get Notification Roles",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/notifications/roles",
+              "host": ["{{base_url}}"],
+              "path": ["notifications", "roles"]
+            },
+            "description": "Get all available notification roles with their display names."
+          }
+        },
+        {
+          "name": "Get Notification Categories",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/notifications/categories",
+              "host": ["{{base_url}}"],
+              "path": ["notifications", "categories"]
+            },
+            "description": "Get all available notification categories with their display names and codes."
+          }
+        },
+        {
+          "name": "Get Notification Priorities",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/notifications/priorities",
+              "host": ["{{base_url}}"],
+              "path": ["notifications", "priorities"]
+            },
+            "description": "Get all available notification priorities with their display names, weights, and immediate display requirements."
+          }
+        },
+        {
+          "name": "Get All Reference Data",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/notifications/reference-data",
+              "host": ["{{base_url}}"],
+              "path": ["notifications", "reference-data"]
+            },
+            "description": "Get all notification reference data (types, roles, categories, priorities) in a single call. Useful for populating dropdowns in admin UI."
+          }
+        },
+        {
+          "name": "Get All Templates",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/notifications/templates?activeOnly=true",
+              "host": ["{{base_url}}"],
+              "path": ["notifications", "templates"],
+              "query": [
+                {"key": "activeOnly", "value": "true", "description": "Return only active templates (optional)"}
+              ]
+            },
+            "description": "Get all notification templates."
+          }
+        },
+        {
+          "name": "Get Template by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/notifications/templates/1",
+              "host": ["{{base_url}}"],
+              "path": ["notifications", "templates", "1"]
+            },
+            "description": "Get a specific notification template by its ID."
+          }
+        },
+        {
+          "name": "Get Templates by Type",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/notifications/templates/by-type/ORDER_CREATED",
+              "host": ["{{base_url}}"],
+              "path": ["notifications", "templates", "by-type", "ORDER_CREATED"]
+            },
+            "description": "Get all templates for a specific notification type."
+          }
+        },
+        {
+          "name": "Get Templates by Role",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/notifications/templates/by-role/CUSTOMER",
+              "host": ["{{base_url}}"],
+              "path": ["notifications", "templates", "by-role", "CUSTOMER"]
+            },
+            "description": "Get all templates for a specific role."
+          }
+        },
+        {
+          "name": "Get Template by Type and Role",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/notifications/templates/by-type-and-role?type=ORDER_CREATED&role=CUSTOMER",
+              "host": ["{{base_url}}"],
+              "path": ["notifications", "templates", "by-type-and-role"],
+              "query": [
+                {"key": "type", "value": "ORDER_CREATED"},
+                {"key": "role", "value": "CUSTOMER"}
+              ]
+            },
+            "description": "Get a specific template for a notification type and role combination."
+          }
+        },
+        {
+          "name": "Create Template (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"notificationType\": \"ORDER_DELIVERED\",\n    \"role\": \"CUSTOMER\",\n    \"titleTemplate\": \"Order #{orderId} Delivered!\",\n    \"messageTemplate\": \"Your order has been delivered. Enjoy your meal! Rate your experience.\",\n    \"icon\": \"check-circle\",\n    \"actionUrlTemplate\": \"/orders/{orderId}/rate\",\n    \"active\": true,\n    \"defaultTtlHours\": 168\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/notifications/templates",
+              "host": ["{{base_url}}"],
+              "path": ["notifications", "templates"]
+            },
+            "description": "Create a new notification template.\n\nRoles: ADMIN only"
+          }
+        },
+        {
+          "name": "Update Template (Admin)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"titleTemplate\": \"Order #{orderId} Delivered Successfully!\",\n    \"messageTemplate\": \"Your order has arrived. We hope you enjoy it!\",\n    \"icon\": \"check-circle\",\n    \"actionUrlTemplate\": \"/orders/{orderId}/rate\",\n    \"active\": true,\n    \"defaultTtlHours\": 168\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/notifications/templates/1",
+              "host": ["{{base_url}}"],
+              "path": ["notifications", "templates", "1"]
+            },
+            "description": "Update an existing notification template.\n\nRoles: ADMIN only"
+          }
+        },
+        {
+          "name": "Delete Template (Admin)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/notifications/templates/1",
+              "host": ["{{base_url}}"],
+              "path": ["notifications", "templates", "1"]
+            },
+            "description": "Delete a notification template.\n\nRoles: ADMIN only"
+          }
+        },
+        {
+          "name": "Toggle Template Active (Admin)",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/notifications/templates/1/toggle-active",
+              "host": ["{{base_url}}"],
+              "path": ["notifications", "templates", "1", "toggle-active"]
+            },
+            "description": "Toggle the active status of a notification template.\n\nRoles: ADMIN only"
+          }
         }
       ]
     },
