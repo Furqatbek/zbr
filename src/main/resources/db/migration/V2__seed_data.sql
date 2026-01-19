@@ -21,6 +21,22 @@ VALUES ('john.doe@example.com', '$2a$12$VOI3I3JDdZyxdFeKh55p.upfoSP.FJVVok.qcXr1
 INSERT INTO users (email, password_hash, first_name, last_name, phone, role, status, email_verified)
 VALUES ('courier@fooddelivery.com', '$2a$12$VOI3I3JDdZyxdFeKh55p.upfoSP.FJVVok.qcXr1zFBGRiFfYr1He', 'Fast', 'Eddie', '+1234567894', 'COURIER', 'ACTIVE', true);
 
+-- Populate user_roles junction table
+INSERT INTO user_roles (user_id, role)
+SELECT id, 'ADMIN' FROM users WHERE email = 'admin@fooddelivery.com';
+
+INSERT INTO user_roles (user_id, role)
+SELECT id, 'PLATFORM' FROM users WHERE email = 'platform@fooddelivery.com';
+
+INSERT INTO user_roles (user_id, role)
+SELECT id, 'RESTAURANT_OWNER' FROM users WHERE email = 'owner@pizzapalace.com';
+
+INSERT INTO user_roles (user_id, role)
+SELECT id, 'CONSUMER' FROM users WHERE email = 'john.doe@example.com';
+
+INSERT INTO user_roles (user_id, role)
+SELECT id, 'COURIER' FROM users WHERE email = 'courier@fooddelivery.com';
+
 -- Insert demo restaurant
 INSERT INTO restaurants (owner_id, name, slug, description, address_line1, city, state, postal_code, country, latitude, longitude, phone, email, status, average_prep_time_minutes, minimum_order, delivery_fee, delivery_radius_km, accepts_takeaway, accepts_delivery, is_featured, is_open)
 VALUES (
