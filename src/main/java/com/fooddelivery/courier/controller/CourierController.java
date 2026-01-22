@@ -58,9 +58,32 @@ public class CourierController {
         return ResponseEntity.ok(ApiResponse.success(courier));
     }
 
+    @PutMapping("/me")
+    @PreAuthorize("hasRole('COURIER')")
+    @Operation(summary = "Update my courier profile", description = "Update courier's own profile")
+    public ResponseEntity<ApiResponse<CourierDto>> updateMyProfile(
+            @AuthenticationPrincipal UserPrincipal currentUser,
+            @Valid @RequestBody UpdateCourierRequest request) {
+        CourierDto courier = courierService.getCourierByUserId(currentUser.getId());
+        courier = courierService.updateCourierProfile(courier.getId(), request);
+        return ResponseEntity.ok(ApiResponse.success("Profile updated", courier));
+    }
+
+    @PutMapping("/me/status")
+    @PreAuthorize("hasRole('COURIER')")
+    @Operation(summary = "Update status (PUT)", description = "Go online/offline")
+    public ResponseEntity<ApiResponse<CourierDto>> updateStatusPut(
+            @AuthenticationPrincipal UserPrincipal currentUser,
+            @RequestBody java.util.Map<String, String> body) {
+        CourierStatus status = CourierStatus.valueOf(body.get("status"));
+        CourierDto courier = courierService.getCourierByUserId(currentUser.getId());
+        courier = courierService.updateStatus(courier.getId(), status);
+        return ResponseEntity.ok(ApiResponse.success("Status updated", courier));
+    }
+
     @PatchMapping("/me/status")
     @PreAuthorize("hasRole('COURIER')")
-    @Operation(summary = "Update status", description = "Go online/offline")
+    @Operation(summary = "Update status (PATCH)", description = "Go online/offline")
     public ResponseEntity<ApiResponse<CourierDto>> updateStatus(
             @AuthenticationPrincipal UserPrincipal currentUser,
             @RequestParam CourierStatus status) {
@@ -70,9 +93,20 @@ public class CourierController {
         return ResponseEntity.ok(ApiResponse.success("Status updated", courier));
     }
 
+    @PutMapping("/me/location")
+    @PreAuthorize("hasRole('COURIER')")
+    @Operation(summary = "Update location (PUT)", description = "Update current location")
+    public ResponseEntity<ApiResponse<Void>> updateLocationPut(
+            @AuthenticationPrincipal UserPrincipal currentUser,
+            @RequestBody java.util.Map<String, BigDecimal> body) {
+        CourierDto courier = courierService.getCourierByUserId(currentUser.getId());
+        courierService.updateLocation(courier.getId(), body.get("latitude"), body.get("longitude"));
+        return ResponseEntity.ok(ApiResponse.success("Location updated"));
+    }
+
     @PostMapping("/me/location")
     @PreAuthorize("hasRole('COURIER')")
-    @Operation(summary = "Update location", description = "Update current location")
+    @Operation(summary = "Update location (POST)", description = "Update current location")
     public ResponseEntity<ApiResponse<Void>> updateLocation(
             @AuthenticationPrincipal UserPrincipal currentUser,
             @RequestParam BigDecimal lat,
@@ -123,6 +157,77 @@ public class CourierController {
         CourierEarningsDto earnings = courierService.getEarnings(courier.getId());
         return ResponseEntity.ok(ApiResponse.success(earnings));
     }
+
+    // ===== Order Management (Courier App) =====
+
+    @PostMapping("/me/orders/{orderId}/accept")
+    @PreAuthorize("hasRole('COURIER')")
+    @Operation(summary = "Accept order", description = "Accept an available order")
+    public ResponseEntity<ApiResponse<CourierOrderDto>> acceptOrderMe(
+            @AuthenticationPrincipal UserPrincipal currentUser,
+            @PathVariable Long orderId) {
+        CourierDto courier = courierService.getCourierByUserId(currentUser.getId());
+        CourierOrderDto order = courierService.acceptOrderAndGetDetails(courier.getId(), orderId);
+        return ResponseEntity.ok(ApiResponse.success("Order accepted", order));
+    }
+
+    @GetMapping("/me/orders/{orderId}")
+    @PreAuthorize("hasRole('COURIER')")
+    @Operation(summary = "Get order details", description = "Get details of a specific order")
+    public ResponseEntity<ApiResponse<CourierOrderDto>> getOrderDetails(
+            @AuthenticationPrincipal UserPrincipal currentUser,
+            @PathVariable Long orderId) {
+        CourierDto courier = courierService.getCourierByUserId(currentUser.getId());
+        CourierOrderDto order = courierService.getOrderDetails(courier.getId(), orderId);
+        return ResponseEntity.ok(ApiResponse.success(order));
+    }
+
+    @PutMapping("/me/orders/{orderId}/pickup")
+    @PreAuthorize("hasRole('COURIER')")
+    @Operation(summary = "Confirm pickup", description = "Confirm order pickup from restaurant")
+    public ResponseEntity<ApiResponse<CourierOrderDto>> confirmPickup(
+            @AuthenticationPrincipal UserPrincipal currentUser,
+            @PathVariable Long orderId) {
+        CourierDto courier = courierService.getCourierByUserId(currentUser.getId());
+        CourierOrderDto order = courierService.confirmPickup(courier.getId(), orderId);
+        return ResponseEntity.ok(ApiResponse.success("Order picked up", order));
+    }
+
+    @PutMapping("/me/orders/{orderId}/transit")
+    @PreAuthorize("hasRole('COURIER')")
+    @Operation(summary = "Start transit", description = "Mark order as in transit to customer")
+    public ResponseEntity<ApiResponse<CourierOrderDto>> startTransit(
+            @AuthenticationPrincipal UserPrincipal currentUser,
+            @PathVariable Long orderId) {
+        CourierDto courier = courierService.getCourierByUserId(currentUser.getId());
+        CourierOrderDto order = courierService.startTransit(courier.getId(), orderId);
+        return ResponseEntity.ok(ApiResponse.success("In transit to customer", order));
+    }
+
+    @PostMapping("/me/orders/{orderId}/complete")
+    @PreAuthorize("hasRole('COURIER')")
+    @Operation(summary = "Complete delivery", description = "Mark delivery as completed")
+    public ResponseEntity<ApiResponse<CourierOrderDto>> completeDeliveryMe(
+            @AuthenticationPrincipal UserPrincipal currentUser,
+            @PathVariable Long orderId) {
+        CourierDto courier = courierService.getCourierByUserId(currentUser.getId());
+        CourierOrderDto order = courierService.completeDeliveryAndGetDetails(courier.getId(), orderId);
+        return ResponseEntity.ok(ApiResponse.success("Delivery completed", order));
+    }
+
+    @PostMapping("/me/orders/{orderId}/issue")
+    @PreAuthorize("hasRole('COURIER')")
+    @Operation(summary = "Report issue", description = "Report an issue with the order")
+    public ResponseEntity<ApiResponse<Void>> reportIssue(
+            @AuthenticationPrincipal UserPrincipal currentUser,
+            @PathVariable Long orderId,
+            @RequestBody java.util.Map<String, String> body) {
+        CourierDto courier = courierService.getCourierByUserId(currentUser.getId());
+        courierService.reportOrderIssue(courier.getId(), orderId, body.get("issueType"), body.get("description"));
+        return ResponseEntity.ok(ApiResponse.success("Issue reported"));
+    }
+
+    // ===== Legacy endpoints (keeping for backward compatibility) =====
 
     @PostMapping("/{courierId}/accept/{orderId}")
     @PreAuthorize("hasRole('COURIER')")

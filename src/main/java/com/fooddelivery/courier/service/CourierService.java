@@ -471,6 +471,157 @@ public class CourierService {
                 .build();
     }
 
+    // ===== Order Management Methods =====
+
+    /**
+     * Accept an order and return order details.
+     */
+    @Transactional
+    @Auditable(action = "ACCEPT_ORDER", entityType = "Courier")
+    public CourierOrderDto acceptOrderAndGetDetails(Long courierId, Long orderId) {
+        Courier courier = courierRepository.findByIdWithUser(courierId)
+                .orElseThrow(() -> new ResourceNotFoundException("Courier", "id", courierId));
+
+        if (!courier.isAvailable()) {
+            throw new BusinessException("Courier is not available to accept orders");
+        }
+
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Order", "id", orderId));
+
+        if (order.getCourier() != null) {
+            throw new BusinessException("Order already has a courier assigned");
+        }
+
+        if (order.getStatus() != OrderStatus.READY) {
+            throw new BusinessException("Order must be ready before courier assignment");
+        }
+
+        order.setCourier(courier);
+        order.updateStatus(OrderStatus.PICKED_UP);
+        order = orderRepository.save(order);
+
+        courier.assignOrder();
+        courierRepository.save(courier);
+
+        log.info("Courier {} accepted order {}", courierId, orderId);
+        publishCourierAssignedEvent(order, courier);
+
+        return toOrderDto(order);
+    }
+
+    /**
+     * Get order details for a courier.
+     */
+    @Transactional(readOnly = true)
+    public CourierOrderDto getOrderDetails(Long courierId, Long orderId) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Order", "id", orderId));
+
+        if (order.getCourier() == null || !order.getCourier().getId().equals(courierId)) {
+            throw new BusinessException("This order is not assigned to you");
+        }
+
+        return toOrderDto(order);
+    }
+
+    /**
+     * Confirm order pickup from restaurant.
+     */
+    @Transactional
+    @Auditable(action = "PICKUP_ORDER", entityType = "Courier")
+    public CourierOrderDto confirmPickup(Long courierId, Long orderId) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Order", "id", orderId));
+
+        if (order.getCourier() == null || !order.getCourier().getId().equals(courierId)) {
+            throw new BusinessException("This order is not assigned to you");
+        }
+
+        if (order.getStatus() != OrderStatus.READY && order.getStatus() != OrderStatus.PICKED_UP) {
+            throw new BusinessException("Order cannot be picked up in current status: " + order.getStatus());
+        }
+
+        order.updateStatus(OrderStatus.PICKED_UP);
+        order = orderRepository.save(order);
+
+        log.info("Courier {} picked up order {}", courierId, orderId);
+        return toOrderDto(order);
+    }
+
+    /**
+     * Start transit to customer.
+     */
+    @Transactional
+    @Auditable(action = "START_TRANSIT", entityType = "Courier")
+    public CourierOrderDto startTransit(Long courierId, Long orderId) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Order", "id", orderId));
+
+        if (order.getCourier() == null || !order.getCourier().getId().equals(courierId)) {
+            throw new BusinessException("This order is not assigned to you");
+        }
+
+        if (order.getStatus() != OrderStatus.PICKED_UP) {
+            throw new BusinessException("Order must be picked up before starting transit");
+        }
+
+        order.updateStatus(OrderStatus.IN_TRANSIT);
+        order = orderRepository.save(order);
+
+        log.info("Courier {} started transit for order {}", courierId, orderId);
+        return toOrderDto(order);
+    }
+
+    /**
+     * Complete delivery and return order details.
+     */
+    @Transactional
+    @Auditable(action = "COMPLETE_DELIVERY", entityType = "Courier")
+    public CourierOrderDto completeDeliveryAndGetDetails(Long courierId, Long orderId) {
+        Courier courier = courierRepository.findByIdWithUser(courierId)
+                .orElseThrow(() -> new ResourceNotFoundException("Courier", "id", courierId));
+
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Order", "id", orderId));
+
+        if (order.getCourier() == null || !order.getCourier().getId().equals(courierId)) {
+            throw new BusinessException("This order is not assigned to you");
+        }
+
+        order.updateStatus(OrderStatus.DELIVERED);
+        order = orderRepository.save(order);
+
+        courier.completeOrder();
+        courier.addEarnings(order.getDeliveryFee().add(order.getTipAmount() != null ? order.getTipAmount() : BigDecimal.ZERO));
+        courierRepository.save(courier);
+
+        log.info("Courier {} completed delivery for order {}", courierId, orderId);
+        return toOrderDto(order);
+    }
+
+    /**
+     * Report an issue with an order.
+     */
+    @Transactional
+    @Auditable(action = "REPORT_ISSUE", entityType = "Courier")
+    public void reportOrderIssue(Long courierId, Long orderId, String issueType, String description) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Order", "id", orderId));
+
+        if (order.getCourier() == null || !order.getCourier().getId().equals(courierId)) {
+            throw new BusinessException("This order is not assigned to you");
+        }
+
+        // Log the issue - in a real system, this would create an issue ticket
+        log.warn("Courier {} reported issue for order {}: {} - {}", courierId, orderId, issueType, description);
+
+        // Could also update order notes or create a separate issue entity
+        String currentNotes = order.getNotes() != null ? order.getNotes() : "";
+        order.setNotes(currentNotes + " [COURIER ISSUE: " + issueType + " - " + description + "]");
+        orderRepository.save(order);
+    }
+
     private CourierOrderDto toOrderDto(Order order) {
         return CourierOrderDto.builder()
                 .orderId(order.getId())
