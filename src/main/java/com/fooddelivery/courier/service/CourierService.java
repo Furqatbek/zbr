@@ -77,7 +77,7 @@ public class CourierService {
      */
     @Transactional(readOnly = true)
     public CourierDto getCourierById(Long id) {
-        Courier courier = courierRepository.findById(id)
+        Courier courier = courierRepository.findByIdWithUser(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Courier", "id", id));
         return toDto(courier);
     }
@@ -97,7 +97,7 @@ public class CourierService {
      */
     @Transactional
     public CourierDto updateStatus(Long courierId, CourierStatus status) {
-        Courier courier = courierRepository.findById(courierId)
+        Courier courier = courierRepository.findByIdWithUser(courierId)
                 .orElseThrow(() -> new ResourceNotFoundException("Courier", "id", courierId));
 
         if (!courier.getVerified() && status == CourierStatus.AVAILABLE) {
@@ -131,7 +131,11 @@ public class CourierService {
      */
     @Transactional(readOnly = true)
     public List<CourierDto> findAvailableCouriers(BigDecimal lat, BigDecimal lng, double radiusKm) {
-        List<Courier> couriers = courierRepository.findNearbyCouriers(lat, lng, radiusKm);
+        List<Long> courierIds = courierRepository.findNearbyCourierIds(lat, lng, radiusKm);
+        if (courierIds.isEmpty()) {
+            return List.of();
+        }
+        List<Courier> couriers = courierRepository.findByIdsWithUser(courierIds);
         return couriers.stream().map(this::toDto).toList();
     }
 
@@ -141,7 +145,7 @@ public class CourierService {
     @Transactional
     @Auditable(action = "ACCEPT_ORDER", entityType = "Courier")
     public CourierDto acceptOrder(Long courierId, Long orderId) {
-        Courier courier = courierRepository.findById(courierId)
+        Courier courier = courierRepository.findByIdWithUser(courierId)
                 .orElseThrow(() -> new ResourceNotFoundException("Courier", "id", courierId));
 
         if (!courier.isAvailable()) {
@@ -182,7 +186,7 @@ public class CourierService {
     @Transactional
     @Auditable(action = "COMPLETE_DELIVERY", entityType = "Courier")
     public CourierDto completeDelivery(Long courierId, Long orderId) {
-        Courier courier = courierRepository.findById(courierId)
+        Courier courier = courierRepository.findByIdWithUser(courierId)
                 .orElseThrow(() -> new ResourceNotFoundException("Courier", "id", courierId));
 
         Order order = orderRepository.findById(orderId)
@@ -211,7 +215,7 @@ public class CourierService {
     @Transactional
     @Auditable(action = "VERIFY_COURIER", entityType = "Courier")
     public CourierDto verifyCourier(Long courierId) {
-        Courier courier = courierRepository.findById(courierId)
+        Courier courier = courierRepository.findByIdWithUser(courierId)
                 .orElseThrow(() -> new ResourceNotFoundException("Courier", "id", courierId));
 
         courier.setVerified(true);
@@ -228,7 +232,7 @@ public class CourierService {
      */
     @Transactional(readOnly = true)
     public PagedResponse<CourierDto> getAllCouriers(Pageable pageable) {
-        Page<Courier> couriers = courierRepository.findAll(pageable);
+        Page<Courier> couriers = courierRepository.findAllWithUser(pageable);
         return PagedResponse.from(couriers, couriers.getContent().stream()
                 .map(this::toDto)
                 .toList());
@@ -271,7 +275,7 @@ public class CourierService {
     @Transactional
     @Auditable(action = "REJECT_COURIER", entityType = "Courier")
     public CourierDto rejectCourier(Long courierId, String reason) {
-        Courier courier = courierRepository.findById(courierId)
+        Courier courier = courierRepository.findByIdWithUser(courierId)
                 .orElseThrow(() -> new ResourceNotFoundException("Courier", "id", courierId));
 
         if (courier.getStatus() != CourierStatus.PENDING_APPROVAL) {
@@ -292,7 +296,7 @@ public class CourierService {
     @Transactional
     @Auditable(action = "SUSPEND_COURIER", entityType = "Courier")
     public CourierDto suspendCourier(Long courierId, String reason) {
-        Courier courier = courierRepository.findById(courierId)
+        Courier courier = courierRepository.findByIdWithUser(courierId)
                 .orElseThrow(() -> new ResourceNotFoundException("Courier", "id", courierId));
 
         if (courier.getStatus() == CourierStatus.SUSPENDED) {
@@ -312,7 +316,7 @@ public class CourierService {
     @Transactional
     @Auditable(action = "ACTIVATE_COURIER", entityType = "Courier")
     public CourierDto activateCourier(Long courierId) {
-        Courier courier = courierRepository.findById(courierId)
+        Courier courier = courierRepository.findByIdWithUser(courierId)
                 .orElseThrow(() -> new ResourceNotFoundException("Courier", "id", courierId));
 
         if (courier.getStatus() != CourierStatus.SUSPENDED &&
@@ -335,7 +339,7 @@ public class CourierService {
     @Transactional
     @Auditable(action = "UPDATE_COURIER", entityType = "Courier")
     public CourierDto updateCourierProfile(Long courierId, UpdateCourierRequest request) {
-        Courier courier = courierRepository.findById(courierId)
+        Courier courier = courierRepository.findByIdWithUser(courierId)
                 .orElseThrow(() -> new ResourceNotFoundException("Courier", "id", courierId));
 
         if (request.getVehicleType() != null) {

@@ -20,17 +20,20 @@ import java.util.Optional;
 @Repository
 public interface CourierRepository extends JpaRepository<Courier, Long> {
 
-    Optional<Courier> findByUserId(Long userId);
+    @Query("SELECT c FROM Courier c JOIN FETCH c.user WHERE c.user.id = :userId")
+    Optional<Courier> findByUserId(@Param("userId") Long userId);
 
     boolean existsByUserId(Long userId);
 
-    Page<Courier> findByStatus(CourierStatus status, Pageable pageable);
+    @Query(value = "SELECT c FROM Courier c JOIN FETCH c.user WHERE c.status = :status",
+           countQuery = "SELECT COUNT(c) FROM Courier c WHERE c.status = :status")
+    Page<Courier> findByStatus(@Param("status") CourierStatus status, Pageable pageable);
 
-    @Query("SELECT c FROM Courier c WHERE c.status = 'AVAILABLE' AND c.verified = true " +
-            "AND c.currentOrderCount < c.maxConcurrentOrders")
+    @Query("SELECT c FROM Courier c JOIN FETCH c.user WHERE c.status = 'AVAILABLE' " +
+            "AND c.verified = true AND c.currentOrderCount < c.maxConcurrentOrders")
     List<Courier> findAvailableCouriers();
 
-    @Query(value = "SELECT c.* FROM couriers c " +
+    @Query(value = "SELECT c.id FROM couriers c " +
             "WHERE c.status = 'AVAILABLE' " +
             "AND c.is_verified = true " +
             "AND c.current_order_count < c.max_concurrent_orders " +
@@ -39,12 +42,19 @@ public interface CourierRepository extends JpaRepository<Courier, Long> {
             "ORDER BY (6371 * acos(cos(radians(:lat)) * cos(radians(c.current_lat)) * " +
             "cos(radians(c.current_lng) - radians(:lng)) + sin(radians(:lat)) * sin(radians(c.current_lat)))) ASC",
             nativeQuery = true)
-    List<Courier> findNearbyCouriers(
+    List<Long> findNearbyCourierIds(
             @Param("lat") BigDecimal latitude,
             @Param("lng") BigDecimal longitude,
             @Param("radius") double radiusKm);
 
-    @Query("SELECT c FROM Courier c WHERE c.verified = false AND c.documentsSubmitted = true")
+    /**
+     * Find couriers by IDs with user data.
+     */
+    @Query("SELECT c FROM Courier c JOIN FETCH c.user WHERE c.id IN :ids")
+    List<Courier> findByIdsWithUser(@Param("ids") List<Long> ids);
+
+    @Query(value = "SELECT c FROM Courier c JOIN FETCH c.user WHERE c.verified = false AND c.documentsSubmitted = true",
+           countQuery = "SELECT COUNT(c) FROM Courier c WHERE c.verified = false AND c.documentsSubmitted = true")
     Page<Courier> findPendingVerification(Pageable pageable);
 
     @Modifying
@@ -62,19 +72,21 @@ public interface CourierRepository extends JpaRepository<Courier, Long> {
     /**
      * Find all online couriers (AVAILABLE or BUSY).
      */
-    @Query("SELECT c FROM Courier c WHERE c.status IN ('AVAILABLE', 'BUSY') AND c.verified = true")
+    @Query("SELECT c FROM Courier c JOIN FETCH c.user WHERE c.status IN ('AVAILABLE', 'BUSY') AND c.verified = true")
     List<Courier> findOnlineCouriers();
 
     /**
      * Find all pending approval couriers.
      */
-    @Query("SELECT c FROM Courier c WHERE c.status = 'PENDING_APPROVAL'")
+    @Query(value = "SELECT c FROM Courier c JOIN FETCH c.user WHERE c.status = 'PENDING_APPROVAL'",
+           countQuery = "SELECT COUNT(c) FROM Courier c WHERE c.status = 'PENDING_APPROVAL'")
     Page<Courier> findPendingApproval(Pageable pageable);
 
     /**
      * Find couriers by multiple statuses.
      */
-    @Query("SELECT c FROM Courier c WHERE c.status IN :statuses")
+    @Query(value = "SELECT c FROM Courier c JOIN FETCH c.user WHERE c.status IN :statuses",
+           countQuery = "SELECT COUNT(c) FROM Courier c WHERE c.status IN :statuses")
     Page<Courier> findByStatusIn(@Param("statuses") List<CourierStatus> statuses, Pageable pageable);
 
     /**
@@ -83,9 +95,22 @@ public interface CourierRepository extends JpaRepository<Courier, Long> {
     long countByVerified(boolean verified);
 
     /**
+     * Find all couriers with user data.
+     */
+    @Query(value = "SELECT c FROM Courier c JOIN FETCH c.user",
+           countQuery = "SELECT COUNT(c) FROM Courier c")
+    Page<Courier> findAllWithUser(Pageable pageable);
+
+    /**
+     * Find courier by ID with user data.
+     */
+    @Query("SELECT c FROM Courier c JOIN FETCH c.user WHERE c.id = :id")
+    Optional<Courier> findByIdWithUser(@Param("id") Long id);
+
+    /**
      * Find couriers with location data for map display.
      */
-    @Query("SELECT c FROM Courier c WHERE c.status IN ('AVAILABLE', 'BUSY') " +
+    @Query("SELECT c FROM Courier c JOIN FETCH c.user WHERE c.status IN ('AVAILABLE', 'BUSY') " +
             "AND c.verified = true AND c.currentLat IS NOT NULL AND c.currentLng IS NOT NULL")
     List<Courier> findOnlineCouriersWithLocation();
 }
