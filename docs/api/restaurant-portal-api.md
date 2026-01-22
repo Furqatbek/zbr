@@ -75,6 +75,48 @@ POST /auth/register
 POST /auth/refresh
 ```
 
+**Request:**
+```json
+{
+  "refreshToken": "eyJhbGciOiJIUzI1NiIs..."
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Token refreshed successfully",
+  "data": {
+    "accessToken": "eyJhbGciOiJIUzI1NiIs...",
+    "refreshToken": "eyJhbGciOiJIUzI1NiIs...",
+    "tokenType": "Bearer",
+    "expiresIn": 3600
+  }
+}
+```
+
+### Logout
+```
+POST /auth/logout
+```
+
+**Request:**
+```json
+{
+  "refreshToken": "eyJhbGciOiJIUzI1NiIs..."
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Logout successful",
+  "data": null
+}
+```
+
 ### Get Current User
 ```
 GET /auth/me
@@ -107,22 +149,23 @@ Authorization: Bearer {token}
   "description": "Best pizza in town",
   "phone": "+998901234567",
   "email": "contact@pizzapalace.com",
-  "fullAddress": "123 Main Street, Tashkent",
+  "addressLine1": "123 Main Street",
+  "addressLine2": "Suite 100",
+  "city": "Tashkent",
+  "state": "Tashkent",
+  "postalCode": "100000",
+  "country": "Uzbekistan",
   "latitude": 41.2995,
   "longitude": 69.2401,
-  "cuisineTypes": ["ITALIAN", "FAST_FOOD"],
+  "acceptsDelivery": true,
+  "acceptsTakeaway": true,
+  "acceptsDineIn": false,
   "deliveryFee": 15000,
-  "minOrderAmount": 30000,
-  "avgPrepTime": 25,
-  "operatingHours": {
-    "MONDAY": {"open": "09:00", "close": "22:00"},
-    "TUESDAY": {"open": "09:00", "close": "22:00"},
-    "WEDNESDAY": {"open": "09:00", "close": "22:00"},
-    "THURSDAY": {"open": "09:00", "close": "22:00"},
-    "FRIDAY": {"open": "09:00", "close": "23:00"},
-    "SATURDAY": {"open": "10:00", "close": "23:00"},
-    "SUNDAY": {"open": "10:00", "close": "21:00"}
-  }
+  "minimumOrder": 30000,
+  "deliveryRadiusKm": 10,
+  "averagePrepTimeMinutes": 25,
+  "opensAt": "09:00",
+  "closesAt": "22:00"
 }
 ```
 
@@ -132,11 +175,36 @@ Authorization: Bearer {token}
   "success": true,
   "data": {
     "id": 1,
-    "slug": "pizza-palace",
+    "ownerId": 3,
     "name": "Pizza Palace",
+    "slug": "pizza-palace",
+    "description": "Best pizza in town",
+    "phone": "+998901234567",
+    "email": "contact@pizzapalace.com",
+    "fullAddress": "123 Main Street, Tashkent, Tashkent 100000, Uzbekistan",
+    "addressLine1": "123 Main Street",
+    "city": "Tashkent",
+    "state": "Tashkent",
+    "postalCode": "100000",
+    "country": "Uzbekistan",
+    "latitude": 41.2995,
+    "longitude": 69.2401,
     "status": "PENDING",
+    "acceptsDelivery": true,
+    "acceptsTakeaway": true,
+    "acceptsDineIn": false,
+    "minimumOrder": 30000,
+    "deliveryFee": 15000,
+    "deliveryRadiusKm": 10,
+    "averagePrepTimeMinutes": 25,
+    "opensAt": "09:00:00",
+    "closesAt": "22:00:00",
     "isOpen": false,
-    ...
+    "isCurrentlyOpen": false,
+    "averageRating": null,
+    "totalRatings": 0,
+    "totalOrders": 0,
+    "createdAt": "2024-01-15T10:00:00Z"
   }
 }
 ```
@@ -170,7 +238,8 @@ Authorization: Bearer {token}
   "name": "Pizza Palace Updated",
   "description": "Updated description",
   "deliveryFee": 12000,
-  "minOrderAmount": 25000
+  "minimumOrder": 25000,
+  "averagePrepTimeMinutes": 30
 }
 ```
 
@@ -228,7 +297,24 @@ Authorization: Bearer {token}
 {
   "name": "Pizzas",
   "description": "Our delicious pizzas",
+  "imageUrl": "/images/categories/pizzas.jpg",
   "sortOrder": 1
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "id": 1,
+    "restaurantId": 1,
+    "name": "Pizzas",
+    "description": "Our delicious pizzas",
+    "imageUrl": "/images/categories/pizzas.jpg",
+    "sortOrder": 1,
+    "active": true
+  }
 }
 ```
 
@@ -290,32 +376,50 @@ Authorization: Bearer {token}
   "name": "Margherita Pizza",
   "description": "Classic pizza with tomato sauce, mozzarella, and basil",
   "price": 45000,
+  "originalPrice": 50000,
   "imageUrl": "/images/margherita.jpg",
-  "inStock": true,
+  "prepTimeMinutes": 15,
+  "calories": 850,
   "vegetarian": true,
   "vegan": false,
   "glutenFree": false,
-  "spicyLevel": 0,
-  "preparationTime": 15,
+  "spicy": false,
+  "allergens": "Contains dairy, gluten",
+  "featured": true,
+  "sortOrder": 1,
   "variants": [
-    {"name": "Small", "price": 35000},
-    {"name": "Medium", "price": 45000},
-    {"name": "Large", "price": 55000}
+    {"name": "Small", "priceDelta": -10000, "sortOrder": 1},
+    {"name": "Medium", "priceDelta": 0, "sortOrder": 2},
+    {"name": "Large", "priceDelta": 10000, "sortOrder": 3}
   ],
   "options": [
     {
-      "name": "Extra Toppings",
+      "groupName": "Extra Toppings",
+      "name": "Extra Cheese",
+      "priceDelta": 5000,
+      "isDefault": false,
+      "maxSelections": 1,
       "required": false,
-      "multiSelect": true,
-      "choices": [
-        {"name": "Extra Cheese", "price": 5000},
-        {"name": "Mushrooms", "price": 4000},
-        {"name": "Olives", "price": 3000}
-      ]
+      "sortOrder": 1
+    },
+    {
+      "groupName": "Extra Toppings",
+      "name": "Mushrooms",
+      "priceDelta": 4000,
+      "isDefault": false,
+      "maxSelections": 1,
+      "required": false,
+      "sortOrder": 2
     }
   ]
 }
 ```
+
+**Notes:**
+- `price`: Base price of the item (required)
+- `originalPrice`: For showing discounts (optional)
+- `variants.priceDelta`: Price difference from base price (e.g., -10000 for Small = 35000 total)
+- `options.priceDelta`: Additional cost for this option
 
 #### Update Menu Item
 ```
@@ -547,10 +651,32 @@ GET /notifications/unread/count
 Authorization: Bearer {token}
 ```
 
+**Response:**
+```json
+{
+  "unreadCount": 5
+}
+```
+
 ### Mark as Read
 ```
-PUT /notifications/{id}/read
+PATCH /notifications/{id}/read
 Authorization: Bearer {token}
+```
+
+**Response:**
+```json
+{
+  "id": 123,
+  "userId": 3,
+  "role": "RESTAURANT_OWNER",
+  "title": "New Order Received",
+  "message": "Order #ORD-2024-0001 has been placed",
+  "category": "ORDER",
+  "read": true,
+  "readAt": "2024-01-15T12:35:00Z",
+  "createdAt": "2024-01-15T12:30:00Z"
+}
 ```
 
 ### Mark All as Read
@@ -561,7 +687,7 @@ Authorization: Bearer {token}
 
 ### Dismiss Notification
 ```
-PUT /notifications/{id}/dismiss
+DELETE /notifications/{id}
 Authorization: Bearer {token}
 ```
 
