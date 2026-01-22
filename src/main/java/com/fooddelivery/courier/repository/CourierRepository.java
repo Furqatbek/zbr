@@ -29,7 +29,8 @@ public interface CourierRepository extends JpaRepository<Courier, Long> {
            countQuery = "SELECT COUNT(c) FROM Courier c WHERE c.status = :status")
     Page<Courier> findByStatus(@Param("status") CourierStatus status, Pageable pageable);
 
-    @Query("SELECT c FROM Courier c JOIN FETCH c.user WHERE c.status = 'AVAILABLE' " +
+    @Query("SELECT c FROM Courier c JOIN FETCH c.user " +
+            "WHERE c.status = com.fooddelivery.courier.entity.CourierStatus.AVAILABLE " +
             "AND c.verified = true AND c.currentOrderCount < c.maxConcurrentOrders")
     List<Courier> findAvailableCouriers();
 
@@ -72,14 +73,16 @@ public interface CourierRepository extends JpaRepository<Courier, Long> {
     /**
      * Find all online couriers (AVAILABLE or BUSY).
      */
-    @Query("SELECT c FROM Courier c JOIN FETCH c.user WHERE c.status IN ('AVAILABLE', 'BUSY') AND c.verified = true")
+    @Query("SELECT c FROM Courier c JOIN FETCH c.user " +
+            "WHERE (c.status = com.fooddelivery.courier.entity.CourierStatus.AVAILABLE " +
+            "OR c.status = com.fooddelivery.courier.entity.CourierStatus.BUSY) AND c.verified = true")
     List<Courier> findOnlineCouriers();
 
     /**
      * Find all pending approval couriers.
      */
-    @Query(value = "SELECT c FROM Courier c JOIN FETCH c.user WHERE c.status = 'PENDING_APPROVAL'",
-           countQuery = "SELECT COUNT(c) FROM Courier c WHERE c.status = 'PENDING_APPROVAL'")
+    @Query(value = "SELECT c FROM Courier c JOIN FETCH c.user WHERE c.status = com.fooddelivery.courier.entity.CourierStatus.PENDING_APPROVAL",
+           countQuery = "SELECT COUNT(c) FROM Courier c WHERE c.status = com.fooddelivery.courier.entity.CourierStatus.PENDING_APPROVAL")
     Page<Courier> findPendingApproval(Pageable pageable);
 
     /**
@@ -110,7 +113,9 @@ public interface CourierRepository extends JpaRepository<Courier, Long> {
     /**
      * Find couriers with location data for map display.
      */
-    @Query("SELECT c FROM Courier c JOIN FETCH c.user WHERE c.status IN ('AVAILABLE', 'BUSY') " +
+    @Query("SELECT c FROM Courier c JOIN FETCH c.user " +
+            "WHERE (c.status = com.fooddelivery.courier.entity.CourierStatus.AVAILABLE " +
+            "OR c.status = com.fooddelivery.courier.entity.CourierStatus.BUSY) " +
             "AND c.verified = true AND c.currentLat IS NOT NULL AND c.currentLng IS NOT NULL")
     List<Courier> findOnlineCouriersWithLocation();
 }
