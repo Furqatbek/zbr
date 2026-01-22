@@ -415,7 +415,7 @@ public class CourierService {
     public List<CourierOrderDto> getActiveOrders(Long courierId) {
         List<OrderStatus> activeStatuses = List.of(
                 OrderStatus.PICKED_UP,
-                OrderStatus.ON_THE_WAY
+                OrderStatus.IN_TRANSIT
         );
         List<Order> orders = orderRepository.findActiveOrdersByCourier(courierId, activeStatuses);
         return orders.stream().map(this::toOrderDto).toList();
