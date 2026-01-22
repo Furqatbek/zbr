@@ -65,7 +65,69 @@ POST /auth/phone/verify-otp
 ### Refresh Token
 ```
 POST /auth/refresh
+Authorization: Bearer {token}
 ```
+
+**Request:**
+```json
+{
+  "refreshToken": "eyJhbGciOiJIUzI1NiIs..."
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Token refreshed successfully",
+  "data": {
+    "accessToken": "eyJhbGciOiJIUzI1NiIs...",
+    "refreshToken": "eyJhbGciOiJIUzI1NiIs...",
+    "tokenType": "Bearer",
+    "expiresIn": 3600
+  }
+}
+```
+
+### Logout
+```
+POST /auth/logout
+```
+
+**Request:**
+```json
+{
+  "refreshToken": "eyJhbGciOiJIUzI1NiIs..."
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Logout successful",
+  "data": null
+}
+```
+
+> **Note:** This revokes the refresh token. The access token will remain valid until it expires. For immediate session invalidation, the client should also discard the access token locally.
+
+### Logout from All Devices
+```
+POST /users/me/logout-all
+Authorization: Bearer {token}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Logged out from all devices",
+  "data": null
+}
+```
+
+> **Note:** This revokes all refresh tokens for the current user, effectively logging them out from all devices.
 
 ### Get Current User
 ```
@@ -914,6 +976,83 @@ stompClient.connect(
   │  Customer    │               │  Delivered   │
   └──────────────┘               └──────────────┘
 ```
+
+---
+
+## Courier Logout Flow
+
+When a courier wants to end their session, they should follow this sequence to ensure proper state management:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────────────┐
+│                              COURIER LOGOUT FLOW                                         │
+└─────────────────────────────────────────────────────────────────────────────────────────┘
+
+  1. CHECK ACTIVE ORDERS           2. GO OFFLINE                  3. LOGOUT
+  ┌──────────────┐               ┌──────────────┐               ┌──────────────┐
+  │  Complete or │──────────────▶│  Set Status  │──────────────▶│    POST      │
+  │  Cancel      │               │   OFFLINE    │               │ /auth/logout │
+  └──────────────┘               └──────────────┘               └──────────────┘
+         │                              │                              │
+         │                              │                              │
+         ▼                              ▼                              ▼
+  ┌──────────────┐               ┌──────────────┐               ┌──────────────┐
+  │ No pending   │               │ Stop location│               │ Clear local  │
+  │ deliveries   │               │ updates      │               │ tokens       │
+  └──────────────┘               └──────────────┘               └──────────────┘
+```
+
+### Recommended Logout Sequence
+
+1. **Check for Active Orders**
+   ```
+   GET /couriers/me/orders/active
+   ```
+   - If there are active orders, prompt the courier to complete or cancel them first
+   - Couriers should not go offline with active deliveries
+
+2. **Go Offline**
+   ```
+   PUT /couriers/me/status
+   {"status": "OFFLINE"}
+   ```
+   - This stops new order notifications
+   - Removes courier from available pool
+
+3. **Stop Location Updates**
+   - Stop the background location service
+   - This saves battery and data
+
+4. **Disconnect WebSocket**
+   ```javascript
+   stompClient.disconnect();
+   ```
+
+5. **Logout from Server**
+   ```
+   POST /auth/logout
+   {"refreshToken": "eyJhbGciOiJIUzI1NiIs..."}
+   ```
+
+6. **Clear Local Storage**
+   - Remove access token
+   - Remove refresh token
+   - Clear cached data
+
+### Quick Logout (Emergency)
+
+For emergency situations where immediate logout is needed:
+
+```
+POST /users/me/logout-all
+Authorization: Bearer {token}
+```
+
+This will:
+- Revoke all refresh tokens across all devices
+- Force re-authentication on next app open
+
+> **Warning:** Using logout-all will also log out the courier from any other devices they may be using.
 
 ---
 
