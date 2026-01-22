@@ -245,6 +245,29 @@ public class NotificationController {
         return ResponseEntity.ok(Map.of("unreadCount", count));
     }
 
+    /**
+     * Get unread count for current user.
+     */
+    @GetMapping("/unread/count")
+    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "Get my unread count",
+            description = "Get the count of unread notifications for the current user")
+    public ResponseEntity<Map<String, Long>> getMyUnreadCount(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @RequestParam(required = false) NotificationRole role) {
+
+        Long userId = extractUserId(userDetails);
+        if (userId == null) {
+            return ResponseEntity.ok(Map.of("unreadCount", 0L));
+        }
+
+        Long count = role != null
+                ? notificationService.getUnreadCount(userId, role)
+                : notificationService.getUnreadCount(userId);
+
+        return ResponseEntity.ok(Map.of("unreadCount", count));
+    }
+
     // ===== Update Operations =====
 
     /**

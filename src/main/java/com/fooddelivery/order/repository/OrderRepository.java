@@ -90,4 +90,56 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
             @Param("status") OrderStatus status,
             @Param("now") LocalDateTime now,
             @Param("reason") String reason);
+
+    // ===== Courier-specific queries =====
+
+    /**
+     * Get completed orders for a courier within a date range (for earnings).
+     */
+    @Query("SELECT o FROM Order o WHERE o.courier.id = :courierId " +
+            "AND o.status = com.fooddelivery.order.entity.OrderStatus.DELIVERED " +
+            "AND o.deliveredAt >= :since ORDER BY o.deliveredAt DESC")
+    List<Order> findDeliveredOrdersByCourierSince(
+            @Param("courierId") Long courierId,
+            @Param("since") LocalDateTime since);
+
+    /**
+     * Count deliveries by courier since a date.
+     */
+    @Query("SELECT COUNT(o) FROM Order o WHERE o.courier.id = :courierId " +
+            "AND o.status = com.fooddelivery.order.entity.OrderStatus.DELIVERED " +
+            "AND o.deliveredAt >= :since")
+    long countDeliveriesByCourierSince(
+            @Param("courierId") Long courierId,
+            @Param("since") LocalDateTime since);
+
+    /**
+     * Sum delivery fees and tips for a courier since a date.
+     */
+    @Query("SELECT COALESCE(SUM(o.deliveryFee), 0) + COALESCE(SUM(o.tipAmount), 0) FROM Order o " +
+            "WHERE o.courier.id = :courierId " +
+            "AND o.status = com.fooddelivery.order.entity.OrderStatus.DELIVERED " +
+            "AND o.deliveredAt >= :since")
+    java.math.BigDecimal sumCourierEarningsSince(
+            @Param("courierId") Long courierId,
+            @Param("since") LocalDateTime since);
+
+    /**
+     * Get order history for a courier (completed/cancelled orders).
+     */
+    @Query("SELECT o FROM Order o WHERE o.courier.id = :courierId " +
+            "AND o.status IN (com.fooddelivery.order.entity.OrderStatus.DELIVERED, " +
+            "com.fooddelivery.order.entity.OrderStatus.CANCELLED) " +
+            "ORDER BY o.createdAt DESC")
+    Page<Order> findOrderHistoryByCourier(@Param("courierId") Long courierId, Pageable pageable);
+
+    /**
+     * Get available orders for pickup (near courier location).
+     */
+    @Query("SELECT o FROM Order o JOIN FETCH o.restaurant " +
+            "WHERE o.status = com.fooddelivery.order.entity.OrderStatus.READY " +
+            "AND o.orderType = com.fooddelivery.order.entity.OrderType.DELIVERY " +
+            "AND o.courier IS NULL " +
+            "ORDER BY o.readyAt ASC")
+    List<Order> findAvailableOrdersForCourier();
 }

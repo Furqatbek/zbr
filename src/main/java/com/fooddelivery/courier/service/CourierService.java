@@ -389,6 +389,115 @@ public class CourierService {
                 .build();
     }
 
+    // ===== Courier App Endpoints =====
+
+    /**
+     * Get available orders for a courier to accept.
+     */
+    @Transactional(readOnly = true)
+    public List<CourierOrderDto> getAvailableOrders(Long courierId) {
+        // Verify courier exists and is verified
+        Courier courier = courierRepository.findByIdWithUser(courierId)
+                .orElseThrow(() -> new ResourceNotFoundException("Courier", "id", courierId));
+
+        if (!courier.getVerified()) {
+            throw new BusinessException("Courier must be verified to see available orders");
+        }
+
+        List<Order> orders = orderRepository.findAvailableOrdersForCourier();
+        return orders.stream().map(this::toOrderDto).toList();
+    }
+
+    /**
+     * Get active orders for a courier (in progress).
+     */
+    @Transactional(readOnly = true)
+    public List<CourierOrderDto> getActiveOrders(Long courierId) {
+        List<OrderStatus> activeStatuses = List.of(
+                OrderStatus.PICKED_UP,
+                OrderStatus.ON_THE_WAY
+        );
+        List<Order> orders = orderRepository.findActiveOrdersByCourier(courierId, activeStatuses);
+        return orders.stream().map(this::toOrderDto).toList();
+    }
+
+    /**
+     * Get order history for a courier.
+     */
+    @Transactional(readOnly = true)
+    public PagedResponse<CourierOrderDto> getOrderHistory(Long courierId, Pageable pageable) {
+        Page<Order> orders = orderRepository.findOrderHistoryByCourier(courierId, pageable);
+        return PagedResponse.from(orders, orders.getContent().stream()
+                .map(this::toOrderDto)
+                .toList());
+    }
+
+    /**
+     * Get earnings for a courier.
+     */
+    @Transactional(readOnly = true)
+    public CourierEarningsDto getEarnings(Long courierId) {
+        Courier courier = courierRepository.findByIdWithUser(courierId)
+                .orElseThrow(() -> new ResourceNotFoundException("Courier", "id", courierId));
+
+        java.time.LocalDateTime now = java.time.LocalDateTime.now();
+        java.time.LocalDateTime startOfToday = now.toLocalDate().atStartOfDay();
+        java.time.LocalDateTime startOfWeek = now.toLocalDate().minusDays(now.getDayOfWeek().getValue() - 1).atStartOfDay();
+        java.time.LocalDateTime startOfMonth = now.toLocalDate().withDayOfMonth(1).atStartOfDay();
+
+        BigDecimal todayEarnings = orderRepository.sumCourierEarningsSince(courierId, startOfToday);
+        BigDecimal weekEarnings = orderRepository.sumCourierEarningsSince(courierId, startOfWeek);
+        BigDecimal monthEarnings = orderRepository.sumCourierEarningsSince(courierId, startOfMonth);
+
+        long todayDeliveries = orderRepository.countDeliveriesByCourierSince(courierId, startOfToday);
+        long weekDeliveries = orderRepository.countDeliveriesByCourierSince(courierId, startOfWeek);
+        long monthDeliveries = orderRepository.countDeliveriesByCourierSince(courierId, startOfMonth);
+
+        BigDecimal avgPerDelivery = courier.getTotalDeliveries() > 0
+                ? courier.getTotalEarnings().divide(BigDecimal.valueOf(courier.getTotalDeliveries()), 2, java.math.RoundingMode.HALF_UP)
+                : BigDecimal.ZERO;
+
+        return CourierEarningsDto.builder()
+                .todayEarnings(todayEarnings != null ? todayEarnings : BigDecimal.ZERO)
+                .weekEarnings(weekEarnings != null ? weekEarnings : BigDecimal.ZERO)
+                .monthEarnings(monthEarnings != null ? monthEarnings : BigDecimal.ZERO)
+                .totalEarnings(courier.getTotalEarnings())
+                .todayDeliveries((int) todayDeliveries)
+                .weekDeliveries((int) weekDeliveries)
+                .monthDeliveries((int) monthDeliveries)
+                .totalDeliveries(courier.getTotalDeliveries())
+                .averagePerDelivery(avgPerDelivery)
+                .pendingPayout(BigDecimal.ZERO) // Placeholder for payout system
+                .build();
+    }
+
+    private CourierOrderDto toOrderDto(Order order) {
+        return CourierOrderDto.builder()
+                .orderId(order.getId())
+                .externalOrderNo(order.getExternalOrderNo())
+                .restaurantId(order.getRestaurant().getId())
+                .restaurantName(order.getRestaurant().getName())
+                .restaurantAddress(order.getRestaurant().getFullAddress())
+                .restaurantLat(order.getRestaurant().getLatitude())
+                .restaurantLng(order.getRestaurant().getLongitude())
+                .deliveryAddress(order.getDeliveryAddress())
+                .deliveryLat(order.getDeliveryLatitude())
+                .deliveryLng(order.getDeliveryLongitude())
+                .customerName(order.getCustomerName())
+                .customerPhone(order.getCustomerPhone())
+                .deliveryInstructions(order.getDeliveryInstructions())
+                .status(order.getStatus())
+                .deliveryFee(order.getDeliveryFee())
+                .tipAmount(order.getTipAmount())
+                .total(order.getTotal())
+                .itemCount(order.getItems() != null ? order.getItems().size() : 0)
+                .createdAt(order.getCreatedAt())
+                .readyAt(order.getReadyAt())
+                .pickedUpAt(order.getPickedUpAt())
+                .deliveredAt(order.getDeliveredAt())
+                .build();
+    }
+
     private void broadcastLocation(Courier courier) {
         try {
             CourierLocationDto location = CourierLocationDto.builder()

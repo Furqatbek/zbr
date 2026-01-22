@@ -4,6 +4,8 @@ import com.fooddelivery.auth.security.UserPrincipal;
 import com.fooddelivery.common.dto.ApiResponse;
 import com.fooddelivery.common.dto.PagedResponse;
 import com.fooddelivery.courier.dto.CourierDto;
+import com.fooddelivery.courier.dto.CourierEarningsDto;
+import com.fooddelivery.courier.dto.CourierOrderDto;
 import com.fooddelivery.courier.dto.CourierStatisticsDto;
 import com.fooddelivery.courier.dto.CreateCourierRequest;
 import com.fooddelivery.courier.dto.UpdateCourierRequest;
@@ -79,6 +81,47 @@ public class CourierController {
         CourierDto courier = courierService.getCourierByUserId(currentUser.getId());
         courierService.updateLocation(courier.getId(), lat, lng);
         return ResponseEntity.ok(ApiResponse.success("Location updated"));
+    }
+
+    @GetMapping("/me/available-orders")
+    @PreAuthorize("hasRole('COURIER')")
+    @Operation(summary = "Get available orders", description = "Get orders available for pickup")
+    public ResponseEntity<ApiResponse<List<CourierOrderDto>>> getAvailableOrders(
+            @AuthenticationPrincipal UserPrincipal currentUser) {
+        CourierDto courier = courierService.getCourierByUserId(currentUser.getId());
+        List<CourierOrderDto> orders = courierService.getAvailableOrders(courier.getId());
+        return ResponseEntity.ok(ApiResponse.success(orders));
+    }
+
+    @GetMapping("/me/orders/active")
+    @PreAuthorize("hasRole('COURIER')")
+    @Operation(summary = "Get active orders", description = "Get current orders in progress")
+    public ResponseEntity<ApiResponse<List<CourierOrderDto>>> getActiveOrders(
+            @AuthenticationPrincipal UserPrincipal currentUser) {
+        CourierDto courier = courierService.getCourierByUserId(currentUser.getId());
+        List<CourierOrderDto> orders = courierService.getActiveOrders(courier.getId());
+        return ResponseEntity.ok(ApiResponse.success(orders));
+    }
+
+    @GetMapping("/me/orders/history")
+    @PreAuthorize("hasRole('COURIER')")
+    @Operation(summary = "Get order history", description = "Get completed and cancelled orders")
+    public ResponseEntity<ApiResponse<PagedResponse<CourierOrderDto>>> getOrderHistory(
+            @AuthenticationPrincipal UserPrincipal currentUser,
+            @PageableDefault(size = 20) Pageable pageable) {
+        CourierDto courier = courierService.getCourierByUserId(currentUser.getId());
+        PagedResponse<CourierOrderDto> orders = courierService.getOrderHistory(courier.getId(), pageable);
+        return ResponseEntity.ok(ApiResponse.success(orders));
+    }
+
+    @GetMapping("/me/earnings")
+    @PreAuthorize("hasRole('COURIER')")
+    @Operation(summary = "Get earnings", description = "Get earnings summary")
+    public ResponseEntity<ApiResponse<CourierEarningsDto>> getEarnings(
+            @AuthenticationPrincipal UserPrincipal currentUser) {
+        CourierDto courier = courierService.getCourierByUserId(currentUser.getId());
+        CourierEarningsDto earnings = courierService.getEarnings(courier.getId());
+        return ResponseEntity.ok(ApiResponse.success(earnings));
     }
 
     @PostMapping("/{courierId}/accept/{orderId}")
