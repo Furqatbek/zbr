@@ -248,27 +248,28 @@ Authorization: Bearer {token}
 > **Required Role:** RESTAURANT_OWNER, RESTAURANT_STAFF
 
 ```
-PUT /restaurants/{id}/toggle-open
+PATCH /restaurants/{id}/toggle-open?isOpen={true|false}
 Authorization: Bearer {token}
 ```
+
+**Query Parameters:**
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| isOpen | boolean | true to open, false to close |
 
 **Response:**
 ```json
 {
   "success": true,
+  "message": "Restaurant is now open",
   "data": {
     "id": 1,
+    "name": "Pizza Palace",
+    "status": "ACTIVE",
     "isOpen": true,
-    "message": "Restaurant is now open"
+    "isCurrentlyOpen": true
   }
 }
-```
-
-### Update Operating Hours
-
-```
-PUT /restaurants/{id}/hours
-Authorization: Bearer {token}
 ```
 
 ---
@@ -330,20 +331,12 @@ DELETE /restaurants/{restaurantId}/menu/categories/{categoryId}
 Authorization: Bearer {token}
 ```
 
-#### Reorder Categories
-```
-PUT /restaurants/{restaurantId}/menu/categories/reorder
-Authorization: Bearer {token}
-```
-
-**Request:**
+**Response:**
 ```json
 {
-  "categoryOrders": [
-    {"categoryId": 1, "sortOrder": 1},
-    {"categoryId": 2, "sortOrder": 2},
-    {"categoryId": 3, "sortOrder": 3}
-  ]
+  "success": true,
+  "message": "Category deleted successfully",
+  "data": null
 }
 ```
 
@@ -433,39 +426,64 @@ DELETE /restaurants/{restaurantId}/menu/items/{itemId}
 Authorization: Bearer {token}
 ```
 
-#### Toggle Item Availability
+#### Update Item Stock Status
 ```
-PUT /restaurants/{restaurantId}/menu/items/{itemId}/toggle-stock
+PATCH /restaurants/{restaurantId}/menu/items/{itemId}/stock?inStock={true|false}
 Authorization: Bearer {token}
 ```
+
+**Query Parameters:**
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| inStock | boolean | true if in stock, false if out of stock |
 
 **Response:**
 ```json
 {
   "success": true,
+  "message": "Item is now out of stock",
   "data": {
     "id": 15,
+    "categoryId": 1,
+    "categoryName": "Pizzas",
     "name": "Margherita Pizza",
-    "inStock": false
+    "description": "Classic pizza with tomato sauce, mozzarella, and basil",
+    "price": 45000,
+    "inStock": false,
+    "active": true
   }
 }
 ```
 
-#### Bulk Update Stock Status
+#### Upload Item Image
 ```
-PUT /restaurants/{restaurantId}/menu/items/bulk-stock
+POST /restaurants/{restaurantId}/menu/items/{itemId}/image
 Authorization: Bearer {token}
+Content-Type: multipart/form-data
 ```
 
-**Request:**
+**Form Data:**
+| Field | Type | Description |
+|-------|------|-------------|
+| file | file | Image file (JPEG, PNG, WebP) |
+
+**Response:**
 ```json
 {
-  "items": [
-    {"itemId": 1, "inStock": true},
-    {"itemId": 2, "inStock": false},
-    {"itemId": 3, "inStock": true}
-  ]
+  "success": true,
+  "message": "Image uploaded successfully",
+  "data": {
+    "id": 15,
+    "name": "Margherita Pizza",
+    "imageUrl": "/images/menu/margherita-abc123.jpg"
+  }
 }
+```
+
+#### Delete Item Image
+```
+DELETE /restaurants/{restaurantId}/menu/items/{itemId}/image
+Authorization: Bearer {token}
 ```
 
 ---
@@ -525,19 +543,67 @@ GET /orders/{orderId}
 Authorization: Bearer {token}
 ```
 
-### Accept Order
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "id": 1,
+    "externalOrderNo": "ORD-2024-0001",
+    "consumerId": 4,
+    "consumerName": "John Doe",
+    "restaurantId": 1,
+    "restaurantName": "Pizza Palace",
+    "orderType": "DELIVERY",
+    "status": "CREATED",
+    "paymentStatus": "PAID",
+    "items": [
+      {
+        "id": 101,
+        "menuItemId": 15,
+        "menuItemName": "Margherita Pizza",
+        "quantity": 2,
+        "unitPrice": 45000,
+        "totalPrice": 90000,
+        "specialInstructions": "No onions"
+      }
+    ],
+    "subtotal": 90000,
+    "tax": 9000,
+    "deliveryFee": 15000,
+    "discount": 0,
+    "tipAmount": 5000,
+    "total": 119000,
+    "deliveryAddress": "456 Elm Street, Apt 5A",
+    "deliveryInstructions": "Ring doorbell twice",
+    "customerName": "John Doe",
+    "customerPhone": "+998907654321",
+    "estimatedPrepTimeMinutes": 25,
+    "createdAt": "2024-01-15T12:30:00Z",
+    "acceptedAt": null,
+    "readyAt": null
+  }
+}
+```
+
+### Update Order Status
 
 > **Required Role:** RESTAURANT_OWNER, RESTAURANT_STAFF
 
+Use this single endpoint to update order status (accept, prepare, ready, etc.)
+
 ```
-PUT /orders/{orderId}/accept
+PATCH /orders/{orderId}/status
 Authorization: Bearer {token}
+Content-Type: application/json
 ```
 
-**Request (optional estimated time):**
+**Request:**
 ```json
 {
-  "estimatedPrepTime": 20
+  "status": "ACCEPTED",
+  "estimatedPrepTimeMinutes": 20,
+  "notes": "Order accepted"
 }
 ```
 
@@ -545,50 +611,81 @@ Authorization: Bearer {token}
 ```json
 {
   "success": true,
+  "message": "Order status updated",
   "data": {
     "id": 1,
+    "externalOrderNo": "ORD-2024-0001",
     "status": "ACCEPTED",
-    "estimatedReadyTime": "2024-01-15T12:50:00Z"
+    "acceptedAt": "2024-01-15T12:32:00Z",
+    "estimatedPrepTimeMinutes": 20
   }
 }
 ```
 
-### Start Preparing
-```
-PUT /orders/{orderId}/preparing
-Authorization: Bearer {token}
-```
+**Status Transitions for Restaurant:**
 
-### Mark as Ready
-```
-PUT /orders/{orderId}/ready
-Authorization: Bearer {token}
-```
+| Action | Set Status To | Notes Field |
+|--------|---------------|-------------|
+| Accept order | `ACCEPTED` | Optional estimated prep time |
+| Start preparing | `PREPARING` | Optional notes |
+| Mark as ready | `READY` | Order ready for pickup |
+| Reject order | `CANCELLED` | Must include reason in notes |
 
-### Reject Order
-```
-PUT /orders/{orderId}/reject
-Authorization: Bearer {token}
-```
-
-**Request:**
+**Example - Accept Order:**
 ```json
 {
-  "reason": "Item out of stock"
+  "status": "ACCEPTED",
+  "estimatedPrepTimeMinutes": 25
 }
 ```
 
-### Update Order Status
+**Example - Start Preparing:**
+```json
+{
+  "status": "PREPARING",
+  "notes": "Cooking started"
+}
 ```
-PUT /orders/{orderId}/status
+
+**Example - Mark Ready:**
+```json
+{
+  "status": "READY"
+}
+```
+
+**Example - Reject Order:**
+```json
+{
+  "status": "CANCELLED",
+  "notes": "Item out of stock"
+}
+```
+
+### Cancel Order
+
+```
+POST /orders/{orderId}/cancel
 Authorization: Bearer {token}
 ```
 
 **Request:**
 ```json
 {
-  "status": "PREPARING",
-  "note": "Started cooking"
+  "reason": "Customer requested cancellation"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Order cancelled",
+  "data": {
+    "id": 1,
+    "status": "CANCELLED",
+    "cancellationReason": "Customer requested cancellation"
+  }
 }
 ```
 
@@ -750,19 +847,28 @@ stompClient.subscribe('/topic/kitchen/{restaurantId}', (message) => {
 ## Order Status Flow (Restaurant Perspective)
 
 ```
-CREATED ──► ACCEPTED ──► PREPARING ──► READY ──► [Courier picks up]
+CREATED ──► ACCEPTED ──► PREPARING ──► READY ──► PICKED_UP ──► DELIVERED
     │
-    └──► REJECTED (with reason)
+    └──► CANCELLED (with reason)
 ```
 
-**Actions by Status:**
+**API Calls by Action:**
 
-| Current Status | Available Actions |
-|----------------|-------------------|
-| CREATED | Accept, Reject |
-| ACCEPTED | Start Preparing |
-| PREPARING | Mark Ready |
-| READY | Wait for courier pickup |
+| Action | Endpoint | Request Body |
+|--------|----------|--------------|
+| Accept Order | `PATCH /orders/{id}/status` | `{"status": "ACCEPTED", "estimatedPrepTimeMinutes": 20}` |
+| Start Preparing | `PATCH /orders/{id}/status` | `{"status": "PREPARING"}` |
+| Mark Ready | `PATCH /orders/{id}/status` | `{"status": "READY"}` |
+| Reject/Cancel | `POST /orders/{id}/cancel` | `{"reason": "Item out of stock"}` |
+
+**Valid Status Transitions:**
+
+| Current Status | Can Change To |
+|----------------|---------------|
+| CREATED | ACCEPTED, CANCELLED |
+| ACCEPTED | PREPARING, CANCELLED |
+| PREPARING | READY, CANCELLED |
+| READY | *(Courier picks up)* |
 
 ---
 
