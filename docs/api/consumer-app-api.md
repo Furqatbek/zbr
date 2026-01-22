@@ -152,10 +152,56 @@ POST /auth/refresh
 }
 ```
 
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Token refreshed successfully",
+  "data": {
+    "accessToken": "eyJhbGciOiJIUzI1NiIs...",
+    "refreshToken": "eyJhbGciOiJIUzI1NiIs...",
+    "tokenType": "Bearer",
+    "expiresIn": 3600
+  }
+}
+```
+
 ### Logout
 ```
 POST /auth/logout
+```
+
+**Request:**
+```json
+{
+  "refreshToken": "eyJhbGciOiJIUzI1NiIs..."
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Logout successful",
+  "data": null
+}
+```
+
+> **Note:** This revokes the refresh token. The access token will remain valid until it expires. For immediate session invalidation, discard the access token locally.
+
+### Logout from All Devices
+```
+POST /users/me/logout-all
 Authorization: Bearer {token}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Logged out from all devices",
+  "data": null
+}
 ```
 
 ### Get Current User
@@ -290,22 +336,37 @@ GET /restaurants
     "content": [
       {
         "id": 1,
-        "slug": "pizza-palace",
         "name": "Pizza Palace",
-        "imageUrl": "/images/restaurants/pizza-palace.jpg",
-        "cuisineTypes": ["ITALIAN", "FAST_FOOD"],
-        "rating": 4.5,
-        "reviewCount": 234,
+        "slug": "pizza-palace",
+        "description": "Best pizza in town since 1995",
+        "logoUrl": "/images/restaurants/pizza-palace.jpg",
+        "coverImageUrl": "/images/restaurants/pizza-palace-cover.jpg",
+        "phone": "+998901234567",
+        "fullAddress": "123 Main Street, Tashkent",
+        "latitude": 41.2995,
+        "longitude": 69.2401,
+        "status": "ACTIVE",
+        "acceptsDelivery": true,
+        "acceptsTakeaway": true,
+        "acceptsDineIn": false,
+        "minimumOrder": 30000,
         "deliveryFee": 15000,
-        "minOrderAmount": 30000,
-        "avgDeliveryTime": 30,
-        "distance": 2.5,
+        "deliveryRadiusKm": 10,
+        "averagePrepTimeMinutes": 25,
+        "opensAt": "09:00:00",
+        "closesAt": "22:00:00",
         "isOpen": true,
-        "isFavorite": false
+        "isCurrentlyOpen": true,
+        "averageRating": 4.5,
+        "totalRatings": 234,
+        "totalOrders": 1250
       }
     ],
+    "page": 0,
+    "size": 20,
     "totalElements": 45,
-    "totalPages": 3
+    "totalPages": 3,
+    "last": false
   }
 }
 ```
@@ -325,23 +386,39 @@ GET /restaurants/slug/{slug}
   "success": true,
   "data": {
     "id": 1,
-    "slug": "pizza-palace",
+    "ownerId": 3,
     "name": "Pizza Palace",
+    "slug": "pizza-palace",
     "description": "Best pizza in town since 1995",
-    "imageUrl": "/images/restaurants/pizza-palace.jpg",
+    "logoUrl": "/images/restaurants/pizza-palace.jpg",
     "coverImageUrl": "/images/restaurants/pizza-palace-cover.jpg",
     "phone": "+998901234567",
+    "email": "contact@pizzapalace.com",
     "fullAddress": "123 Main Street, Tashkent",
+    "addressLine1": "123 Main Street",
+    "city": "Tashkent",
+    "state": "Tashkent",
+    "postalCode": "100000",
+    "country": "Uzbekistan",
     "latitude": 41.2995,
     "longitude": 69.2401,
-    "cuisineTypes": ["ITALIAN", "FAST_FOOD"],
-    "rating": 4.5,
-    "reviewCount": 234,
+    "status": "ACTIVE",
+    "featured": true,
+    "acceptsDelivery": true,
+    "acceptsTakeaway": true,
+    "acceptsDineIn": false,
+    "minimumOrder": 30000,
     "deliveryFee": 15000,
-    "minOrderAmount": 30000,
-    "avgPrepTime": 25,
+    "deliveryRadiusKm": 10,
+    "averagePrepTimeMinutes": 25,
+    "opensAt": "09:00:00",
+    "closesAt": "22:00:00",
     "isOpen": true,
-    "operatingHours": {...}
+    "isCurrentlyOpen": true,
+    "averageRating": 4.5,
+    "totalRatings": 234,
+    "totalOrders": 1250,
+    "createdAt": "2023-01-15T10:00:00Z"
   }
 }
 ```
@@ -433,28 +510,28 @@ Authorization: Bearer {token}
 {
   "restaurantId": 1,
   "orderType": "DELIVERY",
-  "deliveryAddress": {
-    "fullAddress": "123 Main St, Apt 4B",
-    "latitude": 41.2995,
-    "longitude": 69.2401,
-    "apartmentNumber": "4B",
-    "instructions": "Ring doorbell twice"
-  },
+  "deliveryAddress": "123 Main St, Apt 4B, Tashkent",
+  "deliveryLatitude": 41.2995,
+  "deliveryLongitude": 69.2401,
+  "deliveryInstructions": "Ring doorbell twice",
   "items": [
     {
       "menuItemId": 101,
       "quantity": 2,
       "variantId": 3,
-      "selectedOptions": [
-        {"optionId": 1, "choiceIds": [1, 2]}
-      ],
+      "optionIds": [1, 2],
       "specialInstructions": "No onions please"
     }
   ],
-  "paymentMethod": "CARD",
-  "promoCode": "FIRST20"
+  "customerName": "John Doe",
+  "customerPhone": "+998901234567",
+  "notes": "Please include extra napkins",
+  "tipAmount": 5000,
+  "discountCode": "FIRST20"
 }
 ```
+
+**Order Types:** `DELIVERY`, `TAKEAWAY`, `DINE_IN`
 
 **Response:**
 ```json
@@ -463,21 +540,44 @@ Authorization: Bearer {token}
   "data": {
     "id": 456,
     "externalOrderNo": "ORD-2024-0456",
+    "consumerId": 10,
+    "consumerName": "John Doe",
+    "restaurantId": 1,
+    "restaurantName": "Pizza Palace",
+    "courierId": null,
+    "courierName": null,
+    "orderType": "DELIVERY",
     "status": "CREATED",
-    "restaurant": {
-      "id": 1,
-      "name": "Pizza Palace"
-    },
-    "items": [...],
+    "paymentStatus": "PENDING",
+    "items": [
+      {
+        "id": 1001,
+        "menuItemId": 101,
+        "menuItemName": "Margherita Pizza",
+        "quantity": 2,
+        "unitPrice": 45000,
+        "totalPrice": 90000,
+        "specialInstructions": "No onions please"
+      }
+    ],
     "subtotal": 110000,
+    "tax": 11000,
     "deliveryFee": 15000,
     "discount": 22000,
-    "total": 103000,
-    "payment": {
-      "status": "PENDING",
-      "clientSecret": "pi_xxx_secret_xxx"
-    },
-    "estimatedDeliveryTime": "2024-01-15T13:30:00Z"
+    "tipAmount": 5000,
+    "total": 119000,
+    "deliveryAddress": "123 Main St, Apt 4B, Tashkent",
+    "deliveryInstructions": "Ring doorbell twice",
+    "customerName": "John Doe",
+    "customerPhone": "+998901234567",
+    "notes": "Please include extra napkins",
+    "estimatedPrepTimeMinutes": 25,
+    "estimatedDeliveryTime": "2024-01-15T13:30:00Z",
+    "createdAt": "2024-01-15T12:30:00Z",
+    "acceptedAt": null,
+    "readyAt": null,
+    "deliveredAt": null,
+    "cancellationReason": null
   }
 }
 ```
@@ -613,39 +713,23 @@ Authorization: Bearer {token}
 {
   "success": true,
   "data": {
-    "orderId": 456,
+    "id": 456,
+    "externalOrderNo": "ORD-2024-0456",
     "status": "IN_TRANSIT",
-    "statusHistory": [
-      {"status": "CREATED", "timestamp": "2024-01-15T12:30:00Z"},
-      {"status": "ACCEPTED", "timestamp": "2024-01-15T12:32:00Z"},
-      {"status": "PREPARING", "timestamp": "2024-01-15T12:35:00Z"},
-      {"status": "READY", "timestamp": "2024-01-15T12:50:00Z"},
-      {"status": "PICKED_UP", "timestamp": "2024-01-15T12:55:00Z"},
-      {"status": "IN_TRANSIT", "timestamp": "2024-01-15T12:56:00Z"}
-    ],
-    "courier": {
-      "id": 5,
-      "name": "Alex Courier",
-      "phone": "+998907654321",
-      "rating": 4.8,
-      "vehicleType": "MOTORCYCLE",
-      "currentLocation": {
-        "latitude": 41.3001,
-        "longitude": 69.2450
-      }
-    },
+    "restaurantId": 1,
+    "restaurantName": "Pizza Palace",
+    "courierId": 5,
+    "courierName": "Alex Courier",
+    "deliveryAddress": "123 Main St, Apt 4B, Tashkent",
     "estimatedDeliveryTime": "2024-01-15T13:10:00Z",
-    "restaurant": {
-      "latitude": 41.2995,
-      "longitude": 69.2401
-    },
-    "deliveryAddress": {
-      "latitude": 41.3112,
-      "longitude": 69.2797
-    }
+    "createdAt": "2024-01-15T12:30:00Z",
+    "acceptedAt": "2024-01-15T12:32:00Z",
+    "readyAt": "2024-01-15T12:50:00Z"
   }
 }
 ```
+
+> **Note:** For real-time courier location tracking, subscribe to the WebSocket topic `/topic/couriers/{courierId}/location`.
 
 ---
 
@@ -732,10 +816,32 @@ GET /notifications/unread/count
 Authorization: Bearer {token}
 ```
 
+**Response:**
+```json
+{
+  "unreadCount": 5
+}
+```
+
 ### Mark as Read
 ```
-PUT /notifications/{id}/read
+PATCH /notifications/{id}/read
 Authorization: Bearer {token}
+```
+
+**Response:**
+```json
+{
+  "id": 123,
+  "userId": 10,
+  "role": "CONSUMER",
+  "title": "Order Delivered",
+  "message": "Your order #ORD-2024-0456 has been delivered",
+  "category": "ORDER",
+  "read": true,
+  "readAt": "2024-01-15T13:15:00Z",
+  "createdAt": "2024-01-15T13:10:00Z"
+}
 ```
 
 ### Mark All as Read
