@@ -170,6 +170,33 @@ Authorization: Bearer {token}
 }
 ```
 
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Profile updated",
+  "data": {
+    "id": 1,
+    "userId": 5,
+    "userName": "Alex Courier",
+    "email": "courier@fooddelivery.com",
+    "phone": "+998901234567",
+    "status": "AVAILABLE",
+    "vehicleType": "CAR",
+    "vehicleNumber": "01A456DE",
+    "currentLat": 41.2995,
+    "currentLng": 69.2401,
+    "preferredRadiusKm": 15,
+    "verified": true,
+    "verifiedAt": "2024-01-10T10:00:00Z",
+    "currentOrderCount": 0,
+    "maxConcurrentOrders": 3,
+    "totalDeliveries": 156,
+    "averageRating": 4.8
+  }
+}
+```
+
 ---
 
 ## 3. Status Management
@@ -201,10 +228,24 @@ Authorization: Bearer {token}
 ```json
 {
   "success": true,
+  "message": "Status updated",
   "data": {
     "id": 1,
+    "userId": 5,
+    "userName": "Alex Courier",
+    "email": "courier@fooddelivery.com",
+    "phone": "+998901234567",
     "status": "AVAILABLE",
-    "message": "You are now online and can receive orders"
+    "vehicleType": "MOTORCYCLE",
+    "vehicleNumber": "01A123BC",
+    "currentLat": 41.2995,
+    "currentLng": 69.2401,
+    "verified": true,
+    "verifiedAt": "2024-01-10T10:00:00Z",
+    "currentOrderCount": 0,
+    "maxConcurrentOrders": 3,
+    "totalDeliveries": 156,
+    "averageRating": 4.8
   }
 }
 ```
@@ -257,7 +298,8 @@ Authorization: Bearer {token}
 ```json
 {
   "success": true,
-  "message": "Location updated"
+  "message": "Location updated",
+  "data": null
 }
 ```
 
@@ -295,25 +337,27 @@ Authorization: Bearer {token}
   "data": [
     {
       "orderId": 456,
-      "orderNumber": "ORD-2024-0456",
-      "restaurant": {
-        "id": 1,
-        "name": "Pizza Palace",
-        "address": "123 Main Street",
-        "latitude": 41.2995,
-        "longitude": 69.2401,
-        "distance": 1.2
-      },
-      "deliveryAddress": {
-        "fullAddress": "456 Elm Street, Apt 5A",
-        "latitude": 41.3112,
-        "longitude": 69.2797,
-        "distance": 3.5
-      },
-      "estimatedDistance": 4.7,
-      "estimatedEarnings": 18000,
+      "externalOrderNo": "ORD-2024-0456",
+      "restaurantId": 1,
+      "restaurantName": "Pizza Palace",
+      "restaurantAddress": "123 Main Street",
+      "restaurantLat": 41.2995,
+      "restaurantLng": 69.2401,
+      "deliveryAddress": "456 Elm Street, Apt 5A",
+      "deliveryLat": 41.3112,
+      "deliveryLng": 69.2797,
+      "customerName": "John D.",
+      "customerPhone": "+998907654321",
+      "deliveryInstructions": "Ring doorbell twice",
+      "status": "READY",
+      "deliveryFee": 15000,
+      "tipAmount": 3000,
+      "total": 125000,
       "itemCount": 3,
-      "createdAt": "2024-01-15T12:30:00Z"
+      "createdAt": "2024-01-15T12:30:00Z",
+      "readyAt": "2024-01-15T12:45:00Z",
+      "pickedUpAt": null,
+      "deliveredAt": null
     }
   ]
 }
@@ -329,41 +373,30 @@ Authorization: Bearer {token}
 ```json
 {
   "success": true,
+  "message": "Order accepted",
   "data": {
     "orderId": 456,
-    "orderNumber": "ORD-2024-0456",
+    "externalOrderNo": "ORD-2024-0456",
+    "restaurantId": 1,
+    "restaurantName": "Pizza Palace",
+    "restaurantAddress": "123 Main Street",
+    "restaurantLat": 41.2995,
+    "restaurantLng": 69.2401,
+    "deliveryAddress": "456 Elm Street, Apt 5A",
+    "deliveryLat": 41.3112,
+    "deliveryLng": 69.2797,
+    "customerName": "John D.",
+    "customerPhone": "+998907654321",
+    "deliveryInstructions": "Ring doorbell twice",
     "status": "PICKED_UP",
-    "restaurant": {
-      "id": 1,
-      "name": "Pizza Palace",
-      "address": "123 Main Street",
-      "phone": "+998901234567",
-      "latitude": 41.2995,
-      "longitude": 69.2401
-    },
-    "customer": {
-      "name": "John D.",
-      "phone": "+998907654321"
-    },
-    "deliveryAddress": {
-      "fullAddress": "456 Elm Street, Apt 5A",
-      "latitude": 41.3112,
-      "longitude": 69.2797,
-      "instructions": "Ring doorbell twice"
-    },
-    "items": [
-      {
-        "name": "Margherita Pizza (Large)",
-        "quantity": 2
-      },
-      {
-        "name": "Coca-Cola",
-        "quantity": 1
-      }
-    ],
-    "paymentMethod": "CARD",
-    "isPaid": true,
-    "totalAmount": 125000
+    "deliveryFee": 15000,
+    "tipAmount": 3000,
+    "total": 125000,
+    "itemCount": 3,
+    "createdAt": "2024-01-15T12:30:00Z",
+    "readyAt": "2024-01-15T12:45:00Z",
+    "pickedUpAt": null,
+    "deliveredAt": null
   }
 }
 ```
@@ -374,10 +407,74 @@ GET /couriers/me/orders/active
 Authorization: Bearer {token}
 ```
 
+**Response:**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "orderId": 456,
+      "externalOrderNo": "ORD-2024-0456",
+      "restaurantId": 1,
+      "restaurantName": "Pizza Palace",
+      "restaurantAddress": "123 Main Street",
+      "restaurantLat": 41.2995,
+      "restaurantLng": 69.2401,
+      "deliveryAddress": "456 Elm Street, Apt 5A",
+      "deliveryLat": 41.3112,
+      "deliveryLng": 69.2797,
+      "customerName": "John D.",
+      "customerPhone": "+998907654321",
+      "deliveryInstructions": "Ring doorbell twice",
+      "status": "PICKED_UP",
+      "deliveryFee": 15000,
+      "tipAmount": 3000,
+      "total": 125000,
+      "itemCount": 3,
+      "createdAt": "2024-01-15T12:30:00Z",
+      "readyAt": "2024-01-15T12:45:00Z",
+      "pickedUpAt": "2024-01-15T12:50:00Z",
+      "deliveredAt": null
+    }
+  ]
+}
+```
+
 ### Get Order Details
 ```
 GET /couriers/me/orders/{orderId}
 Authorization: Bearer {token}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "orderId": 456,
+    "externalOrderNo": "ORD-2024-0456",
+    "restaurantId": 1,
+    "restaurantName": "Pizza Palace",
+    "restaurantAddress": "123 Main Street",
+    "restaurantLat": 41.2995,
+    "restaurantLng": 69.2401,
+    "deliveryAddress": "456 Elm Street, Apt 5A",
+    "deliveryLat": 41.3112,
+    "deliveryLng": 69.2797,
+    "customerName": "John D.",
+    "customerPhone": "+998907654321",
+    "deliveryInstructions": "Ring doorbell twice",
+    "status": "PICKED_UP",
+    "deliveryFee": 15000,
+    "tipAmount": 3000,
+    "total": 125000,
+    "itemCount": 3,
+    "createdAt": "2024-01-15T12:30:00Z",
+    "readyAt": "2024-01-15T12:45:00Z",
+    "pickedUpAt": "2024-01-15T12:50:00Z",
+    "deliveredAt": null
+  }
+}
 ```
 
 ### Update Order Status
@@ -392,10 +489,30 @@ Authorization: Bearer {token}
 ```json
 {
   "success": true,
+  "message": "Order picked up",
   "data": {
     "orderId": 456,
+    "externalOrderNo": "ORD-2024-0456",
+    "restaurantId": 1,
+    "restaurantName": "Pizza Palace",
+    "restaurantAddress": "123 Main Street",
+    "restaurantLat": 41.2995,
+    "restaurantLng": 69.2401,
+    "deliveryAddress": "456 Elm Street, Apt 5A",
+    "deliveryLat": 41.3112,
+    "deliveryLng": 69.2797,
+    "customerName": "John D.",
+    "customerPhone": "+998907654321",
+    "deliveryInstructions": "Ring doorbell twice",
     "status": "PICKED_UP",
-    "message": "Order picked up. Navigate to delivery address."
+    "deliveryFee": 15000,
+    "tipAmount": 3000,
+    "total": 125000,
+    "itemCount": 3,
+    "createdAt": "2024-01-15T12:30:00Z",
+    "readyAt": "2024-01-15T12:45:00Z",
+    "pickedUpAt": "2024-01-15T12:50:00Z",
+    "deliveredAt": null
   }
 }
 ```
@@ -404,6 +521,38 @@ Authorization: Bearer {token}
 ```
 PUT /couriers/me/orders/{orderId}/transit
 Authorization: Bearer {token}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "In transit to customer",
+  "data": {
+    "orderId": 456,
+    "externalOrderNo": "ORD-2024-0456",
+    "restaurantId": 1,
+    "restaurantName": "Pizza Palace",
+    "restaurantAddress": "123 Main Street",
+    "restaurantLat": 41.2995,
+    "restaurantLng": 69.2401,
+    "deliveryAddress": "456 Elm Street, Apt 5A",
+    "deliveryLat": 41.3112,
+    "deliveryLng": 69.2797,
+    "customerName": "John D.",
+    "customerPhone": "+998907654321",
+    "deliveryInstructions": "Ring doorbell twice",
+    "status": "IN_TRANSIT",
+    "deliveryFee": 15000,
+    "tipAmount": 3000,
+    "total": 125000,
+    "itemCount": 3,
+    "createdAt": "2024-01-15T12:30:00Z",
+    "readyAt": "2024-01-15T12:45:00Z",
+    "pickedUpAt": "2024-01-15T12:50:00Z",
+    "deliveredAt": null
+  }
+}
 ```
 
 #### Complete Delivery
@@ -424,11 +573,30 @@ Authorization: Bearer {token}
 ```json
 {
   "success": true,
+  "message": "Delivery completed",
   "data": {
     "orderId": 456,
+    "externalOrderNo": "ORD-2024-0456",
+    "restaurantId": 1,
+    "restaurantName": "Pizza Palace",
+    "restaurantAddress": "123 Main Street",
+    "restaurantLat": 41.2995,
+    "restaurantLng": 69.2401,
+    "deliveryAddress": "456 Elm Street, Apt 5A",
+    "deliveryLat": 41.3112,
+    "deliveryLng": 69.2797,
+    "customerName": "John D.",
+    "customerPhone": "+998907654321",
+    "deliveryInstructions": "Ring doorbell twice",
     "status": "DELIVERED",
-    "earnings": 18000,
-    "message": "Delivery completed! +18,000 UZS earned."
+    "deliveryFee": 15000,
+    "tipAmount": 3000,
+    "total": 125000,
+    "itemCount": 3,
+    "createdAt": "2024-01-15T12:30:00Z",
+    "readyAt": "2024-01-15T12:45:00Z",
+    "pickedUpAt": "2024-01-15T12:50:00Z",
+    "deliveredAt": "2024-01-15T13:05:00Z"
   }
 }
 ```
@@ -456,6 +624,15 @@ Authorization: Bearer {token}
 - `VEHICLE_ISSUE`
 - `OTHER`
 
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Issue reported",
+  "data": null
+}
+```
+
 ---
 
 ## 6. Earnings & History
@@ -480,17 +657,16 @@ Authorization: Bearer {token}
 {
   "success": true,
   "data": {
-    "period": "THIS_WEEK",
-    "totalEarnings": 850000,
-    "deliveryFees": 720000,
-    "tips": 130000,
-    "totalDeliveries": 45,
-    "avgPerDelivery": 18889,
-    "onlineHours": 38.5,
-    "breakdown": [
-      {"date": "2024-01-15", "earnings": 125000, "deliveries": 7},
-      {"date": "2024-01-14", "earnings": 145000, "deliveries": 8}
-    ]
+    "todayEarnings": 125000,
+    "weekEarnings": 850000,
+    "monthEarnings": 3200000,
+    "totalEarnings": 15600000,
+    "todayDeliveries": 7,
+    "weekDeliveries": 45,
+    "monthDeliveries": 180,
+    "totalDeliveries": 850,
+    "averagePerDelivery": 18353,
+    "pendingPayout": 250000
   }
 }
 ```
@@ -504,10 +680,72 @@ Authorization: Bearer {token}
 **Query Parameters:**
 | Parameter | Type | Description |
 |-----------|------|-------------|
-| page | int | Page number |
-| size | int | Page size |
-| dateFrom | date | Start date |
-| dateTo | date | End date |
+| page | int | Page number (0-indexed) |
+| size | int | Page size (default: 20) |
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "content": [
+      {
+        "orderId": 455,
+        "externalOrderNo": "ORD-2024-0455",
+        "restaurantId": 2,
+        "restaurantName": "Burger House",
+        "restaurantAddress": "789 Oak Avenue",
+        "restaurantLat": 41.3050,
+        "restaurantLng": 69.2500,
+        "deliveryAddress": "321 Pine Street",
+        "deliveryLat": 41.3200,
+        "deliveryLng": 69.2650,
+        "customerName": "Jane S.",
+        "customerPhone": "+998909876543",
+        "deliveryInstructions": null,
+        "status": "DELIVERED",
+        "deliveryFee": 12000,
+        "tipAmount": 5000,
+        "total": 85000,
+        "itemCount": 2,
+        "createdAt": "2024-01-14T18:30:00Z",
+        "readyAt": "2024-01-14T18:45:00Z",
+        "pickedUpAt": "2024-01-14T18:50:00Z",
+        "deliveredAt": "2024-01-14T19:05:00Z"
+      },
+      {
+        "orderId": 450,
+        "externalOrderNo": "ORD-2024-0450",
+        "restaurantId": 1,
+        "restaurantName": "Pizza Palace",
+        "restaurantAddress": "123 Main Street",
+        "restaurantLat": 41.2995,
+        "restaurantLng": 69.2401,
+        "deliveryAddress": "555 Maple Drive",
+        "deliveryLat": 41.2900,
+        "deliveryLng": 69.2300,
+        "customerName": "Mike R.",
+        "customerPhone": "+998901112233",
+        "deliveryInstructions": "Leave at door",
+        "status": "DELIVERED",
+        "deliveryFee": 18000,
+        "tipAmount": 2000,
+        "total": 145000,
+        "itemCount": 5,
+        "createdAt": "2024-01-14T12:00:00Z",
+        "readyAt": "2024-01-14T12:20:00Z",
+        "pickedUpAt": "2024-01-14T12:25:00Z",
+        "deliveredAt": "2024-01-14T12:45:00Z"
+      }
+    ],
+    "page": 0,
+    "size": 20,
+    "totalElements": 156,
+    "totalPages": 8,
+    "last": false
+  }
+}
+```
 
 ### Get Single Delivery Details
 ```
@@ -531,10 +769,37 @@ GET /notifications/unread/count
 Authorization: Bearer {token}
 ```
 
+**Query Parameters:**
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| role | string | Optional filter by role (COURIER) |
+
+**Response:**
+```json
+{
+  "unreadCount": 5
+}
+```
+
 ### Mark as Read
 ```
-PUT /notifications/{id}/read
+PATCH /notifications/{id}/read
 Authorization: Bearer {token}
+```
+
+**Response:**
+```json
+{
+  "id": 123,
+  "userId": 5,
+  "role": "COURIER",
+  "title": "New order nearby",
+  "message": "A new order is available for pickup near your location",
+  "category": "ORDER",
+  "read": true,
+  "readAt": "2024-01-15T13:00:00Z",
+  "createdAt": "2024-01-15T12:55:00Z"
+}
 ```
 
 ### Notification Types for Courier
