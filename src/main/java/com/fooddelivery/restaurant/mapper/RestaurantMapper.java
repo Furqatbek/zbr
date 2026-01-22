@@ -4,6 +4,7 @@ import com.fooddelivery.restaurant.dto.*;
 import com.fooddelivery.restaurant.entity.*;
 import org.mapstruct.*;
 
+import java.util.Collection;
 import java.util.List;
 
 /**
@@ -79,7 +80,7 @@ public interface RestaurantMapper {
     @Mapping(target = "totalPrice", expression = "java(variant.calculateTotalPrice())")
     ItemVariantDto toVariantDto(ItemVariant variant);
 
-    List<ItemVariantDto> toVariantDtoList(List<ItemVariant> variants);
+    List<ItemVariantDto> toVariantDtoList(Collection<ItemVariant> variants);
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "menuItem", ignore = true)
@@ -91,7 +92,7 @@ public interface RestaurantMapper {
     @Mapping(target = "menuItemId", source = "menuItem.id")
     ItemOptionDto toOptionDto(ItemOption option);
 
-    List<ItemOptionDto> toOptionDtoList(List<ItemOption> options);
+    List<ItemOptionDto> toOptionDtoList(Collection<ItemOption> options);
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "menuItem", ignore = true)

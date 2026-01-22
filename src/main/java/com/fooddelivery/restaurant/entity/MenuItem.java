@@ -7,8 +7,8 @@ import org.hibernate.annotations.UpdateTimestamp;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * Menu item entity representing individual dishes/products.
@@ -108,12 +108,12 @@ public class MenuItem {
     @OneToMany(mappedBy = "menuItem", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("sortOrder ASC")
     @Builder.Default
-    private List<ItemVariant> variants = new ArrayList<>();
+    private Set<ItemVariant> variants = new HashSet<>();
 
     @OneToMany(mappedBy = "menuItem", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("sortOrder ASC")
     @Builder.Default
-    private List<ItemOption> options = new ArrayList<>();
+    private Set<ItemOption> options = new HashSet<>();
 
     @Version
     private Long version;
