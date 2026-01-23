@@ -498,7 +498,7 @@ public class CourierService {
         }
 
         order.setCourier(courier);
-        order.updateStatus(OrderStatus.PICKED_UP);
+        // Status stays READY - it will change to PICKED_UP when courier confirms pickup
         order = orderRepository.save(order);
 
         courier.assignOrder();
