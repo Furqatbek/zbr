@@ -113,17 +113,38 @@ public class CourierService {
 
     /**
      * Update courier location.
+     * Uses direct UPDATE query to avoid optimistic locking conflicts with concurrent operations.
      */
     @Transactional
     public void updateLocation(Long courierId, BigDecimal lat, BigDecimal lng) {
-        Courier courier = courierRepository.findById(courierId)
-                .orElseThrow(() -> new ResourceNotFoundException("Courier", "id", courierId));
-
-        courier.updateLocation(lat, lng);
-        courierRepository.save(courier);
+        int updated = courierRepository.updateLocation(courierId, lat, lng);
+        if (updated == 0) {
+            throw new ResourceNotFoundException("Courier", "id", courierId);
+        }
 
         // Broadcast location to interested parties
-        broadcastLocation(courier);
+        broadcastLocationUpdate(courierId, lat, lng);
+    }
+
+    /**
+     * Broadcast location update without loading the full entity.
+     */
+    private void broadcastLocationUpdate(Long courierId, BigDecimal lat, BigDecimal lng) {
+        try {
+            CourierLocationDto location = CourierLocationDto.builder()
+                    .courierId(courierId)
+                    .lat(lat)
+                    .lng(lng)
+                    .timestamp(LocalDateTime.now())
+                    .build();
+
+            messagingTemplate.convertAndSend(
+                    "/topic/couriers/" + courierId + "/location",
+                    location
+            );
+        } catch (Exception e) {
+            log.warn("Failed to broadcast courier location: {}", e.getMessage());
+        }
     }
 
     /**
