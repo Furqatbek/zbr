@@ -6,6 +6,8 @@ import com.fooddelivery.common.dto.PagedResponse;
 import com.fooddelivery.order.dto.*;
 import com.fooddelivery.order.service.OrderService;
 import com.fooddelivery.order.service.PaymentService;
+import com.fooddelivery.order.service.PromoService;
+import com.fooddelivery.order.service.ReviewService;
 import com.fooddelivery.restaurant.service.RestaurantService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -36,6 +38,8 @@ public class OrderController {
 
     private final OrderService orderService;
     private final PaymentService paymentService;
+    private final PromoService promoService;
+    private final ReviewService reviewService;
     private final RestaurantService restaurantService;
 
     /**
@@ -179,5 +183,71 @@ public class OrderController {
         validateAccess(orderId, currentUser);
         PaymentDto payment = paymentService.getPaymentByOrderId(orderId);
         return ResponseEntity.ok(ApiResponse.success(payment));
+    }
+
+    // Tracking endpoint
+    @GetMapping("/{orderId}/track")
+    @Operation(summary = "Track order", description = "Get live order tracking information")
+    public ResponseEntity<ApiResponse<OrderTrackingDto>> trackOrder(
+            @AuthenticationPrincipal UserPrincipal currentUser,
+            @PathVariable Long orderId) {
+
+        validateAccess(orderId, currentUser);
+        OrderTrackingDto tracking = orderService.getOrderTracking(orderId);
+        return ResponseEntity.ok(ApiResponse.success(tracking));
+    }
+
+    // Reorder endpoint
+    @PostMapping("/{orderId}/reorder")
+    @PreAuthorize("hasAnyRole('CONSUMER', 'PLATFORM', 'ADMIN')")
+    @Operation(summary = "Reorder", description = "Create a new order based on a previous order")
+    public ResponseEntity<ApiResponse<OrderDto>> reorder(
+            @AuthenticationPrincipal UserPrincipal currentUser,
+            @PathVariable Long orderId) {
+
+        OrderDto order = orderService.reorder(orderId, currentUser.getId());
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.success("Order created from previous order", order));
+    }
+
+    // Review endpoint
+    @PostMapping("/{orderId}/review")
+    @PreAuthorize("hasAnyRole('CONSUMER', 'PLATFORM', 'ADMIN')")
+    @Operation(summary = "Submit review", description = "Submit a review for an order")
+    public ResponseEntity<ApiResponse<ReviewDto>> submitReview(
+            @AuthenticationPrincipal UserPrincipal currentUser,
+            @PathVariable Long orderId,
+            @Valid @RequestBody CreateReviewRequest request) {
+
+        ReviewDto review = reviewService.submitReview(orderId, currentUser.getId(), request);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.success("Review submitted successfully", review));
+    }
+
+    // Promo code validation endpoint
+    @PostMapping("/validate-promo")
+    @Operation(summary = "Validate promo code", description = "Validate a promo code and calculate discount")
+    public ResponseEntity<ApiResponse<PromoValidationResponse>> validatePromoCode(
+            @Valid @RequestBody PromoValidationRequest request) {
+
+        PromoValidationResponse response = promoService.validatePromoCode(request);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    // Payment confirmation endpoint
+    @PostMapping("/{orderId}/pay/confirm")
+    @Operation(summary = "Confirm payment", description = "Confirm payment for an order")
+    public ResponseEntity<ApiResponse<PaymentDto>> confirmPayment(
+            @AuthenticationPrincipal UserPrincipal currentUser,
+            @PathVariable Long orderId,
+            @Valid @RequestBody ConfirmPaymentRequest request) {
+
+        validateAccess(orderId, currentUser);
+        PaymentDto payment = paymentService.confirmPayment(
+                request.getPaymentIntentId(),
+                request.getProviderPaymentId(),
+                null
+        );
+        return ResponseEntity.ok(ApiResponse.success("Payment confirmed", payment));
     }
 }

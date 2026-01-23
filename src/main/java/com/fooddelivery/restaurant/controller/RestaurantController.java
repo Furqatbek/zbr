@@ -3,6 +3,8 @@ package com.fooddelivery.restaurant.controller;
 import com.fooddelivery.auth.security.UserPrincipal;
 import com.fooddelivery.common.dto.ApiResponse;
 import com.fooddelivery.common.dto.PagedResponse;
+import com.fooddelivery.order.dto.ReviewDto;
+import com.fooddelivery.order.service.ReviewService;
 import com.fooddelivery.restaurant.dto.CreateRestaurantRequest;
 import com.fooddelivery.restaurant.dto.RestaurantDto;
 import com.fooddelivery.restaurant.entity.RestaurantStatus;
@@ -36,6 +38,7 @@ import java.util.List;
 public class RestaurantController {
 
     private final RestaurantService restaurantService;
+    private final ReviewService reviewService;
 
     @PostMapping
     @PreAuthorize("hasAnyRole('RESTAURANT_OWNER', 'PLATFORM', 'ADMIN')")
@@ -170,5 +173,15 @@ public class RestaurantController {
         RestaurantDto restaurant = restaurantService.toggleOpenStatus(id, isOpen);
         return ResponseEntity.ok(ApiResponse.success(
                 "Restaurant is now " + (isOpen ? "open" : "closed"), restaurant));
+    }
+
+    @GetMapping("/{restaurantId}/reviews")
+    @Operation(summary = "Get restaurant reviews", description = "Get reviews for a restaurant")
+    public ResponseEntity<ApiResponse<PagedResponse<ReviewDto>>> getRestaurantReviews(
+            @PathVariable Long restaurantId,
+            @PageableDefault(size = 20) Pageable pageable) {
+
+        PagedResponse<ReviewDto> reviews = reviewService.getRestaurantReviews(restaurantId, pageable);
+        return ResponseEntity.ok(ApiResponse.success(reviews));
     }
 }

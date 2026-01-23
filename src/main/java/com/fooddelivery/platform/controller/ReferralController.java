@@ -3,7 +3,9 @@ package com.fooddelivery.platform.controller;
 import com.fooddelivery.auth.security.UserPrincipal;
 import com.fooddelivery.common.dto.ApiResponse;
 import com.fooddelivery.common.dto.PagedResponse;
+import com.fooddelivery.platform.dto.ApplyReferralRequest;
 import com.fooddelivery.platform.dto.ReferralDto;
+import jakarta.validation.Valid;
 import com.fooddelivery.platform.service.ReferralService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -59,5 +61,15 @@ public class ReferralController {
     public ResponseEntity<ApiResponse<ReferralDto>> getReferralByCode(@PathVariable String code) {
         ReferralDto referral = referralService.getReferralByCode(code);
         return ResponseEntity.ok(ApiResponse.success(referral));
+    }
+
+    @PostMapping("/apply")
+    @Operation(summary = "Apply referral code", description = "Apply a referral code to the current user's account")
+    public ResponseEntity<ApiResponse<Void>> applyReferralCode(
+            @AuthenticationPrincipal UserPrincipal currentUser,
+            @Valid @RequestBody ApplyReferralRequest request) {
+
+        referralService.processReferral(request.getCode(), currentUser.getId());
+        return ResponseEntity.ok(ApiResponse.success("Referral code applied successfully"));
     }
 }

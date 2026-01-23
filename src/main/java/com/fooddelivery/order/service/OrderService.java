@@ -626,4 +626,104 @@ public class OrderService {
         return orderRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Order", "id", id));
     }
+
+    /**
+     * Get order tracking information.
+     */
+    @Transactional(readOnly = true)
+    public OrderTrackingDto getOrderTracking(Long orderId) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Order", "id", orderId));
+
+        OrderTrackingDto.OrderTrackingDtoBuilder builder = OrderTrackingDto.builder()
+                .id(order.getId())
+                .externalOrderNo(order.getExternalOrderNo())
+                .status(order.getStatus())
+                .restaurantId(order.getRestaurant().getId())
+                .restaurantName(order.getRestaurant().getName())
+                .restaurantAddress(order.getRestaurant().getFullAddress())
+                .restaurantLat(order.getRestaurant().getLatitude())
+                .restaurantLng(order.getRestaurant().getLongitude())
+                .deliveryAddress(order.getDeliveryAddress())
+                .deliveryLat(order.getDeliveryLatitude())
+                .deliveryLng(order.getDeliveryLongitude())
+                .estimatedDeliveryTime(order.getEstimatedDeliveryTime())
+                .createdAt(order.getCreatedAt())
+                .acceptedAt(order.getAcceptedAt())
+                .readyAt(order.getReadyAt())
+                .pickedUpAt(order.getPickedUpAt())
+                .deliveredAt(order.getDeliveredAt());
+
+        // Add courier info if assigned
+        if (order.getCourier() != null) {
+            Courier courier = order.getCourier();
+            builder.courierId(courier.getId())
+                    .courierName(courier.getUser().getFullName())
+                    .courierPhone(courier.getUser().getPhone())
+                    .courierLat(courier.getCurrentLatitude())
+                    .courierLng(courier.getCurrentLongitude());
+        }
+
+        return builder.build();
+    }
+
+    /**
+     * Create a new order based on a previous order (reorder).
+     */
+    @Transactional
+    @Auditable(action = "REORDER", entityType = "Order")
+    public OrderDto reorder(Long orderId, Long consumerId) {
+        Order previousOrder = orderRepository.findById(orderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Order", "id", orderId));
+
+        // Validate consumer owns the order
+        if (!previousOrder.getConsumer().getId().equals(consumerId)) {
+            throw new BusinessException("You can only reorder your own orders");
+        }
+
+        // Validate restaurant is still active and open
+        Restaurant restaurant = previousOrder.getRestaurant();
+        if (!restaurant.isCurrentlyOpen()) {
+            throw new BusinessException("Restaurant is currently closed");
+        }
+
+        // Build order items from previous order
+        List<OrderItemRequest> itemRequests = new ArrayList<>();
+        for (OrderItem item : previousOrder.getItems()) {
+            // Check if menu item is still available
+            MenuItem menuItem = menuItemRepository.findById(item.getMenuItem().getId()).orElse(null);
+            if (menuItem == null || !menuItem.getInStock()) {
+                log.warn("Skipping unavailable item {} in reorder", item.getItemName());
+                continue;
+            }
+
+            OrderItemRequest itemReq = new OrderItemRequest();
+            itemReq.setMenuItemId(item.getMenuItem().getId());
+            itemReq.setQuantity(item.getQuantity());
+            itemReq.setVariantId(item.getVariantId());
+            itemReq.setSpecialInstructions(item.getSpecialInstructions());
+            // Note: options would need to be parsed from modifiersJson if needed
+            itemRequests.add(itemReq);
+        }
+
+        if (itemRequests.isEmpty()) {
+            throw new BusinessException("No items from the previous order are currently available");
+        }
+
+        // Create new order request
+        CreateOrderRequest request = new CreateOrderRequest();
+        request.setRestaurantId(restaurant.getId());
+        request.setOrderType(previousOrder.getOrderType());
+        request.setDeliveryAddress(previousOrder.getDeliveryAddress());
+        request.setDeliveryLatitude(previousOrder.getDeliveryLatitude());
+        request.setDeliveryLongitude(previousOrder.getDeliveryLongitude());
+        request.setDeliveryInstructions(previousOrder.getDeliveryInstructions());
+        request.setTableId(previousOrder.getTableId());
+        request.setCustomerName(previousOrder.getCustomerName());
+        request.setCustomerPhone(previousOrder.getCustomerPhone());
+        request.setItems(itemRequests);
+
+        log.info("Creating reorder from order {} for consumer {}", orderId, consumerId);
+        return createOrder(consumerId, request);
+    }
 }

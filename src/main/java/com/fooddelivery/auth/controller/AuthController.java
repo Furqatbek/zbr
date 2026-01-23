@@ -1,14 +1,18 @@
 package com.fooddelivery.auth.controller;
 
 import com.fooddelivery.auth.dto.*;
+import com.fooddelivery.auth.security.UserPrincipal;
 import com.fooddelivery.auth.service.AuthService;
+import com.fooddelivery.auth.service.UserService;
 import com.fooddelivery.common.annotation.RateLimited;
 import com.fooddelivery.common.dto.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -28,6 +32,7 @@ import org.springframework.web.bind.annotation.*;
 public class AuthController {
 
     private final AuthService authService;
+    private final UserService userService;
 
     @PostMapping("/register")
     @Operation(summary = "Register a new user", description = "Register a new user with email, password, and role")
@@ -91,6 +96,20 @@ public class AuthController {
         authService.logout(request.getRefreshToken());
 
         return ResponseEntity.ok(ApiResponse.success("Logout successful"));
+    }
+
+    @GetMapping("/me")
+    @SecurityRequirement(name = "bearerAuth")
+    @Operation(summary = "Get current user", description = "Get the profile of the currently authenticated user")
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "User retrieved successfully"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Not authenticated")
+    })
+    public ResponseEntity<ApiResponse<UserDto>> getCurrentUser(
+            @AuthenticationPrincipal UserPrincipal currentUser) {
+
+        UserDto user = userService.getUserById(currentUser.getId());
+        return ResponseEntity.ok(ApiResponse.success(user));
     }
 
     @PostMapping("/password-reset")
