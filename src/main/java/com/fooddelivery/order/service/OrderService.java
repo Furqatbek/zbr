@@ -11,6 +11,8 @@ import com.fooddelivery.common.exception.InvalidOperationException;
 import com.fooddelivery.common.exception.ResourceNotFoundException;
 import com.fooddelivery.common.util.JsonUtils;
 import com.fooddelivery.common.util.SlugUtils;
+import com.fooddelivery.courier.entity.Courier;
+import com.fooddelivery.courier.repository.CourierRepository;
 import com.fooddelivery.order.dto.*;
 import com.fooddelivery.order.entity.*;
 import com.fooddelivery.order.event.OrderCreatedEvent;
@@ -55,6 +57,7 @@ public class OrderService {
     private final EventPublisher eventPublisher;
     private final SimpMessagingTemplate messagingTemplate;
     private final SmsNotificationService smsNotificationService;
+    private final CourierRepository courierRepository;
 
     @Value("${app.order.auto-cancel-unpaid-minutes:30}")
     private int autoCancelMinutes;
@@ -432,8 +435,58 @@ public class OrderService {
                     "/queue/orders",
                     dto
             );
+
+            // If order is READY and is a delivery order, notify available couriers
+            if (order.getStatus() == OrderStatus.READY &&
+                order.getOrderType() == OrderType.DELIVERY &&
+                order.getCourier() == null) {
+                notifyAvailableCouriers(order);
+            }
         } catch (Exception e) {
             log.warn("Failed to send WebSocket notification: {}", e.getMessage());
+        }
+    }
+
+    /**
+     * Notify available couriers about a new order ready for pickup.
+     */
+    private void notifyAvailableCouriers(Order order) {
+        try {
+            // Build simplified order notification for couriers
+            Map<String, Object> orderNotification = Map.of(
+                    "orderId", order.getId(),
+                    "externalOrderNo", order.getExternalOrderNo(),
+                    "restaurantId", order.getRestaurant().getId(),
+                    "restaurantName", order.getRestaurant().getName(),
+                    "restaurantAddress", order.getRestaurant().getFullAddress(),
+                    "restaurantLat", order.getRestaurant().getLatitude(),
+                    "restaurantLng", order.getRestaurant().getLongitude(),
+                    "deliveryAddress", order.getDeliveryAddress() != null ? order.getDeliveryAddress() : "",
+                    "deliveryLat", order.getDeliveryLatitude() != null ? order.getDeliveryLatitude() : BigDecimal.ZERO,
+                    "deliveryLng", order.getDeliveryLongitude() != null ? order.getDeliveryLongitude() : BigDecimal.ZERO,
+                    "deliveryFee", order.getDeliveryFee(),
+                    "itemCount", order.getItems() != null ? order.getItems().size() : 0,
+                    "createdAt", order.getCreatedAt().toString(),
+                    "readyAt", order.getReadyAt() != null ? order.getReadyAt().toString() : ""
+            );
+
+            // Broadcast to all couriers topic (couriers can filter by location on client side)
+            messagingTemplate.convertAndSend("/topic/couriers/orders/available", orderNotification);
+
+            // Also send to individual online couriers
+            List<Courier> onlineCouriers = courierRepository.findOnlineCouriers();
+            for (Courier courier : onlineCouriers) {
+                messagingTemplate.convertAndSendToUser(
+                        courier.getUser().getEmail(),
+                        "/queue/orders/new",
+                        orderNotification
+                );
+            }
+
+            log.info("Notified {} online couriers about order {} ready for pickup",
+                    onlineCouriers.size(), order.getExternalOrderNo());
+        } catch (Exception e) {
+            log.warn("Failed to notify couriers about ready order: {}", e.getMessage());
         }
     }
 
