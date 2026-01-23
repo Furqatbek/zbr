@@ -453,22 +453,21 @@ public class OrderService {
     private void notifyAvailableCouriers(Order order) {
         try {
             // Build simplified order notification for couriers
-            Map<String, Object> orderNotification = Map.of(
-                    "orderId", order.getId(),
-                    "externalOrderNo", order.getExternalOrderNo(),
-                    "restaurantId", order.getRestaurant().getId(),
-                    "restaurantName", order.getRestaurant().getName(),
-                    "restaurantAddress", order.getRestaurant().getFullAddress(),
-                    "restaurantLat", order.getRestaurant().getLatitude(),
-                    "restaurantLng", order.getRestaurant().getLongitude(),
-                    "deliveryAddress", order.getDeliveryAddress() != null ? order.getDeliveryAddress() : "",
-                    "deliveryLat", order.getDeliveryLatitude() != null ? order.getDeliveryLatitude() : BigDecimal.ZERO,
-                    "deliveryLng", order.getDeliveryLongitude() != null ? order.getDeliveryLongitude() : BigDecimal.ZERO,
-                    "deliveryFee", order.getDeliveryFee(),
-                    "itemCount", order.getItems() != null ? order.getItems().size() : 0,
-                    "createdAt", order.getCreatedAt().toString(),
-                    "readyAt", order.getReadyAt() != null ? order.getReadyAt().toString() : ""
-            );
+            Map<String, Object> orderNotification = new java.util.HashMap<>();
+            orderNotification.put("orderId", order.getId());
+            orderNotification.put("externalOrderNo", order.getExternalOrderNo());
+            orderNotification.put("restaurantId", order.getRestaurant().getId());
+            orderNotification.put("restaurantName", order.getRestaurant().getName());
+            orderNotification.put("restaurantAddress", order.getRestaurant().getFullAddress());
+            orderNotification.put("restaurantLat", order.getRestaurant().getLatitude());
+            orderNotification.put("restaurantLng", order.getRestaurant().getLongitude());
+            orderNotification.put("deliveryAddress", order.getDeliveryAddress() != null ? order.getDeliveryAddress() : "");
+            orderNotification.put("deliveryLat", order.getDeliveryLatitude() != null ? order.getDeliveryLatitude() : BigDecimal.ZERO);
+            orderNotification.put("deliveryLng", order.getDeliveryLongitude() != null ? order.getDeliveryLongitude() : BigDecimal.ZERO);
+            orderNotification.put("deliveryFee", order.getDeliveryFee());
+            orderNotification.put("itemCount", order.getItems() != null ? order.getItems().size() : 0);
+            orderNotification.put("createdAt", order.getCreatedAt().toString());
+            orderNotification.put("readyAt", order.getReadyAt() != null ? order.getReadyAt().toString() : "");
 
             // Broadcast to all couriers topic (couriers can filter by location on client side)
             messagingTemplate.convertAndSend("/topic/couriers/orders/available", orderNotification);
