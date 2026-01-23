@@ -498,7 +498,7 @@ public class CourierService {
         }
 
         order.setCourier(courier);
-        // Status stays READY - it will change to PICKED_UP when courier confirms pickup
+        order.updateStatus(OrderStatus.COURIER_ASSIGNED);
         order = orderRepository.save(order);
 
         courier.assignOrder();
@@ -538,7 +538,7 @@ public class CourierService {
             throw new BusinessException("This order is not assigned to you");
         }
 
-        if (order.getStatus() != OrderStatus.READY && order.getStatus() != OrderStatus.PICKED_UP) {
+        if (order.getStatus() != OrderStatus.COURIER_ASSIGNED && order.getStatus() != OrderStatus.PICKED_UP) {
             throw new BusinessException("Order cannot be picked up in current status: " + order.getStatus());
         }
 

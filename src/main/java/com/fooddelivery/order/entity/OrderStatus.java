@@ -28,6 +28,11 @@ public enum OrderStatus {
     READY,
 
     /**
+     * Courier has been assigned/accepted the order.
+     */
+    COURIER_ASSIGNED,
+
+    /**
      * Order picked up by courier (for delivery orders).
      */
     PICKED_UP,
@@ -61,7 +66,8 @@ public enum OrderStatus {
     private static final Set<OrderStatus> CREATED_TRANSITIONS = EnumSet.of(ACCEPTED, CANCELLED);
     private static final Set<OrderStatus> ACCEPTED_TRANSITIONS = EnumSet.of(PREPARING, CANCELLED);
     private static final Set<OrderStatus> PREPARING_TRANSITIONS = EnumSet.of(READY, CANCELLED);
-    private static final Set<OrderStatus> READY_TRANSITIONS = EnumSet.of(PICKED_UP, DELIVERED, COMPLETED, CANCELLED);
+    private static final Set<OrderStatus> READY_TRANSITIONS = EnumSet.of(COURIER_ASSIGNED, DELIVERED, COMPLETED, CANCELLED);
+    private static final Set<OrderStatus> COURIER_ASSIGNED_TRANSITIONS = EnumSet.of(PICKED_UP, CANCELLED);
     private static final Set<OrderStatus> PICKED_UP_TRANSITIONS = EnumSet.of(IN_TRANSIT, DELIVERED);
     private static final Set<OrderStatus> IN_TRANSIT_TRANSITIONS = EnumSet.of(DELIVERED);
     private static final Set<OrderStatus> DELIVERED_TRANSITIONS = EnumSet.of(COMPLETED, REFUNDED);
@@ -85,6 +91,7 @@ public enum OrderStatus {
             case ACCEPTED -> ACCEPTED_TRANSITIONS;
             case PREPARING -> PREPARING_TRANSITIONS;
             case READY -> READY_TRANSITIONS;
+            case COURIER_ASSIGNED -> COURIER_ASSIGNED_TRANSITIONS;
             case PICKED_UP -> PICKED_UP_TRANSITIONS;
             case IN_TRANSIT -> IN_TRANSIT_TRANSITIONS;
             case DELIVERED -> DELIVERED_TRANSITIONS;
@@ -98,7 +105,7 @@ public enum OrderStatus {
      * Check if order can be cancelled in current status.
      */
     public boolean isCancellable() {
-        return this == CREATED || this == ACCEPTED || this == PREPARING || this == READY;
+        return this == CREATED || this == ACCEPTED || this == PREPARING || this == READY || this == COURIER_ASSIGNED;
     }
 
     /**
@@ -119,6 +126,6 @@ public enum OrderStatus {
      * Check if order requires courier assignment.
      */
     public boolean requiresCourier() {
-        return this == READY || this == PICKED_UP || this == IN_TRANSIT;
+        return this == READY || this == COURIER_ASSIGNED || this == PICKED_UP || this == IN_TRANSIT;
     }
 }

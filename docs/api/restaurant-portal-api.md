@@ -847,9 +847,9 @@ stompClient.subscribe('/topic/kitchen/{restaurantId}', (message) => {
 ## Order Status Flow (Restaurant Perspective)
 
 ```
-CREATED ──► ACCEPTED ──► PREPARING ──► READY ──► PICKED_UP ──► DELIVERED
-    │
-    └──► CANCELLED (with reason)
+CREATED ──► ACCEPTED ──► PREPARING ──► READY ──► COURIER_ASSIGNED ──► PICKED_UP ──► DELIVERED
+    │                                    │              │
+    └──► CANCELLED (with reason) ◄───────┴──────────────┘
 ```
 
 **API Calls by Action:**
@@ -868,7 +868,24 @@ CREATED ──► ACCEPTED ──► PREPARING ──► READY ──► PICKED_
 | CREATED | ACCEPTED, CANCELLED |
 | ACCEPTED | PREPARING, CANCELLED |
 | PREPARING | READY, CANCELLED |
-| READY | *(Courier picks up)* |
+| READY | COURIER_ASSIGNED, CANCELLED |
+| COURIER_ASSIGNED | PICKED_UP, CANCELLED |
+
+**Status Descriptions:**
+
+| Status | Description |
+|--------|-------------|
+| CREATED | Order placed, waiting for restaurant |
+| ACCEPTED | Restaurant accepted the order |
+| PREPARING | Kitchen is preparing the food |
+| READY | Food ready, waiting for courier |
+| COURIER_ASSIGNED | Courier accepted, on the way to pickup |
+| PICKED_UP | Courier picked up from restaurant |
+| IN_TRANSIT | Courier driving to customer |
+| DELIVERED | Order delivered to customer |
+| COMPLETED | Order finalized |
+| CANCELLED | Order cancelled |
+| REFUNDED | Payment refunded |
 
 ---
 

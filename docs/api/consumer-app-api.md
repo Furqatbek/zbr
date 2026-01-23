@@ -910,12 +910,27 @@ stompClient.subscribe('/user/queue/notifications', (message) => {
 ## Order Status Flow (Consumer Perspective)
 
 ```
-CREATED ──► ACCEPTED ──► PREPARING ──► READY ──► PICKED_UP ──► IN_TRANSIT ──► DELIVERED ──► COMPLETED
-    │                                                                              │
-    │                                                                              └──► Rate & Review
+CREATED ──► ACCEPTED ──► PREPARING ──► READY ──► COURIER_ASSIGNED ──► PICKED_UP ──► IN_TRANSIT ──► DELIVERED ──► COMPLETED
+    │                                                                                                    │
+    │                                                                                                    └──► Rate & Review
     │
     └──► CANCELLED (by consumer or restaurant)
 ```
+
+**Status Descriptions:**
+
+| Status | Consumer View |
+|--------|---------------|
+| CREATED | Order placed, waiting for restaurant |
+| ACCEPTED | Restaurant confirmed your order |
+| PREPARING | Kitchen is preparing your food |
+| READY | Food ready, waiting for courier |
+| COURIER_ASSIGNED | Courier assigned, heading to restaurant |
+| PICKED_UP | Courier picked up your order |
+| IN_TRANSIT | Courier on the way to you |
+| DELIVERED | Order delivered |
+| COMPLETED | Order finalized |
+| CANCELLED | Order cancelled |
 
 ---
 

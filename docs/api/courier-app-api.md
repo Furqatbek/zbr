@@ -450,13 +450,14 @@ Authorization: Bearer {token}
     "customerName": "John D.",
     "customerPhone": "+998907654321",
     "deliveryInstructions": "Ring doorbell twice",
-    "status": "PICKED_UP",
+    "status": "COURIER_ASSIGNED",
     "deliveryFee": 15000,
     "tipAmount": 3000,
     "total": 125000,
     "itemCount": 3,
     "createdAt": "2024-01-15T12:30:00Z",
     "readyAt": "2024-01-15T12:45:00Z",
+    "courierAssignedAt": "2024-01-15T12:47:00Z",
     "pickedUpAt": null,
     "deliveredAt": null
   }
@@ -488,14 +489,15 @@ Authorization: Bearer {token}
       "customerName": "John D.",
       "customerPhone": "+998907654321",
       "deliveryInstructions": "Ring doorbell twice",
-      "status": "PICKED_UP",
+      "status": "COURIER_ASSIGNED",
       "deliveryFee": 15000,
       "tipAmount": 3000,
       "total": 125000,
       "itemCount": 3,
       "createdAt": "2024-01-15T12:30:00Z",
       "readyAt": "2024-01-15T12:45:00Z",
-      "pickedUpAt": "2024-01-15T12:50:00Z",
+      "courierAssignedAt": "2024-01-15T12:47:00Z",
+      "pickedUpAt": null,
       "deliveredAt": null
     }
   ]
@@ -959,13 +961,14 @@ stompClient.connect(
   └──────────────┘               └──────────────┘               └──────────────┘
                                                                        │
   ┌────────────────────────────────────────────────────────────────────┘
-  │
+  │  Status: COURIER_ASSIGNED
   ▼
   4. NAVIGATE TO RESTAURANT       5. PICK UP ORDER               6. START DELIVERY
   ┌──────────────┐               ┌──────────────┐               ┌──────────────┐
   │  Navigate    │──────────────▶│  Confirm     │──────────────▶│  Navigate    │
   │  to Pickup   │               │  Pickup      │               │  to Customer │
   └──────────────┘               └──────────────┘               └──────────────┘
+                                  Status: PICKED_UP              Status: IN_TRANSIT
                                                                        │
   ┌────────────────────────────────────────────────────────────────────┘
   │
@@ -975,7 +978,22 @@ stompClient.connect(
   │  Contact     │──────────────▶│  Mark as     │
   │  Customer    │               │  Delivered   │
   └──────────────┘               └──────────────┘
+                                  Status: DELIVERED
 ```
+
+### Order Status Flow (Courier Perspective)
+
+```
+READY ──► COURIER_ASSIGNED ──► PICKED_UP ──► IN_TRANSIT ──► DELIVERED
+           (Courier accepts)   (At restaurant)  (Driving)   (Complete)
+```
+
+| Action | Endpoint | Result Status |
+|--------|----------|---------------|
+| Accept Order | `POST /couriers/me/orders/{id}/accept` | `COURIER_ASSIGNED` |
+| Pick Up | `PUT /couriers/me/orders/{id}/pickup` | `PICKED_UP` |
+| Start Transit | `PUT /couriers/me/orders/{id}/transit` | `IN_TRANSIT` |
+| Complete | `POST /couriers/me/orders/{id}/complete` | `DELIVERED` |
 
 ---
 
