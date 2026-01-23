@@ -2,8 +2,6 @@ package com.fooddelivery.admin.dashboard.service;
 
 import com.fooddelivery.admin.dashboard.collector.*;
 import com.fooddelivery.admin.dashboard.dto.*;
-import com.fooddelivery.admin.dashboard.model.DashboardRefreshLog;
-import com.fooddelivery.admin.dashboard.repository.DashboardRefreshLogRepository;
 import com.fooddelivery.admin.dashboard.util.DashboardConstants;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -31,7 +29,7 @@ public class AdminDashboardServiceImpl implements AdminDashboardService {
     private final CourierCollector courierCollector;
     private final FinanceCollector financeCollector;
     private final SupportCollector supportCollector;
-    private final DashboardRefreshLogRepository refreshLogRepository;
+    private final DashboardRefreshLogService refreshLogService;
 
     @Override
     @Cacheable(value = DashboardConstants.CACHE_OVERVIEW, key = "#startDate.toString() + '-' + #endDate.toString()")
@@ -245,20 +243,9 @@ public class AdminDashboardServiceImpl implements AdminDashboardService {
     }
 
     /**
-     * Log dashboard refresh event.
+     * Log dashboard refresh event using the dedicated logging service.
      */
     private void logRefresh(String component, Long durationMs, boolean success, String message) {
-        try {
-            DashboardRefreshLog refreshLog = DashboardRefreshLog.builder()
-                    .component(component)
-                    .refreshedAt(LocalDateTime.now())
-                    .durationMs(durationMs)
-                    .success(success)
-                    .message(message)
-                    .build();
-            refreshLogRepository.save(refreshLog);
-        } catch (Exception e) {
-            log.warn("Failed to log dashboard refresh: {}", e.getMessage());
-        }
+        refreshLogService.logRefresh(component, durationMs, success, message);
     }
 }
