@@ -57,24 +57,51 @@ public class AnalyticsServiceImpl implements AnalyticsService {
     // ============ User Activity Metrics ============
 
     @Override
-    @Cacheable(value = CACHE_DAU_WAU_MAU, key = "'dau'")
     public Long getDailyActiveUsers() {
-        LocalDateTime startOfDay = LocalDate.now().atStartOfDay();
-        return activityLogRepository.countDistinctActiveUsersSince(startOfDay);
+        return getCachedLong(CACHE_DAU_WAU_MAU, "dau", () -> {
+            LocalDateTime startOfDay = LocalDate.now().atStartOfDay();
+            return activityLogRepository.countDistinctActiveUsersSince(startOfDay);
+        });
     }
 
     @Override
-    @Cacheable(value = CACHE_DAU_WAU_MAU, key = "'wau'")
     public Long getWeeklyActiveUsers() {
-        LocalDateTime sevenDaysAgo = LocalDateTime.now().minusDays(7);
-        return activityLogRepository.countDistinctActiveUsersSince(sevenDaysAgo);
+        return getCachedLong(CACHE_DAU_WAU_MAU, "wau", () -> {
+            LocalDateTime sevenDaysAgo = LocalDateTime.now().minusDays(7);
+            return activityLogRepository.countDistinctActiveUsersSince(sevenDaysAgo);
+        });
     }
 
     @Override
-    @Cacheable(value = CACHE_DAU_WAU_MAU, key = "'mau'")
     public Long getMonthlyActiveUsers() {
-        LocalDateTime thirtyDaysAgo = LocalDateTime.now().minusDays(30);
-        return activityLogRepository.countDistinctActiveUsersSince(thirtyDaysAgo);
+        return getCachedLong(CACHE_DAU_WAU_MAU, "mau", () -> {
+            LocalDateTime thirtyDaysAgo = LocalDateTime.now().minusDays(30);
+            return activityLogRepository.countDistinctActiveUsersSince(thirtyDaysAgo);
+        });
+    }
+
+    /**
+     * Get a Long value from cache with proper type conversion.
+     * Handles cache deserialization where Integer might be returned instead of Long.
+     */
+    private Long getCachedLong(String cacheName, String key, java.util.function.Supplier<Long> loader) {
+        var cache = cacheManager.getCache(cacheName);
+        if (cache != null) {
+            var cachedValue = cache.get(key);
+            if (cachedValue != null && cachedValue.get() != null) {
+                Object value = cachedValue.get();
+                if (value instanceof Number) {
+                    return ((Number) value).longValue();
+                }
+            }
+            // Cache miss - load and store
+            Long result = loader.get();
+            cache.put(key, result != null ? result : 0L);
+            return result != null ? result : 0L;
+        }
+        // No cache available - just load
+        Long result = loader.get();
+        return result != null ? result : 0L;
     }
 
     @Override
@@ -113,10 +140,11 @@ public class AnalyticsServiceImpl implements AnalyticsService {
     // ============ Order Volume Metrics ============
 
     @Override
-    @Cacheable(value = CACHE_ORDER_VOLUME, key = "'daily'")
     public Long getOrdersPerDay() {
-        LocalDateTime startOfDay = LocalDate.now().atStartOfDay();
-        return orderRepository.countOrdersSince(startOfDay);
+        return getCachedLong(CACHE_ORDER_VOLUME, "daily", () -> {
+            LocalDateTime startOfDay = LocalDate.now().atStartOfDay();
+            return orderRepository.countOrdersSince(startOfDay);
+        });
     }
 
     @Override
@@ -329,10 +357,11 @@ public class AnalyticsServiceImpl implements AnalyticsService {
     // ============ User Activation Metrics ============
 
     @Override
-    @Cacheable(value = CACHE_ACTIVATION, key = "'first_delivery'")
     public Long getFirstDeliveryCount() {
-        LocalDateTime startOfToday = LocalDate.now().atStartOfDay();
-        return orderRepository.countFirstDeliveryCompletedSince(startOfToday);
+        return getCachedLong(CACHE_ACTIVATION, "first_delivery", () -> {
+            LocalDateTime startOfToday = LocalDate.now().atStartOfDay();
+            return orderRepository.countFirstDeliveryCompletedSince(startOfToday);
+        });
     }
 
     @Override
