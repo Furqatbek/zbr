@@ -72,6 +72,7 @@ public class NotificationEventListener {
                 case ACCEPTED -> notificationService.notifyOrderAccepted(request);
                 case PREPARING -> notificationService.notifyOrderPreparing(request);
                 case READY -> notificationService.notifyOrderReady(request);
+                case COURIER_ASSIGNED -> notificationService.notifyCourierAssigned(request);
                 case PICKED_UP -> notificationService.notifyOrderPickedUp(request);
                 case IN_TRANSIT -> notificationService.notifyOrderInTransit(request);
                 case DELIVERED -> notificationService.notifyOrderDelivered(request);
@@ -202,6 +203,7 @@ public class NotificationEventListener {
             case ACCEPTED -> NotificationType.ORDER_ACCEPTED;
             case PREPARING -> NotificationType.ORDER_PREPARING;
             case READY -> NotificationType.ORDER_READY;
+            case COURIER_ASSIGNED -> NotificationType.COURIER_ASSIGNED;
             case PICKED_UP -> NotificationType.ORDER_PICKED_UP;
             case IN_TRANSIT -> NotificationType.ORDER_IN_TRANSIT;
             case DELIVERED -> NotificationType.ORDER_DELIVERED;
