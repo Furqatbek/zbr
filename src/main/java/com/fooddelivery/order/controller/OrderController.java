@@ -77,14 +77,14 @@ public class OrderController {
                 .body(ApiResponse.success("Order created successfully", order));
     }
 
-    @GetMapping("/{id}")
+    @GetMapping("/{orderId}")
     @Operation(summary = "Get order by ID", description = "Get order details by ID")
     public ResponseEntity<ApiResponse<OrderDto>> getOrderById(
             @AuthenticationPrincipal UserPrincipal currentUser,
-            @PathVariable Long id) {
+            @PathVariable Long orderId) {
 
-        validateAccess(id, currentUser);
-        OrderDto order = orderService.getOrderById(id);
+        validateAccess(orderId, currentUser);
+        OrderDto order = orderService.getOrderById(orderId);
         return ResponseEntity.ok(ApiResponse.success(order));
     }
 
@@ -135,28 +135,28 @@ public class OrderController {
         return ResponseEntity.ok(ApiResponse.success(orders));
     }
 
-    @PatchMapping("/{id}/status")
+    @PatchMapping("/{orderId}/status")
     @PreAuthorize("hasAnyRole('RESTAURANT_OWNER', 'RESTAURANT_STAFF', 'COURIER', 'PLATFORM', 'ADMIN')")
     @Operation(summary = "Update order status", description = "Update order status")
     public ResponseEntity<ApiResponse<OrderDto>> updateOrderStatus(
             @AuthenticationPrincipal UserPrincipal currentUser,
-            @PathVariable Long id,
+            @PathVariable Long orderId,
             @Valid @RequestBody UpdateOrderStatusRequest request) {
 
-        validateAccess(id, currentUser);
-        OrderDto order = orderService.updateOrderStatus(id, request);
+        validateAccess(orderId, currentUser);
+        OrderDto order = orderService.updateOrderStatus(orderId, request);
         return ResponseEntity.ok(ApiResponse.success("Order status updated", order));
     }
 
-    @PostMapping("/{id}/cancel")
+    @PutMapping("/{orderId}/cancel")
     @Operation(summary = "Cancel order", description = "Cancel an order")
     public ResponseEntity<ApiResponse<OrderDto>> cancelOrder(
-            @PathVariable Long id,
+            @PathVariable Long orderId,
             @AuthenticationPrincipal UserPrincipal currentUser,
             @Valid @RequestBody CancelOrderRequest request) {
 
-        validateAccess(id, currentUser);
-        OrderDto order = orderService.cancelOrder(id, request, currentUser.getId());
+        validateAccess(orderId, currentUser);
+        OrderDto order = orderService.cancelOrder(orderId, request, currentUser.getId());
         return ResponseEntity.ok(ApiResponse.success("Order cancelled", order));
     }
 
