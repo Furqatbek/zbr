@@ -660,8 +660,8 @@ public class OrderService {
             builder.courierId(courier.getId())
                     .courierName(courier.getUser().getFullName())
                     .courierPhone(courier.getUser().getPhone())
-                    .courierLat(courier.getCurrentLatitude())
-                    .courierLng(courier.getCurrentLongitude());
+                    .courierLat(courier.getCurrentLat())
+                    .courierLng(courier.getCurrentLng());
         }
 
         return builder.build();
