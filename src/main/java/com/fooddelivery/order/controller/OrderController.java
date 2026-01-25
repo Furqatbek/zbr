@@ -245,7 +245,7 @@ public class OrderController {
         validateAccess(orderId, currentUser);
         PaymentDto payment = paymentService.confirmPayment(
                 request.getPaymentIntentId(),
-                request.getProviderPaymentId(),
+                request.getPaymentMethodId(),
                 null
         );
         return ResponseEntity.ok(ApiResponse.success("Payment confirmed", payment));

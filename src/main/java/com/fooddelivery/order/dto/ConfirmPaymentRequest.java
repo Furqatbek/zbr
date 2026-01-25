@@ -21,6 +21,6 @@ public class ConfirmPaymentRequest {
     @Schema(description = "The payment intent ID from the payment provider")
     private String paymentIntentId;
 
-    @Schema(description = "The provider's payment ID (from webhook or confirmation)")
-    private String providerPaymentId;
+    @Schema(description = "The payment method ID from the payment provider")
+    private String paymentMethodId;
 }
