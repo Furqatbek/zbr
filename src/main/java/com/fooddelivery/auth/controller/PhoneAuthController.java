@@ -26,10 +26,10 @@ public class PhoneAuthController {
     private final PhoneAuthService phoneAuthService;
 
     /**
-     * Send OTP to phone number for login/signup.
+     * Request OTP to phone number for login/signup.
      */
-    @PostMapping("/send-otp")
-    @Operation(summary = "Send OTP", description = "Send verification code to phone number")
+    @PostMapping("/request-otp")
+    @Operation(summary = "Request OTP", description = "Send verification code to phone number")
     public ResponseEntity<ApiResponse<OtpSendResponse>> sendOtp(
             @Valid @RequestBody PhoneLoginRequest request) {
 
@@ -42,7 +42,7 @@ public class PhoneAuthController {
     /**
      * Verify OTP and complete login/signup.
      */
-    @PostMapping("/verify")
+    @PostMapping("/verify-otp")
     @Operation(summary = "Verify OTP", description = "Verify OTP code and authenticate user")
     public ResponseEntity<ApiResponse<AuthResponse>> verifyOtp(
             @Valid @RequestBody OtpVerifyRequest request) {
@@ -65,6 +65,20 @@ public class PhoneAuthController {
         OtpSendResponse response = phoneAuthService.resendOtp(request);
 
         return ResponseEntity.ok(ApiResponse.success("Verification code resent", response));
+    }
+
+    /**
+     * Complete phone registration for new users with additional details.
+     */
+    @PostMapping("/complete-registration")
+    @Operation(summary = "Complete registration", description = "Complete phone registration with user details for new users")
+    public ResponseEntity<ApiResponse<AuthResponse>> completeRegistration(
+            @Valid @RequestBody CompleteRegistrationRequest request) {
+
+        log.info("Complete registration request for phone: {}", maskPhone(request.getPhone()));
+        AuthResponse response = phoneAuthService.completeRegistration(request);
+
+        return ResponseEntity.ok(ApiResponse.success("Registration completed successfully", response));
     }
 
     /**

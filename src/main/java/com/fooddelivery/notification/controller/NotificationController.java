@@ -289,7 +289,7 @@ public class NotificationController {
     /**
      * Mark all notifications as read for a user.
      */
-    @PatchMapping("/read-all")
+    @PutMapping("/read-all")
     @Operation(summary = "Mark all as read",
             description = "Mark all notifications as read for a user")
     public ResponseEntity<Map<String, Object>> markAllAsRead(

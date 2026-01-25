@@ -161,8 +161,8 @@ public class OrderController {
     }
 
     // Payment endpoints
-    @PostMapping("/{orderId}/payment")
-    @Operation(summary = "Create payment", description = "Create a payment intent for an order")
+    @PostMapping("/{orderId}/pay")
+    @Operation(summary = "Initiate payment", description = "Initiate a payment for an order")
     public ResponseEntity<ApiResponse<PaymentDto>> createPayment(
             @AuthenticationPrincipal UserPrincipal currentUser,
             @PathVariable Long orderId,

@@ -129,6 +129,71 @@ public class PhoneAuthService {
     }
 
     /**
+     * Complete phone registration for new users with additional details.
+     *
+     * @param request the complete registration request
+     * @return authentication response with tokens
+     */
+    @Transactional
+    public AuthResponse completeRegistration(CompleteRegistrationRequest request) {
+        String phone = normalizePhone(request.getPhone());
+
+        // Verify OTP
+        boolean isValid = otpService.verifyOtp(phone, request.getOtp());
+
+        if (!isValid) {
+            int remaining = otpService.getRemainingAttempts(phone);
+            if (remaining > 0) {
+                throw new BusinessException("Invalid verification code. " + remaining + " attempts remaining.");
+            } else {
+                throw new BusinessException("Too many invalid attempts. Please request a new code.");
+            }
+        }
+
+        // Check if user already exists
+        if (userRepository.findByPhone(phone).isPresent()) {
+            throw new BusinessException("User already exists. Please use login instead.");
+        }
+
+        // Check if email is already taken
+        if (request.getEmail() != null && userRepository.existsByEmail(request.getEmail())) {
+            throw new BusinessException("Email is already in use");
+        }
+
+        // Parse full name into first and last name
+        String[] nameParts = request.getFullName().trim().split("\\s+", 2);
+        String firstName = nameParts[0];
+        String lastName = nameParts.length > 1 ? nameParts[1] : "";
+
+        // Create new user with provided details
+        User user = User.builder()
+                .phone(phone)
+                .phoneVerified(true)
+                .email(request.getEmail())
+                .emailVerified(false)
+                .firstName(firstName)
+                .lastName(lastName)
+                .role(Role.CONSUMER)
+                .status(UserStatus.ACTIVE)
+                .build();
+
+        user = userRepository.save(user);
+        log.info("New consumer registration completed: userId={}, phone={}", user.getId(), maskPhone(phone));
+
+        // Generate tokens
+        String accessToken = jwtService.generateToken(user);
+        String refreshToken = jwtService.generateRefreshToken(user);
+
+        return AuthResponse.builder()
+                .accessToken(accessToken)
+                .refreshToken(refreshToken)
+                .tokenType("Bearer")
+                .expiresIn(jwtService.getAccessTokenExpiration())
+                .user(mapToUserDto(user))
+                .build();
+    }
+
+    /**
      * Update consumer profile.
      *
      * @param userId  the user ID
