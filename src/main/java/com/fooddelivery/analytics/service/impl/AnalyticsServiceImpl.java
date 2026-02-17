@@ -368,8 +368,9 @@ public class AnalyticsServiceImpl implements AnalyticsService {
     @Cacheable(value = CACHE_ACTIVATION, key = "'activation_time'")
     public Double getActivationTime() {
         LocalDateTime startOfMonth = LocalDateTime.now().minusDays(30);
-        Object[] stats = orderRepository.getActivationTimeStatsSince(startOfMonth);
-        return stats[0] != null ? ((Number) stats[0]).doubleValue() : 0.0;
+        Object result = orderRepository.getActivationTimeStatsSince(startOfMonth);
+        double[] stats = extractActivationTimeStats(result);
+        return stats[0];
     }
 
     @Override
@@ -406,10 +407,11 @@ public class AnalyticsServiceImpl implements AnalyticsService {
         Long newRegsMonth = userRepository.countNewUsersSince(startOfMonth);
 
         // Activation time stats
-        Object[] timeStats = orderRepository.getActivationTimeStatsSince(startOfMonth);
-        Double avgTime = timeStats[0] != null ? ((Number) timeStats[0]).doubleValue() : 0.0;
-        Double minTime = timeStats[1] != null ? ((Number) timeStats[1]).doubleValue() : 0.0;
-        Double maxTime = timeStats[2] != null ? ((Number) timeStats[2]).doubleValue() : 0.0;
+        Object timeStatsResult = orderRepository.getActivationTimeStatsSince(startOfMonth);
+        double[] timeStats = extractActivationTimeStats(timeStatsResult);
+        Double avgTime = timeStats[0];
+        Double minTime = timeStats[1];
+        Double maxTime = timeStats[2];
 
         // Referral signups
         Long referralToday = userRepository.countReferralSignupsSince(startOfToday);
@@ -562,5 +564,55 @@ public class AnalyticsServiceImpl implements AnalyticsService {
         if (cache != null) {
             cache.clear();
         }
+    }
+
+    // ============ Helper Methods ============
+
+    /**
+     * Safely extract a Double from a native query result.
+     * Handles cases where the result might be wrapped in an Object array or be null.
+     */
+    private Double safeGetDouble(Object value, double defaultValue) {
+        if (value == null) {
+            return defaultValue;
+        }
+        if (value instanceof Number) {
+            return ((Number) value).doubleValue();
+        }
+        if (value instanceof Object[] arr && arr.length > 0 && arr[0] instanceof Number) {
+            return ((Number) arr[0]).doubleValue();
+        }
+        log.warn("Unexpected value type in safeGetDouble: {}", value.getClass().getName());
+        return defaultValue;
+    }
+
+    /**
+     * Safely extract activation time stats from native query result.
+     * The query returns [avg, min, max] but may be wrapped differently.
+     */
+    private double[] extractActivationTimeStats(Object result) {
+        double[] stats = {0.0, 0.0, 0.0};
+        if (result == null) {
+            return stats;
+        }
+
+        Object[] arr;
+        if (result instanceof Object[]) {
+            arr = (Object[]) result;
+            // Check if this is a wrapped result (array containing another array)
+            if (arr.length == 1 && arr[0] instanceof Object[]) {
+                arr = (Object[]) arr[0];
+            }
+        } else {
+            log.warn("Unexpected result type for activation stats: {}", result.getClass().getName());
+            return stats;
+        }
+
+        if (arr.length >= 3) {
+            stats[0] = safeGetDouble(arr[0], 0.0);
+            stats[1] = safeGetDouble(arr[1], 0.0);
+            stats[2] = safeGetDouble(arr[2], 0.0);
+        }
+        return stats;
     }
 }
