@@ -152,9 +152,18 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
     public ResponseEntity<ApiResponse<Void>> handleMethodArgumentTypeMismatch(
             MethodArgumentTypeMismatchException ex, WebRequest request) {
-        log.warn("Type mismatch: {}", ex.getMessage());
-        String message = String.format("Parameter '%s' should be of type %s",
-                ex.getName(), ex.getRequiredType() != null ? ex.getRequiredType().getSimpleName() : "unknown");
+        String paramName = ex.getName();
+        String invalidValue = ex.getValue() != null ? ex.getValue().toString() : "null";
+        String requiredType = ex.getRequiredType() != null ? ex.getRequiredType().getSimpleName() : "unknown";
+
+        String message;
+        if ("Long".equals(requiredType) || "Integer".equals(requiredType)) {
+            message = String.format("Invalid %s: '%s' is not a valid numeric ID", paramName, invalidValue);
+        } else {
+            message = String.format("Invalid %s: '%s' cannot be converted to %s", paramName, invalidValue, requiredType);
+        }
+
+        log.debug("Type mismatch for parameter '{}': value='{}', required={}", paramName, invalidValue, requiredType);
         return buildErrorResponse(HttpStatus.BAD_REQUEST, message, request);
     }
 
