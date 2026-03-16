@@ -163,19 +163,37 @@ app:
       max-size-mb: 5
       allowed-types: image/jpeg,image/png,image/gif,image/webp
 
-  # SMS Configuration (Eskiz.uz)
+  # SMS Configuration
   sms:
+    # Global SMS settings
+    enabled: ${SMS_ENABLED:true}
+    provider: ${SMS_PROVIDER:ESKIZ}  # Options: ESKIZ, DEVSMS
+    fallback-enabled: ${SMS_FALLBACK_ENABLED:false}
+    fallback-provider: ${SMS_FALLBACK_PROVIDER:}  # Options: ESKIZ, DEVSMS
+
+    # Eskiz SMS Provider (eskiz.uz)
     eskiz:
-      enabled: ${SMS_ENABLED:true}
-      base-url: ${SMS_BASE_URL:https://notify.eskiz.uz/api}
-      email: ${SMS_EMAIL:}
-      password: ${SMS_PASSWORD:}
-      from: ${SMS_FROM:4546}
+      enabled: ${SMS_ESKIZ_ENABLED:true}
+      base-url: ${SMS_ESKIZ_BASE_URL:https://notify.eskiz.uz/api}
+      email: ${SMS_ESKIZ_EMAIL:}
+      password: ${SMS_ESKIZ_PASSWORD:}
+      from: ${SMS_ESKIZ_FROM:4546}
       token-ttl-seconds: 2505600  # 29 days
       connect-timeout: 5000
       read-timeout: 30000
       max-retries: 3
-      callback-url: ${SMS_CALLBACK_URL:}
+      callback-url: ${SMS_ESKIZ_CALLBACK_URL:}
+
+    # DevSMS Provider (devsms.uz)
+    devsms:
+      enabled: ${SMS_DEVSMS_ENABLED:false}
+      base-url: ${SMS_DEVSMS_BASE_URL:https://devsms.uz/api}
+      token: ${SMS_DEVSMS_TOKEN:}
+      from: ${SMS_DEVSMS_FROM:4546}
+      connect-timeout: 5000
+      read-timeout: 30000
+      max-retries: 3
+      callback-url: ${SMS_DEVSMS_CALLBACK_URL:}
 
   # Notification settings
   notification:

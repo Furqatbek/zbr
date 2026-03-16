@@ -2,9 +2,9 @@ package com.fooddelivery.sms.consumer;
 
 import com.fooddelivery.common.config.RabbitMQConfig;
 import com.fooddelivery.notification.dto.NotificationRequest;
-import com.fooddelivery.sms.dto.EskizSendSmsResponse;
 import com.fooddelivery.sms.dto.SmsMessage;
-import com.fooddelivery.sms.service.EskizSmsClient;
+import com.fooddelivery.sms.dto.SmsSendResponse;
+import com.fooddelivery.sms.service.SmsProviderFactory;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
@@ -16,15 +16,15 @@ import java.util.UUID;
 
 /**
  * Consumer for SMS messages from RabbitMQ queue.
- * Processes SMS notifications and sends them via Eskiz gateway.
+ * Processes SMS notifications and sends them via configured SMS provider.
  */
 @Component
 @RequiredArgsConstructor
 @Slf4j
-@ConditionalOnProperty(prefix = "app.sms.eskiz", name = "enabled", havingValue = "true", matchIfMissing = true)
+@ConditionalOnProperty(prefix = "app.sms", name = "enabled", havingValue = "true", matchIfMissing = true)
 public class SmsMessageConsumer {
 
-    private final EskizSmsClient eskizSmsClient;
+    private final SmsProviderFactory smsProviderFactory;
     private final RabbitTemplate rabbitTemplate;
 
     private static final int MAX_RETRIES = 3;
@@ -90,24 +90,32 @@ public class SmsMessageConsumer {
      */
     private void sendWithRetry(SmsMessage smsMessage, int currentRetry) {
         try {
-            if (!eskizSmsClient.isAvailable()) {
-                log.warn("Eskiz SMS client is not available, message will be requeued");
+            if (!smsProviderFactory.isAnyProviderAvailable()) {
+                log.warn("No SMS provider is available, message will be requeued");
                 requeueMessage(smsMessage, currentRetry);
                 return;
             }
 
-            EskizSendSmsResponse response = eskizSmsClient.sendSms(smsMessage);
+            SmsSendResponse response = smsProviderFactory.sendSms(smsMessage);
 
-            if (response != null && "success".equalsIgnoreCase(response.getStatus())) {
-                log.info("SMS sent successfully: id={}, phone={}",
-                        response.getId(), maskPhone(smsMessage.getPhoneNumber()));
-            } else if (response != null && "waiting".equalsIgnoreCase(response.getStatus())) {
-                log.info("SMS queued for delivery: id={}, phone={}",
-                        response.getId(), maskPhone(smsMessage.getPhoneNumber()));
+            if (response.isSuccess()) {
+                log.info("SMS sent successfully via {}: id={}, phone={}",
+                        response.getProvider(),
+                        response.getSmsId(),
+                        maskPhone(smsMessage.getPhoneNumber()));
             } else {
-                log.warn("SMS send response: status={}, message={}",
-                        response != null ? response.getStatus() : "null",
-                        response != null ? response.getMessage() : "null");
+                log.warn("SMS send failed via {}: error={}, code={}",
+                        response.getProvider(),
+                        response.getMessage(),
+                        response.getErrorCode());
+
+                if (currentRetry < MAX_RETRIES) {
+                    requeueMessage(smsMessage, currentRetry + 1);
+                } else {
+                    log.error("Max retries exceeded for SMS to {}, moving to DLQ",
+                            maskPhone(smsMessage.getPhoneNumber()));
+                    sendToDlq(smsMessage);
+                }
             }
 
         } catch (Exception e) {

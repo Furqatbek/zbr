@@ -5,6 +5,7 @@ import com.fooddelivery.sms.dto.EskizAuthResponse;
 import com.fooddelivery.sms.dto.EskizSendSmsRequest;
 import com.fooddelivery.sms.dto.EskizSendSmsResponse;
 import com.fooddelivery.sms.dto.SmsMessage;
+import com.fooddelivery.sms.dto.SmsSendResponse;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -29,7 +30,7 @@ import java.util.concurrent.atomic.AtomicReference;
 @RequiredArgsConstructor
 @Slf4j
 @ConditionalOnProperty(prefix = "app.sms.eskiz", name = "enabled", havingValue = "true", matchIfMissing = true)
-public class EskizSmsClient {
+public class EskizSmsClient implements SmsProvider {
 
     private final EskizSmsProperties properties;
     private final RestTemplate restTemplate;
@@ -132,7 +133,13 @@ public class EskizSmsClient {
      * @param smsMessage the SMS message to send
      * @return the response from Eskiz API
      */
-    public EskizSendSmsResponse sendSms(SmsMessage smsMessage) {
+    @Override
+    public SmsSendResponse sendSms(SmsMessage smsMessage) {
+        if (!isAvailable()) {
+            log.warn("Eskiz SMS client is not available");
+            return SmsSendResponse.failure("Eskiz is not configured", "NOT_CONFIGURED", getProviderName());
+        }
+
         ensureAuthenticated();
 
         String url = properties.getBaseUrl() + SEND_SMS_ENDPOINT;
@@ -169,7 +176,16 @@ public class EskizSmsClient {
                     smsResponse != null ? smsResponse.getId() : "unknown",
                     smsResponse != null ? smsResponse.getStatus() : "unknown");
 
-            return smsResponse;
+            if (smsResponse != null) {
+                return SmsSendResponse.builder()
+                        .success(true)
+                        .smsId(smsResponse.getId())
+                        .status(smsResponse.getStatus())
+                        .message(smsResponse.getMessage())
+                        .provider(getProviderName())
+                        .build();
+            }
+            return SmsSendResponse.success(null, "sent", getProviderName());
 
         } catch (HttpClientErrorException.Unauthorized e) {
             log.warn("Token expired, re-authenticating and retrying...");
@@ -178,14 +194,15 @@ public class EskizSmsClient {
         } catch (Exception e) {
             log.error("Failed to send SMS to {}: {}",
                     maskPhoneNumber(smsMessage.getPhoneNumber()), e.getMessage());
-            throw new RuntimeException("Failed to send SMS via Eskiz", e);
+            return SmsSendResponse.failure(e.getMessage(), "EXCEPTION", getProviderName());
         }
     }
 
     /**
      * Send SMS directly with phone and message.
      */
-    public EskizSendSmsResponse sendSms(String phoneNumber, String message) {
+    @Override
+    public SmsSendResponse sendSms(String phoneNumber, String message) {
         SmsMessage smsMessage = SmsMessage.builder()
                 .messageId(UUID.randomUUID().toString())
                 .phoneNumber(phoneNumber)
@@ -194,6 +211,11 @@ public class EskizSmsClient {
                 .build();
 
         return sendSms(smsMessage);
+    }
+
+    @Override
+    public String getProviderName() {
+        return "ESKIZ";
     }
 
     /**
