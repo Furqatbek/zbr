@@ -31,6 +31,7 @@ The SMS module is an **internal service** with admin APIs for provider managemen
 6. [Phone Authentication API](#6-phone-authentication-api)
 7. [Configuration](#7-configuration)
 8. [Message Flow](#8-message-flow)
+9. [Delivery Status Callbacks](#9-delivery-status-callbacks)
 
 ---
 
@@ -717,6 +718,106 @@ CREATE TABLE otp_codes (
 - Token TTL: 29 days
 - Auto-refresh: Every 25 days (scheduled)
 - On 401 error: Automatic re-authentication and retry
+
+---
+
+## 9. Delivery Status Callbacks
+
+The SMS module provides webhook endpoints to receive delivery status updates from SMS providers.
+
+### Callback Endpoints
+
+These endpoints are **public** (no authentication required) as they are called by SMS providers.
+
+#### DevSMS Callback
+
+```
+POST /api/v1/sms/callback/devsms
+```
+
+**Request:**
+```json
+{
+  "sms_id": 12345,
+  "request_id": "abc-123",
+  "phone": "998901234567",
+  "status": "delivered",
+  "error_code": null,
+  "error_message": null,
+  "timestamp": "2024-01-15T10:30:00Z"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Callback processed"
+}
+```
+
+#### Eskiz Callback
+
+```
+POST /api/v1/sms/callback/eskiz
+```
+
+**Request:**
+```json
+{
+  "message_id": "abc123",
+  "user_sms_id": "custom-id-456",
+  "mobile_phone": "998901234567",
+  "status": "delivered",
+  "status_code": 200,
+  "delivery_time": "2024-01-15T10:30:00Z",
+  "error": null
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Callback processed"
+}
+```
+
+### Status Values
+
+| Status | Description |
+|--------|-------------|
+| `DELIVERED` | SMS successfully delivered to recipient |
+| `SENT` | SMS sent to carrier |
+| `PENDING` | SMS queued for delivery |
+| `FAILED` | SMS delivery failed |
+| `EXPIRED` | SMS expired before delivery |
+
+### Configuration
+
+Set callback URLs in environment variables:
+
+```bash
+# DevSMS callback URL
+SMS_DEVSMS_CALLBACK_URL=https://your-domain.com/api/v1/sms/callback/devsms
+
+# Eskiz callback URL
+SMS_ESKIZ_CALLBACK_URL=https://your-domain.com/api/v1/sms/callback/eskiz
+```
+
+Or configure via Admin API:
+
+```
+PUT /api/v1/admin/sms/provider/credentials
+Authorization: Bearer {token}
+```
+
+```json
+{
+  "provider": "DEVSMS",
+  "callbackUrl": "https://your-domain.com/api/v1/sms/callback/devsms"
+}
+```
 
 ---
 
