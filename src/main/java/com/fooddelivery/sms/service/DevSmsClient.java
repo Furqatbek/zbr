@@ -47,7 +47,7 @@ public class DevSmsClient implements SmsProvider {
         body.put("message", smsMessage.getMessage());
         body.put("from", properties.getFrom());
 
-        if (properties.getCallbackUrl() != null) {
+        if (isValidCallbackUrl(properties.getCallbackUrl())) {
             body.put("callback_url", properties.getCallbackUrl());
         }
 
@@ -209,5 +209,14 @@ public class DevSmsClient implements SmsProvider {
             return "***";
         }
         return phoneNumber.substring(0, 6) + "****" + phoneNumber.substring(phoneNumber.length() - 2);
+    }
+
+    /**
+     * Validate callback URL - must start with http:// or https://.
+     */
+    private boolean isValidCallbackUrl(String callbackUrl) {
+        return callbackUrl != null
+                && !callbackUrl.isBlank()
+                && (callbackUrl.startsWith("http://") || callbackUrl.startsWith("https://"));
     }
 }
