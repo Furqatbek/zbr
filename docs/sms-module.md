@@ -514,17 +514,30 @@ Resend OTP verification code. Invalidates previous OTPs.
 ```yaml
 app:
   sms:
+    enabled: true                         # Global SMS on/off
+    provider: ESKIZ                       # Primary: ESKIZ or DEVSMS
+    fallback-enabled: true                # Enable automatic fallback
+    fallback-provider: DEVSMS             # Secondary provider
+
     eskiz:
       enabled: true
       base-url: https://notify.eskiz.uz/api
-      email: ${SMS_EMAIL}
-      password: ${SMS_PASSWORD}
+      email: ${SMS_ESKIZ_EMAIL}
+      password: ${SMS_ESKIZ_PASSWORD}
       from: "4546"
-      token-ttl-seconds: 2505600  # 29 days
+      token-ttl-seconds: 2505600          # 29 days
       connect-timeout: 5000
       read-timeout: 30000
-      max-retries: 3
-      callback-url: ${SMS_CALLBACK_URL}  # Optional
+      callback-url: ${SMS_ESKIZ_CALLBACK_URL:}
+
+    devsms:
+      enabled: true
+      base-url: https://devsms.uz/api
+      token: ${SMS_DEVSMS_TOKEN}
+      from: "4546"
+      connect-timeout: 5000
+      read-timeout: 30000
+      callback-url: ${SMS_DEVSMS_CALLBACK_URL:}
 
   otp:
     expiry-minutes: 5
@@ -535,12 +548,25 @@ app:
 
 ### Environment Variables
 
+#### Eskiz Provider
+
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `SMS_EMAIL` | Yes | Eskiz account email |
-| `SMS_PASSWORD` | Yes | Eskiz account password |
-| `SMS_BASE_URL` | No | Eskiz API URL (default: https://notify.eskiz.uz/api) |
-| `SMS_CALLBACK_URL` | No | Delivery status callback URL |
+| `SMS_ESKIZ_EMAIL` | Yes* | Eskiz account email |
+| `SMS_ESKIZ_PASSWORD` | Yes* | Eskiz account password |
+| `SMS_ESKIZ_BASE_URL` | No | Eskiz API URL (default: https://notify.eskiz.uz/api) |
+| `SMS_ESKIZ_CALLBACK_URL` | No | Delivery status callback URL |
+
+#### DevSMS Provider
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `SMS_DEVSMS_TOKEN` | Yes* | DevSMS API token |
+| `SMS_DEVSMS_BASE_URL` | No | DevSMS API URL (default: https://devsms.uz/api) |
+| `SMS_DEVSMS_FROM` | No | Sender ID (default: 4546) |
+| `SMS_DEVSMS_CALLBACK_URL` | No | Delivery status callback URL |
+
+*Required only if the provider is enabled
 
 ### RabbitMQ Configuration
 
@@ -562,31 +588,34 @@ app:
 2. Message created with SmsType and priority
 3. Message published to RabbitMQ queue
 4. SmsMessageConsumer picks up message
-5. EskizSmsClient sends to Eskiz API
-6. Eskiz returns success status
-7. Message marked as delivered
+5. SmsProviderFactory selects active provider (Eskiz or DevSMS)
+6. Provider client sends to SMS gateway
+7. Gateway returns success status
+8. Message marked as delivered
 ```
 
 ### Failed SMS with Retry
 
 ```
-1. EskizSmsClient returns error
-2. SmsMessageConsumer checks retry count
-3. If retries < 3:
-   - Calculate backoff: 1s, 2s, 4s
+1. Primary provider returns error
+2. If fallback enabled:
+   - Try fallback provider immediately
+3. If both fail, SmsMessageConsumer checks retry count
+4. If retries < 3:
+   - Calculate backoff: 2s, 4s, 8s (exponential)
    - Requeue message with incremented retry count
-4. If retries >= 3:
+5. If retries >= 3:
    - Send to Dead Letter Queue
    - Log error for monitoring
 ```
 
-### Retry Timing
+### Retry Timing (Exponential Backoff)
 
 | Attempt | Delay |
 |---------|-------|
-| 1st retry | 1 second |
-| 2nd retry | 2 seconds |
-| 3rd retry | 4 seconds |
+| 1st retry | 2 seconds |
+| 2nd retry | 4 seconds |
+| 3rd retry | 8 seconds |
 | After 3rd | Send to DLQ |
 
 ---
