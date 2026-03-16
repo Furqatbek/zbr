@@ -1,25 +1,36 @@
 # SMS Module Documentation
 
-Internal SMS notification service for the Food Delivery Platform. Provides asynchronous SMS delivery through the Eskiz SMS gateway using RabbitMQ message queuing.
+Internal SMS notification service for the Food Delivery Platform. Provides asynchronous SMS delivery through configurable SMS providers using RabbitMQ message queuing.
 
 ## Overview
 
-The SMS module is an **internal service** that does not expose its own REST API. Instead, it:
+The SMS module is an **internal service** with admin APIs for provider management:
 - Receives messages via **RabbitMQ** queues
-- Sends SMS through the **Eskiz SMS gateway** (Uzbekistan-based)
+- Supports multiple SMS providers: **Eskiz** and **DevSMS** (Uzbekistan-based)
+- Runtime provider switching via Admin API
+- Automatic fallback to secondary provider
 - Implements retry logic with exponential backoff
 - Supports multiple SMS types (OTP, orders, payments, etc.)
+
+## External API Documentation
+
+| Provider | Documentation |
+|----------|---------------|
+| **Eskiz** | https://documenter.getpostman.com/view/663428/RzfmES4z |
+| **DevSMS** | https://devsms.uz/api/docs.php |
 
 ---
 
 ## Table of Contents
 
 1. [Architecture](#1-architecture)
-2. [SMS Types](#2-sms-types)
-3. [Integration Points](#3-integration-points)
-4. [Phone Authentication API](#4-phone-authentication-api)
-5. [Configuration](#5-configuration)
-6. [Message Flow](#6-message-flow)
+2. [SMS Providers](#2-sms-providers)
+3. [Admin API](#3-admin-api)
+4. [SMS Types](#4-sms-types)
+5. [Integration Points](#5-integration-points)
+6. [Phone Authentication API](#6-phone-authentication-api)
+7. [Configuration](#7-configuration)
+8. [Message Flow](#8-message-flow)
 
 ---
 
@@ -64,23 +75,165 @@ The SMS module is an **internal service** that does not expose its own REST API.
                               │
                               ▼
               ┌───────────────────────────┐
-              │   EskizSmsClient          │
+              │   SmsProviderFactory      │
               │                           │
-              │ • Token management        │
-              │ • Auto-refresh (25 days)  │
-              │ • Status tracking         │
+              │ • Provider selection      │
+              │ • Fallback logic          │
+              │ • Runtime switching       │
               └───────────────────────────┘
-                              │
-                              ▼
-              ┌───────────────────────────┐
-              │   Eskiz SMS Gateway       │
-              │   (notify.eskiz.uz)       │
-              └───────────────────────────┘
+                       │         │
+           ┌───────────┘         └───────────┐
+           ▼                                 ▼
+┌───────────────────────┐     ┌───────────────────────┐
+│   EskizSmsClient      │     │   DevSmsClient        │
+│                       │     │                       │
+│ • Token management    │     │ • Token-based auth    │
+│ • Auto-refresh        │     │ • Simple API          │
+│ • Status tracking     │     │                       │
+└───────────────────────┘     └───────────────────────┘
+           │                                 │
+           ▼                                 ▼
+┌───────────────────────┐     ┌───────────────────────┐
+│   Eskiz SMS Gateway   │     │   DevSMS Gateway      │
+│   (notify.eskiz.uz)   │     │   (devsms.uz)         │
+└───────────────────────┘     └───────────────────────┘
 ```
 
 ---
 
-## 2. SMS Types
+## 2. SMS Providers
+
+### Available Providers
+
+| Provider | API Documentation | Features |
+|----------|-------------------|----------|
+| **ESKIZ** | https://documenter.getpostman.com/view/663428/RzfmES4z | Token auth, auto-refresh, delivery callbacks |
+| **DEVSMS** | https://devsms.uz/api/docs.php | Simple token auth, straightforward API |
+
+### Provider Configuration
+
+```yaml
+app:
+  sms:
+    enabled: true
+    provider: ESKIZ                    # Primary provider: ESKIZ or DEVSMS
+    fallback-enabled: true             # Enable automatic fallback
+    fallback-provider: DEVSMS          # Secondary provider
+
+    eskiz:
+      enabled: true
+      base-url: https://notify.eskiz.uz/api
+      email: ${SMS_ESKIZ_EMAIL}
+      password: ${SMS_ESKIZ_PASSWORD}
+      from: "4546"
+
+    devsms:
+      enabled: true
+      base-url: https://devsms.uz/api
+      token: ${SMS_DEVSMS_TOKEN}
+      from: "4546"
+```
+
+### Fallback Behavior
+
+When fallback is enabled:
+1. Primary provider fails to send SMS
+2. System automatically tries fallback provider
+3. If both fail, message goes to Dead Letter Queue
+
+---
+
+## 3. Admin API
+
+> **Required Role:** ADMIN or PLATFORM
+
+### Get Provider Status
+
+```
+GET /api/v1/admin/sms/status
+Authorization: Bearer {token}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "enabled": true,
+    "currentProvider": "ESKIZ",
+    "fallbackEnabled": true,
+    "fallbackProvider": "DEVSMS",
+    "activeProviderName": "ESKIZ",
+    "providers": [
+      {
+        "type": "ESKIZ",
+        "configured": true,
+        "available": true,
+        "statusMessage": "Ready"
+      },
+      {
+        "type": "DEVSMS",
+        "configured": true,
+        "available": true,
+        "statusMessage": "Ready"
+      }
+    ]
+  }
+}
+```
+
+### Update Configuration
+
+```
+PUT /api/v1/admin/sms/config
+Authorization: Bearer {token}
+```
+
+**Request:**
+```json
+{
+  "provider": "DEVSMS",
+  "fallbackEnabled": true,
+  "fallbackProvider": "ESKIZ",
+  "enabled": true
+}
+```
+
+### Quick Switch Provider
+
+```
+POST /api/v1/admin/sms/switch/{provider}
+Authorization: Bearer {token}
+```
+
+Example: `POST /api/v1/admin/sms/switch/DEVSMS`
+
+### Toggle SMS Globally
+
+```
+POST /api/v1/admin/sms/toggle?enabled=true
+Authorization: Bearer {token}
+```
+
+### Send Test SMS
+
+```
+POST /api/v1/admin/sms/test?phoneNumber=+998901234567&message=Test
+Authorization: Bearer {token}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Test SMS sent successfully via ESKIZ",
+  "data": "SMS ID: abc123"
+}
+```
+
+---
+
+## 4. SMS Types
 
 ### SmsType Enum
 
@@ -142,7 +295,7 @@ If you didn't request this, ignore this message.
 
 ---
 
-## 3. Integration Points
+## 5. Integration Points
 
 ### From Auth Module (OTP Authentication)
 
@@ -194,7 +347,7 @@ smsNotificationService.sendWelcomeSms(user);
 
 ---
 
-## 4. Phone Authentication API
+## 6. Phone Authentication API
 
 The SMS module powers the phone authentication endpoints (part of Auth module):
 
@@ -283,7 +436,7 @@ Resend OTP verification code. Invalidates previous OTPs.
 
 ---
 
-## 5. Configuration
+## 7. Configuration
 
 ### Application Properties
 
@@ -329,7 +482,7 @@ app:
 
 ---
 
-## 6. Message Flow
+## 8. Message Flow
 
 ### Successful SMS Delivery
 
