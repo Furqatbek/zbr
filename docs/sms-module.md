@@ -231,6 +231,77 @@ Authorization: Bearer {token}
 }
 ```
 
+### Configure Provider Credentials
+
+Update credentials and settings for a specific SMS provider at runtime.
+
+```
+PUT /api/v1/admin/sms/provider/credentials
+Authorization: Bearer {token}
+```
+
+**Request (DevSMS):**
+```json
+{
+  "provider": "DEVSMS",
+  "enabled": true,
+  "token": "your-devsms-api-token",
+  "from": "4546"
+}
+```
+
+**Request (Eskiz):**
+```json
+{
+  "provider": "ESKIZ",
+  "enabled": true,
+  "email": "your@email.com",
+  "password": "your-password",
+  "from": "4546"
+}
+```
+
+### Enable Provider
+
+```
+POST /api/v1/admin/sms/provider/{provider}/enable
+Authorization: Bearer {token}
+```
+
+Example: `POST /api/v1/admin/sms/provider/DEVSMS/enable`
+
+### Disable Provider
+
+```
+POST /api/v1/admin/sms/provider/{provider}/disable
+Authorization: Bearer {token}
+```
+
+Example: `POST /api/v1/admin/sms/provider/DEVSMS/disable`
+
+### Get Provider Details
+
+```
+GET /api/v1/admin/sms/provider/{provider}
+Authorization: Bearer {token}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "provider": "DEVSMS",
+    "enabled": true,
+    "baseUrl": "https://devsms.uz/api",
+    "from": "4546",
+    "hasToken": true,
+    "callbackUrl": null,
+    "available": true
+  }
+}
+```
+
 ---
 
 ## 4. SMS Types

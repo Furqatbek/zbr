@@ -2048,6 +2048,64 @@
             },
             "description": "Send a test SMS to verify provider configuration."
           }
+        },
+        {
+          "name": "Configure Provider Credentials",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"provider\": \"DEVSMS\",\n    \"enabled\": true,\n    \"token\": \"your-api-token\",\n    \"from\": \"4546\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/admin/sms/provider/credentials",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "sms", "provider", "credentials"]
+            },
+            "description": "Update credentials and settings for a specific SMS provider. For DevSMS use 'token', for Eskiz use 'email' and 'password'."
+          }
+        },
+        {
+          "name": "Enable Provider",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/admin/sms/provider/DEVSMS/enable",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "sms", "provider", "DEVSMS", "enable"]
+            },
+            "description": "Enable a specific SMS provider."
+          }
+        },
+        {
+          "name": "Disable Provider",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/admin/sms/provider/DEVSMS/disable",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "sms", "provider", "DEVSMS", "disable"]
+            },
+            "description": "Disable a specific SMS provider."
+          }
+        },
+        {
+          "name": "Get Provider Details",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/admin/sms/provider/DEVSMS",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "sms", "provider", "DEVSMS"]
+            },
+            "description": "Get configuration details for a specific provider including enabled status, credentials presence, and availability."
+          }
         }
       ]
     },
