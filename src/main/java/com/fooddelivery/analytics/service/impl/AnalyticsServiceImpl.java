@@ -105,7 +105,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
     }
 
     @Override
-    @Cacheable(value = CACHE_DAU_WAU_MAU, key = "'full'")
+    @Cacheable(value = CACHE_DAU_WAU_MAU, key = "'full'", unless = "#result == null")
     public DauWauMauDto getUserActivityMetrics() {
         log.debug("Calculating DAU/WAU/MAU metrics");
 
@@ -148,13 +148,13 @@ public class AnalyticsServiceImpl implements AnalyticsService {
     }
 
     @Override
-    @Cacheable(value = CACHE_ORDER_VOLUME, key = "'hourly'")
+    @Cacheable(value = CACHE_ORDER_VOLUME, key = "'hourly'", unless = "#result == null")
     public OrderVolumeDto getOrdersPerHour() {
         return getOrderVolumeMetrics();
     }
 
     @Override
-    @Cacheable(value = CACHE_ORDER_VOLUME, key = "'full'")
+    @Cacheable(value = CACHE_ORDER_VOLUME, key = "'full'", unless = "#result == null")
     public OrderVolumeDto getOrderVolumeMetrics() {
         log.debug("Calculating order volume metrics");
 
@@ -225,20 +225,20 @@ public class AnalyticsServiceImpl implements AnalyticsService {
     // ============ Conversion Funnel Metrics ============
 
     @Override
-    @Cacheable(value = CACHE_CONVERSION, key = "'rate'")
+    @Cacheable(value = CACHE_CONVERSION, key = "'rate'", unless = "#result == null")
     public Double getConversionRate() {
         ConversionRateDto metrics = getConversionMetrics();
         return metrics.getOverallConversionRate();
     }
 
     @Override
-    @Cacheable(value = CACHE_CONVERSION, key = "'full'")
+    @Cacheable(value = CACHE_CONVERSION, key = "'full'", unless = "#result == null")
     public ConversionRateDto getConversionMetrics() {
         return getConversionMetrics(1); // Default to 1 day
     }
 
     @Override
-    @Cacheable(value = CACHE_CONVERSION, key = "'period_' + #days")
+    @Cacheable(value = CACHE_CONVERSION, key = "'period_' + #days", unless = "#result == null")
     public ConversionRateDto getConversionMetrics(int days) {
         log.debug("Calculating conversion metrics for {} days", days);
 
@@ -279,7 +279,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
     // ============ AOV Metrics ============
 
     @Override
-    @Cacheable(value = CACHE_AOV, key = "'today'")
+    @Cacheable(value = CACHE_AOV, key = "'today'", unless = "#result == null")
     public BigDecimal getAverageOrderValue() {
         LocalDateTime startOfDay = LocalDate.now().atStartOfDay();
         BigDecimal aov = orderRepository.getAverageOrderValueSince(startOfDay);
@@ -287,7 +287,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
     }
 
     @Override
-    @Cacheable(value = CACHE_AOV, key = "'full'")
+    @Cacheable(value = CACHE_AOV, key = "'full'", unless = "#result == null")
     public AovDto getAovMetrics() {
         log.debug("Calculating AOV metrics");
 
@@ -365,7 +365,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
     }
 
     @Override
-    @Cacheable(value = CACHE_ACTIVATION, key = "'activation_time'")
+    @Cacheable(value = CACHE_ACTIVATION, key = "'activation_time'", unless = "#result == null")
     public Double getActivationTime() {
         LocalDateTime startOfMonth = LocalDateTime.now().minusDays(30);
         Object result = orderRepository.getActivationTimeStatsSince(startOfMonth);
@@ -374,7 +374,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
     }
 
     @Override
-    @Cacheable(value = CACHE_ACTIVATION, key = "'referral_rate'")
+    @Cacheable(value = CACHE_ACTIVATION, key = "'referral_rate'", unless = "#result == null")
     public Double getReferralUsageRate() {
         LocalDateTime startOfMonth = LocalDateTime.now().minusDays(30);
         Long referralSignups = userRepository.countReferralSignupsSince(startOfMonth);
@@ -387,7 +387,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
     }
 
     @Override
-    @Cacheable(value = CACHE_ACTIVATION, key = "'full'")
+    @Cacheable(value = CACHE_ACTIVATION, key = "'full'", unless = "#result == null")
     public ActivationMetricsDto getUserActivationMetrics() {
         log.debug("Calculating activation metrics");
 
@@ -455,28 +455,28 @@ public class AnalyticsServiceImpl implements AnalyticsService {
     // ============ Churn Metrics ============
 
     @Override
-    @Cacheable(value = CACHE_CHURN, key = "'user_rate'")
+    @Cacheable(value = CACHE_CHURN, key = "'user_rate'", unless = "#result == null")
     public Double getUserChurnRate() {
         ChurnDto metrics = getChurnMetrics();
         return metrics.getUserChurnRate();
     }
 
     @Override
-    @Cacheable(value = CACHE_CHURN, key = "'restaurant_rate'")
+    @Cacheable(value = CACHE_CHURN, key = "'restaurant_rate'", unless = "#result == null")
     public Double getRestaurantChurnRate() {
         ChurnDto metrics = getChurnMetrics();
         return metrics.getRestaurantChurnRate();
     }
 
     @Override
-    @Cacheable(value = CACHE_CHURN, key = "'courier_rate'")
+    @Cacheable(value = CACHE_CHURN, key = "'courier_rate'", unless = "#result == null")
     public Double getCourierChurnRate() {
         ChurnDto metrics = getChurnMetrics();
         return metrics.getCourierChurnRate();
     }
 
     @Override
-    @Cacheable(value = CACHE_CHURN, key = "'full'")
+    @Cacheable(value = CACHE_CHURN, key = "'full'", unless = "#result == null")
     public ChurnDto getChurnMetrics() {
         log.debug("Calculating churn metrics");
 
