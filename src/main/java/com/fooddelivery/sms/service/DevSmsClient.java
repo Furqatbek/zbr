@@ -6,7 +6,6 @@ import com.fooddelivery.sms.dto.SmsMessage;
 import com.fooddelivery.sms.dto.SmsSendResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
@@ -22,7 +21,6 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-@ConditionalOnProperty(prefix = "app.sms.devsms", name = "enabled", havingValue = "true")
 public class DevSmsClient implements SmsProvider {
 
     private final DevSmsProperties properties;

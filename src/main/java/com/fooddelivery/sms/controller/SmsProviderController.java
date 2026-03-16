@@ -1,8 +1,11 @@
 package com.fooddelivery.sms.controller;
 
 import com.fooddelivery.common.dto.ApiResponse;
+import com.fooddelivery.sms.config.DevSmsProperties;
+import com.fooddelivery.sms.config.EskizSmsProperties;
 import com.fooddelivery.sms.config.SmsProperties;
 import com.fooddelivery.sms.config.SmsProperties.SmsProviderType;
+import com.fooddelivery.sms.dto.ProviderCredentialsRequest;
 import com.fooddelivery.sms.dto.SmsProviderConfigRequest;
 import com.fooddelivery.sms.dto.SmsProviderStatusResponse;
 import com.fooddelivery.sms.dto.SmsProviderStatusResponse.ProviderStatus;
@@ -12,6 +15,8 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import lombok.Builder;
+import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -35,6 +40,8 @@ public class SmsProviderController {
 
     private final SmsProperties smsProperties;
     private final SmsProviderFactory smsProviderFactory;
+    private final DevSmsProperties devSmsProperties;
+    private final EskizSmsProperties eskizSmsProperties;
 
     /**
      * Get current SMS provider status.
@@ -184,6 +191,142 @@ public class SmsProviderController {
         }
     }
 
+    /**
+     * Configure provider credentials.
+     */
+    @PutMapping("/provider/credentials")
+    @Operation(summary = "Configure provider credentials",
+               description = "Update credentials and settings for a specific SMS provider")
+    public ResponseEntity<ApiResponse<SmsProviderStatusResponse>> configureProvider(
+            @Valid @RequestBody ProviderCredentialsRequest request) {
+
+        log.info("Configuring SMS provider: {}", request.getProvider());
+
+        switch (request.getProvider()) {
+            case DEVSMS -> configureDevSms(request);
+            case ESKIZ -> configureEskiz(request);
+            default -> {
+                return ResponseEntity.badRequest()
+                        .body(ApiResponse.error("Unknown provider: " + request.getProvider()));
+            }
+        }
+
+        log.info("SMS provider {} configured successfully", request.getProvider());
+        return getStatus();
+    }
+
+    /**
+     * Enable a provider.
+     */
+    @PostMapping("/provider/{provider}/enable")
+    @Operation(summary = "Enable provider", description = "Enable a specific SMS provider")
+    public ResponseEntity<ApiResponse<SmsProviderStatusResponse>> enableProvider(
+            @PathVariable SmsProviderType provider) {
+
+        log.info("Enabling SMS provider: {}", provider);
+
+        switch (provider) {
+            case DEVSMS -> devSmsProperties.setEnabled(true);
+            case ESKIZ -> eskizSmsProperties.setEnabled(true);
+        }
+
+        return getStatus();
+    }
+
+    /**
+     * Disable a provider.
+     */
+    @PostMapping("/provider/{provider}/disable")
+    @Operation(summary = "Disable provider", description = "Disable a specific SMS provider")
+    public ResponseEntity<ApiResponse<SmsProviderStatusResponse>> disableProvider(
+            @PathVariable SmsProviderType provider) {
+
+        log.info("Disabling SMS provider: {}", provider);
+
+        switch (provider) {
+            case DEVSMS -> devSmsProperties.setEnabled(false);
+            case ESKIZ -> eskizSmsProperties.setEnabled(false);
+        }
+
+        return getStatus();
+    }
+
+    /**
+     * Get provider details.
+     */
+    @GetMapping("/provider/{provider}")
+    @Operation(summary = "Get provider details", description = "Get configuration details for a specific provider")
+    public ResponseEntity<ApiResponse<ProviderDetailsResponse>> getProviderDetails(
+            @PathVariable SmsProviderType provider) {
+
+        log.info("Getting details for SMS provider: {}", provider);
+
+        ProviderDetailsResponse details = switch (provider) {
+            case DEVSMS -> ProviderDetailsResponse.builder()
+                    .provider(provider)
+                    .enabled(devSmsProperties.isEnabled())
+                    .baseUrl(devSmsProperties.getBaseUrl())
+                    .from(devSmsProperties.getFrom())
+                    .hasToken(devSmsProperties.getToken() != null && !devSmsProperties.getToken().isBlank())
+                    .callbackUrl(devSmsProperties.getCallbackUrl())
+                    .available(smsProviderFactory.getProvider(provider) != null
+                            && smsProviderFactory.getProvider(provider).isAvailable())
+                    .build();
+            case ESKIZ -> ProviderDetailsResponse.builder()
+                    .provider(provider)
+                    .enabled(eskizSmsProperties.isEnabled())
+                    .baseUrl(eskizSmsProperties.getBaseUrl())
+                    .from(eskizSmsProperties.getFrom())
+                    .hasCredentials(eskizSmsProperties.getEmail() != null
+                            && eskizSmsProperties.getPassword() != null)
+                    .callbackUrl(eskizSmsProperties.getCallbackUrl())
+                    .available(smsProviderFactory.getProvider(provider) != null
+                            && smsProviderFactory.getProvider(provider).isAvailable())
+                    .build();
+        };
+
+        return ResponseEntity.ok(ApiResponse.success(details));
+    }
+
+    private void configureDevSms(ProviderCredentialsRequest request) {
+        if (request.getEnabled() != null) {
+            devSmsProperties.setEnabled(request.getEnabled());
+        }
+        if (request.getToken() != null) {
+            devSmsProperties.setToken(request.getToken());
+        }
+        if (request.getFrom() != null) {
+            devSmsProperties.setFrom(request.getFrom());
+        }
+        if (request.getBaseUrl() != null) {
+            devSmsProperties.setBaseUrl(request.getBaseUrl());
+        }
+        if (request.getCallbackUrl() != null) {
+            devSmsProperties.setCallbackUrl(request.getCallbackUrl());
+        }
+    }
+
+    private void configureEskiz(ProviderCredentialsRequest request) {
+        if (request.getEnabled() != null) {
+            eskizSmsProperties.setEnabled(request.getEnabled());
+        }
+        if (request.getEmail() != null) {
+            eskizSmsProperties.setEmail(request.getEmail());
+        }
+        if (request.getPassword() != null) {
+            eskizSmsProperties.setPassword(request.getPassword());
+        }
+        if (request.getFrom() != null) {
+            eskizSmsProperties.setFrom(request.getFrom());
+        }
+        if (request.getBaseUrl() != null) {
+            eskizSmsProperties.setBaseUrl(request.getBaseUrl());
+        }
+        if (request.getCallbackUrl() != null) {
+            eskizSmsProperties.setCallbackUrl(request.getCallbackUrl());
+        }
+    }
+
     private String getProviderStatusMessage(SmsProvider provider) {
         if (provider == null) {
             return "Not configured";
@@ -192,6 +335,22 @@ public class SmsProviderController {
             return "Configured but not available (check credentials)";
         }
         return "Ready";
+    }
+
+    /**
+     * Response DTO for provider details.
+     */
+    @Data
+    @Builder
+    public static class ProviderDetailsResponse {
+        private SmsProviderType provider;
+        private boolean enabled;
+        private String baseUrl;
+        private String from;
+        private boolean hasToken;
+        private boolean hasCredentials;
+        private String callbackUrl;
+        private boolean available;
     }
 
     private String maskPhone(String phone) {
