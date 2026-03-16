@@ -15,6 +15,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
@@ -28,6 +29,7 @@ public class ReferralController {
     private final ReferralService referralService;
 
     @PostMapping("/generate")
+    @PreAuthorize("hasAnyRole('CONSUMER', 'PLATFORM', 'ADMIN')")
     @Operation(summary = "Generate referral code", description = "Generate a new referral code for the current user")
     public ResponseEntity<ApiResponse<ReferralDto>> generateCode(
             @AuthenticationPrincipal UserPrincipal currentUser) {
@@ -38,6 +40,7 @@ public class ReferralController {
     }
 
     @GetMapping("/my")
+    @PreAuthorize("hasAnyRole('CONSUMER', 'PLATFORM', 'ADMIN')")
     @Operation(summary = "Get my referrals", description = "Get referrals made by current user")
     public ResponseEntity<ApiResponse<PagedResponse<ReferralDto>>> getMyReferrals(
             @AuthenticationPrincipal UserPrincipal currentUser,
@@ -48,6 +51,7 @@ public class ReferralController {
     }
 
     @GetMapping("/my/stats")
+    @PreAuthorize("hasAnyRole('CONSUMER', 'PLATFORM', 'ADMIN')")
     @Operation(summary = "Get referral stats", description = "Get referral statistics for current user")
     public ResponseEntity<ApiResponse<ReferralService.ReferralStatsDto>> getMyStats(
             @AuthenticationPrincipal UserPrincipal currentUser) {
@@ -57,6 +61,7 @@ public class ReferralController {
     }
 
     @GetMapping("/{code}")
+    @PreAuthorize("hasAnyRole('CONSUMER', 'PLATFORM', 'ADMIN')")
     @Operation(summary = "Get referral by code", description = "Get referral details by code")
     public ResponseEntity<ApiResponse<ReferralDto>> getReferralByCode(@PathVariable String code) {
         ReferralDto referral = referralService.getReferralByCode(code);
@@ -64,6 +69,7 @@ public class ReferralController {
     }
 
     @PostMapping("/apply")
+    @PreAuthorize("hasAnyRole('CONSUMER', 'PLATFORM', 'ADMIN')")
     @Operation(summary = "Apply referral code", description = "Apply a referral code to the current user's account")
     public ResponseEntity<ApiResponse<Void>> applyReferralCode(
             @AuthenticationPrincipal UserPrincipal currentUser,

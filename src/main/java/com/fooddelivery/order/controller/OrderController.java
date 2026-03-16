@@ -78,6 +78,7 @@ public class OrderController {
     }
 
     @GetMapping("/{orderId}")
+    @PreAuthorize("hasAnyRole('CONSUMER', 'RESTAURANT_OWNER', 'RESTAURANT_STAFF', 'COURIER', 'PLATFORM', 'ADMIN')")
     @Operation(summary = "Get order by ID", description = "Get order details by ID")
     public ResponseEntity<ApiResponse<OrderDto>> getOrderById(
             @AuthenticationPrincipal UserPrincipal currentUser,
@@ -89,6 +90,7 @@ public class OrderController {
     }
 
     @GetMapping("/number/{orderNo}")
+    @PreAuthorize("hasAnyRole('CONSUMER', 'RESTAURANT_OWNER', 'RESTAURANT_STAFF', 'COURIER', 'PLATFORM', 'ADMIN')")
     @Operation(summary = "Get order by number", description = "Get order details by external order number")
     public ResponseEntity<ApiResponse<OrderDto>> getOrderByNumber(
             @AuthenticationPrincipal UserPrincipal currentUser,
@@ -101,6 +103,7 @@ public class OrderController {
     }
 
     @GetMapping("/my")
+    @PreAuthorize("hasAnyRole('CONSUMER', 'PLATFORM', 'ADMIN')")
     @Operation(summary = "Get my orders", description = "Get orders for the current user")
     public ResponseEntity<ApiResponse<PagedResponse<OrderDto>>> getMyOrders(
             @AuthenticationPrincipal UserPrincipal currentUser,
@@ -149,6 +152,7 @@ public class OrderController {
     }
 
     @PutMapping("/{orderId}/cancel")
+    @PreAuthorize("hasAnyRole('CONSUMER', 'RESTAURANT_OWNER', 'RESTAURANT_STAFF', 'PLATFORM', 'ADMIN')")
     @Operation(summary = "Cancel order", description = "Cancel an order")
     public ResponseEntity<ApiResponse<OrderDto>> cancelOrder(
             @PathVariable Long orderId,
@@ -162,6 +166,7 @@ public class OrderController {
 
     // Payment endpoints
     @PostMapping("/{orderId}/pay")
+    @PreAuthorize("hasAnyRole('CONSUMER', 'PLATFORM', 'ADMIN')")
     @Operation(summary = "Initiate payment", description = "Initiate a payment for an order")
     public ResponseEntity<ApiResponse<PaymentDto>> createPayment(
             @AuthenticationPrincipal UserPrincipal currentUser,
@@ -175,6 +180,7 @@ public class OrderController {
     }
 
     @GetMapping("/{orderId}/payment")
+    @PreAuthorize("hasAnyRole('CONSUMER', 'RESTAURANT_OWNER', 'RESTAURANT_STAFF', 'PLATFORM', 'ADMIN')")
     @Operation(summary = "Get payment", description = "Get payment details for an order")
     public ResponseEntity<ApiResponse<PaymentDto>> getPayment(
             @AuthenticationPrincipal UserPrincipal currentUser,
@@ -187,6 +193,7 @@ public class OrderController {
 
     // Tracking endpoint
     @GetMapping("/{orderId}/track")
+    @PreAuthorize("hasAnyRole('CONSUMER', 'RESTAURANT_OWNER', 'RESTAURANT_STAFF', 'COURIER', 'PLATFORM', 'ADMIN')")
     @Operation(summary = "Track order", description = "Get live order tracking information")
     public ResponseEntity<ApiResponse<OrderTrackingDto>> trackOrder(
             @AuthenticationPrincipal UserPrincipal currentUser,
@@ -226,6 +233,7 @@ public class OrderController {
 
     // Promo code validation endpoint
     @PostMapping("/validate-promo")
+    @PreAuthorize("hasAnyRole('CONSUMER', 'PLATFORM', 'ADMIN')")
     @Operation(summary = "Validate promo code", description = "Validate a promo code and calculate discount")
     public ResponseEntity<ApiResponse<PromoValidationResponse>> validatePromoCode(
             @Valid @RequestBody PromoValidationRequest request) {
@@ -236,6 +244,7 @@ public class OrderController {
 
     // Payment confirmation endpoint
     @PostMapping("/{orderId}/pay/confirm")
+    @PreAuthorize("hasAnyRole('CONSUMER', 'PLATFORM', 'ADMIN')")
     @Operation(summary = "Confirm payment", description = "Confirm payment for an order")
     public ResponseEntity<ApiResponse<PaymentDto>> confirmPayment(
             @AuthenticationPrincipal UserPrincipal currentUser,

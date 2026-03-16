@@ -702,7 +702,13 @@ public class OrderService {
             itemReq.setQuantity(item.getQuantity());
             itemReq.setVariantId(item.getVariantId());
             itemReq.setSpecialInstructions(item.getSpecialInstructions());
-            // Note: options would need to be parsed from modifiersJson if needed
+
+            // Parse options from modifiersJson
+            if (item.getModifiersJson() != null && !item.getModifiersJson().isBlank()) {
+                List<Long> optionIds = extractOptionIdsFromModifiersJson(item.getModifiersJson());
+                itemReq.setOptionIds(optionIds);
+            }
+
             itemRequests.add(itemReq);
         }
 
@@ -725,5 +731,27 @@ public class OrderService {
 
         log.info("Creating reorder from order {} for consumer {}", orderId, consumerId);
         return createOrder(consumerId, request);
+    }
+
+    /**
+     * Extract option IDs from modifiersJson.
+     * Format: [{"id": 1, "name": "Extra Cheese", "price": 1.50}, ...]
+     */
+    private List<Long> extractOptionIdsFromModifiersJson(String modifiersJson) {
+        List<Long> optionIds = new ArrayList<>();
+        try {
+            JsonUtils.parseJson(modifiersJson).ifPresent(jsonNode -> {
+                if (jsonNode.isArray()) {
+                    for (var node : jsonNode) {
+                        if (node.has("id")) {
+                            optionIds.add(node.get("id").asLong());
+                        }
+                    }
+                }
+            });
+        } catch (Exception e) {
+            log.warn("Failed to parse modifiersJson: {}", e.getMessage());
+        }
+        return optionIds;
     }
 }

@@ -64,7 +64,8 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
             @Param("paymentStatus") PaymentStatus paymentStatus,
             @Param("before") LocalDateTime before);
 
-    @Query("SELECT o FROM Order o WHERE o.status = 'READY' AND o.orderType = 'DELIVERY' AND o.courier IS NULL")
+    @Query("SELECT o FROM Order o WHERE o.status = com.fooddelivery.order.entity.OrderStatus.READY " +
+            "AND o.orderType = com.fooddelivery.order.entity.OrderType.DELIVERY AND o.courier IS NULL")
     List<Order> findOrdersAwaitingCourierAssignment();
 
     @Query("SELECT COUNT(o) FROM Order o WHERE o.restaurant.id = :restaurantId AND o.createdAt >= :since")
@@ -77,10 +78,12 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
             @Param("status") OrderStatus status,
             @Param("since") LocalDateTime since);
 
-    @Query("SELECT SUM(o.total) FROM Order o WHERE o.status = 'COMPLETED' AND o.createdAt >= :since")
+    @Query("SELECT SUM(o.total) FROM Order o WHERE o.status = com.fooddelivery.order.entity.OrderStatus.DELIVERED " +
+            "AND o.createdAt >= :since")
     java.math.BigDecimal sumCompletedOrdersGMVSince(@Param("since") LocalDateTime since);
 
-    @Query("SELECT AVG(o.total) FROM Order o WHERE o.status = 'COMPLETED' AND o.createdAt >= :since")
+    @Query("SELECT AVG(o.total) FROM Order o WHERE o.status = com.fooddelivery.order.entity.OrderStatus.DELIVERED " +
+            "AND o.createdAt >= :since")
     java.math.BigDecimal avgOrderValueSince(@Param("since") LocalDateTime since);
 
     @Modifying

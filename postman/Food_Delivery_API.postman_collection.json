@@ -1959,6 +1959,99 @@
       ]
     },
     {
+      "name": "SMS Provider Management",
+      "description": "SMS provider configuration and management. Requires ADMIN or PLATFORM role.",
+      "item": [
+        {
+          "name": "Get SMS Provider Status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/admin/sms/status",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "sms", "status"]
+            },
+            "description": "Get current SMS provider configuration and status. Shows enabled providers, fallback settings, and provider availability."
+          }
+        },
+        {
+          "name": "Update SMS Config",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"provider\": \"ESKIZ\",\n    \"fallbackEnabled\": true,\n    \"fallbackProvider\": \"DEVSMS\",\n    \"enabled\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/admin/sms/config",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "sms", "config"]
+            },
+            "description": "Update SMS provider configuration. Available providers: ESKIZ, DEVSMS"
+          }
+        },
+        {
+          "name": "Switch SMS Provider",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/admin/sms/switch/ESKIZ",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "sms", "switch", "ESKIZ"]
+            },
+            "description": "Quick switch to a specific SMS provider. Provider must be configured and available."
+          }
+        },
+        {
+          "name": "Toggle SMS",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/admin/sms/toggle?enabled=true",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "sms", "toggle"],
+              "query": [
+                {
+                  "key": "enabled",
+                  "value": "true"
+                }
+              ]
+            },
+            "description": "Enable or disable SMS sending globally."
+          }
+        },
+        {
+          "name": "Send Test SMS",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/admin/sms/test?phoneNumber=%2B998901234567&message=Test%20SMS",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "sms", "test"],
+              "query": [
+                {
+                  "key": "phoneNumber",
+                  "value": "+998901234567"
+                },
+                {
+                  "key": "message",
+                  "value": "Test SMS from Food Delivery Platform"
+                }
+              ]
+            },
+            "description": "Send a test SMS to verify provider configuration."
+          }
+        }
+      ]
+    },
+    {
       "name": "Webhooks",
       "description": "Webhook endpoints for external integrations",
       "item": [
