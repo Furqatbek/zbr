@@ -3,7 +3,7 @@ package com.fooddelivery.sms.service;
 import com.fooddelivery.auth.entity.User;
 import com.fooddelivery.common.config.RabbitMQConfig;
 import com.fooddelivery.notification.dto.NotificationRequest;
-import com.fooddelivery.sms.config.EskizSmsProperties;
+import com.fooddelivery.sms.config.SmsProperties;
 import com.fooddelivery.sms.dto.SmsMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -23,7 +23,7 @@ import java.util.UUID;
 public class SmsNotificationService {
 
     private final RabbitTemplate rabbitTemplate;
-    private final EskizSmsProperties smsProperties;
+    private final SmsProperties smsProperties;
 
     /**
      * Send OTP code via SMS.
