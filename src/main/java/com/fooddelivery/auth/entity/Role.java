@@ -50,6 +50,26 @@ public enum Role {
     SYSTEM,
 
     /**
+     * Fraud analyst with access to fraud detection dashboards.
+     */
+    FRAUD_ANALYST,
+
+    /**
+     * Payment analyst with access to payment analytics.
+     */
+    PAYMENT_ANALYST,
+
+    /**
+     * Marketing analyst with access to marketing analytics.
+     */
+    MARKETING_ANALYST,
+
+    /**
+     * Security analyst with access to security logs and analytics.
+     */
+    SECURITY_ANALYST,
+
+    /**
      * Restaurant owner who can manage their restaurants.
      */
     RESTAURANT_OWNER,
