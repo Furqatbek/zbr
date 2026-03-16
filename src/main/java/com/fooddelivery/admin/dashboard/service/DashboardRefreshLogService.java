@@ -30,6 +30,7 @@ public class DashboardRefreshLogService {
     public void logRefresh(String component, Long durationMs, boolean success, String message) {
         try {
             DashboardRefreshLog refreshLog = DashboardRefreshLog.builder()
+                    .panelName(component != null ? component.toUpperCase() : "UNKNOWN")
                     .component(component)
                     .refreshedAt(LocalDateTime.now())
                     .durationMs(durationMs)

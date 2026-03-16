@@ -32,8 +32,19 @@ public class SmsMessageConsumer {
     /**
      * Process SMS notification requests from the queue.
      */
-    @RabbitListener(queues = RabbitMQConfig.NOTIFICATION_SMS_QUEUE)
-    public void handleSmsNotification(NotificationRequest request) {
+    @RabbitListener(queues = RabbitMQConfig.NOTIFICATION_SMS_QUEUE, id = "smsNotificationListener")
+    public void handleSmsNotification(Object payload) {
+        // Handle both NotificationRequest (new messages) and SmsMessage (retries)
+        if (payload instanceof SmsMessage smsMessage) {
+            handleSmsRetry(smsMessage);
+            return;
+        }
+
+        if (!(payload instanceof NotificationRequest request)) {
+            log.warn("Unknown message type received: {}", payload.getClass().getName());
+            return;
+        }
+
         log.info("Received SMS notification request: phone={}, subject={}",
                 maskPhone(request.getPhone()), request.getSubject());
 
@@ -63,6 +74,15 @@ public class SmsMessageConsumer {
         } catch (Exception e) {
             log.error("Failed to process SMS notification: {}", e.getMessage(), e);
         }
+    }
+
+    /**
+     * Handle retried SMS messages.
+     */
+    private void handleSmsRetry(SmsMessage smsMessage) {
+        log.info("Processing SMS retry {}/{}: phone={}",
+                smsMessage.getRetryCount(), MAX_RETRIES, maskPhone(smsMessage.getPhoneNumber()));
+        sendWithRetry(smsMessage, smsMessage.getRetryCount());
     }
 
     /**
