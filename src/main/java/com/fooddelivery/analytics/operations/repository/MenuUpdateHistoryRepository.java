@@ -29,9 +29,9 @@ public interface MenuUpdateHistoryRepository extends JpaRepository<MenuUpdateHis
     /**
      * Get last menu update time for a restaurant.
      */
-    @Query("SELECT m.updatedAt FROM MenuUpdateHistory m " +
-            "WHERE m.restaurantId = :restaurantId " +
-            "ORDER BY m.updatedAt DESC LIMIT 1")
+    @Query(value = "SELECT updated_at FROM menu_update_history " +
+            "WHERE restaurant_id = :restaurantId " +
+            "ORDER BY updated_at DESC LIMIT 1", nativeQuery = true)
     LocalDateTime getLastMenuUpdateTime(@Param("restaurantId") Long restaurantId);
 
     /**

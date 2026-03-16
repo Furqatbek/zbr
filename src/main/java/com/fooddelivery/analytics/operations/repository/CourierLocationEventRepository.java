@@ -59,9 +59,9 @@ public interface CourierLocationEventRepository extends JpaRepository<CourierLoc
     /**
      * Get the latest location event for a courier.
      */
-    @Query("SELECT e FROM CourierLocationEvent e " +
-            "WHERE e.courierId = :courierId " +
-            "ORDER BY e.recordedAt DESC LIMIT 1")
+    @Query(value = "SELECT * FROM courier_location_events " +
+            "WHERE courier_id = :courierId " +
+            "ORDER BY recorded_at DESC LIMIT 1", nativeQuery = true)
     CourierLocationEvent findLatestByCourierId(@Param("courierId") Long courierId);
 
     /**

@@ -43,10 +43,10 @@ public interface RestaurantOnlineStatusRepository extends JpaRepository<Restaura
     /**
      * Get last offline time for a restaurant.
      */
-    @Query("SELECT s.statusChangedAt FROM RestaurantOnlineStatus s " +
-            "WHERE s.restaurantId = :restaurantId " +
-            "AND s.isOnline = false " +
-            "ORDER BY s.statusChangedAt DESC LIMIT 1")
+    @Query(value = "SELECT status_changed_at FROM restaurant_online_status " +
+            "WHERE restaurant_id = :restaurantId " +
+            "AND is_online = false " +
+            "ORDER BY status_changed_at DESC LIMIT 1", nativeQuery = true)
     LocalDateTime getLastOfflineTime(@Param("restaurantId") Long restaurantId);
 
     /**

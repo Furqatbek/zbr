@@ -19,9 +19,9 @@ public interface OtpCodeRepository extends JpaRepository<OtpCode, Long> {
     /**
      * Find the latest valid OTP for a phone number.
      */
-    @Query("SELECT o FROM OtpCode o WHERE o.phone = :phone " +
-           "AND o.isUsed = false AND o.expiresAt > :now " +
-           "ORDER BY o.createdAt DESC LIMIT 1")
+    @Query(value = "SELECT * FROM otp_codes WHERE phone = :phone " +
+           "AND is_used = false AND expires_at > :now " +
+           "ORDER BY created_at DESC LIMIT 1", nativeQuery = true)
     Optional<OtpCode> findLatestValidOtp(@Param("phone") String phone, @Param("now") LocalDateTime now);
 
     /**
