@@ -83,11 +83,29 @@ public class SmsNotificationService {
                 return false;
             }
 
-            // Substitute variables in template content ourselves
-            // DevSMS/Eskiz doesn't have a template API - we need to send the final message
+            // Use provider's templated SMS endpoint with template ID
+            // This allows the provider to use their registered/approved template
+            String providerTemplateId = template.getProviderTemplateId();
+            if (providerTemplateId != null && !providerTemplateId.isBlank()) {
+                SmsSendResponse response = provider.sendTemplatedSms(
+                        phoneNumber,
+                        providerTemplateId,
+                        Map.of("code", otpCode)
+                );
+
+                if (response.isSuccess()) {
+                    log.info("OTP sent via templated endpoint {} to phone: {}",
+                            template.getTemplateCode(), maskPhone(phoneNumber));
+                    return true;
+                } else {
+                    log.warn("Failed to send OTP via templated endpoint: {}, falling back to raw message",
+                            response.getMessage());
+                }
+            }
+
+            // Fallback: substitute variables locally and send as raw message
             String messageContent = substituteTemplateVariables(template.getContent(), Map.of("code", otpCode));
 
-            // Send using regular sendSms with the substituted message
             SmsMessage smsMessage = SmsMessage.builder()
                     .messageId(UUID.randomUUID().toString())
                     .phoneNumber(phoneNumber)
@@ -99,11 +117,11 @@ public class SmsNotificationService {
             SmsSendResponse response = provider.sendSms(smsMessage);
 
             if (response.isSuccess()) {
-                log.info("OTP sent via template {} to phone: {}",
+                log.info("OTP sent via raw message {} to phone: {}",
                         template.getTemplateCode(), maskPhone(phoneNumber));
                 return true;
             } else {
-                log.warn("Failed to send OTP via template: {}", response.getMessage());
+                log.warn("Failed to send OTP via raw message: {}", response.getMessage());
                 return false;
             }
 
