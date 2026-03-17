@@ -5,12 +5,16 @@ import com.fooddelivery.common.config.RabbitMQConfig;
 import com.fooddelivery.notification.dto.NotificationRequest;
 import com.fooddelivery.sms.config.SmsProperties;
 import com.fooddelivery.sms.dto.SmsMessage;
+import com.fooddelivery.sms.dto.SmsSendResponse;
+import com.fooddelivery.sms.entity.SmsTemplate;
+import com.fooddelivery.sms.entity.SmsTemplate.SmsTemplateType;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -24,9 +28,12 @@ public class SmsNotificationService {
 
     private final RabbitTemplate rabbitTemplate;
     private final SmsProperties smsProperties;
+    private final SmsTemplateService smsTemplateService;
+    private final SmsProviderFactory smsProviderFactory;
 
     /**
      * Send OTP code via SMS.
+     * First tries to use an approved OTP template, falls back to hardcoded message if not available.
      */
     @Async("notificationExecutor")
     public void sendOtp(String phoneNumber, String otpCode) {
@@ -35,6 +42,12 @@ public class SmsNotificationService {
             return;
         }
 
+        // Try to use OTP template first
+        if (trySendOtpWithTemplate(phoneNumber, otpCode)) {
+            return;
+        }
+
+        // Fallback to hardcoded message if template not available
         String message = String.format("Your verification code is: %s\nValid for 5 minutes.\n- Food Delivery", otpCode);
 
         SmsMessage smsMessage = SmsMessage.builder()
@@ -46,7 +59,51 @@ public class SmsNotificationService {
                 .build();
 
         queueSmsMessage(smsMessage);
-        log.info("OTP SMS queued for phone: {}", maskPhone(phoneNumber));
+        log.info("OTP SMS queued for phone: {} (using fallback message)", maskPhone(phoneNumber));
+    }
+
+    /**
+     * Try to send OTP using approved template.
+     * Returns true if successfully sent via template, false otherwise.
+     */
+    private boolean trySendOtpWithTemplate(String phoneNumber, String otpCode) {
+        try {
+            // Find approved OTP template for current provider
+            SmsTemplate template = smsTemplateService.getApprovedTemplateForSending(SmsTemplateType.OTP);
+
+            if (template == null || template.getProviderTemplateId() == null) {
+                log.debug("No approved OTP template found, will use fallback message");
+                return false;
+            }
+
+            // Get the provider and send using template
+            SmsProvider provider = smsProviderFactory.getPrimaryProvider();
+            if (provider == null || !provider.isAvailable()) {
+                log.warn("Primary SMS provider not available for templated OTP");
+                return false;
+            }
+
+            // Send using template with variable substitution
+            Map<String, String> variables = Map.of("code", otpCode);
+            SmsSendResponse response = provider.sendTemplatedSms(
+                    phoneNumber,
+                    template.getProviderTemplateId(),
+                    variables
+            );
+
+            if (response.isSuccess()) {
+                log.info("OTP sent via template {} to phone: {}",
+                        template.getTemplateCode(), maskPhone(phoneNumber));
+                return true;
+            } else {
+                log.warn("Failed to send OTP via template: {}", response.getMessage());
+                return false;
+            }
+
+        } catch (Exception e) {
+            log.error("Error sending OTP via template: {}", e.getMessage());
+            return false;
+        }
     }
 
     /**
