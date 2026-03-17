@@ -2,6 +2,10 @@ package com.fooddelivery.sms.service;
 
 import com.fooddelivery.sms.dto.SmsMessage;
 import com.fooddelivery.sms.dto.SmsSendResponse;
+import com.fooddelivery.sms.dto.SmsTemplateSyncResponse;
+import com.fooddelivery.sms.entity.SmsTemplate;
+
+import java.util.List;
 
 /**
  * Common interface for SMS providers.
@@ -47,4 +51,55 @@ public interface SmsProvider {
      * @return status string
      */
     String getSmsStatus(String smsId);
+
+    // ==================== Template Management ====================
+
+    /**
+     * Register a template with the SMS provider.
+     *
+     * @param template the template to register
+     * @return sync response with provider template ID and status
+     */
+    SmsTemplateSyncResponse registerTemplate(SmsTemplate template);
+
+    /**
+     * Update an existing template on the SMS provider.
+     *
+     * @param template the template to update
+     * @return sync response with updated status
+     */
+    SmsTemplateSyncResponse updateTemplate(SmsTemplate template);
+
+    /**
+     * Delete a template from the SMS provider.
+     *
+     * @param template the template to delete
+     * @return sync response indicating success/failure
+     */
+    SmsTemplateSyncResponse deleteTemplate(SmsTemplate template);
+
+    /**
+     * Get template status from the SMS provider.
+     *
+     * @param providerTemplateId the provider's template ID
+     * @return sync response with current status
+     */
+    SmsTemplateSyncResponse getTemplateStatus(String providerTemplateId);
+
+    /**
+     * List all templates registered with the provider.
+     *
+     * @return list of template sync responses
+     */
+    List<SmsTemplateSyncResponse> listProviderTemplates();
+
+    /**
+     * Send SMS using a registered template.
+     *
+     * @param phoneNumber recipient phone number
+     * @param providerTemplateId provider's template ID
+     * @param variables template variables as key-value pairs
+     * @return the response from the SMS provider
+     */
+    SmsSendResponse sendTemplatedSms(String phoneNumber, String providerTemplateId, java.util.Map<String, String> variables);
 }

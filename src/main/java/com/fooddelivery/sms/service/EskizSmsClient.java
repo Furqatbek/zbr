@@ -6,6 +6,9 @@ import com.fooddelivery.sms.dto.EskizSendSmsRequest;
 import com.fooddelivery.sms.dto.EskizSendSmsResponse;
 import com.fooddelivery.sms.dto.SmsMessage;
 import com.fooddelivery.sms.dto.SmsSendResponse;
+import com.fooddelivery.sms.dto.SmsTemplateSyncResponse;
+import com.fooddelivery.sms.entity.SmsTemplate;
+import com.fooddelivery.sms.entity.SmsTemplate.SmsTemplateStatus;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -19,6 +22,9 @@ import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -43,6 +49,8 @@ public class EskizSmsClient implements SmsProvider {
     private static final String SEND_SMS_ENDPOINT = "/message/sms/send";
     private static final String SEND_BATCH_SMS_ENDPOINT = "/message/sms/send-batch";
     private static final String GET_STATUS_ENDPOINT = "/message/sms/status";
+    private static final String TEMPLATE_ENDPOINT = "/message/template";
+    private static final String SEND_TEMPLATE_SMS_ENDPOINT = "/message/sms/send-template";
 
     @PostConstruct
     public void init() {
@@ -312,5 +320,287 @@ public class EskizSmsClient implements SmsProvider {
         return callbackUrl != null
                 && !callbackUrl.isBlank()
                 && (callbackUrl.startsWith("http://") || callbackUrl.startsWith("https://"));
+    }
+
+    // ==================== Template Management ====================
+
+    @Override
+    public SmsTemplateSyncResponse registerTemplate(SmsTemplate template) {
+        if (!isAvailable()) {
+            return SmsTemplateSyncResponse.failure("Eskiz is not configured", "NOT_CONFIGURED", getProviderName());
+        }
+
+        ensureAuthenticated();
+
+        String url = properties.getBaseUrl() + TEMPLATE_ENDPOINT;
+
+        HttpHeaders headers = createAuthHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+
+        Map<String, Object> body = Map.of(
+                "name", template.getName(),
+                "text", template.getContent(),
+                "template_type", mapTemplateType(template.getTemplateType())
+        );
+
+        HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
+
+        try {
+            ResponseEntity<Map> response = restTemplate.exchange(
+                    url,
+                    HttpMethod.POST,
+                    request,
+                    Map.class
+            );
+
+            Map responseBody = response.getBody();
+            if (responseBody != null && responseBody.containsKey("data")) {
+                Map data = (Map) responseBody.get("data");
+                String templateId = data.get("id") != null ? data.get("id").toString() : null;
+                String status = data.get("status") != null ? data.get("status").toString() : "pending";
+
+                log.info("Template registered with Eskiz: id={}, status={}", templateId, status);
+                return SmsTemplateSyncResponse.success(templateId, mapProviderStatus(status), getProviderName());
+            }
+
+            return SmsTemplateSyncResponse.failure("Invalid response from Eskiz", "INVALID_RESPONSE", getProviderName());
+
+        } catch (Exception e) {
+            log.error("Failed to register template with Eskiz: {}", e.getMessage());
+            return SmsTemplateSyncResponse.failure(e.getMessage(), "EXCEPTION", getProviderName());
+        }
+    }
+
+    @Override
+    public SmsTemplateSyncResponse updateTemplate(SmsTemplate template) {
+        if (!isAvailable() || template.getProviderTemplateId() == null) {
+            return SmsTemplateSyncResponse.failure("Cannot update template", "INVALID_STATE", getProviderName());
+        }
+
+        ensureAuthenticated();
+
+        String url = properties.getBaseUrl() + TEMPLATE_ENDPOINT + "/" + template.getProviderTemplateId();
+
+        HttpHeaders headers = createAuthHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+
+        Map<String, Object> body = Map.of(
+                "name", template.getName(),
+                "text", template.getContent(),
+                "template_type", mapTemplateType(template.getTemplateType())
+        );
+
+        HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
+
+        try {
+            ResponseEntity<Map> response = restTemplate.exchange(
+                    url,
+                    HttpMethod.PUT,
+                    request,
+                    Map.class
+            );
+
+            Map responseBody = response.getBody();
+            if (responseBody != null) {
+                String status = "pending"; // Updates typically need re-approval
+                log.info("Template updated on Eskiz: id={}", template.getProviderTemplateId());
+                return SmsTemplateSyncResponse.success(template.getProviderTemplateId(), mapProviderStatus(status), getProviderName());
+            }
+
+            return SmsTemplateSyncResponse.failure("Invalid response from Eskiz", "INVALID_RESPONSE", getProviderName());
+
+        } catch (Exception e) {
+            log.error("Failed to update template on Eskiz: {}", e.getMessage());
+            return SmsTemplateSyncResponse.failure(e.getMessage(), "EXCEPTION", getProviderName());
+        }
+    }
+
+    @Override
+    public SmsTemplateSyncResponse deleteTemplate(SmsTemplate template) {
+        if (!isAvailable() || template.getProviderTemplateId() == null) {
+            return SmsTemplateSyncResponse.failure("Cannot delete template", "INVALID_STATE", getProviderName());
+        }
+
+        ensureAuthenticated();
+
+        String url = properties.getBaseUrl() + TEMPLATE_ENDPOINT + "/" + template.getProviderTemplateId();
+
+        HttpHeaders headers = createAuthHeaders();
+        HttpEntity<Void> request = new HttpEntity<>(headers);
+
+        try {
+            restTemplate.exchange(url, HttpMethod.DELETE, request, Void.class);
+            log.info("Template deleted from Eskiz: id={}", template.getProviderTemplateId());
+            return SmsTemplateSyncResponse.success(template.getProviderTemplateId(), SmsTemplateStatus.DRAFT, getProviderName());
+
+        } catch (Exception e) {
+            log.error("Failed to delete template from Eskiz: {}", e.getMessage());
+            return SmsTemplateSyncResponse.failure(e.getMessage(), "EXCEPTION", getProviderName());
+        }
+    }
+
+    @Override
+    public SmsTemplateSyncResponse getTemplateStatus(String providerTemplateId) {
+        if (!isAvailable() || providerTemplateId == null) {
+            return SmsTemplateSyncResponse.failure("Cannot get template status", "INVALID_STATE", getProviderName());
+        }
+
+        ensureAuthenticated();
+
+        String url = properties.getBaseUrl() + TEMPLATE_ENDPOINT + "/" + providerTemplateId;
+
+        HttpHeaders headers = createAuthHeaders();
+        HttpEntity<Void> request = new HttpEntity<>(headers);
+
+        try {
+            ResponseEntity<Map> response = restTemplate.exchange(
+                    url,
+                    HttpMethod.GET,
+                    request,
+                    Map.class
+            );
+
+            Map responseBody = response.getBody();
+            if (responseBody != null && responseBody.containsKey("data")) {
+                Map data = (Map) responseBody.get("data");
+                String status = data.get("status") != null ? data.get("status").toString() : "unknown";
+                return SmsTemplateSyncResponse.success(providerTemplateId, mapProviderStatus(status), getProviderName());
+            }
+
+            return SmsTemplateSyncResponse.failure("Template not found", "NOT_FOUND", getProviderName());
+
+        } catch (Exception e) {
+            log.error("Failed to get template status from Eskiz: {}", e.getMessage());
+            return SmsTemplateSyncResponse.failure(e.getMessage(), "EXCEPTION", getProviderName());
+        }
+    }
+
+    @Override
+    public List<SmsTemplateSyncResponse> listProviderTemplates() {
+        List<SmsTemplateSyncResponse> templates = new ArrayList<>();
+
+        if (!isAvailable()) {
+            return templates;
+        }
+
+        ensureAuthenticated();
+
+        String url = properties.getBaseUrl() + TEMPLATE_ENDPOINT;
+
+        HttpHeaders headers = createAuthHeaders();
+        HttpEntity<Void> request = new HttpEntity<>(headers);
+
+        try {
+            ResponseEntity<Map> response = restTemplate.exchange(
+                    url,
+                    HttpMethod.GET,
+                    request,
+                    Map.class
+            );
+
+            Map responseBody = response.getBody();
+            if (responseBody != null && responseBody.containsKey("data")) {
+                Object data = responseBody.get("data");
+                if (data instanceof List) {
+                    for (Object item : (List) data) {
+                        if (item instanceof Map) {
+                            Map templateData = (Map) item;
+                            String templateId = templateData.get("id") != null ? templateData.get("id").toString() : null;
+                            String status = templateData.get("status") != null ? templateData.get("status").toString() : "unknown";
+                            templates.add(SmsTemplateSyncResponse.success(templateId, mapProviderStatus(status), getProviderName()));
+                        }
+                    }
+                }
+            }
+
+        } catch (Exception e) {
+            log.error("Failed to list templates from Eskiz: {}", e.getMessage());
+        }
+
+        return templates;
+    }
+
+    @Override
+    public SmsSendResponse sendTemplatedSms(String phoneNumber, String providerTemplateId, Map<String, String> variables) {
+        if (!isAvailable()) {
+            return SmsSendResponse.failure("Eskiz is not configured", "NOT_CONFIGURED", getProviderName());
+        }
+
+        ensureAuthenticated();
+
+        String url = properties.getBaseUrl() + SEND_TEMPLATE_SMS_ENDPOINT;
+
+        HttpHeaders headers = createAuthHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+
+        Map<String, Object> body = Map.of(
+                "mobile_phone", normalizePhoneNumber(phoneNumber),
+                "template_id", providerTemplateId,
+                "params", variables != null ? variables : Map.of()
+        );
+
+        HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
+
+        try {
+            ResponseEntity<EskizSendSmsResponse> response = restTemplate.exchange(
+                    url,
+                    HttpMethod.POST,
+                    request,
+                    EskizSendSmsResponse.class
+            );
+
+            EskizSendSmsResponse smsResponse = response.getBody();
+            log.info("Templated SMS sent via Eskiz to {}: messageId={}",
+                    maskPhoneNumber(phoneNumber),
+                    smsResponse != null ? smsResponse.getId() : "unknown");
+
+            if (smsResponse != null) {
+                return SmsSendResponse.builder()
+                        .success(true)
+                        .smsId(smsResponse.getId())
+                        .status(smsResponse.getStatus())
+                        .message(smsResponse.getMessage())
+                        .provider(getProviderName())
+                        .build();
+            }
+            return SmsSendResponse.success(null, "sent", getProviderName());
+
+        } catch (HttpClientErrorException.Unauthorized e) {
+            log.warn("Token expired, re-authenticating and retrying...");
+            authenticate();
+            return sendTemplatedSms(phoneNumber, providerTemplateId, variables);
+        } catch (Exception e) {
+            log.error("Failed to send templated SMS via Eskiz to {}: {}",
+                    maskPhoneNumber(phoneNumber), e.getMessage());
+            return SmsSendResponse.failure(e.getMessage(), "EXCEPTION", getProviderName());
+        }
+    }
+
+    /**
+     * Map our template type to Eskiz template type.
+     */
+    private String mapTemplateType(SmsTemplate.SmsTemplateType type) {
+        return switch (type) {
+            case OTP -> "otp";
+            case ORDER_CONFIRMATION, ORDER_STATUS -> "transactional";
+            case PROMOTIONAL -> "promotional";
+            default -> "general";
+        };
+    }
+
+    /**
+     * Map Eskiz status to our status enum.
+     */
+    private SmsTemplateStatus mapProviderStatus(String status) {
+        if (status == null) {
+            return SmsTemplateStatus.PENDING;
+        }
+        return switch (status.toLowerCase()) {
+            case "approved", "active" -> SmsTemplateStatus.APPROVED;
+            case "rejected" -> SmsTemplateStatus.REJECTED;
+            case "suspended", "blocked" -> SmsTemplateStatus.SUSPENDED;
+            case "draft" -> SmsTemplateStatus.DRAFT;
+            default -> SmsTemplateStatus.PENDING;
+        };
     }
 }
