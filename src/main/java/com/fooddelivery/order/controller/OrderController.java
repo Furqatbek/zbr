@@ -87,6 +87,16 @@ public class OrderController {
                 .body(ApiResponse.success("Order created successfully", order));
     }
 
+    @GetMapping("/problematic")
+    @PreAuthorize("hasAnyRole('PLATFORM', 'ADMIN')")
+    @Operation(summary = "Get problematic orders", description = "Get cancelled and refunded orders for admin review")
+    public ResponseEntity<ApiResponse<PagedResponse<OrderDto>>> getProblematicOrders(
+            @PageableDefault(size = 20) Pageable pageable) {
+
+        PagedResponse<OrderDto> orders = orderService.getProblematicOrders(pageable);
+        return ResponseEntity.ok(ApiResponse.success(orders));
+    }
+
     @GetMapping("/{orderId}")
     @PreAuthorize("hasAnyRole('CONSUMER', 'RESTAURANT_OWNER', 'RESTAURANT_STAFF', 'COURIER', 'PLATFORM', 'ADMIN')")
     @Operation(summary = "Get order by ID", description = "Get order details by ID")

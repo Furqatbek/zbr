@@ -145,4 +145,10 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
             "AND o.courier IS NULL " +
             "ORDER BY o.readyAt ASC")
     List<Order> findAvailableOrdersForCourier();
+
+    /**
+     * Get problematic orders (cancelled, refunded).
+     */
+    @Query("SELECT o FROM Order o WHERE o.status IN :statuses ORDER BY o.updatedAt DESC")
+    Page<Order> findByStatusIn(@Param("statuses") List<OrderStatus> statuses, Pageable pageable);
 }

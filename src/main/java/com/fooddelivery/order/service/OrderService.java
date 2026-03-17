@@ -154,6 +154,16 @@ public class OrderService {
     }
 
     /**
+     * Get problematic orders (cancelled, refunded) for admin review.
+     */
+    @Transactional(readOnly = true)
+    public PagedResponse<OrderDto> getProblematicOrders(Pageable pageable) {
+        List<OrderStatus> problematicStatuses = List.of(OrderStatus.CANCELLED, OrderStatus.REFUNDED);
+        Page<Order> orders = orderRepository.findByStatusIn(problematicStatuses, pageable);
+        return PagedResponse.from(orders, orderMapper.toDtoList(orders.getContent()));
+    }
+
+    /**
      * Get order by external order number.
      */
     @Transactional(readOnly = true)
