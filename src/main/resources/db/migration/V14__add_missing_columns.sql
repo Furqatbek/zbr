@@ -8,7 +8,8 @@ ALTER TABLE orders ADD COLUMN IF NOT EXISTS in_transit_at TIMESTAMP;
 CREATE INDEX IF NOT EXISTS idx_orders_in_transit_at ON orders(in_transit_at);
 
 -- Add updated_at trigger for sms_templates table (was missing)
-CREATE TRIGGER IF NOT EXISTS update_sms_templates_updated_at
+DROP TRIGGER IF EXISTS update_sms_templates_updated_at ON sms_templates;
+CREATE TRIGGER update_sms_templates_updated_at
     BEFORE UPDATE ON sms_templates
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
