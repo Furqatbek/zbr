@@ -91,6 +91,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private boolean shouldSkipAuthentication(HttpServletRequest request) {
         String path = request.getServletPath();
 
+        // /api/v1/auth/me requires authentication - don't skip
+        if (path.equals("/api/v1/auth/me")) {
+            return false;
+        }
+
         // Skip authentication for these paths
         return path.startsWith("/api/v1/auth/") ||
                 path.startsWith("/swagger-ui") ||
