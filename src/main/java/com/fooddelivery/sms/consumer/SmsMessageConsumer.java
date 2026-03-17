@@ -1,5 +1,6 @@
 package com.fooddelivery.sms.consumer;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fooddelivery.common.config.RabbitMQConfig;
 import com.fooddelivery.notification.dto.NotificationRequest;
 import com.fooddelivery.sms.dto.SmsMessage;
@@ -7,11 +8,13 @@ import com.fooddelivery.sms.dto.SmsSendResponse;
 import com.fooddelivery.sms.service.SmsProviderFactory;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.amqp.core.Message;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
+import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 
 /**
@@ -26,6 +29,7 @@ public class SmsMessageConsumer {
 
     private final SmsProviderFactory smsProviderFactory;
     private final RabbitTemplate rabbitTemplate;
+    private final ObjectMapper objectMapper;
 
     private static final int MAX_RETRIES = 3;
 
@@ -38,6 +42,14 @@ public class SmsMessageConsumer {
             containerFactory = "rabbitListenerContainerFactory"
     )
     public void handleSmsNotification(Object payload) {
+        // Handle raw Message type (fallback when automatic deserialization fails)
+        if (payload instanceof Message message) {
+            payload = deserializeMessage(message);
+            if (payload == null) {
+                return;
+            }
+        }
+
         // Handle both NotificationRequest (new messages) and SmsMessage (retries)
         if (payload instanceof SmsMessage smsMessage) {
             handleSmsRetry(smsMessage);
@@ -227,5 +239,33 @@ public class SmsMessageConsumer {
             return "***";
         }
         return phone.substring(0, 4) + "****" + phone.substring(phone.length() - 2);
+    }
+
+    /**
+     * Manually deserialize a raw AMQP Message when automatic conversion fails.
+     */
+    private Object deserializeMessage(Message message) {
+        try {
+            String body = new String(message.getBody(), StandardCharsets.UTF_8);
+            String typeId = message.getMessageProperties().getHeader("__TypeId__");
+
+            if (typeId == null) {
+                log.warn("Message missing __TypeId__ header, attempting to parse as NotificationRequest");
+                return objectMapper.readValue(body, NotificationRequest.class);
+            }
+
+            if (typeId.contains("SmsMessage")) {
+                return objectMapper.readValue(body, SmsMessage.class);
+            } else if (typeId.contains("NotificationRequest")) {
+                return objectMapper.readValue(body, NotificationRequest.class);
+            } else {
+                log.warn("Unknown TypeId in message: {}", typeId);
+                // Try NotificationRequest as default
+                return objectMapper.readValue(body, NotificationRequest.class);
+            }
+        } catch (Exception e) {
+            log.error("Failed to deserialize message manually: {}", e.getMessage(), e);
+            return null;
+        }
     }
 }

@@ -64,28 +64,36 @@ public class RabbitMQConfig {
 
         Jackson2JsonMessageConverter converter = new Jackson2JsonMessageConverter(objectMapper);
 
-        // Configure type mapper to trust all packages for deserialization
+        // Configure type mapper to trust all fooddelivery packages for deserialization
         DefaultJackson2JavaTypeMapper typeMapper = new DefaultJackson2JavaTypeMapper();
-        typeMapper.setTrustedPackages("com.fooddelivery.*");
+        typeMapper.setTrustedPackages(
+                "com.fooddelivery.sms.dto",
+                "com.fooddelivery.notification.dto",
+                "com.fooddelivery.order.dto",
+                "com.fooddelivery.payment.dto",
+                "com.fooddelivery.courier.dto",
+                "com.fooddelivery.kitchen.dto",
+                "com.fooddelivery.common.dto"
+        );
         converter.setJavaTypeMapper(typeMapper);
 
         return converter;
     }
 
     @Bean
-    public RabbitTemplate rabbitTemplate(ConnectionFactory connectionFactory) {
+    public RabbitTemplate rabbitTemplate(ConnectionFactory connectionFactory, MessageConverter messageConverter) {
         RabbitTemplate rabbitTemplate = new RabbitTemplate(connectionFactory);
-        rabbitTemplate.setMessageConverter(messageConverter());
+        rabbitTemplate.setMessageConverter(messageConverter);
         return rabbitTemplate;
     }
 
     @Bean
     @Primary
     public SimpleRabbitListenerContainerFactory rabbitListenerContainerFactory(
-            ConnectionFactory connectionFactory) {
+            ConnectionFactory connectionFactory, MessageConverter messageConverter) {
         SimpleRabbitListenerContainerFactory factory = new SimpleRabbitListenerContainerFactory();
         factory.setConnectionFactory(connectionFactory);
-        factory.setMessageConverter(messageConverter());
+        factory.setMessageConverter(messageConverter);
         factory.setDefaultRequeueRejected(false);
         factory.setPrefetchCount(10);
         return factory;
