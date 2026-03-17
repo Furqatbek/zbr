@@ -65,6 +65,16 @@ public class OrderController {
         orderService.validateOrderAccess(orderId, currentUser.getId(), isAdminOrPlatform, isRestaurantRole, isCourier);
     }
 
+    @GetMapping
+    @PreAuthorize("hasAnyRole('PLATFORM', 'ADMIN')")
+    @Operation(summary = "Get all orders", description = "Get all orders (admin/platform only)")
+    public ResponseEntity<ApiResponse<PagedResponse<OrderDto>>> getAllOrders(
+            @PageableDefault(size = 20) Pageable pageable) {
+
+        PagedResponse<OrderDto> orders = orderService.getAllOrders(pageable);
+        return ResponseEntity.ok(ApiResponse.success(orders));
+    }
+
     @PostMapping
     @PreAuthorize("hasAnyRole('CONSUMER', 'PLATFORM', 'ADMIN')")
     @Operation(summary = "Create order", description = "Create a new order")

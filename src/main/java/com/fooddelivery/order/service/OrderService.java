@@ -145,6 +145,15 @@ public class OrderService {
     }
 
     /**
+     * Get all orders (admin/platform only).
+     */
+    @Transactional(readOnly = true)
+    public PagedResponse<OrderDto> getAllOrders(Pageable pageable) {
+        Page<Order> orders = orderRepository.findAll(pageable);
+        return PagedResponse.from(orders, orderMapper.toDtoList(orders.getContent()));
+    }
+
+    /**
      * Get order by external order number.
      */
     @Transactional(readOnly = true)
