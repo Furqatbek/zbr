@@ -66,13 +66,10 @@ public interface SmsTemplateRepository extends JpaRepository<SmsTemplate, Long> 
     boolean existsByTemplateCodeAndProvider(String templateCode, SmsProviderType provider);
 
     /**
-     * Find approved template for a type and provider.
+     * Find approved template for a type and provider (returns the most recently updated one).
      */
-    @Query("SELECT t FROM SmsTemplate t WHERE t.templateType = :type AND t.provider = :provider " +
-            "AND t.status = 'APPROVED' AND t.active = true ORDER BY t.updatedAt DESC")
-    Optional<SmsTemplate> findApprovedTemplate(
-            @Param("type") SmsTemplateType type,
-            @Param("provider") SmsProviderType provider);
+    Optional<SmsTemplate> findFirstByTemplateTypeAndProviderAndStatusAndActiveTrueOrderByUpdatedAtDesc(
+            SmsTemplateType templateType, SmsProviderType provider, SmsTemplateStatus status);
 
     /**
      * Count templates by status.

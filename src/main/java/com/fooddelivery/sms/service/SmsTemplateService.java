@@ -247,7 +247,8 @@ public class SmsTemplateService {
     @Transactional(readOnly = true)
     public SmsTemplate getApprovedTemplateForSending(SmsTemplateType type) {
         SmsProviderType provider = smsProperties.getProvider();
-        return templateRepository.findApprovedTemplate(type, provider)
+        return templateRepository.findFirstByTemplateTypeAndProviderAndStatusAndActiveTrueOrderByUpdatedAtDesc(
+                type, provider, SmsTemplateStatus.APPROVED)
                 .orElse(null);
     }
 
