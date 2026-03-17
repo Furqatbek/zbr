@@ -1450,7 +1450,7 @@
               "host": ["{{base_url}}"],
               "path": ["couriers", "register"]
             },
-            "description": "Register current authenticated user as a courier.\n\nVehicle types: WALKING, BICYCLE, E_BIKE, MOTORCYCLE, CAR, VAN\n\nAfter registration, courier status is PENDING_APPROVAL until verified by admin."
+            "description": "Register current authenticated user as a courier.\n\n**Authorization: Requires CONSUMER role.** Users with existing COURIER role cannot re-register.\n\nVehicle types: WALKING, BICYCLE, E_BIKE, MOTORCYCLE, CAR, VAN\n\nAfter registration, courier status is PENDING_APPROVAL until verified by admin."
           }
         },
         {
@@ -2831,7 +2831,7 @@
     },
     {
       "name": "Technical Analytics",
-      "description": "Platform health and performance metrics. Includes API performance, backend resources, database metrics, WebSocket status, and storage analytics.",
+      "description": "Platform health and performance metrics. Includes API performance, backend resources, database metrics, WebSocket status, and storage analytics. **Authorization: Requires ADMIN or PLATFORM role.**",
       "item": [
         {
           "name": "Get Technical Summary",

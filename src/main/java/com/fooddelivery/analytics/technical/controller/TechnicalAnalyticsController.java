@@ -14,6 +14,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
@@ -21,12 +22,14 @@ import java.time.LocalDateTime;
 /**
  * REST controller for technical analytics endpoints.
  * Provides platform health and performance metrics.
+ * Restricted to ADMIN and PLATFORM roles only.
  */
 @RestController
 @RequestMapping("/api/v1/analytics/technical")
 @RequiredArgsConstructor
 @Slf4j
 @Tag(name = "Technical Analytics", description = "Platform health and performance metrics")
+@PreAuthorize("hasAnyRole('ADMIN', 'PLATFORM')")
 public class TechnicalAnalyticsController {
 
     private final TechnicalAnalyticsService technicalAnalyticsService;

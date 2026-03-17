@@ -142,6 +142,9 @@ public class Order {
     @Column(name = "picked_up_at")
     private LocalDateTime pickedUpAt;
 
+    @Column(name = "in_transit_at")
+    private LocalDateTime inTransitAt;
+
     @Column(name = "delivered_at")
     private LocalDateTime deliveredAt;
 
@@ -224,6 +227,7 @@ public class Order {
             case PREPARING -> this.preparingAt = LocalDateTime.now();
             case READY -> this.readyAt = LocalDateTime.now();
             case PICKED_UP -> this.pickedUpAt = LocalDateTime.now();
+            case IN_TRANSIT -> this.inTransitAt = LocalDateTime.now();
             case DELIVERED -> this.deliveredAt = LocalDateTime.now();
             case COMPLETED -> this.completedAt = LocalDateTime.now();
             case CANCELLED -> this.cancelledAt = LocalDateTime.now();

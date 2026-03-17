@@ -66,6 +66,7 @@ public class NotificationController {
      * Get notification by ID.
      */
     @GetMapping("/{id}")
+    @PreAuthorize("isAuthenticated()")
     @Operation(summary = "Get notification by ID",
             description = "Retrieve a specific notification by its ID")
     @ApiResponses({
@@ -83,8 +84,9 @@ public class NotificationController {
      * Get notifications with filters (GET method with query params).
      */
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'PLATFORM')")
     @Operation(summary = "Get notifications",
-            description = "Get notifications with optional filters and pagination")
+            description = "Get notifications with optional filters and pagination. Admin/Platform only.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Notifications retrieved successfully")
     })
@@ -155,8 +157,9 @@ public class NotificationController {
      * Get notifications with POST body filter.
      */
     @PostMapping("/search")
+    @PreAuthorize("hasAnyRole('ADMIN', 'PLATFORM')")
     @Operation(summary = "Search notifications",
-            description = "Search notifications with advanced filter in request body")
+            description = "Search notifications with advanced filter in request body. Admin/Platform only.")
     public ResponseEntity<NotificationListDto> searchNotifications(
             @Valid @RequestBody NotificationFilterDto filter) {
         log.debug("Searching notifications with filter: {}", filter);
@@ -200,6 +203,7 @@ public class NotificationController {
      * Get unread notifications for a user.
      */
     @GetMapping("/user/{userId}/unread")
+    @PreAuthorize("hasRole('ADMIN') or #userId == authentication.principal.id")
     @Operation(summary = "Get unread notifications",
             description = "Get all unread notifications for a specific user")
     public ResponseEntity<NotificationListDto> getUnreadNotifications(
@@ -217,6 +221,7 @@ public class NotificationController {
      * Get notification counts for a user.
      */
     @GetMapping("/user/{userId}/counts")
+    @PreAuthorize("hasRole('ADMIN') or #userId == authentication.principal.id")
     @Operation(summary = "Get notification counts",
             description = "Get notification counts (total, unread, by category) for a user")
     public ResponseEntity<NotificationCountDto> getNotificationCounts(
@@ -232,6 +237,7 @@ public class NotificationController {
      * Get unread count only.
      */
     @GetMapping("/user/{userId}/unread-count")
+    @PreAuthorize("hasRole('ADMIN') or #userId == authentication.principal.id")
     @Operation(summary = "Get unread count",
             description = "Get the count of unread notifications for a user")
     public ResponseEntity<Map<String, Long>> getUnreadCount(
@@ -274,6 +280,7 @@ public class NotificationController {
      * Mark notification as read.
      */
     @PatchMapping("/{id}/read")
+    @PreAuthorize("isAuthenticated()")
     @Operation(summary = "Mark as read",
             description = "Mark a specific notification as read")
     @ApiResponses({
@@ -290,6 +297,7 @@ public class NotificationController {
      * Mark all notifications as read for a user.
      */
     @PutMapping("/read-all")
+    @PreAuthorize("hasRole('ADMIN') or #userId == authentication.principal.id")
     @Operation(summary = "Mark all as read",
             description = "Mark all notifications as read for a user")
     public ResponseEntity<Map<String, Object>> markAllAsRead(
@@ -312,6 +320,7 @@ public class NotificationController {
      * Mark multiple notifications as read.
      */
     @PatchMapping("/read-batch")
+    @PreAuthorize("isAuthenticated()")
     @Operation(summary = "Mark batch as read",
             description = "Mark multiple notifications as read by IDs")
     public ResponseEntity<Map<String, Object>> markBatchAsRead(
@@ -330,6 +339,7 @@ public class NotificationController {
      * Dismiss notification.
      */
     @PatchMapping("/{id}/dismiss")
+    @PreAuthorize("isAuthenticated()")
     @Operation(summary = "Dismiss notification",
             description = "Dismiss (soft delete) a notification")
     public ResponseEntity<NotificationResponseDto> dismissNotification(@PathVariable Long id) {
@@ -342,6 +352,7 @@ public class NotificationController {
      * Perform bulk action on notifications.
      */
     @PostMapping("/bulk-action")
+    @PreAuthorize("isAuthenticated()")
     @Operation(summary = "Bulk action",
             description = "Perform bulk actions (mark read, dismiss, delete) on multiple notifications")
     public ResponseEntity<Map<String, Object>> performBulkAction(
@@ -364,8 +375,9 @@ public class NotificationController {
      * Delete notification by ID.
      */
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Delete notification",
-            description = "Permanently delete a notification")
+            description = "Permanently delete a notification. Admin only.")
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "Notification deleted"),
             @ApiResponse(responseCode = "404", description = "Notification not found")

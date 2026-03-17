@@ -266,7 +266,7 @@ public class OrdersCollector {
                 .restaurantName(order.getRestaurant() != null ? order.getRestaurant().getName() : null)
                 .courierId(order.getCourier() != null ? order.getCourier().getId() : null)
                 .courierName(order.getCourier() != null && order.getCourier().getUser() != null
-                        ? order.getCourier().getUser().getFirstName() + " " + order.getCourier().getUser().getLastName()
+                        ? order.getCourier().getUser().getFullName()
                         : null)
                 .createdAt(order.getCreatedAt())
                 .acceptedAt(order.getAcceptedAt())
@@ -308,7 +308,7 @@ public class OrdersCollector {
                             .restaurantName(order.getRestaurant() != null ? order.getRestaurant().getName() : null)
                             .courierId(order.getCourier() != null ? order.getCourier().getId() : null)
                             .courierName(order.getCourier() != null && order.getCourier().getUser() != null
-                                    ? order.getCourier().getUser().getFirstName() : null)
+                                    ? order.getCourier().getUser().getFullName() : null)
                             .customerId(order.getConsumer() != null ? order.getConsumer().getId() : null)
                             .customerName(order.getCustomerName())
                             .customerPhone(order.getCustomerPhone())

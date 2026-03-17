@@ -2,6 +2,7 @@ package com.fooddelivery.analytics.technical.repository;
 
 import com.fooddelivery.analytics.technical.model.BackupLog;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -115,6 +116,7 @@ public interface BackupLogRepository extends JpaRepository<BackupLog, Long> {
     /**
      * Delete old backup logs for data retention.
      */
+    @Modifying
     @Query("DELETE FROM BackupLog b WHERE b.startedAt < :cutoff")
     void deleteOldLogs(@Param("cutoff") LocalDateTime cutoff);
 }

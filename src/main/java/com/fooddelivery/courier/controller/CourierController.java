@@ -39,7 +39,8 @@ public class CourierController {
     private final CourierService courierService;
 
     @PostMapping("/register")
-    @Operation(summary = "Register as courier", description = "Register current user as a courier")
+    @PreAuthorize("hasRole('CONSUMER')")
+    @Operation(summary = "Register as courier", description = "Register current user as a courier. Only consumers can register as couriers.")
     public ResponseEntity<ApiResponse<CourierDto>> register(
             @AuthenticationPrincipal UserPrincipal currentUser,
             @Valid @RequestBody CreateCourierRequest request) {

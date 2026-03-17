@@ -8,6 +8,10 @@ Platform health and performance metrics for the Food Delivery Platform.
 /api/v1/analytics/technical
 ```
 
+## Authentication & Authorization
+
+All endpoints in this API require authentication and are restricted to users with **ADMIN** or **PLATFORM** roles only. Requests from users without these roles will receive a `403 Forbidden` response.
+
 ---
 
 ## 1. Technical Summary

@@ -30,6 +30,8 @@ Courier management and delivery operations for the Food Delivery Platform.
 
 Register the current authenticated user as a courier.
 
+**Authorization:** Requires `CONSUMER` role. Users with existing COURIER role cannot re-register.
+
 **Request Body:**
 ```json
 {

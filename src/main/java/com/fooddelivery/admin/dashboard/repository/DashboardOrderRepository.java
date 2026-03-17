@@ -68,10 +68,19 @@ public interface DashboardOrderRepository extends JpaRepository<Order, Long> {
      * Calculate total revenue (GMV) within date range.
      */
     @Query("SELECT COALESCE(SUM(o.total), 0) FROM Order o " +
-            "WHERE o.status NOT IN ('CANCELLED', 'REFUNDED') " +
+            "WHERE o.status NOT IN :excludedStatuses " +
             "AND o.createdAt BETWEEN :startDate AND :endDate")
     BigDecimal sumRevenueByDateRange(@Param("startDate") LocalDateTime startDate,
-                                      @Param("endDate") LocalDateTime endDate);
+                                      @Param("endDate") LocalDateTime endDate,
+                                      @Param("excludedStatuses") List<OrderStatus> excludedStatuses);
+
+    /**
+     * Calculate total revenue (GMV) within date range (convenience method).
+     */
+    default BigDecimal sumRevenueByDateRange(LocalDateTime startDate, LocalDateTime endDate) {
+        return sumRevenueByDateRange(startDate, endDate,
+            List.of(OrderStatus.CANCELLED, OrderStatus.REFUNDED));
+    }
 
     /**
      * Calculate total tips within date range.

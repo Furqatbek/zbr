@@ -8,6 +8,13 @@ Notification management for the Food Delivery Platform. Provides endpoints for c
 /api/v1/notifications
 ```
 
+## Authentication & Authorization
+
+All endpoints require authentication. Authorization varies by endpoint:
+- **ADMIN/SYSTEM**: Full access to all operations including create, delete, and admin cleanup
+- **ADMIN/PLATFORM**: Access to search and filter operations across all users
+- **Authenticated Users**: Access to own notifications (mark as read, dismiss, bulk actions)
+
 ---
 
 ## Table of Contents
