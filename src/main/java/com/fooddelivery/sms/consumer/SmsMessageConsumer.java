@@ -32,7 +32,11 @@ public class SmsMessageConsumer {
     /**
      * Process SMS notification requests from the queue.
      */
-    @RabbitListener(queues = RabbitMQConfig.NOTIFICATION_SMS_QUEUE, id = "smsNotificationListener")
+    @RabbitListener(
+            queues = RabbitMQConfig.NOTIFICATION_SMS_QUEUE,
+            id = "smsNotificationListener",
+            containerFactory = "rabbitListenerContainerFactory"
+    )
     public void handleSmsNotification(Object payload) {
         // Handle both NotificationRequest (new messages) and SmsMessage (retries)
         if (payload instanceof SmsMessage smsMessage) {
