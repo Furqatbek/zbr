@@ -11,6 +11,7 @@ import com.fooddelivery.sms.dto.SmsProviderStatusResponse;
 import com.fooddelivery.sms.dto.SmsProviderStatusResponse.ProviderStatus;
 import com.fooddelivery.sms.service.SmsProvider;
 import com.fooddelivery.sms.service.SmsProviderFactory;
+import com.fooddelivery.sms.service.SmsSettingsService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -42,6 +43,7 @@ public class SmsProviderController {
     private final SmsProviderFactory smsProviderFactory;
     private final DevSmsProperties devSmsProperties;
     private final EskizSmsProperties eskizSmsProperties;
+    private final SmsSettingsService smsSettingsService;
 
     /**
      * Get current SMS provider status.
@@ -87,24 +89,15 @@ public class SmsProviderController {
         log.info("Updating SMS provider config: provider={}, fallbackEnabled={}, fallbackProvider={}",
                 request.getProvider(), request.getFallbackEnabled(), request.getFallbackProvider());
 
-        // Update configuration
-        if (request.getProvider() != null) {
-            smsProperties.setProvider(request.getProvider());
-        }
+        // Update configuration and persist to database
+        smsSettingsService.updateMainSettings(
+                request.getEnabled(),
+                request.getProvider(),
+                request.getFallbackEnabled(),
+                request.getFallbackProvider()
+        );
 
-        if (request.getFallbackEnabled() != null) {
-            smsProperties.setFallbackEnabled(request.getFallbackEnabled());
-        }
-
-        if (request.getFallbackProvider() != null) {
-            smsProperties.setFallbackProvider(request.getFallbackProvider());
-        }
-
-        if (request.getEnabled() != null) {
-            smsProperties.setEnabled(request.getEnabled());
-        }
-
-        log.info("SMS provider config updated successfully");
+        log.info("SMS provider config updated and persisted successfully");
 
         // Return updated status
         return getStatus();
@@ -127,7 +120,8 @@ public class SmsProviderController {
                     .body(ApiResponse.error("Provider " + provider + " is not available"));
         }
 
-        smsProperties.setProvider(provider);
+        // Update and persist
+        smsSettingsService.updateMainSettings(null, provider, null, null);
 
         log.info("SMS provider switched to: {}", provider);
 
@@ -144,7 +138,8 @@ public class SmsProviderController {
 
         log.info("Toggling SMS: enabled={}", enabled);
 
-        smsProperties.setEnabled(enabled);
+        // Update and persist
+        smsSettingsService.updateMainSettings(enabled, null, null, null);
 
         return getStatus();
     }
@@ -226,8 +221,8 @@ public class SmsProviderController {
         log.info("Enabling SMS provider: {}", provider);
 
         switch (provider) {
-            case DEVSMS -> devSmsProperties.setEnabled(true);
-            case ESKIZ -> eskizSmsProperties.setEnabled(true);
+            case DEVSMS -> smsSettingsService.updateDevSmsSettings(true, null, null, null, null);
+            case ESKIZ -> smsSettingsService.updateEskizSettings(true, null, null, null, null, null);
         }
 
         return getStatus();
@@ -244,8 +239,8 @@ public class SmsProviderController {
         log.info("Disabling SMS provider: {}", provider);
 
         switch (provider) {
-            case DEVSMS -> devSmsProperties.setEnabled(false);
-            case ESKIZ -> eskizSmsProperties.setEnabled(false);
+            case DEVSMS -> smsSettingsService.updateDevSmsSettings(false, null, null, null, null);
+            case ESKIZ -> smsSettingsService.updateEskizSettings(false, null, null, null, null, null);
         }
 
         return getStatus();
@@ -289,42 +284,24 @@ public class SmsProviderController {
     }
 
     private void configureDevSms(ProviderCredentialsRequest request) {
-        if (request.getEnabled() != null) {
-            devSmsProperties.setEnabled(request.getEnabled());
-        }
-        if (request.getToken() != null) {
-            devSmsProperties.setToken(request.getToken());
-        }
-        if (request.getFrom() != null) {
-            devSmsProperties.setFrom(request.getFrom());
-        }
-        if (request.getBaseUrl() != null) {
-            devSmsProperties.setBaseUrl(request.getBaseUrl());
-        }
-        if (request.getCallbackUrl() != null) {
-            devSmsProperties.setCallbackUrl(request.getCallbackUrl());
-        }
+        smsSettingsService.updateDevSmsSettings(
+                request.getEnabled(),
+                request.getToken(),
+                request.getFrom(),
+                request.getBaseUrl(),
+                request.getCallbackUrl()
+        );
     }
 
     private void configureEskiz(ProviderCredentialsRequest request) {
-        if (request.getEnabled() != null) {
-            eskizSmsProperties.setEnabled(request.getEnabled());
-        }
-        if (request.getEmail() != null) {
-            eskizSmsProperties.setEmail(request.getEmail());
-        }
-        if (request.getPassword() != null) {
-            eskizSmsProperties.setPassword(request.getPassword());
-        }
-        if (request.getFrom() != null) {
-            eskizSmsProperties.setFrom(request.getFrom());
-        }
-        if (request.getBaseUrl() != null) {
-            eskizSmsProperties.setBaseUrl(request.getBaseUrl());
-        }
-        if (request.getCallbackUrl() != null) {
-            eskizSmsProperties.setCallbackUrl(request.getCallbackUrl());
-        }
+        smsSettingsService.updateEskizSettings(
+                request.getEnabled(),
+                request.getEmail(),
+                request.getPassword(),
+                request.getFrom(),
+                request.getBaseUrl(),
+                request.getCallbackUrl()
+        );
     }
 
     private String getProviderStatusMessage(SmsProvider provider) {
