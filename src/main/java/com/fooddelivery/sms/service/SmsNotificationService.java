@@ -71,7 +71,7 @@ public class SmsNotificationService {
             // Find approved OTP template for current provider
             SmsTemplate template = smsTemplateService.getApprovedTemplateForSending(SmsTemplateType.OTP);
 
-            if (template == null || template.getProviderTemplateId() == null) {
+            if (template == null) {
                 log.debug("No approved OTP template found, will use fallback message");
                 return false;
             }
@@ -83,13 +83,20 @@ public class SmsNotificationService {
                 return false;
             }
 
-            // Send using template with variable substitution
-            Map<String, String> variables = Map.of("code", otpCode);
-            SmsSendResponse response = provider.sendTemplatedSms(
-                    phoneNumber,
-                    template.getProviderTemplateId(),
-                    variables
-            );
+            // Substitute variables in template content ourselves
+            // DevSMS/Eskiz doesn't have a template API - we need to send the final message
+            String messageContent = substituteTemplateVariables(template.getContent(), Map.of("code", otpCode));
+
+            // Send using regular sendSms with the substituted message
+            SmsMessage smsMessage = SmsMessage.builder()
+                    .messageId(UUID.randomUUID().toString())
+                    .phoneNumber(phoneNumber)
+                    .message(messageContent)
+                    .type(SmsMessage.SmsType.OTP)
+                    .priority(10)
+                    .build();
+
+            SmsSendResponse response = provider.sendSms(smsMessage);
 
             if (response.isSuccess()) {
                 log.info("OTP sent via template {} to phone: {}",
@@ -104,6 +111,18 @@ public class SmsNotificationService {
             log.error("Error sending OTP via template: {}", e.getMessage());
             return false;
         }
+    }
+
+    /**
+     * Substitute variables in template content.
+     * Variables format: {variable_name}
+     */
+    private String substituteTemplateVariables(String templateContent, Map<String, String> variables) {
+        String result = templateContent;
+        for (Map.Entry<String, String> entry : variables.entrySet()) {
+            result = result.replace("{" + entry.getKey() + "}", entry.getValue());
+        }
+        return result;
     }
 
     /**

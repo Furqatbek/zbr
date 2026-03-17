@@ -5,7 +5,10 @@ import com.fooddelivery.common.config.RabbitMQConfig;
 import com.fooddelivery.notification.dto.NotificationRequest;
 import com.fooddelivery.sms.dto.SmsMessage;
 import com.fooddelivery.sms.dto.SmsSendResponse;
+import com.fooddelivery.sms.entity.SmsTemplate;
+import com.fooddelivery.sms.entity.SmsTemplate.SmsTemplateType;
 import com.fooddelivery.sms.service.SmsProviderFactory;
+import com.fooddelivery.sms.service.SmsTemplateService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.core.Message;
@@ -15,7 +18,10 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Map;
 import java.util.UUID;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Consumer for SMS messages from RabbitMQ queue.
@@ -28,10 +34,12 @@ import java.util.UUID;
 public class SmsMessageConsumer {
 
     private final SmsProviderFactory smsProviderFactory;
+    private final SmsTemplateService smsTemplateService;
     private final RabbitTemplate rabbitTemplate;
     private final ObjectMapper objectMapper;
 
     private static final int MAX_RETRIES = 3;
+    private static final Pattern OTP_CODE_PATTERN = Pattern.compile("\\b(\\d{4,6})\\b");
 
     /**
      * Process SMS notification requests from the queue.
@@ -112,7 +120,10 @@ public class SmsMessageConsumer {
                 return;
             }
 
-            SmsSendResponse response = smsProviderFactory.sendSms(smsMessage);
+            // For OTP messages, try to use template-based content
+            SmsMessage messageToSend = transformOtpMessageIfNeeded(smsMessage);
+
+            SmsSendResponse response = smsProviderFactory.sendSms(messageToSend);
 
             if (response.isSuccess()) {
                 log.info("SMS sent successfully via {}: id={}, phone={}",
@@ -267,5 +278,67 @@ public class SmsMessageConsumer {
             log.error("Failed to deserialize message manually: {}", e.getMessage(), e);
             return null;
         }
+    }
+
+    /**
+     * Transform OTP messages to use template-based content if template is available.
+     * This handles legacy messages in the queue that have hardcoded content.
+     */
+    private SmsMessage transformOtpMessageIfNeeded(SmsMessage smsMessage) {
+        // Only transform OTP type messages
+        if (smsMessage.getType() != SmsMessage.SmsType.OTP) {
+            return smsMessage;
+        }
+
+        try {
+            // Find approved OTP template
+            SmsTemplate template = smsTemplateService.getApprovedTemplateForSending(SmsTemplateType.OTP);
+            if (template == null) {
+                log.debug("No approved OTP template found, using original message");
+                return smsMessage;
+            }
+
+            // Extract OTP code from the original message
+            String otpCode = extractOtpCode(smsMessage.getMessage());
+            if (otpCode == null) {
+                log.warn("Could not extract OTP code from message, using original");
+                return smsMessage;
+            }
+
+            // Substitute variables in template
+            String templatedMessage = template.getContent().replace("{code}", otpCode);
+
+            log.info("Transformed OTP message to use template: {}", template.getTemplateCode());
+
+            return SmsMessage.builder()
+                    .messageId(smsMessage.getMessageId())
+                    .phoneNumber(smsMessage.getPhoneNumber())
+                    .message(templatedMessage)
+                    .type(smsMessage.getType())
+                    .referenceId(smsMessage.getReferenceId())
+                    .referenceType(smsMessage.getReferenceType())
+                    .retryCount(smsMessage.getRetryCount())
+                    .createdAt(smsMessage.getCreatedAt())
+                    .priority(smsMessage.getPriority())
+                    .build();
+
+        } catch (Exception e) {
+            log.error("Error transforming OTP message: {}", e.getMessage());
+            return smsMessage;
+        }
+    }
+
+    /**
+     * Extract OTP code (4-6 digit number) from message content.
+     */
+    private String extractOtpCode(String message) {
+        if (message == null) {
+            return null;
+        }
+        Matcher matcher = OTP_CODE_PATTERN.matcher(message);
+        if (matcher.find()) {
+            return matcher.group(1);
+        }
+        return null;
     }
 }
