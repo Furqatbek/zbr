@@ -59,8 +59,8 @@ public class SmsTemplateService {
         log.info("Created SMS template: id={}, code={}, provider={}",
                 template.getId(), template.getTemplateCode(), template.getProvider());
 
-        // Sync with provider if requested
-        if (request.isSyncImmediately()) {
+        // Sync with provider if requested, or auto-sync for DEVSMS (no external API, auto-approved)
+        if (request.isSyncImmediately() || request.getProvider() == SmsProviderType.DEVSMS) {
             syncTemplateWithProvider(template);
             template = templateRepository.save(template);
         }
@@ -89,8 +89,8 @@ public class SmsTemplateService {
         template = templateRepository.save(template);
         log.info("Updated SMS template: id={}, code={}", template.getId(), template.getTemplateCode());
 
-        // Sync with provider if requested
-        if (request.isSyncImmediately() && template.getProviderTemplateId() != null) {
+        // Sync with provider if requested, or auto-sync for DEVSMS (no external API, auto-approved)
+        if (request.isSyncImmediately() || template.getProvider() == SmsProviderType.DEVSMS) {
             syncTemplateWithProvider(template);
             template = templateRepository.save(template);
         }
