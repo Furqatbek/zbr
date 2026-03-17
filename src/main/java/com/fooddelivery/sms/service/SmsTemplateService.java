@@ -289,7 +289,11 @@ public class SmsTemplateService {
             template.setStatus(response.getStatus());
             template.setRejectionReason(null);
         } else {
-            template.setRejectionReason(response.getMessage());
+            String reason = response.getMessage();
+            if (reason != null && reason.length() > 500) {
+                reason = reason.substring(0, 497) + "...";
+            }
+            template.setRejectionReason(reason);
         }
         template.setLastSyncedAt(LocalDateTime.now());
 
