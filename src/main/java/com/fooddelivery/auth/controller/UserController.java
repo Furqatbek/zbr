@@ -39,6 +39,7 @@ public class UserController {
     private final AuthService authService;
 
     @GetMapping("/me")
+    @PreAuthorize("isAuthenticated()")
     @Operation(summary = "Get current user profile", description = "Get the profile of the currently authenticated user")
     public ResponseEntity<ApiResponse<UserDto>> getCurrentUser(
             @AuthenticationPrincipal UserPrincipal currentUser) {
@@ -48,6 +49,7 @@ public class UserController {
     }
 
     @PutMapping("/me")
+    @PreAuthorize("isAuthenticated()")
     @Operation(summary = "Update current user profile", description = "Update the profile of the currently authenticated user")
     public ResponseEntity<ApiResponse<UserDto>> updateCurrentUser(
             @AuthenticationPrincipal UserPrincipal currentUser,
@@ -58,6 +60,7 @@ public class UserController {
     }
 
     @PostMapping("/me/change-password")
+    @PreAuthorize("isAuthenticated()")
     @Operation(summary = "Change password", description = "Change password for the currently authenticated user")
     public ResponseEntity<ApiResponse<Void>> changePassword(
             @AuthenticationPrincipal UserPrincipal currentUser,
@@ -68,6 +71,7 @@ public class UserController {
     }
 
     @PostMapping("/me/logout-all")
+    @PreAuthorize("isAuthenticated()")
     @Operation(summary = "Logout from all devices", description = "Revoke all refresh tokens for the current user")
     public ResponseEntity<ApiResponse<Void>> logoutAll(
             @AuthenticationPrincipal UserPrincipal currentUser) {
