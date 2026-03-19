@@ -1,5 +1,7 @@
 package com.fooddelivery.analytics.fraud.dto;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fooddelivery.common.util.FlexibleLocalDateTimeDeserializer;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -17,7 +19,10 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class FraudMetricsRequest {
 
+    @JsonDeserialize(using = FlexibleLocalDateTimeDeserializer.class)
     private LocalDateTime startDate;
+
+    @JsonDeserialize(using = FlexibleLocalDateTimeDeserializer.class)
     private LocalDateTime endDate;
 
     // Payment fraud thresholds

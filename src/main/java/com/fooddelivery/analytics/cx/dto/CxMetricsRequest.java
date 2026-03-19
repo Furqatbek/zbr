@@ -1,5 +1,7 @@
 package com.fooddelivery.analytics.cx.dto;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fooddelivery.common.util.FlexibleLocalDateTimeDeserializer;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
 
@@ -15,9 +17,11 @@ import java.time.LocalDateTime;
 public class CxMetricsRequest {
 
     @NotNull(message = "Start date is required")
+    @JsonDeserialize(using = FlexibleLocalDateTimeDeserializer.class)
     private LocalDateTime startDate;
 
     @NotNull(message = "End date is required")
+    @JsonDeserialize(using = FlexibleLocalDateTimeDeserializer.class)
     private LocalDateTime endDate;
 
     // Optional filters

@@ -1,6 +1,7 @@
 package com.fooddelivery.analytics.financial.dto;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fooddelivery.common.util.FlexibleLocalDateTimeDeserializer;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
 
@@ -20,14 +21,14 @@ public class FinancialMetricsRequest {
      * Start of the reporting period.
      */
     @NotNull(message = "Start date is required")
-    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
+    @JsonDeserialize(using = FlexibleLocalDateTimeDeserializer.class)
     private LocalDateTime startDate;
 
     /**
      * End of the reporting period.
      */
     @NotNull(message = "End date is required")
-    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
+    @JsonDeserialize(using = FlexibleLocalDateTimeDeserializer.class)
     private LocalDateTime endDate;
 
     /**
