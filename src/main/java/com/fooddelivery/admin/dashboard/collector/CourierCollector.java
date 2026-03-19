@@ -311,7 +311,7 @@ public class CourierCollector {
     private Pageable createPageable(DashboardFilterRequest filter) {
         int page = filter.getPageNumber();
         int size = filter.getPageSize();
-        String sortBy = filter.getSortBy() != null ? filter.getSortBy() : "name";
+        String sortBy = filter.getSortBy() != null ? filter.getSortBy() : "id";
         String sortDir = filter.getSortDirection() != null ? filter.getSortDirection() : "ASC";
 
         Sort sort = sortDir.equalsIgnoreCase("DESC")
