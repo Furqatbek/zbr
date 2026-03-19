@@ -354,13 +354,13 @@ class AnalyticsServiceTest {
                     .thenReturn(700L)
                     .thenReturn(3000L);
             when(orderRepository.getOrderValueStatsSince(any(LocalDateTime.class)))
-                    .thenReturn(new Object[]{
+                    .thenReturn(List.of(new Object[]{
                             new BigDecimal("15000"),
                             new BigDecimal("150000"),
                             new BigDecimal("50000"),
                             new BigDecimal("5000000"),
                             100L
-                    });
+                    }));
             when(orderRepository.getMedianOrderValueSince(any(LocalDateTime.class)))
                     .thenReturn(new BigDecimal("45000"));
             when(orderRepository.getAverageItemsPerOrderSince(any(LocalDateTime.class)))

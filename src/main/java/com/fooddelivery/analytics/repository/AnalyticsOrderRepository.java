@@ -127,12 +127,12 @@ public interface AnalyticsOrderRepository extends JpaRepository<Order, Long> {
 
     /**
      * Get order value statistics (min, max, avg, sum, count).
-     * Returns [min, max, avg, sum, count].
+     * Returns a list containing a single [min, max, avg, sum, count] row.
      */
     @Query("SELECT MIN(o.total), MAX(o.total), AVG(o.total), SUM(o.total), COUNT(o) " +
             "FROM Order o WHERE o.status IN ('DELIVERED', 'COMPLETED') " +
             "AND o.createdAt >= :since")
-    Object[] getOrderValueStatsSince(@Param("since") LocalDateTime since);
+    List<Object[]> getOrderValueStatsSince(@Param("since") LocalDateTime since);
 
     /**
      * Get median order value using percentile calculation.

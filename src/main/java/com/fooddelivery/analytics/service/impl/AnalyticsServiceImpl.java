@@ -312,7 +312,8 @@ public class AnalyticsServiceImpl implements AnalyticsService {
         Long completedMonth = orderRepository.countCompletedOrdersSince(startOfMonth);
 
         // Additional stats
-        Object[] stats = orderRepository.getOrderValueStatsSince(startOfToday);
+        List<Object[]> statsList = orderRepository.getOrderValueStatsSince(startOfToday);
+        Object[] stats = statsList.isEmpty() ? new Object[5] : statsList.get(0);
         BigDecimal minValue = stats[0] != null ? (BigDecimal) stats[0] : BigDecimal.ZERO;
         BigDecimal maxValue = stats[1] != null ? (BigDecimal) stats[1] : BigDecimal.ZERO;
 
