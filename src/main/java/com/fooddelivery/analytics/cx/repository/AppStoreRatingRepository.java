@@ -78,7 +78,7 @@ public interface AppStoreRatingRepository extends JpaRepository<AppStoreRating, 
            "AVG(score), COUNT(*), " +
            "AVG(CASE WHEN platform = 'IOS' THEN score ELSE NULL END), " +
            "AVG(CASE WHEN platform = 'ANDROID' THEN score ELSE NULL END) " +
-           "FROM app_store_ratings WHERE created_at BETWEEN :start AND :end " +
+           "FROM rating_app_store WHERE created_at BETWEEN :start AND :end " +
            "GROUP BY EXTRACT(YEAR FROM created_at), EXTRACT(WEEK FROM created_at) " +
            "ORDER BY EXTRACT(YEAR FROM created_at), EXTRACT(WEEK FROM created_at)", nativeQuery = true)
     List<Object[]> getWeeklyRatingTrend(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
@@ -120,7 +120,7 @@ public interface AppStoreRatingRepository extends JpaRepository<AppStoreRating, 
     /**
      * Get latest version by platform.
      */
-    @Query(value = "SELECT app_version FROM app_store_ratings WHERE platform = :#{#platform.name()} " +
+    @Query(value = "SELECT app_version FROM rating_app_store WHERE platform = :#{#platform.name()} " +
            "ORDER BY created_at DESC LIMIT 1", nativeQuery = true)
     String getLatestVersion(@Param("platform") AppStoreRating.Platform platform);
 
