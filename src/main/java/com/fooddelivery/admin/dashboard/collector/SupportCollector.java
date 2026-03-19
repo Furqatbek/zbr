@@ -483,7 +483,7 @@ public class SupportCollector {
     private Pageable createPageable(DashboardFilterRequest filter) {
         int page = filter.getPageNumber();
         int size = filter.getPageSize();
-        String sortBy = filter.getSortBy() != null ? filter.getSortBy() : "createdAt";
+        String sortBy = filter.getSortBy() != null ? filter.getSortBy() : "created_at";
         String sortDir = filter.getSortDirection() != null ? filter.getSortDirection() : "DESC";
 
         Sort sort = sortDir.equalsIgnoreCase("DESC")
