@@ -1,5 +1,7 @@
 package com.fooddelivery.admin.dashboard.dto;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fooddelivery.common.util.FlexibleLocalDateTimeDeserializer;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -19,8 +21,11 @@ import java.util.List;
 @AllArgsConstructor
 public class DashboardFilterRequest {
 
-    // Date range
+    // Date range - accepts both date (yyyy-MM-dd) and datetime (yyyy-MM-dd'T'HH:mm:ss) formats
+    @JsonDeserialize(using = FlexibleLocalDateTimeDeserializer.class)
     private LocalDateTime startDate;
+
+    @JsonDeserialize(using = FlexibleLocalDateTimeDeserializer.class)
     private LocalDateTime endDate;
     private LocalDate date; // For single day queries
 
