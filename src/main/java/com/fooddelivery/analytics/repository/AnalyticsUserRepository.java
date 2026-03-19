@@ -150,13 +150,19 @@ public interface AnalyticsUserRepository extends JpaRepository<User, Long> {
             "  END as bucket, " +
             "  COUNT(*) as user_count " +
             "FROM activation_times " +
-            "GROUP BY bucket " +
+            "GROUP BY " +
+            "  CASE " +
+            "    WHEN hours_to_first_order < 1 THEN '< 1 hour' " +
+            "    WHEN hours_to_first_order < 24 THEN '1-24 hours' " +
+            "    WHEN hours_to_first_order < 168 THEN '1-7 days' " +
+            "    ELSE '> 7 days' " +
+            "  END " +
             "ORDER BY " +
-            "  CASE bucket " +
-            "    WHEN '< 1 hour' THEN 1 " +
-            "    WHEN '1-24 hours' THEN 2 " +
-            "    WHEN '1-7 days' THEN 3 " +
+            "  MIN(CASE " +
+            "    WHEN hours_to_first_order < 1 THEN 1 " +
+            "    WHEN hours_to_first_order < 24 THEN 2 " +
+            "    WHEN hours_to_first_order < 168 THEN 3 " +
             "    ELSE 4 " +
-            "  END", nativeQuery = true)
+            "  END)", nativeQuery = true)
     List<Object[]> getActivationTimeDistribution(@Param("since") LocalDateTime since);
 }
