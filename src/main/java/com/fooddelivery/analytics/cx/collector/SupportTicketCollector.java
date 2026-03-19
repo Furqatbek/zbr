@@ -157,12 +157,14 @@ public class SupportTicketCollector {
             LocalDateTime startDate, LocalDateTime endDate) {
 
         // Resolution time stats
-        Object[] resolutionStats = supportTicketRepository.getResolutionTimeStats(startDate, endDate);
+        List<Object[]> resolutionStatsList = supportTicketRepository.getResolutionTimeStats(startDate, endDate);
+        Object[] resolutionStats = resolutionStatsList.isEmpty() ? new Object[4] : resolutionStatsList.get(0);
         Double avgResolutionTime = resolutionStats[0] != null ? ((Number) resolutionStats[0]).doubleValue() : null;
         Long resolvedCount = resolutionStats[3] != null ? ((Number) resolutionStats[3]).longValue() : 0L;
 
         // First response time stats
-        Object[] responseStats = supportTicketRepository.getFirstResponseTimeStats(startDate, endDate);
+        List<Object[]> responseStatsList = supportTicketRepository.getFirstResponseTimeStats(startDate, endDate);
+        Object[] responseStats = responseStatsList.isEmpty() ? new Object[4] : responseStatsList.get(0);
         Double avgFirstResponse = responseStats[0] != null ? ((Number) responseStats[0]).doubleValue() : null;
 
         // Calculate percentiles for resolution time

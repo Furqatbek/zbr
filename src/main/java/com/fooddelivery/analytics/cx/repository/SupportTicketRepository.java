@@ -57,6 +57,7 @@ public interface SupportTicketRepository extends JpaRepository<SupportTicket, Lo
 
     /**
      * Get resolution time statistics.
+     * Returns a list containing a single [avg, min, max, count] row.
      */
     @Query(value = "SELECT AVG(EXTRACT(EPOCH FROM (resolved_at - created_at)) / 3600), " +
            "MIN(EXTRACT(EPOCH FROM (resolved_at - created_at)) / 3600), " +
@@ -64,10 +65,11 @@ public interface SupportTicketRepository extends JpaRepository<SupportTicket, Lo
            "COUNT(*) " +
            "FROM support_tickets WHERE created_at BETWEEN :start AND :end " +
            "AND resolved_at IS NOT NULL", nativeQuery = true)
-    Object[] getResolutionTimeStats(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
+    List<Object[]> getResolutionTimeStats(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
 
     /**
      * Get first response time statistics.
+     * Returns a list containing a single [avg, min, max, count] row.
      */
     @Query(value = "SELECT AVG(EXTRACT(EPOCH FROM (first_response_at - created_at)) / 60), " +
            "MIN(EXTRACT(EPOCH FROM (first_response_at - created_at)) / 60), " +
@@ -75,7 +77,7 @@ public interface SupportTicketRepository extends JpaRepository<SupportTicket, Lo
            "COUNT(*) " +
            "FROM support_tickets WHERE created_at BETWEEN :start AND :end " +
            "AND first_response_at IS NOT NULL", nativeQuery = true)
-    Object[] getFirstResponseTimeStats(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
+    List<Object[]> getFirstResponseTimeStats(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
 
     /**
      * Count SLA breaches.
