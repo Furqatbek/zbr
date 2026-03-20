@@ -297,7 +297,7 @@ public class CourierCollector {
         Map<String, Long> distribution = new LinkedHashMap<>();
 
         for (Object[] row : vehicleData) {
-            String vehicleType = row[0] != null ? (String) row[0] : "Other";
+            String vehicleType = row[0] != null ? row[0].toString() : "Other";
             Long count = ((Number) row[1]).longValue();
             distribution.put(vehicleType, count);
         }
