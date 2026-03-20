@@ -112,6 +112,27 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/consumers/profile").hasRole("CONSUMER")
                         .requestMatchers("/api/v1/consumers/**").hasAnyRole("ADMIN", "RESTAURANT_OWNER", "CONSUMER")
 
+                        // Notification endpoints - personal notification access for all authenticated users
+                        .requestMatchers("/api/v1/notifications/me").authenticated()
+                        .requestMatchers("/api/v1/notifications/unread/count").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/notifications/*").authenticated()
+                        .requestMatchers(HttpMethod.PATCH, "/api/v1/notifications/*/read").authenticated()
+                        .requestMatchers(HttpMethod.PATCH, "/api/v1/notifications/*/dismiss").authenticated()
+                        .requestMatchers(HttpMethod.PATCH, "/api/v1/notifications/read-batch").authenticated()
+                        .requestMatchers(HttpMethod.PUT, "/api/v1/notifications/read-all").authenticated()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/notifications/bulk-action").authenticated()
+                        // User-specific notification endpoints
+                        .requestMatchers("/api/v1/notifications/user/*/unread").authenticated()
+                        .requestMatchers("/api/v1/notifications/user/*/counts").authenticated()
+                        .requestMatchers("/api/v1/notifications/user/*/unread-count").authenticated()
+                        .requestMatchers(HttpMethod.DELETE, "/api/v1/notifications/user/*").authenticated()
+                        // Admin notification endpoints
+                        .requestMatchers(HttpMethod.GET, "/api/v1/notifications").hasAnyRole("ADMIN", "PLATFORM")
+                        .requestMatchers(HttpMethod.POST, "/api/v1/notifications").hasAnyRole("ADMIN", "SYSTEM")
+                        .requestMatchers(HttpMethod.POST, "/api/v1/notifications/search").hasAnyRole("ADMIN", "PLATFORM")
+                        .requestMatchers(HttpMethod.DELETE, "/api/v1/notifications/*").hasRole("ADMIN")
+                        .requestMatchers("/api/v1/notifications/admin/**").hasRole("ADMIN")
+
                         // Referral endpoints
                         .requestMatchers("/api/v1/referrals/**").authenticated()
 
