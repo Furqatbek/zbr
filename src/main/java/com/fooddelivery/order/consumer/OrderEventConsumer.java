@@ -1,18 +1,17 @@
 package com.fooddelivery.order.consumer;
 
 import com.fooddelivery.common.config.RabbitMQConfig;
-import com.fooddelivery.courier.entity.Courier;
-import com.fooddelivery.courier.repository.CourierRepository;
 import com.fooddelivery.notification.dto.OrderNotificationRequest;
 import com.fooddelivery.notification.model.NotificationType;
+import com.fooddelivery.notification.service.NotificationDataFetcher;
+import com.fooddelivery.notification.service.NotificationDataFetcher.CourierData;
+import com.fooddelivery.notification.service.NotificationDataFetcher.RestaurantData;
 import com.fooddelivery.notification.service.PersistentNotificationService;
 import com.fooddelivery.order.entity.OrderStatus;
 import com.fooddelivery.order.event.CourierAssignedEvent;
 import com.fooddelivery.order.event.OrderCreatedEvent;
 import com.fooddelivery.order.event.OrderStatusChangedEvent;
 import com.fooddelivery.order.event.PaymentConfirmedEvent;
-import com.fooddelivery.restaurant.entity.Restaurant;
-import com.fooddelivery.restaurant.repository.RestaurantRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
@@ -24,6 +23,7 @@ import java.util.Map;
 /**
  * Consumer for order-related events from RabbitMQ.
  * Processes events and triggers appropriate notifications.
+ * Uses NotificationDataFetcher for resilient database operations with retry logic.
  */
 @Component
 @RequiredArgsConstructor
@@ -31,8 +31,7 @@ import java.util.Map;
 public class OrderEventConsumer {
 
     private final PersistentNotificationService notificationService;
-    private final RestaurantRepository restaurantRepository;
-    private final CourierRepository courierRepository;
+    private final NotificationDataFetcher dataFetcher;
 
     /**
      * Process order created events from RabbitMQ.
@@ -46,15 +45,12 @@ public class OrderEventConsumer {
         log.info("Consuming OrderCreatedEvent from queue: orderId={}", event.getOrderId());
 
         try {
-            // Fetch restaurant to get owner's user ID for notification targeting
-            Long restaurantUserId = null;
-            String restaurantName = null;
-            if (event.getRestaurantId() != null) {
-                Restaurant restaurant = restaurantRepository.findById(event.getRestaurantId()).orElse(null);
-                if (restaurant != null) {
-                    restaurantUserId = restaurant.getOwner() != null ? restaurant.getOwner().getId() : null;
-                    restaurantName = restaurant.getName();
-                }
+            // Fetch restaurant data with retry logic
+            RestaurantData restaurantData = dataFetcher.fetchRestaurantData(event.getRestaurantId());
+
+            if (event.getRestaurantId() != null && restaurantData.ownerId() == null) {
+                log.warn("Restaurant {} ({}) has no owner assigned - order {} notification will be broadcast",
+                        restaurantData.name(), event.getRestaurantId(), event.getOrderId());
             }
 
             Map<String, Object> metadata = new HashMap<>();
@@ -70,8 +66,8 @@ public class OrderEventConsumer {
                     .orderNumber(event.getExternalOrderNo())
                     .customerId(event.getConsumerId())
                     .restaurantId(event.getRestaurantId())
-                    .restaurantUserId(restaurantUserId)
-                    .restaurantName(restaurantName)
+                    .restaurantUserId(restaurantData.ownerId())
+                    .restaurantName(restaurantData.name())
                     .eventType(NotificationType.ORDER_CREATED)
                     .totalAmount(event.getTotal())
                     .metadata(metadata)
@@ -138,24 +134,13 @@ public class OrderEventConsumer {
                 event.getOrderId(), event.getCourierId());
 
         try {
-            // Fetch courier to get user ID for notification targeting
-            Long courierUserId = null;
-            String courierName = null;
-            if (event.getCourierId() != null) {
-                Courier courier = courierRepository.findById(event.getCourierId()).orElse(null);
-                if (courier != null && courier.getUser() != null) {
-                    courierUserId = courier.getUser().getId();
-                    courierName = courier.getUser().getFullName();
-                }
-            }
+            // Fetch courier and restaurant data with retry logic
+            CourierData courierData = dataFetcher.fetchCourierData(event.getCourierId());
+            RestaurantData restaurantData = dataFetcher.fetchRestaurantData(event.getRestaurantId());
 
-            // Fetch restaurant to get owner's user ID
-            Long restaurantUserId = null;
-            if (event.getRestaurantId() != null) {
-                Restaurant restaurant = restaurantRepository.findById(event.getRestaurantId()).orElse(null);
-                if (restaurant != null && restaurant.getOwner() != null) {
-                    restaurantUserId = restaurant.getOwner().getId();
-                }
+            if (event.getCourierId() != null && courierData.userId() == null) {
+                log.warn("Courier {} not found or has no user for order {} notification",
+                        event.getCourierId(), event.getOrderId());
             }
 
             Map<String, Object> metadata = new HashMap<>();
@@ -171,10 +156,10 @@ public class OrderEventConsumer {
                     .orderId(event.getOrderId())
                     .orderNumber(event.getExternalOrderNo())
                     .restaurantId(event.getRestaurantId())
-                    .restaurantUserId(restaurantUserId)
+                    .restaurantUserId(restaurantData.ownerId())
                     .courierId(event.getCourierId())
-                    .courierUserId(courierUserId)
-                    .courierName(courierName)
+                    .courierUserId(courierData.userId())
+                    .courierName(courierData.name())
                     .eventType(NotificationType.COURIER_ASSIGNED)
                     .metadata(metadata)
                     .build();
@@ -202,16 +187,8 @@ public class OrderEventConsumer {
                 event.getOrderId(), event.getAmount());
 
         try {
-            // Fetch restaurant to get owner's user ID for notification targeting
-            Long restaurantUserId = null;
-            String restaurantName = null;
-            if (event.getRestaurantId() != null) {
-                Restaurant restaurant = restaurantRepository.findById(event.getRestaurantId()).orElse(null);
-                if (restaurant != null) {
-                    restaurantUserId = restaurant.getOwner() != null ? restaurant.getOwner().getId() : null;
-                    restaurantName = restaurant.getName();
-                }
-            }
+            // Fetch restaurant data with retry logic
+            RestaurantData restaurantData = dataFetcher.fetchRestaurantData(event.getRestaurantId());
 
             Map<String, Object> metadata = new HashMap<>();
             metadata.put("paymentId", event.getPaymentId());
@@ -224,8 +201,8 @@ public class OrderEventConsumer {
                     .orderNumber(event.getExternalOrderNo())
                     .customerId(event.getConsumerId())
                     .restaurantId(event.getRestaurantId())
-                    .restaurantUserId(restaurantUserId)
-                    .restaurantName(restaurantName)
+                    .restaurantUserId(restaurantData.ownerId())
+                    .restaurantName(restaurantData.name())
                     .eventType(NotificationType.PAYMENT_RECEIVED)
                     .totalAmount(event.getAmount())
                     .metadata(metadata)
@@ -253,26 +230,18 @@ public class OrderEventConsumer {
             metadata.put("reason", event.getReason());
         }
 
-        // Fetch restaurant to get owner's user ID for notification targeting
-        Long restaurantUserId = null;
-        String restaurantName = null;
-        if (event.getRestaurantId() != null) {
-            Restaurant restaurant = restaurantRepository.findById(event.getRestaurantId()).orElse(null);
-            if (restaurant != null) {
-                restaurantUserId = restaurant.getOwner() != null ? restaurant.getOwner().getId() : null;
-                restaurantName = restaurant.getName();
-            }
+        // Fetch restaurant and courier data with retry logic
+        RestaurantData restaurantData = dataFetcher.fetchRestaurantData(event.getRestaurantId());
+        CourierData courierData = dataFetcher.fetchCourierData(event.getCourierId());
+
+        if (event.getRestaurantId() != null && restaurantData.ownerId() == null) {
+            log.warn("Restaurant {} ({}) has no owner - status change notification for order {} will be broadcast",
+                    restaurantData.name(), event.getRestaurantId(), event.getOrderId());
         }
 
-        // Fetch courier to get user ID for notification targeting
-        Long courierUserId = null;
-        String courierName = null;
-        if (event.getCourierId() != null) {
-            Courier courier = courierRepository.findById(event.getCourierId()).orElse(null);
-            if (courier != null && courier.getUser() != null) {
-                courierUserId = courier.getUser().getId();
-                courierName = courier.getUser().getFullName();
-            }
+        if (event.getCourierId() != null && courierData.userId() == null) {
+            log.warn("Courier {} not found or has no user for order {} notification",
+                    event.getCourierId(), event.getOrderId());
         }
 
         return OrderNotificationRequest.builder()
@@ -280,11 +249,11 @@ public class OrderEventConsumer {
                 .orderNumber(event.getExternalOrderNo())
                 .customerId(event.getConsumerId())
                 .restaurantId(event.getRestaurantId())
-                .restaurantUserId(restaurantUserId)
-                .restaurantName(restaurantName)
+                .restaurantUserId(restaurantData.ownerId())
+                .restaurantName(restaurantData.name())
                 .courierId(event.getCourierId())
-                .courierUserId(courierUserId)
-                .courierName(courierName)
+                .courierUserId(courierData.userId())
+                .courierName(courierData.name())
                 .eventType(mapStatusToNotificationType(event.getNewStatus()))
                 .cancellationReason(event.getReason())
                 .metadata(metadata)

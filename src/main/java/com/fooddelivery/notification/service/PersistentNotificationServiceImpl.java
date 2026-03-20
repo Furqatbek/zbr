@@ -409,9 +409,49 @@ public class PersistentNotificationServiceImpl implements PersistentNotification
         }
 
         // Notify restaurant
+        request.setEventType(NotificationType.NEW_ORDER_RECEIVED);
         if (request.getRestaurantUserId() != null) {
-            request.setEventType(NotificationType.NEW_ORDER_RECEIVED);
             createOrderNotification(request, request.getRestaurantUserId(), NotificationRole.RESTAURANT);
+        } else {
+            // Fallback: broadcast to RESTAURANT role when owner is not set
+            log.warn("Restaurant {} has no owner assigned for order {}. Broadcasting to RESTAURANT role.",
+                    request.getRestaurantId(), request.getOrderId());
+            createOrderNotification(request, null, NotificationRole.RESTAURANT);
+            // Also notify admin about missing restaurant owner
+            notifyAdminMissingRestaurantOwner(request, "ORDER_CREATED");
+        }
+    }
+
+    /**
+     * Notify admin when a restaurant has no owner assigned for critical events.
+     */
+    private void notifyAdminMissingRestaurantOwner(OrderNotificationRequest request, String eventContext) {
+        try {
+            Map<String, Object> metadata = new HashMap<>();
+            metadata.put("restaurantId", request.getRestaurantId());
+            metadata.put("restaurantName", request.getRestaurantName());
+            metadata.put("orderId", request.getOrderId());
+            metadata.put("orderNumber", request.getOrderNumber());
+            metadata.put("eventContext", eventContext);
+
+            NotificationCreateDto adminNotification = NotificationCreateDto.builder()
+                    .userId(null) // Broadcast to all admins
+                    .role(NotificationRole.ADMIN)
+                    .title("Restaurant Missing Owner")
+                    .message(String.format("Restaurant '%s' (ID: %d) has no owner assigned. Order #%s may not be processed.",
+                            request.getRestaurantName(), request.getRestaurantId(), request.getOrderNumber()))
+                    .category(NotificationCategory.SYSTEM)
+                    .notificationType(NotificationType.SYSTEM_ALERT)
+                    .priority(NotificationPriority.HIGH)
+                    .metadata(metadata)
+                    .icon(NotificationConstants.ICON_WARNING)
+                    .build();
+
+            createNotification(adminNotification);
+            log.info("Admin notified about missing restaurant owner for restaurant {} order {}",
+                    request.getRestaurantId(), request.getOrderId());
+        } catch (Exception e) {
+            log.error("Failed to notify admin about missing restaurant owner: {}", e.getMessage());
         }
     }
 
@@ -457,9 +497,20 @@ public class PersistentNotificationServiceImpl implements PersistentNotification
             createOrderNotification(request, request.getCustomerId(), NotificationRole.CONSUMER);
         }
 
-        // Notify courier
+        // Notify courier - either specific courier or broadcast to all available couriers
         if (request.getCourierUserId() != null) {
             createOrderNotification(request, request.getCourierUserId(), NotificationRole.COURIER);
+        } else {
+            // No courier assigned yet - broadcast to COURIER role so available couriers can see the order
+            log.info("Order {} is ready but no courier assigned - broadcasting to all couriers", request.getOrderId());
+            request.setEventType(NotificationType.NEW_DELIVERY_AVAILABLE);
+            createOrderNotification(request, null, NotificationRole.COURIER);
+        }
+
+        // Notify restaurant that order is ready (confirmation)
+        if (request.getRestaurantUserId() != null) {
+            request.setEventType(NotificationType.ORDER_READY);
+            createOrderNotification(request, request.getRestaurantUserId(), NotificationRole.RESTAURANT);
         }
     }
 
@@ -479,9 +530,14 @@ public class PersistentNotificationServiceImpl implements PersistentNotification
         }
 
         // Notify restaurant
+        request.setEventType(NotificationType.COURIER_ASSIGNED);
         if (request.getRestaurantUserId() != null) {
-            request.setEventType(NotificationType.COURIER_ASSIGNED);
             createOrderNotification(request, request.getRestaurantUserId(), NotificationRole.RESTAURANT);
+        } else if (request.getRestaurantId() != null) {
+            // Fallback: broadcast to RESTAURANT role
+            log.warn("Restaurant {} has no owner for courier assignment notification, broadcasting to role",
+                    request.getRestaurantId());
+            createOrderNotification(request, null, NotificationRole.RESTAURANT);
         }
     }
 
@@ -497,6 +553,11 @@ public class PersistentNotificationServiceImpl implements PersistentNotification
         // Notify restaurant
         if (request.getRestaurantUserId() != null) {
             createOrderNotification(request, request.getRestaurantUserId(), NotificationRole.RESTAURANT);
+        } else if (request.getRestaurantId() != null) {
+            // Fallback: broadcast to RESTAURANT role
+            log.warn("Restaurant {} has no owner for pickup notification, broadcasting to role",
+                    request.getRestaurantId());
+            createOrderNotification(request, null, NotificationRole.RESTAURANT);
         }
     }
 
@@ -522,6 +583,11 @@ public class PersistentNotificationServiceImpl implements PersistentNotification
         // Notify restaurant
         if (request.getRestaurantUserId() != null) {
             createOrderNotification(request, request.getRestaurantUserId(), NotificationRole.RESTAURANT);
+        } else if (request.getRestaurantId() != null) {
+            // Fallback: broadcast to RESTAURANT role
+            log.warn("Restaurant {} has no owner for delivery notification, broadcasting to role",
+                    request.getRestaurantId());
+            createOrderNotification(request, null, NotificationRole.RESTAURANT);
         }
 
         // Notify courier
@@ -543,6 +609,11 @@ public class PersistentNotificationServiceImpl implements PersistentNotification
         // Notify restaurant
         if (request.getRestaurantUserId() != null) {
             createOrderNotification(request, request.getRestaurantUserId(), NotificationRole.RESTAURANT);
+        } else if (request.getRestaurantId() != null) {
+            // Fallback: broadcast to RESTAURANT role for cancellation (critical event)
+            log.warn("Restaurant {} has no owner for cancellation notification, broadcasting to role",
+                    request.getRestaurantId());
+            createOrderNotification(request, null, NotificationRole.RESTAURANT);
         }
 
         // Notify courier if assigned
