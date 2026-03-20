@@ -200,6 +200,15 @@ app:
   notification:
     enabled: ${NOTIFICATION_ENABLED:true}
 
+  # Push Notification settings
+  push:
+    enabled: ${PUSH_ENABLED:true}
+
+  # Firebase Configuration for FCM push notifications
+  firebase:
+    enabled: ${FIREBASE_ENABLED:false}
+    credentials-file: ${FIREBASE_CREDENTIALS_FILE:firebase-service-account.json}
+
   # OTP Configuration
   otp:
     expiry-minutes: ${OTP_EXPIRY_MINUTES:5}
