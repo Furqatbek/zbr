@@ -618,14 +618,24 @@ public class OrderService {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Order", "id", orderId));
 
+        Long orderRestaurantId = order.getRestaurant().getId();
+        Long orderConsumerId = order.getConsumer().getId();
+
         // Consumer can access their own orders
-        if (order.getConsumer().getId().equals(userId)) {
+        if (orderConsumerId.equals(userId)) {
             return;
         }
 
-        // Restaurant owner/staff can access orders for their restaurants
-        if (isRestaurantRole && restaurantService.isRestaurantOwner(order.getRestaurant().getId(), userId)) {
-            return;
+        // Restaurant owner can ONLY access orders for THEIR OWN restaurant
+        if (isRestaurantRole) {
+            boolean ownsThisRestaurant = restaurantService.isRestaurantOwner(orderRestaurantId, userId);
+            if (ownsThisRestaurant) {
+                return;
+            }
+            // Restaurant trying to access another restaurant's order - log and deny
+            log.warn("SECURITY: Restaurant user {} attempted to access order {} belonging to restaurant {}",
+                    userId, orderId, orderRestaurantId);
+            throw new BusinessException("You don't have permission to access orders from other restaurants");
         }
 
         // Courier can access orders assigned to them
@@ -633,7 +643,8 @@ public class OrderService {
             return;
         }
 
-        log.warn("User {} attempted to access order {} without permission", userId, orderId);
+        log.warn("SECURITY: User {} attempted to access order {} without permission (restaurant={}, consumer={})",
+                userId, orderId, orderRestaurantId, orderConsumerId);
         throw new BusinessException("You don't have permission to access this order");
     }
 

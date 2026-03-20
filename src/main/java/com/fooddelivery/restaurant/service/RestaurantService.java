@@ -273,6 +273,7 @@ public class RestaurantService {
     /**
      * Validate that user owns the restaurant or has admin/platform role.
      * Throws BusinessException if not authorized.
+     * This ensures Restaurant X cannot access Restaurant Y's data.
      */
     @Transactional(readOnly = true)
     public void validateRestaurantAccess(Long restaurantId, Long userId, boolean isAdminOrPlatform) {
@@ -281,8 +282,10 @@ public class RestaurantService {
         }
 
         Restaurant restaurant = getRestaurantEntityById(restaurantId);
-        if (!restaurant.getOwner().getId().equals(userId)) {
-            log.warn("User {} attempted to access restaurant {} without ownership", userId, restaurantId);
+        Long actualOwnerId = restaurant.getOwner().getId();
+        if (!actualOwnerId.equals(userId)) {
+            log.warn("SECURITY: User {} (not owner) attempted to access restaurant {} owned by user {}",
+                    userId, restaurantId, actualOwnerId);
             throw new BusinessException("You don't have permission to access this restaurant");
         }
     }
