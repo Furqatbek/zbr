@@ -1,5 +1,6 @@
 package com.fooddelivery.notification.service;
 
+import com.fooddelivery.common.config.RabbitMQConfig;
 import com.fooddelivery.notification.dto.*;
 import com.fooddelivery.notification.mapper.NotificationMapper;
 import com.fooddelivery.notification.model.*;
@@ -9,6 +10,7 @@ import com.fooddelivery.notification.util.NotificationConstants;
 import com.fooddelivery.notification.util.NotificationMessageBuilder;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
@@ -16,6 +18,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -36,6 +39,8 @@ public class PersistentNotificationServiceImpl implements PersistentNotification
 
     private final NotificationRepository notificationRepository;
     private final NotificationMapper notificationMapper;
+    private final SimpMessagingTemplate messagingTemplate;
+    private final RabbitTemplate rabbitTemplate;
 
     // ===== CRUD Operations =====
 
@@ -47,7 +52,75 @@ public class PersistentNotificationServiceImpl implements PersistentNotification
         notification = notificationRepository.save(notification);
 
         log.info("Created notification with ID: {}", notification.getId());
-        return notificationMapper.toResponseDto(notification);
+
+        NotificationResponseDto responseDto = notificationMapper.toResponseDto(notification);
+
+        // Send real-time notification via WebSocket
+        sendWebSocketNotification(responseDto);
+
+        // Queue push notification for mobile delivery
+        queuePushNotification(createDto, responseDto);
+
+        return responseDto;
+    }
+
+    /**
+     * Send notification via WebSocket for real-time delivery to connected clients.
+     */
+    private void sendWebSocketNotification(NotificationResponseDto notification) {
+        if (notification.getUserId() == null) {
+            log.debug("Skipping WebSocket notification: no userId");
+            return;
+        }
+
+        try {
+            // Send to user-specific topic
+            String userTopic = "/topic/users/" + notification.getUserId() + "/notifications";
+            messagingTemplate.convertAndSend(userTopic, notification);
+            log.debug("Sent WebSocket notification to user {}: {}", notification.getUserId(), notification.getId());
+
+            // Also send to role-specific topic if applicable
+            if (notification.getRole() != null) {
+                String roleTopic = "/topic/roles/" + notification.getRole().name().toLowerCase() + "/notifications";
+                messagingTemplate.convertAndSend(roleTopic, notification);
+            }
+        } catch (Exception e) {
+            log.warn("Failed to send WebSocket notification: {}", e.getMessage());
+            // Don't throw - WebSocket failure shouldn't fail the notification creation
+        }
+    }
+
+    /**
+     * Queue push notification for mobile delivery via FCM/APNS.
+     */
+    private void queuePushNotification(NotificationCreateDto createDto, NotificationResponseDto savedNotification) {
+        if (createDto.getUserId() == null) {
+            log.debug("Skipping push notification: no userId");
+            return;
+        }
+
+        try {
+            NotificationRequest pushRequest = NotificationRequest.builder()
+                    .userId(createDto.getUserId())
+                    .subject(createDto.getTitle())
+                    .body(createDto.getMessage())
+                    .channel("push")
+                    .priority(createDto.getPriority() != null ? createDto.getPriority().ordinal() + 1 : 5)
+                    .referenceId(savedNotification.getId().toString())
+                    .referenceType("notification")
+                    .templateData(createDto.getMetadata())
+                    .build();
+
+            rabbitTemplate.convertAndSend(
+                    RabbitMQConfig.NOTIFICATION_EXCHANGE,
+                    RabbitMQConfig.NOTIFICATION_PUSH_KEY,
+                    pushRequest
+            );
+            log.debug("Queued push notification for user {}", createDto.getUserId());
+        } catch (Exception e) {
+            log.warn("Failed to queue push notification: {}", e.getMessage());
+            // Don't throw - push queue failure shouldn't fail the notification creation
+        }
     }
 
     @Override
