@@ -141,11 +141,11 @@ public interface DashboardCourierRepository extends JpaRepository<Courier, Long>
      * Hourly courier availability.
      * Returns hour and count of available couriers.
      */
-    @Query(value = "SELECT HOUR(location_updated_at), COUNT(DISTINCT id) " +
+    @Query(value = "SELECT EXTRACT(HOUR FROM location_updated_at), COUNT(DISTINCT id) " +
             "FROM couriers WHERE status IN ('AVAILABLE', 'BUSY') " +
             "AND DATE(location_updated_at) = DATE(:date) " +
-            "GROUP BY HOUR(location_updated_at) " +
-            "ORDER BY HOUR(location_updated_at)",
+            "GROUP BY EXTRACT(HOUR FROM location_updated_at) " +
+            "ORDER BY EXTRACT(HOUR FROM location_updated_at)",
             nativeQuery = true)
     List<Object[]> courierAvailabilityByHour(@Param("date") LocalDateTime date);
 
@@ -271,10 +271,10 @@ public interface DashboardCourierRepository extends JpaRepository<Courier, Long>
     /**
      * Get courier availability by hour.
      */
-    @Query(value = "SELECT DAYOFWEEK(location_updated_at), HOUR(location_updated_at), COUNT(DISTINCT id) " +
+    @Query(value = "SELECT EXTRACT(DOW FROM location_updated_at) + 1, EXTRACT(HOUR FROM location_updated_at), COUNT(DISTINCT id) " +
             "FROM couriers WHERE status IN ('AVAILABLE', 'BUSY') " +
             "AND location_updated_at BETWEEN :startDate AND :endDate " +
-            "GROUP BY DAYOFWEEK(location_updated_at), HOUR(location_updated_at)",
+            "GROUP BY EXTRACT(DOW FROM location_updated_at), EXTRACT(HOUR FROM location_updated_at)",
             nativeQuery = true)
     List<Object[]> getCourierAvailabilityByHour(@Param("startDate") LocalDateTime startDate,
                                                  @Param("endDate") LocalDateTime endDate);
