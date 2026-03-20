@@ -244,7 +244,7 @@ public interface DashboardCourierRepository extends JpaRepository<Courier, Long>
      */
     @Query("SELECT c.id, c.status, c.averageRating, c.totalDeliveries, c.vehicleType, " +
             "c.currentLat, c.currentLng, c.locationUpdatedAt, c.currentOrderCount, " +
-            "(c.locationUpdatedAt > :activeThreshold) " +
+            "CASE WHEN c.locationUpdatedAt > :activeThreshold THEN true ELSE false END " +
             "FROM Courier c WHERE c.id IN :courierIds AND c.verified = true")
     List<Object[]> findCourierDetailsFiltered(@Param("courierIds") List<Long> courierIds,
                                                @Param("activeThreshold") LocalDateTime activeThreshold,
@@ -255,7 +255,7 @@ public interface DashboardCourierRepository extends JpaRepository<Courier, Long>
      */
     @Query("SELECT c.id, c.status, c.averageRating, c.totalDeliveries, c.vehicleType, " +
             "c.currentLat, c.currentLng, c.locationUpdatedAt, c.currentOrderCount, " +
-            "(c.locationUpdatedAt > :activeThreshold) " +
+            "CASE WHEN c.locationUpdatedAt > :activeThreshold THEN true ELSE false END " +
             "FROM Courier c WHERE c.verified = true")
     List<Object[]> findAllCourierDetails(@Param("activeThreshold") LocalDateTime activeThreshold,
                                           Pageable pageable);
@@ -284,7 +284,7 @@ public interface DashboardCourierRepository extends JpaRepository<Courier, Long>
      */
     @Query("SELECT c.id, c.status, c.averageRating, c.totalDeliveries, c.vehicleType, " +
             "c.currentLat, c.currentLng, c.locationUpdatedAt, c.currentOrderCount, " +
-            "(c.locationUpdatedAt > :activeThreshold) " +
+            "CASE WHEN c.locationUpdatedAt > :activeThreshold THEN true ELSE false END " +
             "FROM Courier c WHERE c.verified = true " +
             "ORDER BY c.averageRating DESC, c.totalDeliveries DESC")
     List<Object[]> findTopPerformingCouriers(@Param("activeThreshold") LocalDateTime activeThreshold,
