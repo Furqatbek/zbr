@@ -463,6 +463,12 @@ public class PersistentNotificationServiceImpl implements PersistentNotification
         if (request.getCustomerId() != null) {
             createOrderNotification(request, request.getCustomerId(), NotificationRole.CONSUMER);
         }
+
+        // Notify all available couriers about new delivery opportunity
+        log.info("Order {} accepted by restaurant - broadcasting to couriers for delivery",
+                request.getOrderId());
+        request.setEventType(NotificationType.NEW_DELIVERY_AVAILABLE);
+        createOrderNotification(request, null, NotificationRole.COURIER);
     }
 
     @Override
