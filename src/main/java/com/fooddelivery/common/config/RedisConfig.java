@@ -98,10 +98,12 @@ public class RedisConfig {
         ObjectMapper objectMapper = new ObjectMapper();
         objectMapper.registerModule(new JavaTimeModule());
         objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+        // Use OBJECT_AND_NON_CONCRETE instead of NON_FINAL to avoid wrapping concrete types
+        // like BigDecimal and ArrayList, which causes deserialization issues with nested structures
         objectMapper.activateDefaultTyping(
                 LaissezFaireSubTypeValidator.instance,
-                ObjectMapper.DefaultTyping.NON_FINAL,
-                JsonTypeInfo.As.WRAPPER_ARRAY
+                ObjectMapper.DefaultTyping.OBJECT_AND_NON_CONCRETE,
+                JsonTypeInfo.As.PROPERTY
         );
         return objectMapper;
     }
