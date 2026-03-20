@@ -43,7 +43,7 @@ public class NotificationDataFetcher {
             return Optional.empty();
         }
         log.debug("Fetching restaurant: {}", restaurantId);
-        return restaurantRepository.findById(restaurantId);
+        return restaurantRepository.findByIdWithOwner(restaurantId);
     }
 
     /**
@@ -72,7 +72,7 @@ public class NotificationDataFetcher {
             return Optional.empty();
         }
         log.debug("Fetching courier: {}", courierId);
-        return courierRepository.findById(courierId);
+        return courierRepository.findByIdWithUser(courierId);
     }
 
     /**

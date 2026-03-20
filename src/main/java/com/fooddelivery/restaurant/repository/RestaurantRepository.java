@@ -69,4 +69,10 @@ public interface RestaurantRepository extends JpaRepository<Restaurant, Long> {
 
     @Query("SELECT COUNT(r) FROM Restaurant r WHERE r.status = :status")
     long countByStatus(@Param("status") RestaurantStatus status);
+
+    /**
+     * Find restaurant by ID with owner data eagerly fetched.
+     */
+    @Query("SELECT r FROM Restaurant r JOIN FETCH r.owner WHERE r.id = :id")
+    Optional<Restaurant> findByIdWithOwner(@Param("id") Long id);
 }
