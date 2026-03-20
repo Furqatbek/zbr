@@ -441,10 +441,10 @@ public class PersistentNotificationServiceImpl implements PersistentNotification
                     .message(String.format("Restaurant '%s' (ID: %d) has no owner assigned. Order #%s may not be processed.",
                             request.getRestaurantName(), request.getRestaurantId(), request.getOrderNumber()))
                     .category(NotificationCategory.SYSTEM)
-                    .notificationType(NotificationType.SYSTEM_ALERT)
+                    .notificationType(NotificationType.UNUSUAL_ACTIVITY)
                     .priority(NotificationPriority.HIGH)
                     .metadata(metadata)
-                    .icon(NotificationConstants.ICON_WARNING)
+                    .icon(NotificationConstants.ICON_ALERT)
                     .build();
 
             createNotification(adminNotification);
