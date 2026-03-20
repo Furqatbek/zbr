@@ -141,7 +141,7 @@ public interface FraudOrderHistoryRepository extends JpaRepository<FraudOrderHis
      * Returns: addressHash, userCount, totalOrders, userIds
      */
     @Query(value = "SELECT delivery_address_hash, COUNT(DISTINCT user_id), COUNT(*), " +
-            "STRING_AGG(DISTINCT CAST(user_id AS VARCHAR), ',') " +
+            "STRING_AGG(DISTINCT CAST(user_id AS TEXT), ',') " +
             "FROM fraud_order_history " +
             "WHERE delivery_address_hash IS NOT NULL AND created_at BETWEEN :start AND :end " +
             "GROUP BY delivery_address_hash " +
@@ -187,7 +187,7 @@ public interface FraudOrderHistoryRepository extends JpaRepository<FraudOrderHis
      * Returns: deviceId, userCount, totalOrders, userIds
      */
     @Query(value = "SELECT device_id, COUNT(DISTINCT user_id), COUNT(*), " +
-            "STRING_AGG(DISTINCT CAST(user_id AS VARCHAR), ',') " +
+            "STRING_AGG(DISTINCT CAST(user_id AS TEXT), ',') " +
             "FROM fraud_order_history " +
             "WHERE device_id IS NOT NULL AND created_at BETWEEN :start AND :end " +
             "GROUP BY device_id " +

@@ -39,7 +39,7 @@ public interface ReferralEventRepository extends JpaRepository<ReferralEvent, Lo
      * Detect devices with multiple signups.
      * Returns: deviceId, signupCount, referredUserIds as comma-separated
      */
-    @Query(value = "SELECT device_id, COUNT(*), STRING_AGG(CAST(referred_user_id AS VARCHAR), ',') " +
+    @Query(value = "SELECT device_id, COUNT(*), STRING_AGG(CAST(referred_user_id AS TEXT), ',') " +
             "FROM referral_events " +
             "WHERE device_id IS NOT NULL AND created_at BETWEEN :start AND :end " +
             "GROUP BY device_id " +
@@ -63,7 +63,7 @@ public interface ReferralEventRepository extends JpaRepository<ReferralEvent, Lo
      * Get device fingerprint clusters.
      * Returns: fingerprintHash, deviceId, signupCount, referredUserIds
      */
-    @Query(value = "SELECT device_fingerprint, device_id, COUNT(*), STRING_AGG(CAST(referred_user_id AS VARCHAR), ',') " +
+    @Query(value = "SELECT device_fingerprint, device_id, COUNT(*), STRING_AGG(CAST(referred_user_id AS TEXT), ',') " +
             "FROM referral_events " +
             "WHERE device_fingerprint IS NOT NULL AND created_at BETWEEN :start AND :end " +
             "GROUP BY device_fingerprint, device_id " +
@@ -79,7 +79,7 @@ public interface ReferralEventRepository extends JpaRepository<ReferralEvent, Lo
      * Detect IPs with multiple signups.
      * Returns: ipAddress, signupCount, referredUserIds
      */
-    @Query(value = "SELECT ip_address, COUNT(*), STRING_AGG(CAST(referred_user_id AS VARCHAR), ',') " +
+    @Query(value = "SELECT ip_address, COUNT(*), STRING_AGG(CAST(referred_user_id AS TEXT), ',') " +
             "FROM referral_events " +
             "WHERE ip_address IS NOT NULL AND created_at BETWEEN :start AND :end " +
             "GROUP BY ip_address " +
@@ -144,7 +144,7 @@ public interface ReferralEventRepository extends JpaRepository<ReferralEvent, Lo
      * Returns: phoneHash, userCount, userIds
      */
     @Query(value = "SELECT phone_number_hash, COUNT(DISTINCT referred_user_id), " +
-            "STRING_AGG(CAST(referred_user_id AS VARCHAR), ',') " +
+            "STRING_AGG(CAST(referred_user_id AS TEXT), ',') " +
             "FROM referral_events " +
             "WHERE phone_number_hash IS NOT NULL AND created_at BETWEEN :start AND :end " +
             "GROUP BY phone_number_hash " +

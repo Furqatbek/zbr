@@ -65,7 +65,7 @@ public interface SecurityFlagRepository extends JpaRepository<SecurityFlag, Long
      * Get high risk users (multiple active flags or high severity).
      * Returns: userId, flagCount, highestSeverity, flagTypes
      */
-    @Query(value = "SELECT user_id, COUNT(*), MAX(severity), STRING_AGG(DISTINCT CAST(flag_type AS VARCHAR), ',') " +
+    @Query(value = "SELECT user_id, COUNT(*), MAX(severity), STRING_AGG(DISTINCT CAST(flag_type AS TEXT), ',') " +
             "FROM security_flags " +
             "WHERE status IN ('ACTIVE', 'UNDER_REVIEW') " +
             "AND created_at BETWEEN :start AND :end " +

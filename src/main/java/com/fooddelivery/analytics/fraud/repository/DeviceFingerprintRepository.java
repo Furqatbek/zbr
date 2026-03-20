@@ -42,7 +42,7 @@ public interface DeviceFingerprintRepository extends JpaRepository<DeviceFingerp
      * Returns: deviceId, fingerprintHash, userCount, userIds, isEmulator, isRooted, trustScore
      */
     @Query(value = "SELECT device_id, fingerprint_hash, COUNT(DISTINCT user_id), " +
-            "STRING_AGG(DISTINCT CAST(user_id AS VARCHAR), ','), " +
+            "STRING_AGG(DISTINCT CAST(user_id AS TEXT), ','), " +
             "MAX(CASE WHEN is_emulator = true THEN 1 ELSE 0 END), " +
             "MAX(CASE WHEN is_rooted = true THEN 1 ELSE 0 END), " +
             "MIN(trust_score) " +
