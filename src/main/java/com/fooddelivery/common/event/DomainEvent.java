@@ -1,5 +1,6 @@
 package com.fooddelivery.common.event;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.Getter;
 
 import java.io.Serializable;
@@ -10,14 +11,15 @@ import java.util.UUID;
  * Base class for all domain events in the system.
  */
 @Getter
+@JsonIgnoreProperties(ignoreUnknown = true)
 public abstract class DomainEvent implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
-    private final String eventId;
-    private final String eventType;
-    private final LocalDateTime occurredAt;
-    private final int version;
+    private String eventId;
+    private String eventType;
+    private LocalDateTime occurredAt;
+    private int version;
 
     protected DomainEvent() {
         this.eventId = UUID.randomUUID().toString();
@@ -30,6 +32,13 @@ public abstract class DomainEvent implements Serializable {
         this.eventId = UUID.randomUUID().toString();
         this.eventType = this.getClass().getSimpleName();
         this.occurredAt = LocalDateTime.now();
+        this.version = version;
+    }
+
+    protected DomainEvent(String eventId, String eventType, LocalDateTime occurredAt, int version) {
+        this.eventId = eventId;
+        this.eventType = eventType;
+        this.occurredAt = occurredAt;
         this.version = version;
     }
 

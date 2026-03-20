@@ -1,14 +1,19 @@
 package com.fooddelivery.order.event;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fooddelivery.common.event.DomainEvent;
 import lombok.Getter;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 /**
  * Event published when a courier is assigned to an order.
  */
 @Getter
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class CourierAssignedEvent extends DomainEvent {
 
     private final Long orderId;
@@ -27,6 +32,35 @@ public class CourierAssignedEvent extends DomainEvent {
                                  BigDecimal pickupLat, BigDecimal pickupLng,
                                  BigDecimal deliveryLat, BigDecimal deliveryLng) {
         super();
+        this.orderId = orderId;
+        this.externalOrderNo = externalOrderNo;
+        this.courierId = courierId;
+        this.restaurantId = restaurantId;
+        this.pickupAddress = pickupAddress;
+        this.deliveryAddress = deliveryAddress;
+        this.pickupLat = pickupLat;
+        this.pickupLng = pickupLng;
+        this.deliveryLat = deliveryLat;
+        this.deliveryLng = deliveryLng;
+    }
+
+    @JsonCreator
+    public CourierAssignedEvent(
+            @JsonProperty("eventId") String eventId,
+            @JsonProperty("eventType") String eventType,
+            @JsonProperty("occurredAt") LocalDateTime occurredAt,
+            @JsonProperty("version") int version,
+            @JsonProperty("orderId") Long orderId,
+            @JsonProperty("externalOrderNo") String externalOrderNo,
+            @JsonProperty("courierId") Long courierId,
+            @JsonProperty("restaurantId") Long restaurantId,
+            @JsonProperty("pickupAddress") String pickupAddress,
+            @JsonProperty("deliveryAddress") String deliveryAddress,
+            @JsonProperty("pickupLat") BigDecimal pickupLat,
+            @JsonProperty("pickupLng") BigDecimal pickupLng,
+            @JsonProperty("deliveryLat") BigDecimal deliveryLat,
+            @JsonProperty("deliveryLng") BigDecimal deliveryLng) {
+        super(eventId, eventType, occurredAt, version);
         this.orderId = orderId;
         this.externalOrderNo = externalOrderNo;
         this.courierId = courierId;
