@@ -403,9 +403,9 @@ public class PersistentNotificationServiceImpl implements PersistentNotification
     public void notifyOrderCreated(OrderNotificationRequest request) {
         request.setEventType(NotificationType.ORDER_CREATED);
 
-        // Notify customer
+        // Notify consumer
         if (request.getCustomerId() != null) {
-            createOrderNotification(request, request.getCustomerId(), NotificationRole.CUSTOMER);
+            createOrderNotification(request, request.getCustomerId(), NotificationRole.CONSUMER);
         }
 
         // Notify restaurant
@@ -419,9 +419,9 @@ public class PersistentNotificationServiceImpl implements PersistentNotification
     public void notifyOrderAccepted(OrderNotificationRequest request) {
         request.setEventType(NotificationType.ORDER_ACCEPTED);
 
-        // Notify customer
+        // Notify consumer
         if (request.getCustomerId() != null) {
-            createOrderNotification(request, request.getCustomerId(), NotificationRole.CUSTOMER);
+            createOrderNotification(request, request.getCustomerId(), NotificationRole.CONSUMER);
         }
     }
 
@@ -429,9 +429,9 @@ public class PersistentNotificationServiceImpl implements PersistentNotification
     public void notifyOrderRejected(OrderNotificationRequest request) {
         request.setEventType(NotificationType.ORDER_REJECTED);
 
-        // Notify customer
+        // Notify consumer
         if (request.getCustomerId() != null) {
-            createOrderNotification(request, request.getCustomerId(), NotificationRole.CUSTOMER);
+            createOrderNotification(request, request.getCustomerId(), NotificationRole.CONSUMER);
         }
 
         // Notify admin for monitoring
@@ -442,9 +442,9 @@ public class PersistentNotificationServiceImpl implements PersistentNotification
     public void notifyOrderPreparing(OrderNotificationRequest request) {
         request.setEventType(NotificationType.ORDER_PREPARING);
 
-        // Notify customer
+        // Notify consumer
         if (request.getCustomerId() != null) {
-            createOrderNotification(request, request.getCustomerId(), NotificationRole.CUSTOMER);
+            createOrderNotification(request, request.getCustomerId(), NotificationRole.CONSUMER);
         }
     }
 
@@ -452,9 +452,9 @@ public class PersistentNotificationServiceImpl implements PersistentNotification
     public void notifyOrderReady(OrderNotificationRequest request) {
         request.setEventType(NotificationType.ORDER_READY);
 
-        // Notify customer
+        // Notify consumer
         if (request.getCustomerId() != null) {
-            createOrderNotification(request, request.getCustomerId(), NotificationRole.CUSTOMER);
+            createOrderNotification(request, request.getCustomerId(), NotificationRole.CONSUMER);
         }
 
         // Notify courier
@@ -467,9 +467,9 @@ public class PersistentNotificationServiceImpl implements PersistentNotification
     public void notifyCourierAssigned(OrderNotificationRequest request) {
         request.setEventType(NotificationType.COURIER_ASSIGNED);
 
-        // Notify customer
+        // Notify consumer
         if (request.getCustomerId() != null) {
-            createOrderNotification(request, request.getCustomerId(), NotificationRole.CUSTOMER);
+            createOrderNotification(request, request.getCustomerId(), NotificationRole.CONSUMER);
         }
 
         // Notify courier
@@ -489,9 +489,9 @@ public class PersistentNotificationServiceImpl implements PersistentNotification
     public void notifyOrderPickedUp(OrderNotificationRequest request) {
         request.setEventType(NotificationType.ORDER_PICKED_UP);
 
-        // Notify customer
+        // Notify consumer
         if (request.getCustomerId() != null) {
-            createOrderNotification(request, request.getCustomerId(), NotificationRole.CUSTOMER);
+            createOrderNotification(request, request.getCustomerId(), NotificationRole.CONSUMER);
         }
 
         // Notify restaurant
@@ -504,9 +504,9 @@ public class PersistentNotificationServiceImpl implements PersistentNotification
     public void notifyOrderInTransit(OrderNotificationRequest request) {
         request.setEventType(NotificationType.ORDER_IN_TRANSIT);
 
-        // Notify customer
+        // Notify consumer
         if (request.getCustomerId() != null) {
-            createOrderNotification(request, request.getCustomerId(), NotificationRole.CUSTOMER);
+            createOrderNotification(request, request.getCustomerId(), NotificationRole.CONSUMER);
         }
     }
 
@@ -514,9 +514,9 @@ public class PersistentNotificationServiceImpl implements PersistentNotification
     public void notifyOrderDelivered(OrderNotificationRequest request) {
         request.setEventType(NotificationType.ORDER_DELIVERED);
 
-        // Notify customer
+        // Notify consumer
         if (request.getCustomerId() != null) {
-            createOrderNotification(request, request.getCustomerId(), NotificationRole.CUSTOMER);
+            createOrderNotification(request, request.getCustomerId(), NotificationRole.CONSUMER);
         }
 
         // Notify restaurant
@@ -535,9 +535,9 @@ public class PersistentNotificationServiceImpl implements PersistentNotification
     public void notifyOrderCancelled(OrderNotificationRequest request) {
         request.setEventType(NotificationType.ORDER_CANCELLED);
 
-        // Notify customer
+        // Notify consumer
         if (request.getCustomerId() != null) {
-            createOrderNotification(request, request.getCustomerId(), NotificationRole.CUSTOMER);
+            createOrderNotification(request, request.getCustomerId(), NotificationRole.CONSUMER);
         }
 
         // Notify restaurant
@@ -558,9 +558,9 @@ public class PersistentNotificationServiceImpl implements PersistentNotification
     public void notifyPaymentFailed(OrderNotificationRequest request) {
         request.setEventType(NotificationType.PAYMENT_FAILED);
 
-        // Notify customer
+        // Notify consumer
         if (request.getCustomerId() != null) {
-            createOrderNotification(request, request.getCustomerId(), NotificationRole.CUSTOMER);
+            createOrderNotification(request, request.getCustomerId(), NotificationRole.CONSUMER);
         }
 
         // Notify admin for monitoring
@@ -571,9 +571,9 @@ public class PersistentNotificationServiceImpl implements PersistentNotification
     public void notifyPaymentReceived(OrderNotificationRequest request) {
         request.setEventType(NotificationType.PAYMENT_RECEIVED);
 
-        // Notify customer
+        // Notify consumer
         if (request.getCustomerId() != null) {
-            createOrderNotification(request, request.getCustomerId(), NotificationRole.CUSTOMER);
+            createOrderNotification(request, request.getCustomerId(), NotificationRole.CONSUMER);
         }
     }
 
@@ -581,9 +581,9 @@ public class PersistentNotificationServiceImpl implements PersistentNotification
     public void notifyRefundProcessed(OrderNotificationRequest request) {
         request.setEventType(NotificationType.PAYMENT_REFUNDED);
 
-        // Notify customer
+        // Notify consumer
         if (request.getCustomerId() != null) {
-            createOrderNotification(request, request.getCustomerId(), NotificationRole.CUSTOMER);
+            createOrderNotification(request, request.getCustomerId(), NotificationRole.CONSUMER);
         }
     }
 
@@ -610,7 +610,7 @@ public class PersistentNotificationServiceImpl implements PersistentNotification
     public void notifySupportTicketCreated(Long userId, Long ticketId, String subject) {
         NotificationCreateDto createDto = NotificationCreateDto.builder()
                 .userId(userId)
-                .role(NotificationRole.CUSTOMER)
+                .role(NotificationRole.CONSUMER)
                 .title("Support Ticket Created")
                 .message(String.format("Your support ticket '%s' has been created. We'll respond shortly.", subject))
                 .category(NotificationCategory.SUPPORT)
@@ -629,7 +629,7 @@ public class PersistentNotificationServiceImpl implements PersistentNotification
     public void notifySupportTicketUpdated(Long userId, Long ticketId, String updateMessage) {
         NotificationCreateDto createDto = NotificationCreateDto.builder()
                 .userId(userId)
-                .role(NotificationRole.CUSTOMER)
+                .role(NotificationRole.CONSUMER)
                 .title("Support Ticket Updated")
                 .message(updateMessage)
                 .category(NotificationCategory.SUPPORT)
@@ -648,7 +648,7 @@ public class PersistentNotificationServiceImpl implements PersistentNotification
     public void notifySupportTicketResolved(Long userId, Long ticketId) {
         NotificationCreateDto createDto = NotificationCreateDto.builder()
                 .userId(userId)
-                .role(NotificationRole.CUSTOMER)
+                .role(NotificationRole.CONSUMER)
                 .title("Support Ticket Resolved")
                 .message("Your support ticket has been resolved. Thank you for your patience.")
                 .category(NotificationCategory.SUPPORT)
@@ -689,7 +689,7 @@ public class PersistentNotificationServiceImpl implements PersistentNotification
 
     private void createOrderNotification(OrderNotificationRequest request, Long userId, NotificationRole role) {
         Map<String, String> messageContent = switch (role) {
-            case CUSTOMER -> NotificationMessageBuilder.buildCustomerMessage(request);
+            case CONSUMER, CUSTOMER -> NotificationMessageBuilder.buildCustomerMessage(request);
             case RESTAURANT -> NotificationMessageBuilder.buildRestaurantMessage(request);
             case COURIER -> NotificationMessageBuilder.buildCourierMessage(request);
             case ADMIN -> NotificationMessageBuilder.buildAdminMessage(request);

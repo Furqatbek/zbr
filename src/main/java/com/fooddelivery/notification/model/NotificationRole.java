@@ -2,11 +2,19 @@ package com.fooddelivery.notification.model;
 
 /**
  * Enumeration of roles that can receive notifications.
+ * Note: CONSUMER and CUSTOMER are aliases - CONSUMER is preferred as it matches the auth system.
  */
 public enum NotificationRole {
     /**
-     * Customer role - receives order updates, promotions.
+     * Consumer role - receives order updates, promotions.
+     * This matches the Role.CONSUMER from the auth system.
      */
+    CONSUMER("Consumer"),
+
+    /**
+     * @deprecated Use CONSUMER instead. Kept for backward compatibility.
+     */
+    @Deprecated
     CUSTOMER("Customer"),
 
     /**
