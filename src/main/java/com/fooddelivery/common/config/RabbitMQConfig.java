@@ -73,7 +73,12 @@ public class RabbitMQConfig {
                 "com.fooddelivery.payment.dto",
                 "com.fooddelivery.courier.dto",
                 "com.fooddelivery.kitchen.dto",
-                "com.fooddelivery.common.dto"
+                "com.fooddelivery.common.dto",
+                // Event packages for domain events deserialization
+                "com.fooddelivery.order.event",
+                "com.fooddelivery.notification.event",
+                "com.fooddelivery.kitchen.event",
+                "com.fooddelivery.common.event"
         );
         converter.setJavaTypeMapper(typeMapper);
 
