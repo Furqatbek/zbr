@@ -25,16 +25,25 @@ public class NotificationSpecifications {
         return (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
 
-            // User ID and Role filter - include broadcasts for the user's role
+            // User ID and Role filter - include broadcasts only for COURIER and ADMIN roles
+            // RESTAURANT and CONSUMER should only see their own direct notifications
             if (filter.getUserId() != null && filter.getRole() != null) {
-                // Include both direct notifications to user AND broadcast notifications for their role
-                predicates.add(cb.or(
-                        cb.equal(root.get("userId"), filter.getUserId()),
-                        cb.and(
-                                cb.isNull(root.get("userId")),
-                                cb.equal(root.get("role"), filter.getRole())
-                        )
-                ));
+                boolean allowBroadcasts = filter.getRole() == NotificationRole.COURIER
+                        || filter.getRole() == NotificationRole.ADMIN;
+
+                if (allowBroadcasts) {
+                    // Include both direct notifications AND broadcast notifications for their role
+                    predicates.add(cb.or(
+                            cb.equal(root.get("userId"), filter.getUserId()),
+                            cb.and(
+                                    cb.isNull(root.get("userId")),
+                                    cb.equal(root.get("role"), filter.getRole())
+                            )
+                    ));
+                } else {
+                    // RESTAURANT/CONSUMER: only direct notifications to this user
+                    predicates.add(cb.equal(root.get("userId"), filter.getUserId()));
+                }
             } else if (filter.getUserId() != null) {
                 // Only user ID specified - get direct notifications only
                 predicates.add(cb.equal(root.get("userId"), filter.getUserId()));
