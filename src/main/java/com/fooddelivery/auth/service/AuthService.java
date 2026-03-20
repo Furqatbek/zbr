@@ -182,8 +182,8 @@ public class AuthService {
         User user = refreshToken.getUser();
         UserPrincipal userPrincipal = UserPrincipal.create(user);
 
-        // Verify JWT token
-        if (!jwtService.isTokenValid(refreshTokenStr, userPrincipal)) {
+        // Verify JWT token signature and username (expiration is handled by DB)
+        if (!jwtService.isRefreshTokenValidIgnoreExpiration(refreshTokenStr, userPrincipal)) {
             throw new BusinessException("Invalid refresh token");
         }
 

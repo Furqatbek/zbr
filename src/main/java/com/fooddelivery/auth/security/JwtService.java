@@ -98,6 +98,35 @@ public class JwtService {
     }
 
     /**
+     * Validate refresh token signature and username without checking JWT expiration.
+     * Database-stored refresh tokens track their own expiration separately.
+     */
+    public boolean isRefreshTokenValidIgnoreExpiration(String token, UserDetails userDetails) {
+        try {
+            final Claims claims = extractAllClaimsIgnoreExpiration(token);
+            final String username = claims.getSubject();
+            final String type = claims.get("type", String.class);
+            return username.equals(userDetails.getUsername()) && "refresh".equals(type);
+        } catch (JwtException e) {
+            log.warn("Invalid refresh token: {}", e.getMessage());
+            return false;
+        }
+    }
+
+    private Claims extractAllClaimsIgnoreExpiration(String token) {
+        try {
+            return Jwts.parser()
+                    .verifyWith(getSigningKey())
+                    .build()
+                    .parseSignedClaims(token)
+                    .getPayload();
+        } catch (ExpiredJwtException e) {
+            // Return the claims even if the token is expired - we validate expiration via DB
+            return e.getClaims();
+        }
+    }
+
+    /**
      * Check if token is expired.
      */
     public boolean isTokenExpired(String token) {
