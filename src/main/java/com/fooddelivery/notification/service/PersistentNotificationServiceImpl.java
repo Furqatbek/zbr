@@ -46,12 +46,14 @@ public class PersistentNotificationServiceImpl implements PersistentNotification
 
     @Override
     public NotificationResponseDto createNotification(NotificationCreateDto createDto) {
-        log.debug("Creating notification: {}", createDto);
+        log.info("Creating notification: type={}, userId={}, role={}, title={}",
+                createDto.getNotificationType(), createDto.getUserId(), createDto.getRole(), createDto.getTitle());
 
         Notification notification = notificationMapper.toEntity(createDto);
         notification = notificationRepository.save(notification);
 
-        log.info("Created notification with ID: {}", notification.getId());
+        log.info("Created notification with ID: {} for userId={}, role={}",
+                notification.getId(), notification.getUserId(), notification.getRole());
 
         NotificationResponseDto responseDto = notificationMapper.toResponseDto(notification);
 
@@ -457,11 +459,18 @@ public class PersistentNotificationServiceImpl implements PersistentNotification
 
     @Override
     public void notifyOrderAccepted(OrderNotificationRequest request) {
+        log.info("Processing ORDER_ACCEPTED notification for order {}, customerId={}, restaurantId={}",
+                request.getOrderId(), request.getCustomerId(), request.getRestaurantId());
+
         request.setEventType(NotificationType.ORDER_ACCEPTED);
 
         // Notify consumer
         if (request.getCustomerId() != null) {
+            log.info("Sending ORDER_ACCEPTED notification to customer {} for order {}",
+                    request.getCustomerId(), request.getOrderId());
             createOrderNotification(request, request.getCustomerId(), NotificationRole.CONSUMER);
+        } else {
+            log.warn("Cannot notify customer for order {} - customerId is null", request.getOrderId());
         }
 
         // Notify all available couriers about new delivery opportunity
@@ -486,21 +495,35 @@ public class PersistentNotificationServiceImpl implements PersistentNotification
 
     @Override
     public void notifyOrderPreparing(OrderNotificationRequest request) {
+        log.info("Processing ORDER_PREPARING notification for order {}, customerId={}",
+                request.getOrderId(), request.getCustomerId());
+
         request.setEventType(NotificationType.ORDER_PREPARING);
 
         // Notify consumer
         if (request.getCustomerId() != null) {
+            log.info("Sending ORDER_PREPARING notification to customer {} for order {}",
+                    request.getCustomerId(), request.getOrderId());
             createOrderNotification(request, request.getCustomerId(), NotificationRole.CONSUMER);
+        } else {
+            log.warn("Cannot notify customer for order {} - customerId is null", request.getOrderId());
         }
     }
 
     @Override
     public void notifyOrderReady(OrderNotificationRequest request) {
+        log.info("Processing ORDER_READY notification for order {}, customerId={}, courierUserId={}",
+                request.getOrderId(), request.getCustomerId(), request.getCourierUserId());
+
         request.setEventType(NotificationType.ORDER_READY);
 
         // Notify consumer
         if (request.getCustomerId() != null) {
+            log.info("Sending ORDER_READY notification to customer {} for order {}",
+                    request.getCustomerId(), request.getOrderId());
             createOrderNotification(request, request.getCustomerId(), NotificationRole.CONSUMER);
+        } else {
+            log.warn("Cannot notify customer for order {} - customerId is null", request.getOrderId());
         }
 
         // Notify courier - either specific courier or broadcast to all available couriers

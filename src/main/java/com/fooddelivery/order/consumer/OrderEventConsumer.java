@@ -92,11 +92,13 @@ public class OrderEventConsumer {
             containerFactory = "rabbitListenerContainerFactory"
     )
     public void handleOrderStatusChanged(OrderStatusChangedEvent event) {
-        log.info("Consuming OrderStatusChangedEvent from queue: orderId={}, {} -> {}",
-                event.getOrderId(), event.getPreviousStatus(), event.getNewStatus());
+        log.info("Consuming OrderStatusChangedEvent from queue: orderId={}, {} -> {}, consumerId={}",
+                event.getOrderId(), event.getPreviousStatus(), event.getNewStatus(), event.getConsumerId());
 
         try {
             OrderNotificationRequest request = buildStatusChangeRequest(event);
+            log.info("Built notification request for order {}: customerId={}, restaurantUserId={}, courierUserId={}",
+                    request.getOrderId(), request.getCustomerId(), request.getRestaurantUserId(), request.getCourierUserId());
 
             switch (event.getNewStatus()) {
                 case ACCEPTED -> notificationService.notifyOrderAccepted(request);
