@@ -9,7 +9,11 @@ WORKDIR /app
 COPY pom.xml .
 
 # Download dependencies (cached if pom.xml unchanged)
-RUN mvn dependency:go-offline -B
+# Retry logic for transient network errors
+RUN for i in 1 2 3 4; do \
+      mvn dependency:go-offline -B && break || \
+      { echo "Attempt $i failed, retrying in $((i*2))s..."; sleep $((i*2)); }; \
+    done
 
 # Copy source code
 COPY src ./src
