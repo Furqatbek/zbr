@@ -128,9 +128,6 @@ public class OrderService {
         // Notify restaurant via WebSocket
         notifyRestaurant(order);
 
-        // Send SMS notification to customer
-        sendOrderConfirmationSms(order);
-
         return orderMapper.toDto(order);
     }
 
@@ -238,9 +235,6 @@ public class OrderService {
 
         // Notify via WebSocket
         notifyOrderStatusChange(order);
-
-        // Send SMS notification to customer
-        sendOrderStatusUpdateSms(order, previousStatus);
 
         return orderMapper.toDto(order);
     }
