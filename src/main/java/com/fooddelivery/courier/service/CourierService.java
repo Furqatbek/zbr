@@ -19,6 +19,7 @@ import com.fooddelivery.order.entity.Order;
 import com.fooddelivery.order.entity.OrderStatus;
 import com.fooddelivery.order.entity.PaymentStatus;
 import com.fooddelivery.order.event.CourierAssignedEvent;
+import com.fooddelivery.order.event.OrderStatusChangedEvent;
 import com.fooddelivery.order.repository.OrderRepository;
 import com.fooddelivery.order.repository.PaymentRepository;
 import lombok.RequiredArgsConstructor;
@@ -585,10 +586,15 @@ public class CourierService {
             throw new BusinessException("Order cannot be picked up in current status: " + order.getStatus());
         }
 
+        OrderStatus previousStatus = order.getStatus();
         order.updateStatus(OrderStatus.PICKED_UP);
         order = orderRepository.save(order);
 
         log.info("Courier {} picked up order {}", courierId, orderId);
+
+        // Publish event to trigger notifications
+        publishOrderStatusChangedEvent(order, previousStatus, null);
+
         return toOrderDto(order);
     }
 
@@ -609,10 +615,15 @@ public class CourierService {
             throw new BusinessException("Order must be picked up before starting transit");
         }
 
+        OrderStatus previousStatus = order.getStatus();
         order.updateStatus(OrderStatus.IN_TRANSIT);
         order = orderRepository.save(order);
 
         log.info("Courier {} started transit for order {}", courierId, orderId);
+
+        // Publish event to trigger notifications
+        publishOrderStatusChangedEvent(order, previousStatus, null);
+
         return toOrderDto(order);
     }
 
@@ -632,6 +643,7 @@ public class CourierService {
             throw new BusinessException("This order is not assigned to you");
         }
 
+        OrderStatus previousStatus = order.getStatus();
         order.updateStatus(OrderStatus.DELIVERED);
 
         // For cash payments, mark payment as confirmed when order is delivered
@@ -659,6 +671,10 @@ public class CourierService {
         courierRepository.save(courier);
 
         log.info("Courier {} completed delivery for order {}", courierId, orderId);
+
+        // Publish event to trigger notifications
+        publishOrderStatusChangedEvent(order, previousStatus, null);
+
         return toOrderDto(order);
     }
 
@@ -745,6 +761,24 @@ public class CourierService {
         eventPublisher.publishAsync(
                 RabbitMQConfig.COURIER_EXCHANGE,
                 RabbitMQConfig.COURIER_ASSIGNED_KEY,
+                event
+        );
+    }
+
+    private void publishOrderStatusChangedEvent(Order order, OrderStatus previousStatus, String reason) {
+        OrderStatusChangedEvent event = new OrderStatusChangedEvent(
+                order.getId(),
+                order.getExternalOrderNo(),
+                order.getRestaurant().getId(),
+                order.getConsumer().getId(),
+                order.getCourier() != null ? order.getCourier().getId() : null,
+                previousStatus,
+                order.getStatus(),
+                reason
+        );
+        eventPublisher.publishAsync(
+                RabbitMQConfig.ORDER_EXCHANGE,
+                RabbitMQConfig.ORDER_STATUS_CHANGED_KEY,
                 event
         );
     }
