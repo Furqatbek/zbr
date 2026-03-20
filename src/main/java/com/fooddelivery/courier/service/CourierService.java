@@ -636,17 +636,18 @@ public class CourierService {
 
         // For cash payments, mark payment as confirmed when order is delivered
         if (order.getPaymentStatus() == PaymentStatus.PENDING) {
+            final Order orderToUpdate = order;
             paymentRepository.findByOrderId(orderId).ifPresentOrElse(
                     payment -> {
                         if ("cash".equalsIgnoreCase(payment.getPaymentMethod())) {
-                            order.setPaymentStatus(PaymentStatus.CONFIRMED);
-                            log.info("Cash payment confirmed for order {}", order.getExternalOrderNo());
+                            orderToUpdate.setPaymentStatus(PaymentStatus.CONFIRMED);
+                            log.info("Cash payment confirmed for order {}", orderToUpdate.getExternalOrderNo());
                         }
                     },
                     () -> {
                         // No payment record exists - assume cash payment
-                        order.setPaymentStatus(PaymentStatus.CONFIRMED);
-                        log.info("Payment confirmed for order {} (no payment record - assumed cash)", order.getExternalOrderNo());
+                        orderToUpdate.setPaymentStatus(PaymentStatus.CONFIRMED);
+                        log.info("Payment confirmed for order {} (no payment record - assumed cash)", orderToUpdate.getExternalOrderNo());
                     }
             );
         }
