@@ -1,6 +1,6 @@
 package com.fooddelivery.notification.controller;
 
-import com.fooddelivery.auth.service.AuthService;
+import com.fooddelivery.auth.security.UserPrincipal;
 import com.fooddelivery.notification.dto.DeviceTokenRequest;
 import com.fooddelivery.notification.entity.UserDeviceToken;
 import com.fooddelivery.notification.service.DeviceTokenService;
@@ -12,6 +12,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -27,7 +28,6 @@ import java.util.Map;
 public class DeviceTokenController {
 
     private final DeviceTokenService deviceTokenService;
-    private final AuthService authService;
 
     /**
      * Register or update a device token for push notifications.
@@ -41,8 +41,10 @@ public class DeviceTokenController {
             @ApiResponse(responseCode = "400", description = "Invalid request"),
             @ApiResponse(responseCode = "401", description = "Not authenticated")
     })
-    public ResponseEntity<Map<String, Object>> registerToken(@Valid @RequestBody DeviceTokenRequest request) {
-        Long userId = authService.getCurrentUserId();
+    public ResponseEntity<Map<String, Object>> registerToken(
+            @AuthenticationPrincipal UserPrincipal currentUser,
+            @Valid @RequestBody DeviceTokenRequest request) {
+        Long userId = currentUser.getId();
         log.info("Registering device token for user {}", userId);
 
         UserDeviceToken token = deviceTokenService.registerToken(userId, request);
@@ -91,8 +93,9 @@ public class DeviceTokenController {
             @ApiResponse(responseCode = "200", description = "All tokens removed successfully"),
             @ApiResponse(responseCode = "401", description = "Not authenticated")
     })
-    public ResponseEntity<Map<String, Object>> removeAllTokens() {
-        Long userId = authService.getCurrentUserId();
+    public ResponseEntity<Map<String, Object>> removeAllTokens(
+            @AuthenticationPrincipal UserPrincipal currentUser) {
+        Long userId = currentUser.getId();
         deviceTokenService.deactivateAllTokens(userId);
 
         return ResponseEntity.ok(Map.of(
