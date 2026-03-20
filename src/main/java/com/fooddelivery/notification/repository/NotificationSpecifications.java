@@ -25,13 +25,21 @@ public class NotificationSpecifications {
         return (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
 
-            // User ID filter
-            if (filter.getUserId() != null) {
+            // User ID and Role filter - include broadcasts for the user's role
+            if (filter.getUserId() != null && filter.getRole() != null) {
+                // Include both direct notifications to user AND broadcast notifications for their role
+                predicates.add(cb.or(
+                        cb.equal(root.get("userId"), filter.getUserId()),
+                        cb.and(
+                                cb.isNull(root.get("userId")),
+                                cb.equal(root.get("role"), filter.getRole())
+                        )
+                ));
+            } else if (filter.getUserId() != null) {
+                // Only user ID specified - get direct notifications only
                 predicates.add(cb.equal(root.get("userId"), filter.getUserId()));
-            }
-
-            // Role filter
-            if (filter.getRole() != null) {
+            } else if (filter.getRole() != null) {
+                // Only role specified - filter by role (includes broadcasts)
                 predicates.add(cb.equal(root.get("role"), filter.getRole()));
             }
 

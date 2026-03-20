@@ -106,8 +106,9 @@ public interface CourierRepository extends JpaRepository<Courier, Long> {
 
     /**
      * Find courier by ID with user data.
+     * Uses LEFT JOIN to handle cases where user relationship might not exist.
      */
-    @Query("SELECT c FROM Courier c JOIN FETCH c.user WHERE c.id = :id")
+    @Query("SELECT c FROM Courier c LEFT JOIN FETCH c.user WHERE c.id = :id")
     Optional<Courier> findByIdWithUser(@Param("id") Long id);
 
     /**

@@ -72,7 +72,8 @@ public interface RestaurantRepository extends JpaRepository<Restaurant, Long> {
 
     /**
      * Find restaurant by ID with owner data eagerly fetched.
+     * Uses LEFT JOIN to handle cases where owner might not exist.
      */
-    @Query("SELECT r FROM Restaurant r JOIN FETCH r.owner WHERE r.id = :id")
+    @Query("SELECT r FROM Restaurant r LEFT JOIN FETCH r.owner WHERE r.id = :id")
     Optional<Restaurant> findByIdWithOwner(@Param("id") Long id);
 }
