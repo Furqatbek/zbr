@@ -17,8 +17,10 @@ import com.fooddelivery.courier.entity.VehicleType;
 import com.fooddelivery.courier.repository.CourierRepository;
 import com.fooddelivery.order.entity.Order;
 import com.fooddelivery.order.entity.OrderStatus;
+import com.fooddelivery.order.entity.PaymentStatus;
 import com.fooddelivery.order.event.CourierAssignedEvent;
 import com.fooddelivery.order.repository.OrderRepository;
+import com.fooddelivery.order.repository.PaymentRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -41,6 +43,7 @@ public class CourierService {
 
     private final CourierRepository courierRepository;
     private final OrderRepository orderRepository;
+    private final PaymentRepository paymentRepository;
     private final UserService userService;
     private final EventPublisher eventPublisher;
     private final SimpMessagingTemplate messagingTemplate;
@@ -219,6 +222,24 @@ public class CourierService {
         }
 
         order.updateStatus(OrderStatus.DELIVERED);
+
+        // For cash payments, mark payment as confirmed when order is delivered
+        if (order.getPaymentStatus() == PaymentStatus.PENDING) {
+            paymentRepository.findByOrderId(orderId).ifPresentOrElse(
+                    payment -> {
+                        if ("cash".equalsIgnoreCase(payment.getPaymentMethod())) {
+                            order.setPaymentStatus(PaymentStatus.CONFIRMED);
+                            log.info("Cash payment confirmed for order {}", order.getExternalOrderNo());
+                        }
+                    },
+                    () -> {
+                        // No payment record exists - assume cash payment
+                        order.setPaymentStatus(PaymentStatus.CONFIRMED);
+                        log.info("Payment confirmed for order {} (no payment record - assumed cash)", order.getExternalOrderNo());
+                    }
+            );
+        }
+
         orderRepository.save(order);
 
         courier.completeOrder();
@@ -612,6 +633,24 @@ public class CourierService {
         }
 
         order.updateStatus(OrderStatus.DELIVERED);
+
+        // For cash payments, mark payment as confirmed when order is delivered
+        if (order.getPaymentStatus() == PaymentStatus.PENDING) {
+            paymentRepository.findByOrderId(orderId).ifPresentOrElse(
+                    payment -> {
+                        if ("cash".equalsIgnoreCase(payment.getPaymentMethod())) {
+                            order.setPaymentStatus(PaymentStatus.CONFIRMED);
+                            log.info("Cash payment confirmed for order {}", order.getExternalOrderNo());
+                        }
+                    },
+                    () -> {
+                        // No payment record exists - assume cash payment
+                        order.setPaymentStatus(PaymentStatus.CONFIRMED);
+                        log.info("Payment confirmed for order {} (no payment record - assumed cash)", order.getExternalOrderNo());
+                    }
+            );
+        }
+
         order = orderRepository.save(order);
 
         courier.completeOrder();
