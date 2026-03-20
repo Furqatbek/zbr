@@ -183,18 +183,21 @@ public class NotificationController {
             @RequestParam(defaultValue = "0") Integer page,
             @RequestParam(defaultValue = "20") Integer pageSize) {
 
-        // Extract user ID from UserDetails (assuming it's available)
         Long userId = extractUserId(userDetails);
+
+        // Use provided role or extract from user's auth role
+        NotificationRole effectiveRole = role != null ? role : extractNotificationRole(userDetails);
 
         NotificationFilterDto filter = NotificationFilterDto.builder()
                 .userId(userId)
-                .role(role)
+                .role(effectiveRole)
                 .isRead(isRead)
                 .category(category)
                 .page(page)
                 .pageSize(pageSize)
                 .build();
 
+        log.debug("Getting notifications for user {} with role {}", userId, effectiveRole);
         NotificationListDto response = notificationService.getNotifications(filter);
         return ResponseEntity.ok(response);
     }
@@ -267,8 +270,11 @@ public class NotificationController {
             return ResponseEntity.ok(Map.of("unreadCount", 0L));
         }
 
-        Long count = role != null
-                ? notificationService.getUnreadCount(userId, role)
+        // Use provided role or extract from user's auth role
+        NotificationRole effectiveRole = role != null ? role : extractNotificationRole(userDetails);
+
+        Long count = effectiveRole != null
+                ? notificationService.getUnreadCount(userId, effectiveRole)
                 : notificationService.getUnreadCount(userId);
 
         return ResponseEntity.ok(Map.of("unreadCount", count));
@@ -466,16 +472,46 @@ public class NotificationController {
 
     /**
      * Extract user ID from UserDetails.
-     * Override this method if your UserDetails implementation differs.
      */
     private Long extractUserId(UserDetails userDetails) {
-        // This assumes the username is the user ID or you have a custom UserDetails
+        if (userDetails instanceof com.fooddelivery.auth.security.UserPrincipal principal) {
+            return principal.getId();
+        }
+        // Fallback for other UserDetails implementations
         try {
             return Long.parseLong(userDetails.getUsername());
         } catch (NumberFormatException e) {
-            // If username is not numeric, you may need a different approach
             log.warn("Could not extract user ID from username: {}", userDetails.getUsername());
             return null;
         }
+    }
+
+    /**
+     * Extract notification role from UserDetails based on user's auth role.
+     */
+    private NotificationRole extractNotificationRole(UserDetails userDetails) {
+        if (userDetails instanceof com.fooddelivery.auth.security.UserPrincipal principal) {
+            return mapAuthRoleToNotificationRole(principal.getRole());
+        }
+        return null;
+    }
+
+    /**
+     * Map auth system Role to notification system NotificationRole.
+     */
+    private NotificationRole mapAuthRoleToNotificationRole(com.fooddelivery.auth.entity.Role authRole) {
+        if (authRole == null) {
+            return null;
+        }
+        return switch (authRole) {
+            case CONSUMER -> NotificationRole.CONSUMER;
+            case COURIER -> NotificationRole.COURIER;
+            case RESTAURANT_OWNER, RESTAURANT_STAFF -> NotificationRole.RESTAURANT;
+            case ADMIN, PLATFORM -> NotificationRole.ADMIN;
+            case SUPPORT_AGENT, SUPPORT_MANAGER -> NotificationRole.SUPPORT;
+            case FINANCE_MANAGER, PAYMENT_ANALYST -> NotificationRole.FINANCE;
+            case OPERATIONS_MANAGER, FLEET_MANAGER, RESTAURANT_MANAGER -> NotificationRole.OPERATIONS;
+            default -> null;
+        };
     }
 }
