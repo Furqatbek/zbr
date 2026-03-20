@@ -41,6 +41,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         // Skip filter for public endpoints
         if (shouldSkipAuthentication(request)) {
+            log.info("DEBUG: Skipping authentication for path: {}", request.getServletPath());
             filterChain.doFilter(request, response);
             return;
         }
@@ -48,6 +49,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         try {
             String jwt = extractJwtFromRequest(request);
 
+            log.info("DEBUG: JWT present: {}, Auth context null: {}", jwt != null, SecurityContextHolder.getContext().getAuthentication() == null);
             if (jwt != null && SecurityContextHolder.getContext().getAuthentication() == null) {
                 String userEmail = jwtService.extractUsername(jwt);
 
@@ -55,6 +57,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     UserDetails userDetails = userDetailsService.loadUserByUsername(userEmail);
 
                     if (jwtService.isTokenValid(jwt, userDetails) && jwtService.isAccessToken(jwt)) {
+                        log.info("DEBUG: User {} has authorities: {}", userEmail, userDetails.getAuthorities());
+
                         UsernamePasswordAuthenticationToken authentication =
                                 new UsernamePasswordAuthenticationToken(
                                         userDetails,
