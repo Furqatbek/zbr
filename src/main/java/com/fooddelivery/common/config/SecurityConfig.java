@@ -51,6 +51,8 @@ public class SecurityConfig {
             "/actuator/info",
             "/actuator/prometheus",
             "/ws/**",
+            "/ws-sockjs/**",
+            "/ws-native/**",
             "/error"
     };
 
