@@ -11,6 +11,7 @@ import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Scheduled task to check for SLA breaches and trigger auto-escalation.
@@ -85,18 +86,18 @@ public class SlaBreachChecker {
         // Find tickets eligible for auto-escalation
         List<SupportTicket> escalationCandidates = ticketRepository.findTicketsForAutoEscalation();
 
-        int escalatedCount = 0;
+        AtomicInteger escalatedCount = new AtomicInteger(0);
         for (SupportTicket ticket : escalationCandidates) {
             try {
                 escalationService.autoEscalate(ticket.getId())
-                        .ifPresent(log -> escalatedCount++);
+                        .ifPresent(result -> escalatedCount.incrementAndGet());
             } catch (Exception e) {
                 log.error("Failed to auto-escalate ticket {}: {}", ticket.getId(), e.getMessage());
             }
         }
 
-        if (escalatedCount > 0) {
-            log.info("Auto-escalated {} tickets", escalatedCount);
+        if (escalatedCount.get() > 0) {
+            log.info("Auto-escalated {} tickets", escalatedCount.get());
         }
     }
 
