@@ -206,10 +206,10 @@ public interface PersistentNotificationService {
     // ===== Courier Issue Operations =====
 
     /**
-     * Notify consumer and admin when courier reports an issue with an order.
+     * Notify consumer, restaurant owner, and admin when courier reports an issue with an order.
      */
-    void notifyCourierIssueReported(Long orderId, Long consumerId, String orderNumber,
-                                     String issueType, String description, String courierName);
+    void notifyCourierIssueReported(Long orderId, Long consumerId, Long restaurantId,
+                                     String orderNumber, String issueType, String description, String courierName);
 
     // ===== Cleanup Operations =====
 

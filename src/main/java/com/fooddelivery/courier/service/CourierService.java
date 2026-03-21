@@ -718,11 +718,12 @@ public class CourierService {
 
         log.warn("Courier {} reported issue for order {}: {} - {}", courierId, orderId, issueType, description);
 
-        // Send notifications to consumer and admin
+        // Send notifications to consumer, restaurant owner, and admin
         String courierName = courier.getUser().getFullName();
         notificationService.notifyCourierIssueReported(
                 orderId,
                 order.getConsumer().getId(),
+                order.getRestaurant().getId(),
                 order.getExternalOrderNo(),
                 issueType,
                 description,

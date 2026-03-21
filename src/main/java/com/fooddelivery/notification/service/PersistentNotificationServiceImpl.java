@@ -756,8 +756,8 @@ public class PersistentNotificationServiceImpl implements PersistentNotification
     // ===== Courier Issue Operations =====
 
     @Override
-    public void notifyCourierIssueReported(Long orderId, Long consumerId, String orderNumber,
-                                           String issueType, String description, String courierName) {
+    public void notifyCourierIssueReported(Long orderId, Long consumerId, Long restaurantId,
+                                           String orderNumber, String issueType, String description, String courierName) {
         log.info("Notifying about courier issue for order {}: {} - {}", orderId, issueType, description);
 
         // Notify consumer
@@ -777,6 +777,25 @@ public class PersistentNotificationServiceImpl implements PersistentNotification
                 .actionUrl(NotificationConstants.ACTION_ORDER_DETAIL.replace("{orderId}", orderId.toString()))
                 .build();
         createNotification(consumerNotification);
+
+        // Notify restaurant owner
+        NotificationCreateDto restaurantNotification = NotificationCreateDto.builder()
+                .userId(null)
+                .role(NotificationRole.RESTAURANT)
+                .restaurantId(restaurantId)
+                .title("Delivery Issue Reported")
+                .message(String.format("Courier %s reported an issue for order #%s: %s - %s",
+                        courierName, orderNumber, issueType, description))
+                .category(NotificationCategory.DELIVERY)
+                .notificationType(NotificationType.COURIER_ISSUE_REPORTED)
+                .priority(NotificationPriority.HIGH)
+                .orderId(orderId)
+                .relatedEntityId(orderId)
+                .relatedEntityType(NotificationConstants.ENTITY_TYPE_ORDER)
+                .icon(NotificationConstants.ICON_ALERT)
+                .actionUrl(NotificationConstants.ACTION_ORDER_DETAIL.replace("{orderId}", orderId.toString()))
+                .build();
+        createNotification(restaurantNotification);
 
         // Notify admin (broadcast to all admins)
         NotificationCreateDto adminNotification = NotificationCreateDto.builder()
