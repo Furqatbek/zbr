@@ -22,6 +22,7 @@ import java.util.Map;
                 @Index(name = "idx_notifications_created_at", columnList = "created_at DESC"),
                 @Index(name = "idx_notifications_category", columnList = "category"),
                 @Index(name = "idx_notifications_order_id", columnList = "order_id"),
+                @Index(name = "idx_notifications_restaurant_id", columnList = "restaurant_id"),
                 @Index(name = "idx_notifications_user_role_read", columnList = "user_id, role, read_at"),
                 @Index(name = "idx_notifications_expires_at", columnList = "expires_at")
         })
@@ -88,6 +89,12 @@ public class Notification {
      */
     @Column(name = "order_id")
     private Long orderId;
+
+    /**
+     * Related restaurant ID, for restaurant-specific notifications.
+     */
+    @Column(name = "restaurant_id")
+    private Long restaurantId;
 
     /**
      * Related entity ID (restaurant, courier, ticket, etc.)

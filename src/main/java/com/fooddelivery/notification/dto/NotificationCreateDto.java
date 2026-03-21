@@ -67,6 +67,11 @@ public class NotificationCreateDto {
     private Long orderId;
 
     /**
+     * Related restaurant ID, for restaurant-specific notifications.
+     */
+    private Long restaurantId;
+
+    /**
      * Related entity ID (restaurant, courier, ticket, etc.)
      */
     private Long relatedEntityId;
