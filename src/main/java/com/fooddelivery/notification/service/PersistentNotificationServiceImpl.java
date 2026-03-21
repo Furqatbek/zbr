@@ -753,6 +753,50 @@ public class PersistentNotificationServiceImpl implements PersistentNotification
         createNotification(createDto);
     }
 
+    // ===== Courier Issue Operations =====
+
+    @Override
+    public void notifyCourierIssueReported(Long orderId, Long consumerId, String orderNumber,
+                                           String issueType, String description, String courierName) {
+        log.info("Notifying about courier issue for order {}: {} - {}", orderId, issueType, description);
+
+        // Notify consumer
+        NotificationCreateDto consumerNotification = NotificationCreateDto.builder()
+                .userId(consumerId)
+                .role(NotificationRole.CONSUMER)
+                .title("Issue Reported for Your Order")
+                .message(String.format("Your courier has reported an issue with order #%s: %s. Our team is looking into it.",
+                        orderNumber, issueType))
+                .category(NotificationCategory.DELIVERY)
+                .notificationType(NotificationType.COURIER_ISSUE_REPORTED)
+                .priority(NotificationPriority.HIGH)
+                .orderId(orderId)
+                .relatedEntityId(orderId)
+                .relatedEntityType(NotificationConstants.ENTITY_TYPE_ORDER)
+                .icon(NotificationConstants.ICON_ALERT)
+                .actionUrl(NotificationConstants.ACTION_ORDER_DETAIL.replace("{orderId}", orderId.toString()))
+                .build();
+        createNotification(consumerNotification);
+
+        // Notify admin (broadcast to all admins)
+        NotificationCreateDto adminNotification = NotificationCreateDto.builder()
+                .userId(null)
+                .role(NotificationRole.ADMIN)
+                .title("Courier Issue Reported")
+                .message(String.format("Courier %s reported an issue for order #%s: %s - %s",
+                        courierName, orderNumber, issueType, description))
+                .category(NotificationCategory.ALERT)
+                .notificationType(NotificationType.COURIER_ISSUE_REPORTED)
+                .priority(NotificationPriority.HIGH)
+                .orderId(orderId)
+                .relatedEntityId(orderId)
+                .relatedEntityType(NotificationConstants.ENTITY_TYPE_ORDER)
+                .icon(NotificationConstants.ICON_ALERT)
+                .actionUrl(NotificationConstants.ACTION_ORDER_DETAIL.replace("{orderId}", orderId.toString()))
+                .build();
+        createNotification(adminNotification);
+    }
+
     // ===== Cleanup Operations =====
 
     @Override

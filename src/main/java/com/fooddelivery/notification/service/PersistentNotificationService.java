@@ -203,6 +203,14 @@ public interface PersistentNotificationService {
      */
     void notifySupportTicketResolved(Long userId, Long ticketId);
 
+    // ===== Courier Issue Operations =====
+
+    /**
+     * Notify consumer and admin when courier reports an issue with an order.
+     */
+    void notifyCourierIssueReported(Long orderId, Long consumerId, String orderNumber,
+                                     String issueType, String description, String courierName);
+
     // ===== Cleanup Operations =====
 
     /**

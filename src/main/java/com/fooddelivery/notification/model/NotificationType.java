@@ -27,6 +27,7 @@ public enum NotificationType {
     COURIER_APPROACHING_RESTAURANT("Courier Approaching Restaurant", NotificationCategory.DELIVERY, NotificationPriority.NORMAL),
     COURIER_ARRIVED_RESTAURANT("Courier Arrived at Restaurant", NotificationCategory.DELIVERY, NotificationPriority.NORMAL),
     COURIER_APPROACHING_CUSTOMER("Courier Approaching", NotificationCategory.DELIVERY, NotificationPriority.NORMAL),
+    COURIER_ISSUE_REPORTED("Courier Reported Issue", NotificationCategory.DELIVERY, NotificationPriority.HIGH),
     NEW_DELIVERY_AVAILABLE("New Delivery Available", NotificationCategory.DELIVERY, NotificationPriority.HIGH),
     DELIVERY_COMPLETED("Delivery Completed", NotificationCategory.DELIVERY, NotificationPriority.NORMAL),
 

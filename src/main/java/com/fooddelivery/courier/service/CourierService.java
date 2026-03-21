@@ -22,6 +22,7 @@ import com.fooddelivery.order.event.CourierAssignedEvent;
 import com.fooddelivery.order.event.OrderStatusChangedEvent;
 import com.fooddelivery.order.repository.OrderRepository;
 import com.fooddelivery.order.repository.PaymentRepository;
+import com.fooddelivery.notification.service.PersistentNotificationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -48,6 +49,7 @@ public class CourierService {
     private final UserService userService;
     private final EventPublisher eventPublisher;
     private final SimpMessagingTemplate messagingTemplate;
+    private final PersistentNotificationService notificationService;
 
     /**
      * Register as a courier.
@@ -698,6 +700,17 @@ public class CourierService {
         String currentNotes = order.getNotes() != null ? order.getNotes() : "";
         order.setNotes(currentNotes + " [COURIER ISSUE: " + issueType + " - " + description + "]");
         orderRepository.save(order);
+
+        // Send notifications to consumer and admin
+        String courierName = order.getCourier().getUser().getFullName();
+        notificationService.notifyCourierIssueReported(
+                orderId,
+                order.getConsumer().getId(),
+                order.getExternalOrderNo(),
+                issueType,
+                description,
+                courierName
+        );
     }
 
     private CourierOrderDto toOrderDto(Order order) {
