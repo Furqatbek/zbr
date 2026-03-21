@@ -1,5 +1,6 @@
 package com.fooddelivery.auth.controller;
 
+import com.fooddelivery.auth.dto.AddRoleRequest;
 import com.fooddelivery.auth.dto.ChangePasswordRequest;
 import com.fooddelivery.auth.dto.UpdateUserRequest;
 import com.fooddelivery.auth.dto.UserDto;
@@ -146,12 +147,23 @@ public class UserController {
 
     @PostMapping("/{id}/roles/{role}")
     @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "Add role to user", description = "Add a role to a user (Admin only)")
+    @Operation(summary = "Add role to user (path)", description = "Add a role to a user via path variable (Admin only)")
     public ResponseEntity<ApiResponse<UserDto>> addRole(
             @PathVariable Long id,
             @PathVariable Role role) {
 
         UserDto user = userService.addRole(id, role);
+        return ResponseEntity.ok(ApiResponse.success("Role added successfully", user));
+    }
+
+    @PostMapping("/{id}/roles")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Add role to user", description = "Add a role to a user via request body (Admin only)")
+    public ResponseEntity<ApiResponse<UserDto>> addRoleFromBody(
+            @PathVariable Long id,
+            @Valid @RequestBody AddRoleRequest request) {
+
+        UserDto user = userService.addRole(id, request.getRole());
         return ResponseEntity.ok(ApiResponse.success("Role added successfully", user));
     }
 
