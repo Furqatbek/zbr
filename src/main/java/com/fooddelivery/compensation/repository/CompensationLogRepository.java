@@ -43,9 +43,9 @@ public interface CompensationLogRepository extends JpaRepository<CompensationLog
      * Get total compensation amount for a user in a time period.
      */
     @Query("SELECT COALESCE(SUM(c.amount), 0) FROM CompensationLog c " +
-           "WHERE c.user.id = :userId AND c.status = 'COMPLETED' " +
+           "WHERE c.user.id = :userId AND c.status = :status " +
            "AND c.createdAt >= :since")
-    BigDecimal getTotalCompensationForUserSince(Long userId, LocalDateTime since);
+    BigDecimal getTotalCompensationForUserSince(Long userId, CompensationStatus status, LocalDateTime since);
 
     /**
      * Count compensations by trigger type in a time period.
@@ -58,7 +58,7 @@ public interface CompensationLogRepository extends JpaRepository<CompensationLog
      * Get compensation statistics for dashboard.
      */
     @Query("SELECT c.triggerType, COUNT(c), SUM(c.amount) FROM CompensationLog c " +
-           "WHERE c.status = 'COMPLETED' AND c.createdAt >= :since " +
+           "WHERE c.status = :status AND c.createdAt >= :since " +
            "GROUP BY c.triggerType")
-    List<Object[]> getCompensationStatsSince(LocalDateTime since);
+    List<Object[]> getCompensationStatsSince(CompensationStatus status, LocalDateTime since);
 }
