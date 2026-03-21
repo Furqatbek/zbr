@@ -46,7 +46,9 @@ public class UserPrincipal implements UserDetails {
 
         // Build authorities from both single role and roles set
         Set<GrantedAuthority> auths = new java.util.HashSet<>();
-        auths.add(new SimpleGrantedAuthority("ROLE_" + user.getRole().name()));
+        if (user.getRole() != null) {
+            auths.add(new SimpleGrantedAuthority("ROLE_" + user.getRole().name()));
+        }
         this.roles.forEach(r -> auths.add(new SimpleGrantedAuthority("ROLE_" + r.name())));
         this.authorities = auths;
     }
