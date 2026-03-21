@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "food-delivery-api-collection",
     "name": "Food Delivery API",
-    "description": "Food Delivery Platform API Collection - All endpoints for authentication (email/password + phone/OTP), restaurants, orders, couriers, consumer profiles, and platform management.\n\nIncludes:\n- Email/Password Authentication\n- Phone-based OTP Authentication for Consumers\n- Consumer Profile Management\n- Restaurant & Menu Management\n- Order Management\n- Courier Operations\n- Referral Program\n- Admin Analytics",
+    "description": "Food Delivery Platform API Collection - All endpoints for authentication (email/password + phone/OTP), restaurants, orders, couriers, consumer profiles, and platform management.\n\nIncludes:\n- Email/Password Authentication\n- Phone-based OTP Authentication for Consumers\n- Consumer Profile Management\n- Restaurant & Menu Management\n- Order Management\n- Courier Operations\n- Referral Program\n- Admin Analytics\n- Customer Credits & Compensation\n- Self-Service Resolutions\n- Delivery Proof Management\n- Courier Reassignment\n- Escalation Management",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -27,6 +27,26 @@
     {
       "key": "refresh_token",
       "value": ""
+    },
+    {
+      "key": "order_id",
+      "value": "1"
+    },
+    {
+      "key": "user_id",
+      "value": "1"
+    },
+    {
+      "key": "rule_id",
+      "value": "1"
+    },
+    {
+      "key": "proof_id",
+      "value": "1"
+    },
+    {
+      "key": "ticket_id",
+      "value": "1"
     }
   ],
   "item": [
@@ -4152,6 +4172,439 @@
               "path": ["webhooks", "refund"]
             },
             "description": "Receives refund event notifications from the payment provider.\n\nNo authentication required."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Customer Credits",
+      "description": "Customer credit balance and compensation history",
+      "item": [
+        {
+          "name": "Get Credit Balance",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/customer/credits/balance",
+              "host": ["{{base_url}}"],
+              "path": ["customer", "credits", "balance"]
+            },
+            "description": "Get the current credit balance for the authenticated customer."
+          }
+        },
+        {
+          "name": "Get Credit Details",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/customer/credits",
+              "host": ["{{base_url}}"],
+              "path": ["customer", "credits"]
+            },
+            "description": "Get detailed credit information including total earned and used."
+          }
+        },
+        {
+          "name": "Get Compensation History",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/customer/credits/history?page=0&size=20",
+              "host": ["{{base_url}}"],
+              "path": ["customer", "credits", "history"],
+              "query": [
+                {"key": "page", "value": "0"},
+                {"key": "size", "value": "20"}
+              ]
+            },
+            "description": "Get paginated compensation history for the authenticated customer."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Self-Service Resolutions",
+      "description": "Customer self-service resolution endpoints",
+      "item": [
+        {
+          "name": "Check Eligibility",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/customer/self-service/orders/{{order_id}}/eligibility",
+              "host": ["{{base_url}}"],
+              "path": ["customer", "self-service", "orders", "{{order_id}}", "eligibility"]
+            },
+            "description": "Check what self-service options are available for an order."
+          }
+        },
+        {
+          "name": "Request Auto-Refund",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"reason\": \"Order arrived cold and inedible\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/customer/self-service/orders/{{order_id}}/auto-refund",
+              "host": ["{{base_url}}"],
+              "path": ["customer", "self-service", "orders", "{{order_id}}", "auto-refund"]
+            },
+            "description": "Request automatic refund for small orders (below configurable threshold)."
+          }
+        },
+        {
+          "name": "Report Missing Items",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"missingItemIds\": [101, 102]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/customer/self-service/orders/{{order_id}}/missing-items",
+              "host": ["{{base_url}}"],
+              "path": ["customer", "self-service", "orders", "{{order_id}}", "missing-items"]
+            },
+            "description": "Report missing items from a delivered order and receive refund."
+          }
+        },
+        {
+          "name": "Cancel Order Pre-Prep",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"reason\": \"Changed my mind\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/customer/self-service/orders/{{order_id}}/cancel",
+              "host": ["{{base_url}}"],
+              "path": ["customer", "self-service", "orders", "{{order_id}}", "cancel"]
+            },
+            "description": "Cancel an order before the restaurant starts preparing it."
+          }
+        },
+        {
+          "name": "Get Resolution History",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/customer/self-service/history",
+              "host": ["{{base_url}}"],
+              "path": ["customer", "self-service", "history"]
+            },
+            "description": "Get all self-service resolution history for the authenticated customer."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Delivery Proof",
+      "description": "Proof of delivery management",
+      "item": [
+        {
+          "name": "Submit Proof (Courier)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"photoUrl\": \"https://storage.example.com/proofs/123.jpg\",\n    \"latitude\": 40.7128,\n    \"longitude\": -74.0060,\n    \"recipientName\": \"John Doe\",\n    \"notes\": \"Left at front door per customer request\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/courier/deliveries/{{order_id}}/proof",
+              "host": ["{{base_url}}"],
+              "path": ["courier", "deliveries", "{{order_id}}", "proof"]
+            },
+            "description": "Submit proof of delivery including photo and location."
+          }
+        },
+        {
+          "name": "Get Proof (Courier)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/courier/deliveries/{{order_id}}/proof",
+              "host": ["{{base_url}}"],
+              "path": ["courier", "deliveries", "{{order_id}}", "proof"]
+            },
+            "description": "Get delivery proof for an order (courier view)."
+          }
+        },
+        {
+          "name": "Get Proof (Customer)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/customer/orders/{{order_id}}/proof",
+              "host": ["{{base_url}}"],
+              "path": ["customer", "orders", "{{order_id}}", "proof"]
+            },
+            "description": "Get proof of delivery for an order (customer view)."
+          }
+        },
+        {
+          "name": "Verify Proof (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/admin/delivery-proofs/{{proof_id}}/verify",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "delivery-proofs", "{{proof_id}}", "verify"]
+            },
+            "description": "Manually verify a delivery proof."
+          }
+        },
+        {
+          "name": "Get Unverified Proofs (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/admin/delivery-proofs/unverified",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "delivery-proofs", "unverified"]
+            },
+            "description": "Get all unverified delivery proofs for review."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Compensation Management (Admin)",
+      "description": "Admin endpoints for managing compensations",
+      "item": [
+        {
+          "name": "Get All Compensation Rules",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/admin/compensation/rules",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "compensation", "rules"]
+            },
+            "description": "Get all compensation rules including inactive ones."
+          }
+        },
+        {
+          "name": "Get Active Rules",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/admin/compensation/rules/active",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "compensation", "rules", "active"]
+            },
+            "description": "Get only active compensation rules."
+          }
+        },
+        {
+          "name": "Toggle Rule Status",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/admin/compensation/rules/{{rule_id}}/toggle",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "compensation", "rules", "{{rule_id}}", "toggle"]
+            },
+            "description": "Enable or disable a compensation rule."
+          }
+        },
+        {
+          "name": "Issue Manual Compensation",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"userId\": 100,\n    \"orderId\": 500,\n    \"type\": \"CREDIT\",\n    \"amount\": 15.00,\n    \"description\": \"Customer goodwill credit for service issues\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/admin/compensation/manual",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "compensation", "manual"]
+            },
+            "description": "Issue a manual compensation to a customer."
+          }
+        },
+        {
+          "name": "Get User Compensations",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/admin/compensation/users/{{user_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "compensation", "users", "{{user_id}}"]
+            },
+            "description": "Get all compensations for a specific user."
+          }
+        },
+        {
+          "name": "Get Order Compensations",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/admin/compensation/orders/{{order_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "compensation", "orders", "{{order_id}}"]
+            },
+            "description": "Get all compensations for a specific order."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Courier Reassignment (Admin)",
+      "description": "Admin endpoints for courier reassignment",
+      "item": [
+        {
+          "name": "Reassign Courier",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"newCourierId\": 51,\n    \"reason\": \"COURIER_UNAVAILABLE\",\n    \"notes\": \"Original courier had vehicle breakdown\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/admin/courier-reassignment/orders/{{order_id}}/reassign",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "courier-reassignment", "orders", "{{order_id}}", "reassign"]
+            },
+            "description": "Reassign an order to a different courier."
+          }
+        },
+        {
+          "name": "Get Reassignment History",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/admin/courier-reassignment/orders/{{order_id}}/history",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "courier-reassignment", "orders", "{{order_id}}", "history"]
+            },
+            "description": "Get reassignment history for an order."
+          }
+        },
+        {
+          "name": "Get Pending Reassignments",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/admin/courier-reassignment/pending",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "courier-reassignment", "pending"]
+            },
+            "description": "Get orders that need courier reassignment."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Escalation Management (Admin)",
+      "description": "Admin endpoints for managing escalations",
+      "item": [
+        {
+          "name": "Get Escalated Tickets",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/admin/escalation/tickets",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "escalation", "tickets"]
+            },
+            "description": "Get all escalated support tickets."
+          }
+        },
+        {
+          "name": "Get Ticket Escalation History",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/admin/escalation/tickets/{{ticket_id}}/history",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "escalation", "tickets", "{{ticket_id}}", "history"]
+            },
+            "description": "Get escalation history for a specific ticket."
+          }
+        },
+        {
+          "name": "Manually Escalate Ticket",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"escalationLevel\": 2,\n    \"reason\": \"Customer is a VIP - needs priority handling\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/admin/escalation/tickets/{{ticket_id}}/escalate",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "escalation", "tickets", "{{ticket_id}}", "escalate"]
+            },
+            "description": "Manually escalate a support ticket."
+          }
+        },
+        {
+          "name": "Get Escalation Rules",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/admin/escalation/rules",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "escalation", "rules"]
+            },
+            "description": "Get all escalation rules."
+          }
+        },
+        {
+          "name": "Toggle Escalation Rule",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/admin/escalation/rules/{{rule_id}}/toggle",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "escalation", "rules", "{{rule_id}}", "toggle"]
+            },
+            "description": "Enable or disable an escalation rule."
           }
         }
       ]

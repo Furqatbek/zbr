@@ -4,8 +4,8 @@ import com.fooddelivery.auth.entity.User;
 import com.fooddelivery.auth.repository.UserRepository;
 import com.fooddelivery.common.exception.BusinessException;
 import com.fooddelivery.common.exception.ResourceNotFoundException;
-import com.fooddelivery.compensation.service.CompensationService;
 import com.fooddelivery.compensation.service.CreditService;
+import com.fooddelivery.order.dto.CancelOrderRequest;
 import com.fooddelivery.order.entity.Order;
 import com.fooddelivery.order.entity.OrderStatus;
 import com.fooddelivery.order.repository.OrderRepository;
@@ -125,7 +125,11 @@ public class SelfServiceResolutionService {
         }
 
         // Cancel the order - this will trigger refund
-        orderService.cancelOrder(orderId, reason);
+        CancelOrderRequest cancelRequest = CancelOrderRequest.builder()
+                .reason(reason)
+                .requestRefund(true)
+                .build();
+        orderService.cancelOrder(orderId, cancelRequest, userId);
 
         Map<String, Object> details = new HashMap<>();
         details.put("reason", reason);

@@ -71,7 +71,7 @@ public class DeliveryProofController {
 
     @GetMapping("/customer/orders/{orderId}/proof")
     @Operation(summary = "Get delivery proof for an order (customer)")
-    @PreAuthorize("hasAnyRole('CONSUMER', 'CUSTOMER')")
+    @PreAuthorize("hasRole('CONSUMER')")
     public ResponseEntity<DeliveryProofDto> getProofForCustomer(@PathVariable Long orderId) {
         return proofService.getProofByOrderId(orderId)
                 .map(this::toDto)

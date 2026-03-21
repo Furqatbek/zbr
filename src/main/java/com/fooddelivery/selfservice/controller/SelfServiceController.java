@@ -24,7 +24,7 @@ import java.util.Map;
 @RequestMapping("/api/v1/customer/self-service")
 @RequiredArgsConstructor
 @Tag(name = "Self-Service", description = "Customer self-service resolution endpoints")
-@PreAuthorize("hasAnyRole('CONSUMER', 'CUSTOMER')")
+@PreAuthorize("hasRole('CONSUMER')")
 public class SelfServiceController {
 
     private final SelfServiceResolutionService resolutionService;

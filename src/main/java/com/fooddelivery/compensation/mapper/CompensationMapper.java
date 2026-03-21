@@ -8,13 +8,15 @@ import com.fooddelivery.compensation.entity.CompensationRule;
 import com.fooddelivery.compensation.entity.CustomerCredit;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
+import org.mapstruct.NullValuePropertyMappingStrategy;
 
 import java.util.List;
 
 /**
  * MapStruct mapper for compensation entities and DTOs.
  */
-@Mapper(componentModel = "spring")
+@Mapper(componentModel = "spring",
+        nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.SET_TO_NULL)
 public interface CompensationMapper {
 
     /**

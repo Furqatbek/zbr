@@ -9,7 +9,7 @@ import com.fooddelivery.compensation.repository.CompensationLogRepository;
 import com.fooddelivery.compensation.repository.CompensationRuleRepository;
 import com.fooddelivery.order.entity.Order;
 import com.fooddelivery.order.repository.OrderRepository;
-import com.fooddelivery.payment.service.PaymentService;
+import com.fooddelivery.order.service.PaymentService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;

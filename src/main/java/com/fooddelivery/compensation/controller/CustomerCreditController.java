@@ -27,7 +27,7 @@ import java.math.BigDecimal;
 @RequestMapping("/api/v1/customer/credits")
 @RequiredArgsConstructor
 @Tag(name = "Customer Credits", description = "Customer credit and compensation endpoints")
-@PreAuthorize("hasAnyRole('CONSUMER', 'CUSTOMER')")
+@PreAuthorize("hasRole('CONSUMER')")
 public class CustomerCreditController {
 
     private final CreditService creditService;

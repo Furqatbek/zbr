@@ -57,8 +57,8 @@ public class CompensationEventConsumer {
     private void processDeliveredOrder(OrderStatusChangedEvent event) {
         try {
             compensationService.processLateDelivery(event.getOrderId())
-                    .ifPresent(log -> log.info("Late delivery compensation issued for order {}: {}",
-                            event.getOrderId(), log.getAmount()));
+                    .ifPresent(entry -> log.info("Late delivery compensation issued for order {}: {}",
+                            event.getOrderId(), entry.getAmount()));
         } catch (Exception e) {
             log.error("Failed to process late delivery compensation for order {}: {}",
                     event.getOrderId(), e.getMessage());
