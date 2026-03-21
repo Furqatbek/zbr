@@ -31,7 +31,6 @@ public class RabbitMQConfig {
     // Queue names
     public static final String ORDER_CREATED_QUEUE = "order.created.queue";
     public static final String ORDER_STATUS_CHANGED_QUEUE = "order.status.changed.queue";
-    public static final String COMPENSATION_ORDER_STATUS_QUEUE = "compensation.order.status.queue";
     public static final String PAYMENT_CONFIRMED_QUEUE = "payment.confirmed.queue";
     public static final String PAYMENT_FAILED_QUEUE = "payment.failed.queue";
     public static final String COURIER_ASSIGNED_QUEUE = "courier.assigned.queue";
@@ -162,21 +161,6 @@ public class RabbitMQConfig {
     @Bean
     public Binding orderStatusChangedBinding() {
         return BindingBuilder.bind(orderStatusChangedQueue())
-                .to(orderExchange())
-                .with(ORDER_STATUS_CHANGED_KEY);
-    }
-
-    @Bean
-    public Queue compensationOrderStatusQueue() {
-        return QueueBuilder.durable(COMPENSATION_ORDER_STATUS_QUEUE)
-                .withArgument("x-dead-letter-exchange", DLX_EXCHANGE)
-                .withArgument("x-dead-letter-routing-key", "dlq")
-                .build();
-    }
-
-    @Bean
-    public Binding compensationOrderStatusBinding() {
-        return BindingBuilder.bind(compensationOrderStatusQueue())
                 .to(orderExchange())
                 .with(ORDER_STATUS_CHANGED_KEY);
     }
