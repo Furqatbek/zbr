@@ -1,11 +1,14 @@
 package com.fooddelivery.notification.service;
 
+import com.fooddelivery.auth.entity.Role;
 import com.fooddelivery.common.config.RabbitMQConfig;
 import com.fooddelivery.notification.dto.*;
+import com.fooddelivery.notification.entity.UserDeviceToken;
 import com.fooddelivery.notification.mapper.NotificationMapper;
 import com.fooddelivery.notification.model.*;
 import com.fooddelivery.notification.repository.NotificationRepository;
 import com.fooddelivery.notification.repository.NotificationSpecifications;
+import com.fooddelivery.notification.repository.UserDeviceTokenRepository;
 import com.fooddelivery.notification.util.NotificationConstants;
 import com.fooddelivery.notification.util.NotificationMessageBuilder;
 import com.fooddelivery.order.entity.Order;
@@ -42,6 +45,7 @@ public class PersistentNotificationServiceImpl implements PersistentNotification
     private final NotificationMapper notificationMapper;
     private final SimpMessagingTemplate messagingTemplate;
     private final RabbitTemplate rabbitTemplate;
+    private final UserDeviceTokenRepository deviceTokenRepository;
 
     // ===== CRUD Operations =====
 
@@ -69,23 +73,28 @@ public class PersistentNotificationServiceImpl implements PersistentNotification
 
     /**
      * Send notification via WebSocket for real-time delivery to connected clients.
+     * Supports both user-specific notifications and role-based broadcasts.
      */
     private void sendWebSocketNotification(NotificationResponseDto notification) {
-        if (notification.getUserId() == null) {
-            log.debug("Skipping WebSocket notification: no userId");
-            return;
-        }
-
         try {
-            // Send to user-specific topic
-            String userTopic = "/topic/users/" + notification.getUserId() + "/notifications";
-            messagingTemplate.convertAndSend(userTopic, notification);
-            log.debug("Sent WebSocket notification to user {}: {}", notification.getUserId(), notification.getId());
+            // Send to user-specific topic if userId is present
+            if (notification.getUserId() != null) {
+                String userTopic = "/topic/users/" + notification.getUserId() + "/notifications";
+                messagingTemplate.convertAndSend(userTopic, notification);
+                log.debug("Sent WebSocket notification to user {}: {}", notification.getUserId(), notification.getId());
+            }
 
-            // Also send to role-specific topic if applicable
+            // Send to role-specific topic for broadcasts
             if (notification.getRole() != null) {
                 String roleTopic = "/topic/roles/" + notification.getRole().name().toLowerCase() + "/notifications";
                 messagingTemplate.convertAndSend(roleTopic, notification);
+                log.debug("Sent WebSocket notification to role {}: {}", notification.getRole(), notification.getId());
+
+                // For ALL role, also send to a global broadcast topic
+                if (notification.getRole() == NotificationRole.ALL) {
+                    messagingTemplate.convertAndSend("/topic/broadcast/notifications", notification);
+                    log.debug("Sent WebSocket notification to broadcast topic: {}", notification.getId());
+                }
             }
         } catch (Exception e) {
             log.warn("Failed to send WebSocket notification: {}", e.getMessage());
@@ -95,35 +104,101 @@ public class PersistentNotificationServiceImpl implements PersistentNotification
 
     /**
      * Queue push notification for mobile delivery via FCM/APNS.
+     * Supports both individual user notifications and role-based broadcasts.
      */
     private void queuePushNotification(NotificationCreateDto createDto, NotificationResponseDto savedNotification) {
-        if (createDto.getUserId() == null) {
-            log.debug("Skipping push notification: no userId");
-            return;
-        }
-
         try {
-            NotificationRequest pushRequest = NotificationRequest.builder()
-                    .userId(createDto.getUserId())
-                    .subject(createDto.getTitle())
-                    .body(createDto.getMessage())
-                    .channel("push")
-                    .priority(createDto.getPriority() != null ? createDto.getPriority().ordinal() + 1 : 5)
-                    .referenceId(savedNotification.getId().toString())
-                    .referenceType("notification")
-                    .templateData(createDto.getMetadata())
-                    .build();
-
-            rabbitTemplate.convertAndSend(
-                    RabbitMQConfig.NOTIFICATION_EXCHANGE,
-                    RabbitMQConfig.NOTIFICATION_PUSH_KEY,
-                    pushRequest
-            );
-            log.debug("Queued push notification for user {}", createDto.getUserId());
+            if (createDto.getUserId() != null) {
+                // Send to specific user
+                queuePushForUser(createDto, savedNotification, createDto.getUserId());
+            } else if (createDto.getRole() != null) {
+                // Broadcast to all users of the specified role
+                queuePushForRole(createDto, savedNotification, createDto.getRole());
+            } else {
+                log.debug("Skipping push notification: no userId or role specified");
+            }
         } catch (Exception e) {
             log.warn("Failed to queue push notification: {}", e.getMessage());
             // Don't throw - push queue failure shouldn't fail the notification creation
         }
+    }
+
+    /**
+     * Queue push notification for a specific user.
+     */
+    private void queuePushForUser(NotificationCreateDto createDto, NotificationResponseDto savedNotification, Long userId) {
+        NotificationRequest pushRequest = NotificationRequest.builder()
+                .userId(userId)
+                .subject(createDto.getTitle())
+                .body(createDto.getMessage())
+                .channel("push")
+                .priority(createDto.getPriority() != null ? createDto.getPriority().ordinal() + 1 : 5)
+                .referenceId(savedNotification.getId().toString())
+                .referenceType("notification")
+                .templateData(createDto.getMetadata())
+                .build();
+
+        rabbitTemplate.convertAndSend(
+                RabbitMQConfig.NOTIFICATION_EXCHANGE,
+                RabbitMQConfig.NOTIFICATION_PUSH_KEY,
+                pushRequest
+        );
+        log.debug("Queued push notification for user {}", userId);
+    }
+
+    /**
+     * Queue push notifications for all users of a specific role (broadcast).
+     */
+    private void queuePushForRole(NotificationCreateDto createDto, NotificationResponseDto savedNotification, NotificationRole role) {
+        List<UserDeviceToken> deviceTokens;
+
+        if (role == NotificationRole.ALL) {
+            // System-wide broadcast to all active users
+            deviceTokens = deviceTokenRepository.findAllActiveTokens();
+            log.info("Broadcasting push notification to ALL users ({} devices)", deviceTokens.size());
+        } else {
+            // Broadcast to specific role
+            List<Role> authRoles = mapNotificationRoleToAuthRoles(role);
+            if (authRoles.isEmpty()) {
+                log.warn("No auth roles mapped for NotificationRole: {}", role);
+                return;
+            }
+            deviceTokens = deviceTokenRepository.findActiveTokensByUserRoles(authRoles);
+            log.info("Broadcasting push notification to role {} ({} devices)", role, deviceTokens.size());
+        }
+
+        if (deviceTokens.isEmpty()) {
+            log.debug("No active device tokens found for role {}", role);
+            return;
+        }
+
+        // Group tokens by userId to send one notification per user
+        Map<Long, List<UserDeviceToken>> tokensByUser = deviceTokens.stream()
+                .collect(Collectors.groupingBy(UserDeviceToken::getUserId));
+
+        int queuedCount = 0;
+        for (Long userId : tokensByUser.keySet()) {
+            queuePushForUser(createDto, savedNotification, userId);
+            queuedCount++;
+        }
+
+        log.info("Queued {} broadcast push notifications for role {}", queuedCount, role);
+    }
+
+    /**
+     * Map NotificationRole to corresponding auth system Role(s).
+     */
+    private List<Role> mapNotificationRoleToAuthRoles(NotificationRole notificationRole) {
+        return switch (notificationRole) {
+            case CONSUMER, CUSTOMER -> List.of(Role.CONSUMER);
+            case COURIER -> List.of(Role.COURIER);
+            case RESTAURANT -> List.of(Role.RESTAURANT_OWNER, Role.RESTAURANT_STAFF);
+            case ADMIN -> List.of(Role.ADMIN, Role.PLATFORM);
+            case SUPPORT -> List.of(Role.SUPPORT_AGENT, Role.SUPPORT_MANAGER);
+            case FINANCE -> List.of(Role.FINANCE_MANAGER, Role.PAYMENT_ANALYST);
+            case OPERATIONS -> List.of(Role.OPERATIONS_MANAGER, Role.FLEET_MANAGER, Role.RESTAURANT_MANAGER);
+            case ALL -> List.of(); // Handled separately with findAllActiveTokens()
+        };
     }
 
     @Override
