@@ -9,6 +9,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.Collection;
+import java.util.EnumSet;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -38,14 +39,15 @@ public class UserPrincipal implements UserDetails {
         this.firstName = user.getFirstName();
         this.lastName = user.getLastName();
         this.role = user.getRole();
-        this.roles = user.getRoles();
+        // Copy roles to detach from Hibernate proxy
+        this.roles = user.getRoles().isEmpty() ? EnumSet.noneOf(Role.class) : EnumSet.copyOf(user.getRoles());
         this.status = user.getStatus();
         this.accountLocked = user.isAccountLocked();
 
         // Build authorities from both single role and roles set
         Set<GrantedAuthority> auths = new java.util.HashSet<>();
         auths.add(new SimpleGrantedAuthority("ROLE_" + user.getRole().name()));
-        user.getRoles().forEach(r -> auths.add(new SimpleGrantedAuthority("ROLE_" + r.name())));
+        this.roles.forEach(r -> auths.add(new SimpleGrantedAuthority("ROLE_" + r.name())));
         this.authorities = auths;
     }
 
