@@ -157,7 +157,7 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
      */
     @Query("SELECT DISTINCT o FROM Order o WHERE o.id IN " +
            "(SELECT pd.orderId FROM com.fooddelivery.analytics.financial.model.PayoutDispute pd " +
-           "WHERE pd.orderId IS NOT NULL AND pd.status IN (com.fooddelivery.analytics.financial.model.DisputeStatus.OPEN, com.fooddelivery.analytics.financial.model.DisputeStatus.INVESTIGATING, com.fooddelivery.analytics.financial.model.DisputeStatus.ESCALATED)) " +
+           "WHERE pd.orderId IS NOT NULL AND pd.status IN (com.fooddelivery.analytics.financial.model.DisputeStatus.OPEN, com.fooddelivery.analytics.financial.model.DisputeStatus.INVESTIGATING, com.fooddelivery.analytics.financial.model.DisputeStatus.ESCALATED, com.fooddelivery.analytics.financial.model.DisputeStatus.ACCIDENT)) " +
            "ORDER BY o.updatedAt DESC")
     Page<Order> findOrdersWithOpenDisputes(Pageable pageable);
 
@@ -166,7 +166,7 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
      */
     @Query("SELECT DISTINCT o FROM Order o WHERE o.status IN :statuses " +
            "OR o.id IN (SELECT pd.orderId FROM com.fooddelivery.analytics.financial.model.PayoutDispute pd " +
-           "WHERE pd.orderId IS NOT NULL AND pd.status IN (com.fooddelivery.analytics.financial.model.DisputeStatus.OPEN, com.fooddelivery.analytics.financial.model.DisputeStatus.INVESTIGATING, com.fooddelivery.analytics.financial.model.DisputeStatus.ESCALATED)) " +
+           "WHERE pd.orderId IS NOT NULL AND pd.status IN (com.fooddelivery.analytics.financial.model.DisputeStatus.OPEN, com.fooddelivery.analytics.financial.model.DisputeStatus.INVESTIGATING, com.fooddelivery.analytics.financial.model.DisputeStatus.ESCALATED, com.fooddelivery.analytics.financial.model.DisputeStatus.ACCIDENT)) " +
            "ORDER BY o.updatedAt DESC")
     Page<Order> findProblematicOrders(@Param("statuses") List<OrderStatus> statuses, Pageable pageable);
 }

@@ -37,5 +37,10 @@ public enum DisputeStatus {
     /**
      * Escalated to higher authority.
      */
-    ESCALATED
+    ESCALATED,
+
+    /**
+     * Related to an accident during delivery.
+     */
+    ACCIDENT
 }
