@@ -66,6 +66,9 @@ public class SecurityConfig {
                 // Disable CSRF for stateless API
                 .csrf(AbstractHttpConfigurer::disable)
 
+                // Disable form login (we use JWT)
+                .formLogin(AbstractHttpConfigurer::disable)
+
                 // Configure CORS
                 .cors(cors -> cors.configurationSource(request -> {
                     var corsConfig = new org.springframework.web.cors.CorsConfiguration();
