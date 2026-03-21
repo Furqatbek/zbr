@@ -15,11 +15,14 @@ import com.fooddelivery.courier.entity.Courier;
 import com.fooddelivery.courier.entity.CourierStatus;
 import com.fooddelivery.courier.entity.VehicleType;
 import com.fooddelivery.courier.repository.CourierRepository;
+import com.fooddelivery.order.entity.DeliveryIssue;
+import com.fooddelivery.order.entity.DeliveryIssueType;
 import com.fooddelivery.order.entity.Order;
 import com.fooddelivery.order.entity.OrderStatus;
 import com.fooddelivery.order.entity.PaymentStatus;
 import com.fooddelivery.order.event.CourierAssignedEvent;
 import com.fooddelivery.order.event.OrderStatusChangedEvent;
+import com.fooddelivery.order.repository.DeliveryIssueRepository;
 import com.fooddelivery.order.repository.OrderRepository;
 import com.fooddelivery.order.repository.PaymentRepository;
 import com.fooddelivery.notification.service.PersistentNotificationService;
@@ -46,6 +49,7 @@ public class CourierService {
     private final CourierRepository courierRepository;
     private final OrderRepository orderRepository;
     private final PaymentRepository paymentRepository;
+    private final DeliveryIssueRepository deliveryIssueRepository;
     private final UserService userService;
     private final EventPublisher eventPublisher;
     private final SimpMessagingTemplate messagingTemplate;
@@ -689,20 +693,33 @@ public class CourierService {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Order", "id", orderId));
 
-        if (order.getCourier() == null || !order.getCourier().getId().equals(courierId)) {
+        Courier courier = order.getCourier();
+        if (courier == null || !courier.getId().equals(courierId)) {
             throw new BusinessException("This order is not assigned to you");
         }
 
-        // Log the issue - in a real system, this would create an issue ticket
+        // Parse issue type
+        DeliveryIssueType deliveryIssueType;
+        try {
+            deliveryIssueType = DeliveryIssueType.valueOf(issueType.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            deliveryIssueType = DeliveryIssueType.OTHER;
+        }
+
+        // Create delivery issue entity
+        DeliveryIssue deliveryIssue = DeliveryIssue.builder()
+                .order(order)
+                .courier(courier)
+                .issueType(deliveryIssueType)
+                .description(description)
+                .resolved(false)
+                .build();
+        deliveryIssueRepository.save(deliveryIssue);
+
         log.warn("Courier {} reported issue for order {}: {} - {}", courierId, orderId, issueType, description);
 
-        // Could also update order notes or create a separate issue entity
-        String currentNotes = order.getNotes() != null ? order.getNotes() : "";
-        order.setNotes(currentNotes + " [COURIER ISSUE: " + issueType + " - " + description + "]");
-        orderRepository.save(order);
-
         // Send notifications to consumer and admin
-        String courierName = order.getCourier().getUser().getFullName();
+        String courierName = courier.getUser().getFullName();
         notificationService.notifyCourierIssueReported(
                 orderId,
                 order.getConsumer().getId(),

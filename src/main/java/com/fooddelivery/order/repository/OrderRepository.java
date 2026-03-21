@@ -162,11 +162,20 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     Page<Order> findOrdersWithOpenDisputes(Pageable pageable);
 
     /**
-     * Find orders that are either cancelled/refunded OR have open disputes.
+     * Find orders that have unresolved delivery issues.
+     */
+    @Query("SELECT DISTINCT o FROM Order o WHERE o.id IN " +
+           "(SELECT di.order.id FROM com.fooddelivery.order.entity.DeliveryIssue di WHERE di.resolved = false) " +
+           "ORDER BY o.updatedAt DESC")
+    Page<Order> findOrdersWithUnresolvedDeliveryIssues(Pageable pageable);
+
+    /**
+     * Find orders that are cancelled/refunded, have open disputes, or have unresolved delivery issues.
      */
     @Query("SELECT DISTINCT o FROM Order o WHERE o.status IN :statuses " +
            "OR o.id IN (SELECT pd.orderId FROM com.fooddelivery.analytics.financial.model.PayoutDispute pd " +
            "WHERE pd.orderId IS NOT NULL AND pd.status IN (com.fooddelivery.analytics.financial.model.DisputeStatus.OPEN, com.fooddelivery.analytics.financial.model.DisputeStatus.INVESTIGATING, com.fooddelivery.analytics.financial.model.DisputeStatus.ESCALATED, com.fooddelivery.analytics.financial.model.DisputeStatus.ACCIDENT)) " +
+           "OR o.id IN (SELECT di.order.id FROM com.fooddelivery.order.entity.DeliveryIssue di WHERE di.resolved = false) " +
            "ORDER BY o.updatedAt DESC")
     Page<Order> findProblematicOrders(@Param("statuses") List<OrderStatus> statuses, Pageable pageable);
 }
