@@ -109,6 +109,16 @@ public class SupportTicket {
     @Column(name = "escalated_at")
     private LocalDateTime escalatedAt;
 
+    @Column(name = "escalation_level", nullable = false)
+    @Builder.Default
+    private Integer escalationLevel = 1;
+
+    @Column(name = "last_escalated_at")
+    private LocalDateTime lastEscalatedAt;
+
+    @Column(name = "sla_breached_at")
+    private LocalDateTime slaBreachedAt;
+
     @Column(name = "reopen_count")
     @Builder.Default
     private Integer reopenCount = 0;

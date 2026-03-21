@@ -213,4 +213,28 @@ public interface SupportTicketRepository extends JpaRepository<SupportTicket, Lo
            "WHERE t.createdAt BETWEEN :start AND :end AND t.courierId IS NOT NULL " +
            "GROUP BY t.courierId ORDER BY COUNT(t) DESC")
     List<Object[]> getTicketsByCourier(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
+
+    /**
+     * Count tickets by user since a date.
+     */
+    @Query("SELECT COUNT(t) FROM SupportTicket t WHERE t.userId = :userId AND t.createdAt > :since")
+    Long countByUserIdAndCreatedAtAfter(@Param("userId") Long userId, @Param("since") LocalDateTime since);
+
+    /**
+     * Find open tickets by status and SLA breach flag.
+     */
+    @Query("SELECT t FROM SupportTicket t WHERE t.status IN :statuses AND t.slaBreach = :slaBreach")
+    List<SupportTicket> findByStatusInAndSlaBreach(
+            @Param("statuses") List<SupportTicket.TicketStatus> statuses,
+            @Param("slaBreach") boolean slaBreach);
+
+    /**
+     * Find tickets eligible for auto-escalation.
+     * Returns open tickets that have SLA breached or are high priority.
+     */
+    @Query("SELECT t FROM SupportTicket t WHERE t.status NOT IN " +
+           "(com.fooddelivery.analytics.cx.model.SupportTicket$TicketStatus.RESOLVED, " +
+           "com.fooddelivery.analytics.cx.model.SupportTicket$TicketStatus.CLOSED) " +
+           "AND (t.slaBreach = true OR t.priority = com.fooddelivery.analytics.cx.model.SupportTicket$TicketPriority.URGENT)")
+    List<SupportTicket> findTicketsForAutoEscalation();
 }
