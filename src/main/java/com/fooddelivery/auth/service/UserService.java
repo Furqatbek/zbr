@@ -16,6 +16,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
+
+import java.util.HashSet;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -250,7 +252,7 @@ public class UserService {
                 .lastName(user.getLastName())
                 .fullName(user.getFullName())
                 .profileImageUrl(user.getProfileImageUrl())
-                .roles(user.getRoles())
+                .roles(new HashSet<>(user.getRoles()))
                 .status(user.getStatus())
                 .emailVerified(user.getEmailVerified())
                 .phoneVerified(user.getPhoneVerified())
