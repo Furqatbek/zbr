@@ -1,6 +1,6 @@
 -- Delivery issues table for tracking courier-reported issues
 CREATE TABLE IF NOT EXISTS delivery_issues (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    id BIGSERIAL PRIMARY KEY,
     order_id BIGINT NOT NULL,
     courier_id BIGINT NOT NULL,
     issue_type VARCHAR(30) NOT NULL,
@@ -10,7 +10,7 @@ CREATE TABLE IF NOT EXISTS delivery_issues (
     resolved_at TIMESTAMP,
     resolved_by BIGINT,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT fk_di_order FOREIGN KEY (order_id) REFERENCES orders(id),
     CONSTRAINT fk_di_courier FOREIGN KEY (courier_id) REFERENCES couriers(id)
