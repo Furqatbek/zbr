@@ -119,4 +119,29 @@ public interface CourierRepository extends JpaRepository<Courier, Long> {
             "OR c.status = com.fooddelivery.courier.entity.CourierStatus.BUSY) " +
             "AND c.verified = true AND c.currentLat IS NOT NULL AND c.currentLng IS NOT NULL")
     List<Courier> findOnlineCouriersWithLocation();
+
+    /**
+     * Find couriers by status (list version).
+     */
+    @Query("SELECT c FROM Courier c JOIN FETCH c.user WHERE c.status = :status")
+    List<Courier> findByStatus(@Param("status") CourierStatus status);
+
+    /**
+     * Find available couriers near a location, ordered by distance.
+     */
+    @Query(value = "SELECT c.* FROM couriers c " +
+            "JOIN users u ON c.user_id = u.id " +
+            "WHERE c.status = 'AVAILABLE' " +
+            "AND c.is_verified = true " +
+            "AND c.current_order_count < c.max_concurrent_orders " +
+            "AND c.current_lat IS NOT NULL AND c.current_lng IS NOT NULL " +
+            "AND (6371 * acos(cos(radians(:lat)) * cos(radians(c.current_lat)) * " +
+            "cos(radians(c.current_lng) - radians(:lng)) + sin(radians(:lat)) * sin(radians(c.current_lat)))) < :radius " +
+            "ORDER BY (6371 * acos(cos(radians(:lat)) * cos(radians(c.current_lat)) * " +
+            "cos(radians(c.current_lng) - radians(:lng)) + sin(radians(:lat)) * sin(radians(c.current_lat)))) ASC",
+            nativeQuery = true)
+    List<Courier> findAvailableCouriersNearLocation(
+            @Param("lat") double latitude,
+            @Param("lng") double longitude,
+            @Param("radius") double radiusKm);
 }

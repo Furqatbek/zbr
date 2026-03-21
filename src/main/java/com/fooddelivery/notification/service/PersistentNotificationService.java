@@ -211,6 +211,18 @@ public interface PersistentNotificationService {
     void notifyCourierIssueReported(Long orderId, Long consumerId, Long restaurantId,
                                      String orderNumber, String issueType, String description, String courierName);
 
+    // ===== Reassignment Operations =====
+
+    /**
+     * Notify customer that their order is being reassigned.
+     */
+    void notifyOrderReassigned(com.fooddelivery.order.entity.Order order, String message);
+
+    /**
+     * Broadcast order availability to couriers in the area.
+     */
+    void notifyAvailableCouriers(com.fooddelivery.order.entity.Order order);
+
     // ===== Cleanup Operations =====
 
     /**

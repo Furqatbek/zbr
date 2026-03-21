@@ -163,6 +163,14 @@ public class Order {
     @Column(name = "rejection_reason", length = 500)
     private String rejectionReason;
 
+    // Courier reassignment tracking
+    @Column(name = "reassignment_count", nullable = false)
+    @Builder.Default
+    private Integer reassignmentCount = 0;
+
+    @Column(name = "previous_courier_id")
+    private Long previousCourierId;
+
     // Rating
     @Column(name = "consumer_rating")
     private Integer consumerRating;

@@ -8,6 +8,7 @@ import com.fooddelivery.notification.repository.NotificationRepository;
 import com.fooddelivery.notification.repository.NotificationSpecifications;
 import com.fooddelivery.notification.util.NotificationConstants;
 import com.fooddelivery.notification.util.NotificationMessageBuilder;
+import com.fooddelivery.order.entity.Order;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
@@ -814,6 +815,57 @@ public class PersistentNotificationServiceImpl implements PersistentNotification
                 .actionUrl(NotificationConstants.ACTION_ORDER_DETAIL.replace("{orderId}", orderId.toString()))
                 .build();
         createNotification(adminNotification);
+    }
+
+    // ===== Reassignment Operations =====
+
+    @Override
+    public void notifyOrderReassigned(Order order, String message) {
+        log.info("Notifying customer about order reassignment: {}", order.getId());
+
+        Map<String, Object> metadata = new HashMap<>();
+        metadata.put("orderId", order.getId());
+        metadata.put("orderNumber", order.getExternalOrderNo());
+        metadata.put("reassignmentCount", order.getReassignmentCount());
+
+        NotificationCreateDto notification = NotificationCreateDto.builder()
+                .userId(order.getConsumer().getId())
+                .role(NotificationRole.CONSUMER)
+                .notificationType(NotificationType.ORDER_STATUS_UPDATED)
+                .category(NotificationCategory.ORDER)
+                .title("Delivery Partner Changed")
+                .message(message)
+                .metadata(metadata)
+                .priority(NotificationPriority.HIGH)
+                .actionUrl(NotificationConstants.ACTION_ORDER_DETAIL.replace("{orderId}", order.getId().toString()))
+                .build();
+        createNotification(notification);
+    }
+
+    @Override
+    public void notifyAvailableCouriers(Order order) {
+        log.info("Broadcasting order {} availability to couriers", order.getId());
+
+        Map<String, Object> metadata = new HashMap<>();
+        metadata.put("orderId", order.getId());
+        metadata.put("orderNumber", order.getExternalOrderNo());
+        metadata.put("restaurantName", order.getRestaurant().getName());
+        metadata.put("deliveryAddress", order.getDeliveryAddress());
+        metadata.put("total", order.getTotal());
+        metadata.put("isReassignment", order.getReassignmentCount() > 0);
+
+        // Create broadcast notification for all couriers
+        NotificationCreateDto notification = NotificationCreateDto.builder()
+                .role(NotificationRole.COURIER)
+                .notificationType(NotificationType.DELIVERY_REQUEST)
+                .category(NotificationCategory.DELIVERY)
+                .title("New Delivery Available")
+                .message("Order #" + order.getExternalOrderNo() + " from " + order.getRestaurant().getName() + " needs a courier")
+                .metadata(metadata)
+                .priority(NotificationPriority.HIGH)
+                .actionUrl(NotificationConstants.ACTION_ORDER_DETAIL.replace("{orderId}", order.getId().toString()))
+                .build();
+        createNotification(notification);
     }
 
     // ===== Cleanup Operations =====

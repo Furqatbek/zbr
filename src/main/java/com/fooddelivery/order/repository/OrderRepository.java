@@ -178,4 +178,28 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
            "OR o.id IN (SELECT di.order.id FROM com.fooddelivery.order.entity.DeliveryIssue di WHERE di.resolved = false) " +
            "ORDER BY o.updatedAt DESC")
     Page<Order> findProblematicOrders(@Param("statuses") List<OrderStatus> statuses, Pageable pageable);
+
+    /**
+     * Find orders by status (list version).
+     */
+    @Query("SELECT o FROM Order o JOIN FETCH o.courier WHERE o.status IN :statuses")
+    List<Order> findByStatusIn(@Param("statuses") List<OrderStatus> statuses);
+
+    /**
+     * Find orders with inactive couriers (courier hasn't updated location recently).
+     */
+    @Query("SELECT o FROM Order o JOIN FETCH o.courier c " +
+           "WHERE o.status IN :statuses " +
+           "AND c.locationUpdatedAt < :threshold")
+    List<Order> findOrdersWithInactiveCouriers(
+            @Param("statuses") List<OrderStatus> statuses,
+            @Param("threshold") LocalDateTime threshold);
+
+    /**
+     * Find orders stuck in a status since before a threshold time.
+     */
+    @Query("SELECT o FROM Order o WHERE o.status = :status AND o.readyAt < :threshold")
+    List<Order> findByStatusAndReadyAtBefore(
+            @Param("status") OrderStatus status,
+            @Param("threshold") LocalDateTime threshold);
 }
