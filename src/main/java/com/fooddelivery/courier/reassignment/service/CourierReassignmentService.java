@@ -91,7 +91,7 @@ public class CourierReassignmentService {
             setCourierOffline(previousCourier, reason);
         } else {
             // Make courier available again
-            if (previousCourier.getStatus() == CourierStatus.ON_DELIVERY) {
+            if (previousCourier.getStatus() == CourierStatus.BUSY) {
                 previousCourier.setStatus(CourierStatus.AVAILABLE);
                 courierRepository.save(previousCourier);
             }
@@ -176,7 +176,7 @@ public class CourierReassignmentService {
 
         // Assign courier to order
         order.setCourier(bestCourier);
-        bestCourier.setStatus(CourierStatus.ON_DELIVERY);
+        bestCourier.setStatus(CourierStatus.BUSY);
 
         orderRepository.save(order);
         courierRepository.save(bestCourier);
@@ -207,8 +207,8 @@ public class CourierReassignmentService {
         }
 
         if (status == OrderStatus.CREATED ||
-            status == OrderStatus.PENDING ||
-            status == OrderStatus.ACCEPTED) {
+            status == OrderStatus.ACCEPTED ||
+            status == OrderStatus.PREPARING) {
             throw new BusinessException("Order has not been assigned a courier yet");
         }
     }

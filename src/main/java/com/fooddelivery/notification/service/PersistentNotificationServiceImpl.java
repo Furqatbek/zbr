@@ -906,7 +906,7 @@ public class PersistentNotificationServiceImpl implements PersistentNotification
         NotificationCreateDto notification = NotificationCreateDto.builder()
                 .userId(order.getConsumer().getId())
                 .role(NotificationRole.CONSUMER)
-                .notificationType(NotificationType.ORDER_STATUS_UPDATED)
+                .notificationType(NotificationType.COURIER_REASSIGNED)
                 .category(NotificationCategory.ORDER)
                 .title("Delivery Partner Changed")
                 .message(message)
@@ -932,7 +932,7 @@ public class PersistentNotificationServiceImpl implements PersistentNotification
         // Create broadcast notification for all couriers
         NotificationCreateDto notification = NotificationCreateDto.builder()
                 .role(NotificationRole.COURIER)
-                .notificationType(NotificationType.DELIVERY_REQUEST)
+                .notificationType(NotificationType.NEW_DELIVERY_AVAILABLE)
                 .category(NotificationCategory.DELIVERY)
                 .title("New Delivery Available")
                 .message("Order #" + order.getExternalOrderNo() + " from " + order.getRestaurant().getName() + " needs a courier")

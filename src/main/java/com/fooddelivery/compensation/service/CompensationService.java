@@ -85,7 +85,7 @@ public class CompensationService {
                 .orderId(orderId)
                 .userId(order.getConsumer().getId())
                 .triggerType(CompensationTriggerType.LATE_DELIVERY)
-                .orderTotal(order.getTotalAmount())
+                .orderTotal(order.getTotal())
                 .estimatedDeliveryTime(order.getEstimatedDeliveryTime())
                 .actualDeliveryTime(order.getDeliveredAt())
                 .delayMinutes((int) delayMinutes)
@@ -107,7 +107,7 @@ public class CompensationService {
                 .orderId(orderId)
                 .userId(order.getConsumer().getId())
                 .triggerType(CompensationTriggerType.MISSING_ITEMS)
-                .orderTotal(order.getTotalAmount())
+                .orderTotal(order.getTotal())
                 .missingItemsValue(missingValue)
                 .description(description)
                 .build();
