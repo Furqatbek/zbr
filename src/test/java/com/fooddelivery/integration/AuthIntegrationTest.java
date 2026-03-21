@@ -126,7 +126,7 @@ class AuthIntegrationTest {
 
         // Then login
         LoginRequest loginRequest = LoginRequest.builder()
-                .email("logintest@example.com")
+                .emailOrPhone("logintest@example.com")
                 .password("SecurePass123!")
                 .build();
 
@@ -157,7 +157,7 @@ class AuthIntegrationTest {
 
         // Try login with wrong password
         LoginRequest loginRequest = LoginRequest.builder()
-                .email("invalidlogin@example.com")
+                .emailOrPhone("invalidlogin@example.com")
                 .password("WrongPassword!")
                 .build();
 
