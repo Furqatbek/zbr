@@ -89,7 +89,7 @@ public class OrderController {
 
     @GetMapping("/problematic")
     @PreAuthorize("hasAnyRole('PLATFORM', 'ADMIN')")
-    @Operation(summary = "Get problematic orders", description = "Get cancelled and refunded orders for admin review")
+    @Operation(summary = "Get problematic orders", description = "Get cancelled, refunded, and disputed orders for admin review")
     public ResponseEntity<ApiResponse<PagedResponse<OrderDto>>> getProblematicOrders(
             @PageableDefault(size = 20) Pageable pageable) {
 
