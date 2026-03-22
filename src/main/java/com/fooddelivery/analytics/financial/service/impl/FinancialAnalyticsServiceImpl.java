@@ -374,9 +374,11 @@ public class FinancialAnalyticsServiceImpl implements FinancialAnalyticsService 
 
         LocalDateTime startDate = request.getStartDate();
         LocalDateTime endDate = request.getEndDate();
+        LocalDate startLocalDate = startDate.toLocalDate();
+        LocalDate endLocalDate = endDate.toLocalDate();
 
         // Get payout metrics
-        Object[] metrics = restaurantPayoutRepository.getPayoutMetrics(startDate, endDate);
+        Object[] metrics = restaurantPayoutRepository.getPayoutMetrics(startLocalDate, endLocalDate);
         BigDecimal grossSales = (BigDecimal) metrics[0];
         BigDecimal commissionsDeducted = (BigDecimal) metrics[1];
         BigDecimal deliverySubsidies = (BigDecimal) metrics[2];
@@ -397,14 +399,14 @@ public class FinancialAnalyticsServiceImpl implements FinancialAnalyticsService 
         BigDecimal failedPayouts = restaurantPayoutRepository.getTotalByStatus(PaymentStatus.FAILED);
 
         // Get average processing time
-        BigDecimal avgProcessingTime = restaurantPayoutRepository.getAverageProcessingTimeHours(startDate, endDate);
+        BigDecimal avgProcessingTime = restaurantPayoutRepository.getAverageProcessingTimeHours(startLocalDate, endLocalDate);
 
         // Get dispute metrics
         Long disputeCount = disputeRepository.getDisputeCount(startDate, endDate);
         BigDecimal pendingDisputeAmount = disputeRepository.getTotalPendingDisputeAmount();
 
         // Build payouts by status
-        List<Object[]> byStatusData = restaurantPayoutRepository.getPayoutsByStatus(startDate, endDate);
+        List<Object[]> byStatusData = restaurantPayoutRepository.getPayoutsByStatus(startLocalDate, endLocalDate);
         BigDecimal finalNetPayout = netPayout;
         List<RestaurantPayoutMetricsDto.PayoutByStatusDto> byStatus = byStatusData.stream()
                 .map(row -> mapper.toPayoutByStatusDto(
@@ -417,7 +419,7 @@ public class FinancialAnalyticsServiceImpl implements FinancialAnalyticsService 
         // Build top restaurants
         List<RestaurantPayoutMetricsDto.RestaurantPayoutDetailDto> topRestaurants = new ArrayList<>();
         if (Boolean.TRUE.equals(request.getIncludeRestaurantBreakdown())) {
-            List<Object[]> restaurantData = restaurantPayoutRepository.getTopRestaurantsByPayout(startDate, endDate);
+            List<Object[]> restaurantData = restaurantPayoutRepository.getTopRestaurantsByPayout(startLocalDate, endLocalDate);
             topRestaurants = restaurantData.stream()
                     .limit(request.getTopN())
                     .map(row -> {
@@ -452,7 +454,7 @@ public class FinancialAnalyticsServiceImpl implements FinancialAnalyticsService 
         // Build daily trend
         List<RestaurantPayoutMetricsDto.DailyPayoutDto> dailyTrend = new ArrayList<>();
         if (Boolean.TRUE.equals(request.getIncludeDailyTrend())) {
-            List<Object[]> dailyData = restaurantPayoutRepository.getDailyPayoutTrend(startDate, endDate);
+            List<Object[]> dailyData = restaurantPayoutRepository.getDailyPayoutTrend(startLocalDate, endLocalDate);
             dailyTrend = dailyData.stream()
                     .map(row -> mapper.toDailyPayoutDto(
                             ((java.sql.Date) row[0]).toLocalDate(),
