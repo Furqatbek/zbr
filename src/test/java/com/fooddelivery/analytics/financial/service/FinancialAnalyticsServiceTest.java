@@ -448,7 +448,7 @@ class FinancialAnalyticsServiceTest {
                     50L                            // payout count
             };
 
-            when(restaurantPayoutRepository.getPayoutMetrics(any(), any())).thenReturn(payoutMetrics);
+            when(restaurantPayoutRepository.getPayoutMetrics(any(), any())).thenReturn(List.of(payoutMetrics));
             when(restaurantPayoutRepository.getTotalByStatus(PaymentStatus.PENDING)).thenReturn(new BigDecimal("20000.00"));
             when(restaurantPayoutRepository.getTotalByStatus(PaymentStatus.COMPLETED)).thenReturn(new BigDecimal("61300.00"));
             when(restaurantPayoutRepository.getTotalByStatus(PaymentStatus.FAILED)).thenReturn(BigDecimal.ZERO);

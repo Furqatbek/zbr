@@ -32,8 +32,8 @@ public interface RestaurantPayoutRepository extends JpaRepository<RestaurantPayo
            "COUNT(rp) " +
            "FROM RestaurantPayout rp " +
            "WHERE rp.periodStart >= :startDate AND rp.periodEnd <= :endDate")
-    Object[] getPayoutMetrics(@Param("startDate") LocalDate startDate,
-                              @Param("endDate") LocalDate endDate);
+    List<Object[]> getPayoutMetrics(@Param("startDate") LocalDate startDate,
+                                    @Param("endDate") LocalDate endDate);
 
     /**
      * Get payouts by status.

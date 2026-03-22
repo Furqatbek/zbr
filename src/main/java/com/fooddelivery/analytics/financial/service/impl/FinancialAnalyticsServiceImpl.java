@@ -378,7 +378,10 @@ public class FinancialAnalyticsServiceImpl implements FinancialAnalyticsService 
         LocalDate endLocalDate = endDate.toLocalDate();
 
         // Get payout metrics
-        Object[] metrics = restaurantPayoutRepository.getPayoutMetrics(startLocalDate, endLocalDate);
+        List<Object[]> metricsList = restaurantPayoutRepository.getPayoutMetrics(startLocalDate, endLocalDate);
+        Object[] metrics = metricsList.isEmpty()
+                ? new Object[]{BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, 0L, 0L}
+                : metricsList.get(0);
         BigDecimal grossSales = (BigDecimal) metrics[0];
         BigDecimal commissionsDeducted = (BigDecimal) metrics[1];
         BigDecimal deliverySubsidies = (BigDecimal) metrics[2];
