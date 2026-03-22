@@ -171,7 +171,7 @@ public class OrderController {
         return ResponseEntity.ok(ApiResponse.success("Order status updated", order));
     }
 
-    @PutMapping("/{orderId}/cancel")
+    @PostMapping("/{orderId}/cancel")
     @PreAuthorize("hasAnyRole('CONSUMER', 'RESTAURANT_OWNER', 'RESTAURANT_STAFF', 'PLATFORM', 'ADMIN')")
     @Operation(summary = "Cancel order", description = "Cancel an order")
     public ResponseEntity<ApiResponse<OrderDto>> cancelOrder(
