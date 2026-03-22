@@ -302,7 +302,7 @@ public class NotificationController {
     /**
      * Mark all notifications as read for a user.
      */
-    @PutMapping("/read-all")
+    @PatchMapping("/read-all")
     @PreAuthorize("hasRole('ADMIN') or #userId == authentication.principal.id")
     @Operation(summary = "Mark all as read",
             description = "Mark all notifications as read for a user")
