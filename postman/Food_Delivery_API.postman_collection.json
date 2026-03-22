@@ -888,6 +888,31 @@
             },
             "description": "Toggle restaurant open/closed status. Requires RESTAURANT_OWNER, RESTAURANT_STAFF, PLATFORM, or ADMIN role."
           }
+        },
+        {
+          "name": "Get Restaurant Financial Report",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/restaurants/1/financial-report?startDate=2024-01-01T00:00:00&endDate=2024-01-31T23:59:59",
+              "host": ["{{base_url}}"],
+              "path": ["restaurants", "1", "financial-report"],
+              "query": [
+                {
+                  "key": "startDate",
+                  "value": "2024-01-01T00:00:00",
+                  "description": "Start date in ISO format"
+                },
+                {
+                  "key": "endDate",
+                  "value": "2024-01-31T23:59:59",
+                  "description": "End date in ISO format"
+                }
+              ]
+            },
+            "description": "Get financial report for a specific restaurant including revenue, payouts, and order metrics. Requires RESTAURANT_OWNER, RESTAURANT_STAFF, PLATFORM, or ADMIN role. Restaurant owners can only access their own restaurant's report."
+          }
         }
       ]
     },

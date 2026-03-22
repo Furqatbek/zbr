@@ -92,6 +92,11 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // Public endpoints
                         .requestMatchers(PUBLIC_ENDPOINTS).permitAll()
+
+                        // Restaurant financial report requires authentication (must come before permitAll)
+                        .requestMatchers(HttpMethod.GET, "/api/v1/restaurants/*/financial-report")
+                            .hasAnyRole("RESTAURANT_OWNER", "RESTAURANT_STAFF", "PLATFORM", "ADMIN")
+
                         .requestMatchers(HttpMethod.GET, "/api/v1/restaurants/**").permitAll()
 
                         // Admin endpoints
