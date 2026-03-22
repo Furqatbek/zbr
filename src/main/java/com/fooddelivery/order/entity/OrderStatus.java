@@ -64,7 +64,7 @@ public enum OrderStatus {
 
     // Define valid transitions for each state
     private static final Set<OrderStatus> CREATED_TRANSITIONS = EnumSet.of(ACCEPTED, PREPARING, CANCELLED);
-    private static final Set<OrderStatus> ACCEPTED_TRANSITIONS = EnumSet.of(PREPARING, CANCELLED);
+    private static final Set<OrderStatus> ACCEPTED_TRANSITIONS = EnumSet.of(PREPARING, READY, CANCELLED);
     private static final Set<OrderStatus> PREPARING_TRANSITIONS = EnumSet.of(READY, CANCELLED);
     private static final Set<OrderStatus> READY_TRANSITIONS = EnumSet.of(COURIER_ASSIGNED, DELIVERED, COMPLETED, CANCELLED);
     private static final Set<OrderStatus> COURIER_ASSIGNED_TRANSITIONS = EnumSet.of(PICKED_UP, CANCELLED);
