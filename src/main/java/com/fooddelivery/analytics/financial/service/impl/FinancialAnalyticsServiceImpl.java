@@ -58,7 +58,8 @@ public class FinancialAnalyticsServiceImpl implements FinancialAnalyticsService 
                 : BigDecimal.ZERO;
 
         // Get delivery fee GMV
-        Object[] deliveryMetrics = courierPaymentRepository.getCourierPaymentMetrics(startDate, endDate);
+        List<Object[]> deliveryMetricsList = courierPaymentRepository.getCourierPaymentMetrics(startDate, endDate);
+        Object[] deliveryMetrics = deliveryMetricsList.isEmpty() ? new Object[]{BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, 0L, 0L} : deliveryMetricsList.get(0);
         BigDecimal deliveryFeeGmv = (BigDecimal) deliveryMetrics[0];
         BigDecimal tipGmv = (BigDecimal) deliveryMetrics[3];
 
@@ -208,7 +209,8 @@ public class FinancialAnalyticsServiceImpl implements FinancialAnalyticsService 
         LocalDateTime endDate = request.getEndDate();
 
         // Get courier payment metrics
-        Object[] metrics = courierPaymentRepository.getCourierPaymentMetrics(startDate, endDate);
+        List<Object[]> metricsList = courierPaymentRepository.getCourierPaymentMetrics(startDate, endDate);
+        Object[] metrics = metricsList.isEmpty() ? new Object[]{BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, 0L, 0L} : metricsList.get(0);
         BigDecimal totalFeesPaid = (BigDecimal) metrics[0];
         BigDecimal basePayments = (BigDecimal) metrics[1];
         BigDecimal distanceBonus = (BigDecimal) metrics[2];
@@ -497,7 +499,8 @@ public class FinancialAnalyticsServiceImpl implements FinancialAnalyticsService 
         LocalDateTime endDate = request.getEndDate();
 
         // Get courier payment metrics
-        Object[] metrics = courierPaymentRepository.getCourierPaymentMetrics(startDate, endDate);
+        List<Object[]> metricsList = courierPaymentRepository.getCourierPaymentMetrics(startDate, endDate);
+        Object[] metrics = metricsList.isEmpty() ? new Object[]{BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, 0L, 0L} : metricsList.get(0);
         BigDecimal totalPayments = (BigDecimal) metrics[0];
         BigDecimal basePayments = (BigDecimal) metrics[1];
         BigDecimal distanceBonuses = (BigDecimal) metrics[2];
@@ -651,7 +654,8 @@ public class FinancialAnalyticsServiceImpl implements FinancialAnalyticsService 
         BigDecimal commissionRevenue = commissionRepository.getTotalCommission(startDate, endDate);
 
         // Get delivery fee revenue
-        Object[] deliveryMetrics = courierPaymentRepository.getCourierPaymentMetrics(startDate, endDate);
+        List<Object[]> deliveryMetricsList = courierPaymentRepository.getCourierPaymentMetrics(startDate, endDate);
+        Object[] deliveryMetrics = deliveryMetricsList.isEmpty() ? new Object[]{BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, 0L, 0L} : deliveryMetricsList.get(0);
         BigDecimal deliveryFeesPaid = (BigDecimal) deliveryMetrics[0];
         BigDecimal platformMargin = BigDecimal.valueOf(0.15);
         BigDecimal deliveryFeesCollected = deliveryFeesPaid.divide(
@@ -704,9 +708,10 @@ public class FinancialAnalyticsServiceImpl implements FinancialAnalyticsService 
         // Calculate growth rate
         LocalDateTime previousStart = startDate.minus(ChronoUnit.DAYS.between(startDate, endDate), ChronoUnit.DAYS);
         BigDecimal previousCommission = commissionRepository.getTotalCommission(previousStart, startDate);
-        BigDecimal previousDeliveryFees = courierPaymentRepository.getCourierPaymentMetrics(previousStart, startDate)[0] != null
-                ? ((BigDecimal) courierPaymentRepository.getCourierPaymentMetrics(previousStart, startDate)[0])
-                        .multiply(platformMargin)
+        List<Object[]> previousDeliveryMetricsList = courierPaymentRepository.getCourierPaymentMetrics(previousStart, startDate);
+        Object[] previousDeliveryMetrics = previousDeliveryMetricsList.isEmpty() ? new Object[]{BigDecimal.ZERO} : previousDeliveryMetricsList.get(0);
+        BigDecimal previousDeliveryFees = previousDeliveryMetrics[0] != null
+                ? ((BigDecimal) previousDeliveryMetrics[0]).multiply(platformMargin)
                 : BigDecimal.ZERO;
         BigDecimal previousRevenue = previousCommission.add(previousDeliveryFees);
         BigDecimal growthRate = mapper.calculateGrowthRate(totalRevenue, previousRevenue);

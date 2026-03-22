@@ -102,7 +102,7 @@ class FinancialAnalyticsServiceTest {
                     500L,                        // delivery count
                     50L                          // courier count
             };
-            when(courierPaymentRepository.getCourierPaymentMetrics(any(), any())).thenReturn(deliveryMetrics);
+            when(courierPaymentRepository.getCourierPaymentMetrics(any(), any())).thenReturn(List.of(deliveryMetrics));
 
             // When
             GmvMetricsDto result = financialAnalyticsService.calculateGmvMetrics(request);
@@ -130,7 +130,7 @@ class FinancialAnalyticsServiceTest {
                     BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO,
                     BigDecimal.ZERO, 0L, 0L
             };
-            when(courierPaymentRepository.getCourierPaymentMetrics(any(), any())).thenReturn(emptyDeliveryMetrics);
+            when(courierPaymentRepository.getCourierPaymentMetrics(any(), any())).thenReturn(List.of(emptyDeliveryMetrics));
 
             // When
             GmvMetricsDto result = financialAnalyticsService.calculateGmvMetrics(request);
@@ -231,7 +231,7 @@ class FinancialAnalyticsServiceTest {
                     100L                          // courier count
             };
 
-            when(courierPaymentRepository.getCourierPaymentMetrics(any(), any())).thenReturn(deliveryMetrics);
+            when(courierPaymentRepository.getCourierPaymentMetrics(any(), any())).thenReturn(List.of(deliveryMetrics));
             when(courierPaymentRepository.getAverageDeliveryDistance(any(), any()))
                     .thenReturn(new BigDecimal("3.5"));
 
@@ -260,7 +260,7 @@ class FinancialAnalyticsServiceTest {
                     500L, 50L
             };
 
-            when(courierPaymentRepository.getCourierPaymentMetrics(any(), any())).thenReturn(deliveryMetrics);
+            when(courierPaymentRepository.getCourierPaymentMetrics(any(), any())).thenReturn(List.of(deliveryMetrics));
             when(courierPaymentRepository.getAverageDeliveryDistance(any(), any())).thenReturn(new BigDecimal("4.0"));
 
             // When
@@ -364,7 +364,7 @@ class FinancialAnalyticsServiceTest {
                     new BigDecimal("300.00"),   // peak
                     500L, 50L
             };
-            when(courierPaymentRepository.getCourierPaymentMetrics(any(), any())).thenReturn(deliveryMetrics);
+            when(courierPaymentRepository.getCourierPaymentMetrics(any(), any())).thenReturn(List.of(deliveryMetrics));
 
             when(courierBonusRepository.getTotalBonuses(any(), any())).thenReturn(new BigDecimal("1000.00"));
             when(promotionUsageRepository.getTotalPlatformCost(any(), any())).thenReturn(new BigDecimal("5000.00"));
@@ -409,7 +409,7 @@ class FinancialAnalyticsServiceTest {
                     new BigDecimal("8500.00"), new BigDecimal("7000.00"), new BigDecimal("500.00"),
                     new BigDecimal("500.00"), new BigDecimal("300.00"), 500L, 50L
             };
-            when(courierPaymentRepository.getCourierPaymentMetrics(any(), any())).thenReturn(deliveryMetrics);
+            when(courierPaymentRepository.getCourierPaymentMetrics(any(), any())).thenReturn(List.of(deliveryMetrics));
 
             when(courierBonusRepository.getTotalBonuses(any(), any())).thenReturn(new BigDecimal("1000.00"));
             when(promotionUsageRepository.getTotalPlatformCost(any(), any())).thenReturn(new BigDecimal("5000.00"));
@@ -505,7 +505,7 @@ class FinancialAnalyticsServiceTest {
                     new BigDecimal("8000.00")      // total tips
             };
 
-            when(courierPaymentRepository.getCourierPaymentMetrics(any(), any())).thenReturn(paymentMetrics);
+            when(courierPaymentRepository.getCourierPaymentMetrics(any(), any())).thenReturn(List.of(paymentMetrics));
             when(courierBonusRepository.getBonusMetrics(any(), any())).thenReturn(bonusMetrics);
             when(courierPaymentRepository.getTipStatistics(any(), any())).thenReturn(tipStats);
             when(courierPaymentRepository.getTotalByStatus(eq(PaymentStatus.PENDING), any(), any())).thenReturn(new BigDecimal("10000.00"));
@@ -555,7 +555,7 @@ class FinancialAnalyticsServiceTest {
                     new BigDecimal("8500.00"), new BigDecimal("7000.00"), new BigDecimal("500.00"),
                     new BigDecimal("500.00"), new BigDecimal("300.00"), 500L, 50L
             };
-            when(courierPaymentRepository.getCourierPaymentMetrics(any(), any())).thenReturn(deliveryMetrics);
+            when(courierPaymentRepository.getCourierPaymentMetrics(any(), any())).thenReturn(List.of(deliveryMetrics));
             when(courierPaymentRepository.getAverageDeliveryDistance(any(), any())).thenReturn(new BigDecimal("3.5"));
             when(courierPaymentRepository.getTotalByStatus(any(), any(), any())).thenReturn(new BigDecimal("2000.00"));
             when(courierPaymentRepository.getPaymentsByStatus(any(), any())).thenReturn(Collections.emptyList());

@@ -29,8 +29,8 @@ public interface CourierPaymentRepository extends JpaRepository<CourierPayment, 
            "COUNT(DISTINCT cp.courierId) " +
            "FROM CourierPayment cp " +
            "WHERE cp.paymentDate BETWEEN :startDate AND :endDate")
-    Object[] getCourierPaymentMetrics(@Param("startDate") LocalDateTime startDate,
-                                      @Param("endDate") LocalDateTime endDate);
+    List<Object[]> getCourierPaymentMetrics(@Param("startDate") LocalDateTime startDate,
+                                            @Param("endDate") LocalDateTime endDate);
 
     /**
      * Get payments by status.
