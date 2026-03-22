@@ -34,7 +34,6 @@ public class DevSmsClient implements SmsProvider {
     private static final String SEND_SMS_ENDPOINT = "/send_sms.php";
     private static final String GET_STATUS_ENDPOINT = "/get_status.php";
     private static final String GET_BALANCE_ENDPOINT = "/get_balance.php";
-    private static final String SEND_TEMPLATE_SMS_ENDPOINT = "/send_template_sms.php";
 
     @Override
     public SmsSendResponse sendSms(SmsMessage smsMessage) {
@@ -266,51 +265,9 @@ public class DevSmsClient implements SmsProvider {
 
     @Override
     public SmsSendResponse sendTemplatedSms(String phoneNumber, String providerTemplateId, Map<String, String> variables) {
-        if (!isAvailable()) {
-            return SmsSendResponse.failure("DevSMS is not configured", "NOT_CONFIGURED", getProviderName());
-        }
-
-        String url = properties.getBaseUrl() + SEND_TEMPLATE_SMS_ENDPOINT;
-
-        HttpHeaders headers = createHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-
-        Map<String, Object> body = new HashMap<>();
-        body.put("phone", normalizePhoneNumber(phoneNumber));
-        body.put("template_id", providerTemplateId);
-        body.put("params", variables != null ? variables : Map.of());
-
-        if (isValidCallbackUrl(properties.getCallbackUrl())) {
-            body.put("callback_url", properties.getCallbackUrl());
-        }
-
-        HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
-
-        try {
-            ResponseEntity<DevSmsSendResponse> response = restTemplate.exchange(
-                    url,
-                    HttpMethod.POST,
-                    request,
-                    DevSmsSendResponse.class
-            );
-
-            DevSmsSendResponse devSmsResponse = response.getBody();
-
-            if (devSmsResponse != null && devSmsResponse.isSuccess()) {
-                log.info("Templated SMS sent via DevSMS to {}: smsId={}",
-                        maskPhoneNumber(phoneNumber),
-                        devSmsResponse.getData() != null ? devSmsResponse.getData().getSmsId() : "unknown");
-                return devSmsResponse.toSmsSendResponse();
-            } else {
-                String error = devSmsResponse != null ? devSmsResponse.getError() : "Unknown error";
-                log.error("DevSMS templated send failed to {}: {}", maskPhoneNumber(phoneNumber), error);
-                return SmsSendResponse.failure(error, "SEND_FAILED", getProviderName());
-            }
-
-        } catch (Exception e) {
-            log.error("Failed to send templated SMS via DevSMS to {}: {}",
-                    maskPhoneNumber(phoneNumber), e.getMessage());
-            return SmsSendResponse.failure(e.getMessage(), "EXCEPTION", getProviderName());
-        }
+        // DevSMS does not have a templated SMS API endpoint.
+        // Return failure to trigger fallback to raw message sending in SmsNotificationService.
+        log.debug("DevSMS does not support templated SMS API, falling back to raw message");
+        return SmsSendResponse.failure("DevSMS does not support templated SMS", "NOT_SUPPORTED", getProviderName());
     }
 }
