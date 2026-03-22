@@ -375,7 +375,8 @@ public class OrderService {
     private void handleStatusChange(Order order, OrderStatus previousStatus, OrderStatus newStatus,
                                      UpdateOrderStatusRequest request) {
         switch (newStatus) {
-            case ACCEPTED -> {
+            case ACCEPTED, PREPARING -> {
+                // When restaurant accepts/starts preparing, set estimated times
                 if (request.getEstimatedPrepTimeMinutes() != null) {
                     order.setEstimatedPrepTimeMinutes(request.getEstimatedPrepTimeMinutes());
                     order.setEstimatedDeliveryTime(

@@ -230,9 +230,17 @@ public class Order {
         this.status = newStatus;
 
         // Update timestamps
+        LocalDateTime now = LocalDateTime.now();
         switch (newStatus) {
-            case ACCEPTED -> this.acceptedAt = LocalDateTime.now();
-            case PREPARING -> this.preparingAt = LocalDateTime.now();
+            case ACCEPTED -> this.acceptedAt = now;
+            case PREPARING -> {
+                this.preparingAt = now;
+                // If going directly from CREATED to PREPARING, also set acceptedAt
+                // since accepting the order means the restaurant started cooking
+                if (this.acceptedAt == null) {
+                    this.acceptedAt = now;
+                }
+            }
             case READY -> this.readyAt = LocalDateTime.now();
             case PICKED_UP -> this.pickedUpAt = LocalDateTime.now();
             case IN_TRANSIT -> this.inTransitAt = LocalDateTime.now();
