@@ -48,7 +48,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         try {
             String jwt = extractJwtFromRequest(request);
 
-            if (jwt != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+            if (jwt == null) {
+                log.debug("No JWT token found in request to: {} {}", request.getMethod(), request.getServletPath());
+            } else if (SecurityContextHolder.getContext().getAuthentication() == null) {
                 String userEmail = jwtService.extractUsername(jwt);
 
                 if (userEmail != null) {
@@ -67,12 +69,18 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                         );
 
                         SecurityContextHolder.getContext().setAuthentication(authentication);
-                        log.debug("Authenticated user: {}", userEmail);
+                        log.debug("Authenticated user: {} with roles: {}", userEmail, userDetails.getAuthorities());
+                    } else {
+                        log.debug("Token validation failed for user: {}, isValid: {}, isAccessToken: {}",
+                                userEmail, jwtService.isTokenValid(jwt, userDetails), jwtService.isAccessToken(jwt));
                     }
+                } else {
+                    log.debug("Could not extract username from JWT token");
                 }
             }
         } catch (Exception e) {
-            log.warn("Could not set user authentication: {}", e.getMessage());
+            log.warn("Could not set user authentication for {} {}: {}",
+                    request.getMethod(), request.getServletPath(), e.getMessage());
         }
 
         filterChain.doFilter(request, response);
