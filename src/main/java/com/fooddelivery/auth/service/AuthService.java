@@ -169,15 +169,28 @@ public class AuthService {
     @Transactional
     public AuthResponse refreshToken(RefreshTokenRequest request) {
         String refreshTokenStr = request.getRefreshToken();
+        log.debug("Attempting to refresh token (first 20 chars): {}...",
+                refreshTokenStr != null && refreshTokenStr.length() > 20
+                        ? refreshTokenStr.substring(0, 20) : refreshTokenStr);
 
         // Validate refresh token
         RefreshToken refreshToken = refreshTokenRepository.findByTokenAndRevokedFalse(refreshTokenStr)
-                .orElseThrow(() -> new BusinessException("Invalid refresh token"));
+                .orElseThrow(() -> {
+                    // Check if token exists but is revoked
+                    boolean existsButRevoked = refreshTokenRepository.findByToken(refreshTokenStr).isPresent();
+                    if (existsButRevoked) {
+                        log.warn("Refresh token was revoked. Client should re-authenticate.");
+                        return new BusinessException("Refresh token has been revoked. Please login again.");
+                    }
+                    log.warn("Refresh token not found in database. Client may be sending access token instead of refresh token.");
+                    return new BusinessException("Invalid refresh token. Ensure you are sending the refresh token, not the access token.");
+                });
 
         if (refreshToken.isExpired()) {
+            log.warn("Refresh token expired at: {}. User: {}", refreshToken.getExpiresAt(), refreshToken.getUser().getEmail());
             refreshToken.revoke("Expired");
             refreshTokenRepository.save(refreshToken);
-            throw new BusinessException("Refresh token has expired");
+            throw new BusinessException("Refresh token has expired. Please login again.");
         }
 
         User user = refreshToken.getUser();
@@ -185,6 +198,7 @@ public class AuthService {
 
         // Verify JWT token signature and username (expiration is handled by DB)
         if (!jwtService.isRefreshTokenValidIgnoreExpiration(refreshTokenStr, userPrincipal)) {
+            log.warn("Refresh token JWT validation failed for user: {}. Token may be corrupted or tampered.", user.getEmail());
             throw new BusinessException("Invalid refresh token");
         }
 

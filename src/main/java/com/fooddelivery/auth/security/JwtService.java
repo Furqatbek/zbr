@@ -106,9 +106,21 @@ public class JwtService {
             final Claims claims = extractAllClaimsIgnoreExpiration(token);
             final String username = claims.getSubject();
             final String type = claims.get("type", String.class);
-            return username.equals(userDetails.getUsername()) && "refresh".equals(type);
+
+            if (!"refresh".equals(type)) {
+                log.warn("Token type mismatch: expected 'refresh' but got '{}'. " +
+                        "This usually means the client is sending an access token instead of a refresh token.", type);
+                return false;
+            }
+
+            if (!username.equals(userDetails.getUsername())) {
+                log.warn("Token username mismatch: token has '{}' but expected '{}'", username, userDetails.getUsername());
+                return false;
+            }
+
+            return true;
         } catch (JwtException e) {
-            log.warn("Invalid refresh token: {}", e.getMessage());
+            log.warn("Invalid refresh token JWT: {}", e.getMessage());
             return false;
         }
     }

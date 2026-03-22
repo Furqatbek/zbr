@@ -1,6 +1,7 @@
 package com.fooddelivery.common.config;
 
 import com.fooddelivery.auth.security.JwtService;
+import io.jsonwebtoken.ExpiredJwtException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Configuration;
@@ -102,8 +103,15 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
                                     accessor.setUser(authentication);
 
                                     log.debug("WebSocket connection authenticated for user: {}", username);
+                                } else {
+                                    log.warn("WebSocket authentication failed: Token validation failed for user {}. " +
+                                            "Please refresh your access token using /api/v1/auth/refresh endpoint.", username);
                                 }
                             }
+                        } catch (ExpiredJwtException e) {
+                            log.warn("WebSocket authentication failed: Access token expired. " +
+                                    "Please refresh your access token using /api/v1/auth/refresh endpoint and reconnect. " +
+                                    "Token expired at: {}", e.getClaims().getExpiration());
                         } catch (Exception e) {
                             log.warn("WebSocket authentication failed: {}", e.getMessage());
                         }
