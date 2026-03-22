@@ -1,5 +1,8 @@
 package com.fooddelivery.restaurant.controller;
 
+import com.fooddelivery.analytics.financial.dto.GmvMetricsDto;
+import com.fooddelivery.analytics.financial.dto.RestaurantPayoutMetricsDto;
+import com.fooddelivery.analytics.financial.service.FinancialAnalyticsService;
 import com.fooddelivery.auth.security.UserPrincipal;
 import com.fooddelivery.common.dto.ApiResponse;
 import com.fooddelivery.common.dto.PagedResponse;
@@ -7,6 +10,7 @@ import com.fooddelivery.order.dto.ReviewDto;
 import com.fooddelivery.order.service.ReviewService;
 import com.fooddelivery.restaurant.dto.CreateRestaurantRequest;
 import com.fooddelivery.restaurant.dto.RestaurantDto;
+import com.fooddelivery.restaurant.dto.RestaurantFinancialReportDto;
 import com.fooddelivery.restaurant.entity.RestaurantStatus;
 import com.fooddelivery.restaurant.service.RestaurantService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -18,6 +22,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -25,6 +30,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -39,6 +45,7 @@ public class RestaurantController {
 
     private final RestaurantService restaurantService;
     private final ReviewService reviewService;
+    private final FinancialAnalyticsService financialAnalyticsService;
 
     @PostMapping
     @PreAuthorize("hasAnyRole('RESTAURANT_OWNER', 'PLATFORM', 'ADMIN')")
@@ -183,5 +190,59 @@ public class RestaurantController {
 
         PagedResponse<ReviewDto> reviews = reviewService.getRestaurantReviews(restaurantId, pageable);
         return ResponseEntity.ok(ApiResponse.success(reviews));
+    }
+
+    @GetMapping("/{restaurantId}/financial-report")
+    @PreAuthorize("hasAnyRole('RESTAURANT_OWNER', 'RESTAURANT_STAFF', 'PLATFORM', 'ADMIN')")
+    @SecurityRequirement(name = "bearerAuth")
+    @Operation(summary = "Get restaurant financial report",
+               description = "Get financial report for a specific restaurant including revenue, payouts, and order metrics")
+    public ResponseEntity<ApiResponse<RestaurantFinancialReportDto>> getFinancialReport(
+            @AuthenticationPrincipal UserPrincipal currentUser,
+            @PathVariable Long restaurantId,
+            @Parameter(description = "Start date (ISO format)", required = true)
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
+            @Parameter(description = "End date (ISO format)", required = true)
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate) {
+
+        // Validate ownership (Admin/Platform can view any restaurant's report)
+        boolean isAdminOrPlatform = currentUser.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ROLE_PLATFORM"));
+        restaurantService.validateRestaurantAccess(restaurantId, currentUser.getId(), isAdminOrPlatform);
+
+        // Get GMV metrics for this restaurant
+        GmvMetricsDto gmvMetrics = financialAnalyticsService.getGmvByRestaurants(
+                startDate, endDate, List.of(restaurantId));
+
+        // Get payout details for this restaurant
+        RestaurantPayoutMetricsDto payoutMetrics = financialAnalyticsService.getRestaurantPayoutDetails(
+                restaurantId, startDate, endDate);
+
+        // Build the financial report
+        RestaurantFinancialReportDto report = RestaurantFinancialReportDto.builder()
+                .restaurantId(restaurantId)
+                .periodStart(startDate)
+                .periodEnd(endDate)
+                .totalRevenue(gmvMetrics.getTotalGmv())
+                .totalOrders(gmvMetrics.getTotalOrders())
+                .averageOrderValue(gmvMetrics.getAverageOrderValue())
+                .foodRevenue(gmvMetrics.getFoodGmv())
+                .deliveryFeeRevenue(gmvMetrics.getDeliveryFeeGmv())
+                .tipRevenue(gmvMetrics.getTipGmv())
+                .growthRate(gmvMetrics.getGrowthRate())
+                .grossSales(payoutMetrics.getTotalGrossSales())
+                .commissionsDeducted(payoutMetrics.getTotalCommissionsDeducted())
+                .deliverySubsidies(payoutMetrics.getTotalDeliverySubsidies())
+                .promotionCosts(payoutMetrics.getTotalPromotionCosts())
+                .adjustments(payoutMetrics.getTotalAdjustments())
+                .fees(payoutMetrics.getTotalFees())
+                .netPayout(payoutMetrics.getNetPayoutAmount())
+                .pendingPayouts(payoutMetrics.getPendingPayouts())
+                .completedPayouts(payoutMetrics.getCompletedPayouts())
+                .dailyRevenueTrend(gmvMetrics.getDailyTrend())
+                .dailyPayoutTrend(payoutMetrics.getDailyTrend())
+                .build();
+
+        return ResponseEntity.ok(ApiResponse.success(report));
     }
 }
