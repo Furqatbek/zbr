@@ -173,6 +173,7 @@ public class CourierService {
 
     /**
      * Accept an order assignment.
+     * Uses pessimistic locking to prevent race condition where multiple couriers accept the same order.
      */
     @Transactional
     @Auditable(action = "ACCEPT_ORDER", entityType = "Courier")
@@ -184,7 +185,8 @@ public class CourierService {
             throw new BusinessException("Courier is not available to accept orders");
         }
 
-        Order order = orderRepository.findById(orderId)
+        // Use pessimistic lock to prevent race condition
+        Order order = orderRepository.findByIdForCourierAssignment(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Order", "id", orderId));
 
         if (order.getCourier() != null) {
@@ -208,6 +210,9 @@ public class CourierService {
 
         // Publish event
         publishCourierAssignedEvent(order, courier);
+
+        // Broadcast to other couriers that this order is no longer available
+        broadcastOrderTaken(order, courier);
 
         return toDto(courier);
     }
@@ -525,6 +530,7 @@ public class CourierService {
 
     /**
      * Accept an order and return order details.
+     * Uses pessimistic locking to prevent race condition where multiple couriers accept the same order.
      */
     @Transactional
     @Auditable(action = "ACCEPT_ORDER", entityType = "Courier")
@@ -536,7 +542,8 @@ public class CourierService {
             throw new BusinessException("Courier is not available to accept orders");
         }
 
-        Order order = orderRepository.findById(orderId)
+        // Use pessimistic lock to prevent race condition
+        Order order = orderRepository.findByIdForCourierAssignment(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Order", "id", orderId));
 
         if (order.getCourier() != null) {
@@ -556,6 +563,9 @@ public class CourierService {
 
         log.info("Courier {} accepted order {}", courierId, orderId);
         publishCourierAssignedEvent(order, courier);
+
+        // Broadcast to other couriers that this order is no longer available
+        broadcastOrderTaken(order, courier);
 
         return toOrderDto(order);
     }
@@ -773,6 +783,32 @@ public class CourierService {
             );
         } catch (Exception e) {
             log.warn("Failed to broadcast courier location: {}", e.getMessage());
+        }
+    }
+
+    /**
+     * Broadcast to all couriers that an order has been taken.
+     * This immediately removes the order from other couriers' available orders list.
+     */
+    private void broadcastOrderTaken(Order order, Courier courier) {
+        try {
+            java.util.Map<String, Object> notification = new java.util.HashMap<>();
+            notification.put("type", "ORDER_TAKEN");
+            notification.put("orderId", order.getId());
+            notification.put("externalOrderNo", order.getExternalOrderNo());
+            notification.put("courierId", courier.getId());
+            notification.put("courierName", courier.getUser().getFullName());
+            notification.put("timestamp", LocalDateTime.now().toString());
+
+            // Broadcast to all couriers listening for available orders
+            messagingTemplate.convertAndSend("/topic/couriers/orders/available", notification);
+
+            // Also send to the specific order topic so any courier with it open gets notified
+            messagingTemplate.convertAndSend("/topic/orders/" + order.getId() + "/taken", notification);
+
+            log.info("Broadcasted order {} taken by courier {}", order.getExternalOrderNo(), courier.getId());
+        } catch (Exception e) {
+            log.warn("Failed to broadcast order taken notification: {}", e.getMessage());
         }
     }
 

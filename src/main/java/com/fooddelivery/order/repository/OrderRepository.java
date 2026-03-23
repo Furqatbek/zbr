@@ -29,6 +29,14 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     @Query("SELECT o FROM Order o LEFT JOIN FETCH o.consumer LEFT JOIN FETCH o.restaurant LEFT JOIN FETCH o.courier WHERE o.id = :id")
     Optional<Order> findByIdWithLock(@Param("id") Long id);
 
+    /**
+     * Find order by ID with pessimistic write lock for courier assignment.
+     * Prevents race condition where multiple couriers try to accept the same order.
+     */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT o FROM Order o LEFT JOIN FETCH o.consumer LEFT JOIN FETCH o.restaurant LEFT JOIN FETCH o.courier WHERE o.id = :id")
+    Optional<Order> findByIdForCourierAssignment(@Param("id") Long id);
+
     Page<Order> findByConsumerId(Long consumerId, Pageable pageable);
 
     Page<Order> findByRestaurantId(Long restaurantId, Pageable pageable);
