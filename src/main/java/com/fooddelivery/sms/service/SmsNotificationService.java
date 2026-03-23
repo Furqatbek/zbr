@@ -259,6 +259,36 @@ public class SmsNotificationService {
     }
 
     /**
+     * Send new order notification SMS to restaurant owner.
+     */
+    @Async("notificationExecutor")
+    public void sendNewOrderToRestaurant(String phoneNumber, String orderNo, String totalAmount, String customerName) {
+        if (!smsProperties.isEnabled() || phoneNumber == null || phoneNumber.isBlank()) {
+            return;
+        }
+
+        String message = String.format(
+                "NEW ORDER #%s!\nAmount: %s\nCustomer: %s\nPlease check your dashboard to accept this order.",
+                orderNo,
+                totalAmount != null ? totalAmount : "N/A",
+                customerName != null ? customerName : "Customer"
+        );
+
+        NotificationRequest request = NotificationRequest.builder()
+                .phone(phoneNumber)
+                .subject("New Order Received")
+                .body(message)
+                .channel("sms")
+                .referenceId(orderNo)
+                .referenceType("NEW_ORDER_RESTAURANT")
+                .priority(10) // High priority for new orders
+                .build();
+
+        queueNotification(request);
+        log.info("New order SMS queued for restaurant: orderNo={}, phone={}", orderNo, maskPhone(phoneNumber));
+    }
+
+    /**
      * Send payment confirmation SMS.
      */
     @Async("notificationExecutor")

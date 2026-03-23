@@ -168,6 +168,62 @@ public class NotificationService {
     }
 
     /**
+     * Send new order notification email to restaurant owner.
+     */
+    @Async("notificationExecutor")
+    public void sendNewOrderToRestaurant(String email, String orderNo, String totalAmount, String customerName) {
+        if (!notificationsEnabled || email == null || email.isBlank()) {
+            return;
+        }
+
+        try {
+            NotificationRequest request = NotificationRequest.builder()
+                    .email(email)
+                    .subject("New Order Received - " + orderNo)
+                    .body(String.format("""
+                            New Order Received!
+
+                            Order Number: %s
+                            Total Amount: %s
+                            Customer: %s
+
+                            Please log in to your dashboard to accept this order.
+
+                            Quick action required - customers are waiting!
+
+                            Best regards,
+                            Food Delivery Platform
+                            """, orderNo,
+                            totalAmount != null ? totalAmount : "N/A",
+                            customerName != null ? customerName : "Customer"))
+                    .channel("email")
+                    .referenceId(orderNo)
+                    .referenceType("NEW_ORDER_RESTAURANT")
+                    .priority(10) // High priority
+                    .build();
+
+            queueEmailNotification(request);
+            log.info("New order email queued for restaurant: orderNo={}, email={}", orderNo, maskEmail(email));
+        } catch (Exception e) {
+            log.error("Failed to queue new order email for restaurant: {}", e.getMessage());
+        }
+    }
+
+    /**
+     * Mask email for logging.
+     */
+    private String maskEmail(String email) {
+        if (email == null || !email.contains("@")) {
+            return "***";
+        }
+        int atIndex = email.indexOf('@');
+        if (atIndex <= 2) {
+            return "***" + email.substring(atIndex);
+        }
+        return email.substring(0, 2) + "***" + email.substring(atIndex);
+    }
+
+    /**
      * Queue email notification for async processing.
      */
     public void queueEmailNotification(NotificationRequest request) {

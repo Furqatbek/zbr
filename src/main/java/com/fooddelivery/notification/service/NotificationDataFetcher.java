@@ -87,18 +87,30 @@ public class NotificationDataFetcher {
     /**
      * Helper class to hold restaurant data for notifications.
      */
-    public record RestaurantData(Long ownerId, String name) {
+    public record RestaurantData(
+            Long ownerId,
+            String name,
+            String ownerPhone,
+            String ownerEmail,
+            String restaurantPhone,
+            String restaurantEmail
+    ) {
         public static RestaurantData empty() {
-            return new RestaurantData(null, null);
+            return new RestaurantData(null, null, null, null, null, null);
         }
 
         public static RestaurantData from(Restaurant restaurant) {
             if (restaurant == null) {
                 return empty();
             }
+            var owner = restaurant.getOwner();
             return new RestaurantData(
-                    restaurant.getOwner() != null ? restaurant.getOwner().getId() : null,
-                    restaurant.getName()
+                    owner != null ? owner.getId() : null,
+                    restaurant.getName(),
+                    owner != null ? owner.getPhone() : null,
+                    owner != null ? owner.getEmail() : null,
+                    restaurant.getPhone(),
+                    restaurant.getEmail()
             );
         }
     }

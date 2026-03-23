@@ -12,6 +12,7 @@ import com.fooddelivery.notification.repository.UserDeviceTokenRepository;
 import com.fooddelivery.notification.util.NotificationConstants;
 import com.fooddelivery.notification.util.NotificationMessageBuilder;
 import com.fooddelivery.order.entity.Order;
+import com.fooddelivery.sms.service.SmsNotificationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
@@ -46,6 +47,8 @@ public class PersistentNotificationServiceImpl implements PersistentNotification
     private final SimpMessagingTemplate messagingTemplate;
     private final RabbitTemplate rabbitTemplate;
     private final UserDeviceTokenRepository deviceTokenRepository;
+    private final SmsNotificationService smsNotificationService;
+    private final NotificationService notificationService;
 
     // ===== CRUD Operations =====
 
@@ -491,11 +494,79 @@ public class PersistentNotificationServiceImpl implements PersistentNotification
         request.setEventType(NotificationType.NEW_ORDER_RECEIVED);
         if (request.getRestaurantUserId() != null) {
             createOrderNotification(request, request.getRestaurantUserId(), NotificationRole.RESTAURANT);
+
+            // Send immediate SMS notification to restaurant owner
+            sendSmsToRestaurantOwner(request);
+
+            // Send immediate email notification to restaurant owner
+            sendEmailToRestaurantOwner(request);
         } else {
             // No owner found - notify admin but do NOT broadcast to all restaurants
             log.warn("Restaurant {} has no owner assigned for order {}. Skipping restaurant notification.",
                     request.getRestaurantId(), request.getOrderId());
             notifyAdminMissingRestaurantOwner(request, "ORDER_CREATED");
+        }
+    }
+
+    /**
+     * Send SMS notification to restaurant owner for new order.
+     */
+    private void sendSmsToRestaurantOwner(OrderNotificationRequest request) {
+        try {
+            // Try owner's phone first, fallback to restaurant phone
+            String phone = request.getRestaurantOwnerPhone();
+            if (phone == null || phone.isBlank()) {
+                phone = request.getRestaurantPhone();
+            }
+
+            if (phone != null && !phone.isBlank()) {
+                String totalAmount = request.getTotalAmount() != null ?
+                        request.getTotalAmount().toString() : null;
+                smsNotificationService.sendNewOrderToRestaurant(
+                        phone,
+                        request.getOrderNumber(),
+                        totalAmount,
+                        request.getCustomerName()
+                );
+                log.info("SMS notification sent to restaurant owner for order {}", request.getOrderNumber());
+            } else {
+                log.warn("No phone number available for restaurant {} to send new order SMS",
+                        request.getRestaurantId());
+            }
+        } catch (Exception e) {
+            log.error("Failed to send SMS to restaurant owner for order {}: {}",
+                    request.getOrderNumber(), e.getMessage());
+        }
+    }
+
+    /**
+     * Send email notification to restaurant owner for new order.
+     */
+    private void sendEmailToRestaurantOwner(OrderNotificationRequest request) {
+        try {
+            // Try owner's email first, fallback to restaurant email
+            String email = request.getRestaurantOwnerEmail();
+            if (email == null || email.isBlank()) {
+                email = request.getRestaurantEmail();
+            }
+
+            if (email != null && !email.isBlank()) {
+                String totalAmount = request.getTotalAmount() != null ?
+                        request.getTotalAmount().toString() : null;
+                notificationService.sendNewOrderToRestaurant(
+                        email,
+                        request.getOrderNumber(),
+                        totalAmount,
+                        request.getCustomerName()
+                );
+                log.info("Email notification sent to restaurant owner for order {}", request.getOrderNumber());
+            } else {
+                log.warn("No email address available for restaurant {} to send new order email",
+                        request.getRestaurantId());
+            }
+        } catch (Exception e) {
+            log.error("Failed to send email to restaurant owner for order {}: {}",
+                    request.getOrderNumber(), e.getMessage());
         }
     }
 

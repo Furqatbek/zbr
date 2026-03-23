@@ -51,6 +51,26 @@ public class OrderNotificationRequest {
     private Long restaurantUserId;
 
     /**
+     * Restaurant owner's phone number.
+     */
+    private String restaurantOwnerPhone;
+
+    /**
+     * Restaurant owner's email.
+     */
+    private String restaurantOwnerEmail;
+
+    /**
+     * Restaurant's phone number.
+     */
+    private String restaurantPhone;
+
+    /**
+     * Restaurant's email.
+     */
+    private String restaurantEmail;
+
+    /**
      * Courier ID.
      */
     private Long courierId;
