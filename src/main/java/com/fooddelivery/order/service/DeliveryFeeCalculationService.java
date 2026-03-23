@@ -1,8 +1,9 @@
 package com.fooddelivery.order.service;
 
+import com.fooddelivery.order.dto.DeliveryFeeSettingsDto;
 import com.fooddelivery.restaurant.entity.Restaurant;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -11,37 +12,14 @@ import java.time.LocalTime;
 
 /**
  * Service for calculating delivery fees dynamically based on distance, time, and other factors.
+ * Settings are loaded from the database via DeliveryFeeSettingsService.
  */
 @Service
+@RequiredArgsConstructor
 @Slf4j
 public class DeliveryFeeCalculationService {
 
-    @Value("${app.delivery.base-fee:2.00}")
-    private BigDecimal baseFee;
-
-    @Value("${app.delivery.per-km-fee:0.50}")
-    private BigDecimal perKmFee;
-
-    @Value("${app.delivery.min-fee:2.00}")
-    private BigDecimal minFee;
-
-    @Value("${app.delivery.max-fee:15.00}")
-    private BigDecimal maxFee;
-
-    @Value("${app.delivery.peak-hour-surcharge:1.50}")
-    private BigDecimal peakHourSurcharge;
-
-    @Value("${app.delivery.peak-start-hour:11}")
-    private int peakStartHour;
-
-    @Value("${app.delivery.peak-end-hour:14}")
-    private int peakEndHour;
-
-    @Value("${app.delivery.evening-peak-start-hour:18}")
-    private int eveningPeakStartHour;
-
-    @Value("${app.delivery.evening-peak-end-hour:21}")
-    private int eveningPeakEndHour;
+    private final DeliveryFeeSettingsService settingsService;
 
     private static final double EARTH_RADIUS_KM = 6371.0;
 
@@ -56,14 +34,17 @@ public class DeliveryFeeCalculationService {
     public BigDecimal calculateDeliveryFee(Restaurant restaurant,
                                            BigDecimal deliveryLatitude,
                                            BigDecimal deliveryLongitude) {
+        // Load settings from database
+        DeliveryFeeSettingsDto settings = settingsService.getSettings();
+
         if (deliveryLatitude == null || deliveryLongitude == null) {
-            log.warn("Delivery coordinates not provided, using restaurant's base fee");
-            return restaurant.getDeliveryFee() != null ? restaurant.getDeliveryFee() : baseFee;
+            log.warn("Delivery coordinates not provided, using base fee");
+            return restaurant.getDeliveryFee() != null ? restaurant.getDeliveryFee() : settings.getBaseFee();
         }
 
         if (restaurant.getLatitude() == null || restaurant.getLongitude() == null) {
             log.warn("Restaurant coordinates not set for restaurant {}, using base fee", restaurant.getId());
-            return restaurant.getDeliveryFee() != null ? restaurant.getDeliveryFee() : baseFee;
+            return restaurant.getDeliveryFee() != null ? restaurant.getDeliveryFee() : settings.getBaseFee();
         }
 
         // Calculate distance
@@ -77,20 +58,20 @@ public class DeliveryFeeCalculationService {
         log.debug("Calculated distance: {} km for restaurant {}", distanceKm, restaurant.getId());
 
         // Calculate base delivery fee: base + (distance * per-km rate)
-        BigDecimal distanceFee = perKmFee.multiply(BigDecimal.valueOf(distanceKm));
-        BigDecimal calculatedFee = baseFee.add(distanceFee);
+        BigDecimal distanceFee = settings.getPerKmFee().multiply(BigDecimal.valueOf(distanceKm));
+        BigDecimal calculatedFee = settings.getBaseFee().add(distanceFee);
 
         // Apply peak hour surcharge if applicable
-        if (isPeakHour()) {
-            calculatedFee = calculatedFee.add(peakHourSurcharge);
-            log.debug("Peak hour surcharge applied: {}", peakHourSurcharge);
+        if (isPeakHour(settings)) {
+            calculatedFee = calculatedFee.add(settings.getPeakHourSurcharge());
+            log.debug("Peak hour surcharge applied: {}", settings.getPeakHourSurcharge());
         }
 
         // Apply minimum and maximum constraints
-        if (calculatedFee.compareTo(minFee) < 0) {
-            calculatedFee = minFee;
-        } else if (calculatedFee.compareTo(maxFee) > 0) {
-            calculatedFee = maxFee;
+        if (calculatedFee.compareTo(settings.getMinFee()) < 0) {
+            calculatedFee = settings.getMinFee();
+        } else if (calculatedFee.compareTo(settings.getMaxFee()) > 0) {
+            calculatedFee = settings.getMaxFee();
         }
 
         // Round to 2 decimal places
@@ -121,17 +102,17 @@ public class DeliveryFeeCalculationService {
     /**
      * Check if current time is during peak hours.
      */
-    private boolean isPeakHour() {
+    private boolean isPeakHour(DeliveryFeeSettingsDto settings) {
         LocalTime now = LocalTime.now();
         int hour = now.getHour();
 
         // Lunch peak hours
-        if (hour >= peakStartHour && hour < peakEndHour) {
+        if (hour >= settings.getPeakStartHour() && hour < settings.getPeakEndHour()) {
             return true;
         }
 
         // Dinner peak hours
-        return hour >= eveningPeakStartHour && hour < eveningPeakEndHour;
+        return hour >= settings.getEveningPeakStartHour() && hour < settings.getEveningPeakEndHour();
     }
 
     /**
