@@ -469,6 +469,7 @@ public class PersistentNotificationServiceImpl implements PersistentNotification
             case ORDER_PICKED_UP -> notifyOrderPickedUp(request);
             case ORDER_IN_TRANSIT -> notifyOrderInTransit(request);
             case ORDER_DELIVERED -> notifyOrderDelivered(request);
+            case ORDER_COMPLETED -> notifyOrderCompleted(request);
             case ORDER_CANCELLED -> notifyOrderCancelled(request);
             case PAYMENT_FAILED -> notifyPaymentFailed(request);
             case PAYMENT_RECEIVED -> notifyPaymentReceived(request);
@@ -691,6 +692,31 @@ public class PersistentNotificationServiceImpl implements PersistentNotification
         if (request.getCourierUserId() != null) {
             request.setEventType(NotificationType.DELIVERY_COMPLETED);
             createOrderNotification(request, request.getCourierUserId(), NotificationRole.COURIER);
+        }
+    }
+
+    @Override
+    public void notifyOrderCompleted(OrderNotificationRequest request) {
+        log.info("Processing ORDER_COMPLETED notification for order {}, customerId={}",
+                request.getOrderId(), request.getCustomerId());
+
+        request.setEventType(NotificationType.ORDER_COMPLETED);
+
+        // Notify consumer immediately
+        if (request.getCustomerId() != null) {
+            log.info("Sending ORDER_COMPLETED notification to customer {} for order {}",
+                    request.getCustomerId(), request.getOrderId());
+            createOrderNotification(request, request.getCustomerId(), NotificationRole.CONSUMER);
+        } else {
+            log.warn("Cannot notify customer for order {} - customerId is null", request.getOrderId());
+        }
+
+        // Notify restaurant owner
+        if (request.getRestaurantUserId() != null) {
+            createOrderNotification(request, request.getRestaurantUserId(), NotificationRole.RESTAURANT);
+        } else if (request.getRestaurantId() != null) {
+            log.warn("Restaurant {} has no owner for completion notification. Skipping.",
+                    request.getRestaurantId());
         }
     }
 

@@ -162,6 +162,11 @@ public interface PersistentNotificationService {
     void notifyOrderDelivered(OrderNotificationRequest request);
 
     /**
+     * Notify when order is completed (final confirmation after delivery).
+     */
+    void notifyOrderCompleted(OrderNotificationRequest request);
+
+    /**
      * Notify when order is cancelled.
      */
     void notifyOrderCancelled(OrderNotificationRequest request);

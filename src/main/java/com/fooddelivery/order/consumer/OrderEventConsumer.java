@@ -108,6 +108,7 @@ public class OrderEventConsumer {
                 case PICKED_UP -> notificationService.notifyOrderPickedUp(request);
                 case IN_TRANSIT -> notificationService.notifyOrderInTransit(request);
                 case DELIVERED -> notificationService.notifyOrderDelivered(request);
+                case COMPLETED -> notificationService.notifyOrderCompleted(request);
                 case CANCELLED -> notificationService.notifyOrderCancelled(request);
                 case REFUNDED -> notificationService.notifyRefundProcessed(request);
                 default -> log.debug("No notification for status: {}", event.getNewStatus());
