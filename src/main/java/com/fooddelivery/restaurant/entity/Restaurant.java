@@ -180,11 +180,16 @@ public class Restaurant {
     }
 
     public boolean isCurrentlyOpen() {
-        if (!Boolean.TRUE.equals(isOpen) || status != RestaurantStatus.ACTIVE) {
+        if (status != RestaurantStatus.ACTIVE) {
             return false;
         }
-        if (opensAt == null || closesAt == null) {
+        // If owner has manually set isOpen to true, respect that override
+        if (Boolean.TRUE.equals(isOpen)) {
             return true;
+        }
+        // If isOpen is false or null, check business hours as fallback
+        if (opensAt == null || closesAt == null) {
+            return false;
         }
         LocalTime now = LocalTime.now();
         return !now.isBefore(opensAt) && !now.isAfter(closesAt);
