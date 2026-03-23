@@ -7,6 +7,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
@@ -45,14 +46,14 @@ public interface CompensationLogRepository extends JpaRepository<CompensationLog
     @Query("SELECT COALESCE(SUM(c.amount), 0) FROM CompensationLog c " +
            "WHERE c.user.id = :userId AND c.status = :status " +
            "AND c.createdAt >= :since")
-    BigDecimal getTotalCompensationForUserSince(Long userId, CompensationStatus status, LocalDateTime since);
+    BigDecimal getTotalCompensationForUserSince(@Param("userId") Long userId, @Param("status") CompensationStatus status, @Param("since") LocalDateTime since);
 
     /**
      * Count compensations by trigger type in a time period.
      */
     @Query("SELECT COUNT(c) FROM CompensationLog c " +
            "WHERE c.triggerType = :triggerType AND c.createdAt >= :since")
-    Long countByTriggerTypeSince(CompensationTriggerType triggerType, LocalDateTime since);
+    Long countByTriggerTypeSince(@Param("triggerType") CompensationTriggerType triggerType, @Param("since") LocalDateTime since);
 
     /**
      * Get compensation statistics for dashboard.
@@ -60,5 +61,5 @@ public interface CompensationLogRepository extends JpaRepository<CompensationLog
     @Query("SELECT c.triggerType, COUNT(c), SUM(c.amount) FROM CompensationLog c " +
            "WHERE c.status = :status AND c.createdAt >= :since " +
            "GROUP BY c.triggerType")
-    List<Object[]> getCompensationStatsSince(CompensationStatus status, LocalDateTime since);
+    List<Object[]> getCompensationStatsSince(@Param("status") CompensationStatus status, @Param("since") LocalDateTime since);
 }

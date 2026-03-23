@@ -9,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
@@ -29,6 +30,7 @@ import java.time.LocalDateTime;
 @RequiredArgsConstructor
 @Slf4j
 @Tag(name = "Customer Experience Analytics", description = "APIs for customer experience metrics and analytics")
+@PreAuthorize("hasAnyRole('ADMIN', 'PLATFORM', 'OPERATIONS_MANAGER', 'SUPPORT_MANAGER')")
 public class CustomerExperienceAnalyticsController {
 
     private final CustomerExperienceAnalyticsService cxAnalyticsService;

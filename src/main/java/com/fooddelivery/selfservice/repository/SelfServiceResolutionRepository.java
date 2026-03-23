@@ -4,6 +4,7 @@ import com.fooddelivery.selfservice.entity.SelfServiceResolution;
 import com.fooddelivery.selfservice.entity.SelfServiceResolutionType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
@@ -32,7 +33,7 @@ public interface SelfServiceResolutionRepository extends JpaRepository<SelfServi
            "WHERE r.user.id = :userId " +
            "AND r.resolutionType = :type " +
            "AND r.createdAt >= :since")
-    Long countByUserIdAndResolutionTypeSince(Long userId, SelfServiceResolutionType type, LocalDateTime since);
+    Long countByUserIdAndResolutionTypeSince(@Param("userId") Long userId, @Param("type") SelfServiceResolutionType type, @Param("since") LocalDateTime since);
 
     /**
      * Check if order already has a resolution of this type.

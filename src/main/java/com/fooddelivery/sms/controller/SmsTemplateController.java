@@ -56,7 +56,7 @@ public class SmsTemplateController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'SUPPORT')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPPORT_AGENT', 'SUPPORT_MANAGER')")
     @Operation(summary = "Get SMS template by ID")
     public ResponseEntity<SmsTemplateResponse> getTemplate(@PathVariable Long id) {
         SmsTemplateResponse response = templateService.getTemplate(id);
@@ -64,7 +64,7 @@ public class SmsTemplateController {
     }
 
     @GetMapping("/by-code")
-    @PreAuthorize("hasAnyRole('ADMIN', 'SUPPORT')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPPORT_AGENT', 'SUPPORT_MANAGER')")
     @Operation(summary = "Get SMS template by code and provider")
     public ResponseEntity<SmsTemplateResponse> getTemplateByCode(
             @RequestParam String code,
@@ -74,7 +74,7 @@ public class SmsTemplateController {
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'SUPPORT')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPPORT_AGENT', 'SUPPORT_MANAGER')")
     @Operation(summary = "List all SMS templates")
     public ResponseEntity<List<SmsTemplateResponse>> listAllTemplates() {
         List<SmsTemplateResponse> templates = templateService.listAllTemplates();
@@ -82,7 +82,7 @@ public class SmsTemplateController {
     }
 
     @GetMapping("/by-provider/{provider}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'SUPPORT')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPPORT_AGENT', 'SUPPORT_MANAGER')")
     @Operation(summary = "List SMS templates by provider")
     public ResponseEntity<List<SmsTemplateResponse>> listByProvider(
             @PathVariable SmsProviderType provider) {
@@ -91,7 +91,7 @@ public class SmsTemplateController {
     }
 
     @GetMapping("/by-type/{type}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'SUPPORT')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPPORT_AGENT', 'SUPPORT_MANAGER')")
     @Operation(summary = "List SMS templates by type")
     public ResponseEntity<List<SmsTemplateResponse>> listByType(
             @PathVariable SmsTemplateType type) {
@@ -130,7 +130,7 @@ public class SmsTemplateController {
     }
 
     @PostMapping("/{id}/refresh-status")
-    @PreAuthorize("hasAnyRole('ADMIN', 'SUPPORT')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPPORT_AGENT', 'SUPPORT_MANAGER')")
     @Operation(summary = "Refresh template status from provider",
             description = "Fetches the current approval status from the SMS provider")
     public ResponseEntity<SmsTemplateResponse> refreshStatus(@PathVariable Long id) {
@@ -140,7 +140,7 @@ public class SmsTemplateController {
     }
 
     @GetMapping("/stats")
-    @PreAuthorize("hasAnyRole('ADMIN', 'SUPPORT')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPPORT_AGENT', 'SUPPORT_MANAGER')")
     @Operation(summary = "Get template statistics",
             description = "Returns counts of templates by status")
     public ResponseEntity<TemplateStats> getStats() {

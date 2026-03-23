@@ -14,6 +14,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
@@ -36,6 +37,7 @@ import java.util.List;
 @RequestMapping("/api/v1/analytics/financial")
 @RequiredArgsConstructor
 @Tag(name = "Financial Analytics", description = "Financial metrics and analytics APIs")
+@PreAuthorize("hasAnyRole('ADMIN', 'PLATFORM', 'FINANCE_MANAGER')")
 public class FinancialAnalyticsController {
 
     private final FinancialAnalyticsService financialAnalyticsService;

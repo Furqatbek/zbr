@@ -4,6 +4,7 @@ import com.fooddelivery.courier.reassignment.entity.ReassignmentLog;
 import com.fooddelivery.courier.reassignment.entity.ReassignmentReason;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
@@ -30,12 +31,12 @@ public interface ReassignmentLogRepository extends JpaRepository<ReassignmentLog
      */
     @Query("SELECT COUNT(r) FROM ReassignmentLog r " +
            "WHERE r.previousCourier.id = :courierId AND r.createdAt >= :since")
-    Long countByCourierSince(Long courierId, LocalDateTime since);
+    Long countByCourierSince(@Param("courierId") Long courierId, @Param("since") LocalDateTime since);
 
     /**
      * Count reassignments by reason in a time period.
      */
     @Query("SELECT r.reason, COUNT(r) FROM ReassignmentLog r " +
            "WHERE r.createdAt >= :since GROUP BY r.reason")
-    List<Object[]> countByReasonSince(LocalDateTime since);
+    List<Object[]> countByReasonSince(@Param("since") LocalDateTime since);
 }

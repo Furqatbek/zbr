@@ -106,6 +106,9 @@ public class Courier {
     @Builder.Default
     private Boolean documentsSubmitted = false;
 
+    @Column(name = "last_active_at")
+    private LocalDateTime lastActiveAt;
+
     @Version
     private Long version;
 
