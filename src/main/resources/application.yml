@@ -152,6 +152,17 @@ app:
     max-preparation-minutes: 60
     delivery-radius-km: 10
 
+  delivery:
+    base-fee: ${DELIVERY_BASE_FEE:2.00}
+    per-km-fee: ${DELIVERY_PER_KM_FEE:0.50}
+    min-fee: ${DELIVERY_MIN_FEE:2.00}
+    max-fee: ${DELIVERY_MAX_FEE:15.00}
+    peak-hour-surcharge: ${DELIVERY_PEAK_SURCHARGE:1.50}
+    peak-start-hour: 11
+    peak-end-hour: 14
+    evening-peak-start-hour: 18
+    evening-peak-end-hour: 21
+
   referral:
     reward-amount: 10.00
     currency: USD

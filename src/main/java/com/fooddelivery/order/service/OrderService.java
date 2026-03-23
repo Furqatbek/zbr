@@ -60,6 +60,7 @@ public class OrderService {
     private final SmsNotificationService smsNotificationService;
     private final NotificationService notificationService;
     private final CourierRepository courierRepository;
+    private final DeliveryFeeCalculationService deliveryFeeCalculationService;
 
     @Value("${app.order.auto-cancel-unpaid-minutes:30}")
     private int autoCancelMinutes;
@@ -86,6 +87,19 @@ public class OrderService {
         // Get consumer
         User consumer = userService.getUserEntityById(consumerId);
 
+        // Calculate delivery fee dynamically for delivery orders
+        BigDecimal deliveryFee = BigDecimal.ZERO;
+        if (request.getOrderType() == OrderType.DELIVERY) {
+            // Validate delivery is within restaurant's radius
+            if (!deliveryFeeCalculationService.isWithinDeliveryRadius(
+                    restaurant, request.getDeliveryLatitude(), request.getDeliveryLongitude())) {
+                throw new BusinessException("Delivery address is outside restaurant's delivery radius");
+            }
+            // Calculate delivery fee based on distance
+            deliveryFee = deliveryFeeCalculationService.calculateDeliveryFee(
+                    restaurant, request.getDeliveryLatitude(), request.getDeliveryLongitude());
+        }
+
         // Create order
         Order order = Order.builder()
                 .externalOrderNo(SlugUtils.generateOrderNumber())
@@ -103,7 +117,7 @@ public class OrderService {
                 .customerPhone(request.getCustomerPhone() != null ? request.getCustomerPhone() : consumer.getPhone())
                 .notes(request.getNotes())
                 .tipAmount(request.getTipAmount() != null ? request.getTipAmount() : BigDecimal.ZERO)
-                .deliveryFee(request.getOrderType() == OrderType.DELIVERY ? restaurant.getDeliveryFee() : BigDecimal.ZERO)
+                .deliveryFee(deliveryFee)
                 .build();
 
         // Process order items
