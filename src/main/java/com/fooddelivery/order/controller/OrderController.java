@@ -4,10 +4,12 @@ import com.fooddelivery.auth.security.UserPrincipal;
 import com.fooddelivery.common.dto.ApiResponse;
 import com.fooddelivery.common.dto.PagedResponse;
 import com.fooddelivery.order.dto.*;
+import com.fooddelivery.order.service.DeliveryFeeCalculationService;
 import com.fooddelivery.order.service.OrderService;
 import com.fooddelivery.order.service.PaymentService;
 import com.fooddelivery.order.service.PromoService;
 import com.fooddelivery.order.service.ReviewService;
+import com.fooddelivery.restaurant.entity.Restaurant;
 import com.fooddelivery.restaurant.service.RestaurantService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -41,6 +43,7 @@ public class OrderController {
     private final PromoService promoService;
     private final ReviewService reviewService;
     private final RestaurantService restaurantService;
+    private final DeliveryFeeCalculationService deliveryFeeCalculationService;
 
     /**
      * Helper method to validate restaurant access for order endpoints.
@@ -259,6 +262,22 @@ public class OrderController {
             @Valid @RequestBody PromoValidationRequest request) {
 
         PromoValidationResponse response = promoService.validatePromoCode(request);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    // Delivery fee calculation endpoint
+    @PostMapping("/calculate-delivery-fee")
+    @PreAuthorize("hasAnyRole('CONSUMER', 'PLATFORM', 'ADMIN')")
+    @Operation(summary = "Calculate delivery fee", description = "Calculate delivery fee based on restaurant and delivery location")
+    public ResponseEntity<ApiResponse<DeliveryFeeResponse>> calculateDeliveryFee(
+            @Valid @RequestBody CalculateDeliveryFeeRequest request) {
+
+        Restaurant restaurant = restaurantService.getRestaurantEntityById(request.getRestaurantId());
+        DeliveryFeeResponse response = deliveryFeeCalculationService.calculateDeliveryFeeDetailed(
+                restaurant,
+                request.getDeliveryLatitude(),
+                request.getDeliveryLongitude()
+        );
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
