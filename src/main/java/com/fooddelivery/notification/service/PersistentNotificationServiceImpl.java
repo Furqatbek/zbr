@@ -506,6 +506,16 @@ public class PersistentNotificationServiceImpl implements PersistentNotification
                     request.getRestaurantId(), request.getOrderId());
             notifyAdminMissingRestaurantOwner(request, "ORDER_CREATED");
         }
+
+        // Notify couriers about new delivery order so they can prepare/position
+        String orderType = request.getMetadata() != null
+                ? (String) request.getMetadata().get("orderType")
+                : null;
+        if ("DELIVERY".equals(orderType)) {
+            log.info("Broadcasting new delivery order {} to couriers", request.getOrderId());
+            request.setEventType(NotificationType.NEW_DELIVERY_AVAILABLE);
+            createOrderNotification(request, null, NotificationRole.COURIER);
+        }
     }
 
     /**
