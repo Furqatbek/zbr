@@ -32,6 +32,9 @@ public class DeliveryFeeSetting {
     @Column(name = "setting_value", nullable = false, precision = 10, scale = 2)
     private BigDecimal settingValue;
 
+    @Column(name = "string_value", length = 500)
+    private String stringValue;
+
     @Column(length = 500)
     private String description;
 

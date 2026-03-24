@@ -49,4 +49,16 @@ public class UpdateDeliveryFeeSettingsRequest {
     @Min(value = 0, message = "Evening peak end hour must be between 0 and 23")
     @Max(value = 23, message = "Evening peak end hour must be between 0 and 23")
     private Integer eveningPeakEndHour;
+
+    private Boolean routingEnabled;
+
+    private String routingOsrmBaseUrl;
+
+    @Min(value = 100, message = "Routing connect timeout must be at least 100ms")
+    @Max(value = 30000, message = "Routing connect timeout must not exceed 30000ms")
+    private Integer routingConnectTimeout;
+
+    @Min(value = 100, message = "Routing read timeout must be at least 100ms")
+    @Max(value = 30000, message = "Routing read timeout must not exceed 30000ms")
+    private Integer routingReadTimeout;
 }

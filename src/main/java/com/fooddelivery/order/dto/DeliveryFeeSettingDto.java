@@ -19,6 +19,7 @@ public class DeliveryFeeSettingDto {
     private Long id;
     private String settingKey;
     private BigDecimal settingValue;
+    private String stringValue;
     private String description;
     private LocalDateTime updatedAt;
 }

@@ -36,6 +36,10 @@ public class DeliveryFeeSettingsService {
     public static final String PEAK_END_HOUR = "PEAK_END_HOUR";
     public static final String EVENING_PEAK_START_HOUR = "EVENING_PEAK_START_HOUR";
     public static final String EVENING_PEAK_END_HOUR = "EVENING_PEAK_END_HOUR";
+    public static final String ROUTING_ENABLED = "ROUTING_ENABLED";
+    public static final String ROUTING_OSRM_BASE_URL = "ROUTING_OSRM_BASE_URL";
+    public static final String ROUTING_CONNECT_TIMEOUT = "ROUTING_CONNECT_TIMEOUT";
+    public static final String ROUTING_READ_TIMEOUT = "ROUTING_READ_TIMEOUT";
 
     // Default values
     private static final BigDecimal DEFAULT_BASE_FEE = new BigDecimal("2.00");
@@ -47,6 +51,10 @@ public class DeliveryFeeSettingsService {
     private static final int DEFAULT_PEAK_END = 14;
     private static final int DEFAULT_EVENING_PEAK_START = 18;
     private static final int DEFAULT_EVENING_PEAK_END = 21;
+    private static final BigDecimal DEFAULT_ROUTING_ENABLED = BigDecimal.ZERO;
+    private static final String DEFAULT_ROUTING_OSRM_BASE_URL = "https://router.project-osrm.org";
+    private static final BigDecimal DEFAULT_ROUTING_CONNECT_TIMEOUT = new BigDecimal("3000");
+    private static final BigDecimal DEFAULT_ROUTING_READ_TIMEOUT = new BigDecimal("5000");
 
     /**
      * Get all delivery fee settings as a consolidated DTO.
@@ -64,6 +72,10 @@ public class DeliveryFeeSettingsService {
                 .peakEndHour(getSettingValue(PEAK_END_HOUR, BigDecimal.valueOf(DEFAULT_PEAK_END)).intValue())
                 .eveningPeakStartHour(getSettingValue(EVENING_PEAK_START_HOUR, BigDecimal.valueOf(DEFAULT_EVENING_PEAK_START)).intValue())
                 .eveningPeakEndHour(getSettingValue(EVENING_PEAK_END_HOUR, BigDecimal.valueOf(DEFAULT_EVENING_PEAK_END)).intValue())
+                .routingEnabled(getSettingValue(ROUTING_ENABLED, DEFAULT_ROUTING_ENABLED).intValue() == 1)
+                .routingOsrmBaseUrl(getStringSettingValue(ROUTING_OSRM_BASE_URL, DEFAULT_ROUTING_OSRM_BASE_URL))
+                .routingConnectTimeout(getSettingValue(ROUTING_CONNECT_TIMEOUT, DEFAULT_ROUTING_CONNECT_TIMEOUT).intValue())
+                .routingReadTimeout(getSettingValue(ROUTING_READ_TIMEOUT, DEFAULT_ROUTING_READ_TIMEOUT).intValue())
                 .build();
     }
 
@@ -112,6 +124,18 @@ public class DeliveryFeeSettingsService {
         if (request.getEveningPeakEndHour() != null) {
             updateSetting(EVENING_PEAK_END_HOUR, BigDecimal.valueOf(request.getEveningPeakEndHour()));
         }
+        if (request.getRoutingEnabled() != null) {
+            updateSetting(ROUTING_ENABLED, request.getRoutingEnabled() ? BigDecimal.ONE : BigDecimal.ZERO);
+        }
+        if (request.getRoutingOsrmBaseUrl() != null) {
+            updateStringSetting(ROUTING_OSRM_BASE_URL, request.getRoutingOsrmBaseUrl());
+        }
+        if (request.getRoutingConnectTimeout() != null) {
+            updateSetting(ROUTING_CONNECT_TIMEOUT, BigDecimal.valueOf(request.getRoutingConnectTimeout()));
+        }
+        if (request.getRoutingReadTimeout() != null) {
+            updateSetting(ROUTING_READ_TIMEOUT, BigDecimal.valueOf(request.getRoutingReadTimeout()));
+        }
 
         log.info("Delivery fee settings updated successfully");
         return getSettings();
@@ -142,6 +166,30 @@ public class DeliveryFeeSettingsService {
                 .orElse(defaultValue);
     }
 
+    public String getStringSettingValue(String key, String defaultValue) {
+        return repository.findBySettingKey(key)
+                .map(DeliveryFeeSetting::getStringValue)
+                .filter(v -> v != null && !v.isBlank())
+                .orElse(defaultValue);
+    }
+
+    private void updateStringSetting(String key, String value) {
+        repository.findBySettingKey(key).ifPresentOrElse(
+                setting -> {
+                    setting.setStringValue(value);
+                    repository.save(setting);
+                },
+                () -> {
+                    DeliveryFeeSetting newSetting = DeliveryFeeSetting.builder()
+                            .settingKey(key)
+                            .settingValue(BigDecimal.ZERO)
+                            .stringValue(value)
+                            .build();
+                    repository.save(newSetting);
+                }
+        );
+    }
+
     private void updateSetting(String key, BigDecimal value) {
         repository.findBySettingKey(key).ifPresentOrElse(
                 setting -> {
@@ -163,6 +211,7 @@ public class DeliveryFeeSettingsService {
                 .id(entity.getId())
                 .settingKey(entity.getSettingKey())
                 .settingValue(entity.getSettingValue())
+                .stringValue(entity.getStringValue())
                 .description(entity.getDescription())
                 .updatedAt(entity.getUpdatedAt())
                 .build();

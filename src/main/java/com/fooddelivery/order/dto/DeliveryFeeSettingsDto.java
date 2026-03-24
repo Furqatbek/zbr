@@ -24,4 +24,8 @@ public class DeliveryFeeSettingsDto {
     private Integer peakEndHour;
     private Integer eveningPeakStartHour;
     private Integer eveningPeakEndHour;
+    private Boolean routingEnabled;
+    private String routingOsrmBaseUrl;
+    private Integer routingConnectTimeout;
+    private Integer routingReadTimeout;
 }
