@@ -2,9 +2,11 @@ package com.fooddelivery.auth.service;
 
 import com.fooddelivery.auth.dto.*;
 import com.fooddelivery.auth.entity.OtpCode;
+import com.fooddelivery.auth.entity.RefreshToken;
 import com.fooddelivery.auth.entity.Role;
 import com.fooddelivery.auth.entity.User;
 import com.fooddelivery.auth.entity.UserStatus;
+import com.fooddelivery.auth.repository.RefreshTokenRepository;
 import com.fooddelivery.auth.repository.UserRepository;
 import com.fooddelivery.auth.security.JwtService;
 import com.fooddelivery.common.exception.BusinessException;
@@ -13,6 +15,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
 
 import java.util.Optional;
 
@@ -26,6 +30,7 @@ public class PhoneAuthService {
 
     private final OtpService otpService;
     private final UserRepository userRepository;
+    private final RefreshTokenRepository refreshTokenRepository;
     private final JwtService jwtService;
 
     /**
@@ -104,6 +109,9 @@ public class PhoneAuthService {
         // Generate tokens
         String accessToken = jwtService.generateToken(user);
         String refreshToken = jwtService.generateRefreshToken(user);
+
+        // Save refresh token to database
+        saveRefreshToken(user, refreshToken);
 
         log.info("Phone auth successful: userId={}, isNewUser={}",
                 user.getId(), user.getCreatedAt().equals(user.getUpdatedAt()));
@@ -184,6 +192,9 @@ public class PhoneAuthService {
         String accessToken = jwtService.generateToken(user);
         String refreshToken = jwtService.generateRefreshToken(user);
 
+        // Save refresh token to database
+        saveRefreshToken(user, refreshToken);
+
         return AuthResponse.builder()
                 .accessToken(accessToken)
                 .refreshToken(refreshToken)
@@ -247,6 +258,15 @@ public class PhoneAuthService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
         return mapToUserDto(user);
+    }
+
+    private void saveRefreshToken(User user, String token) {
+        RefreshToken refreshToken = RefreshToken.builder()
+                .token(token)
+                .user(user)
+                .expiresAt(LocalDateTime.now().plusSeconds(jwtService.getRefreshTokenExpiration() / 1000))
+                .build();
+        refreshTokenRepository.save(refreshToken);
     }
 
     /**
