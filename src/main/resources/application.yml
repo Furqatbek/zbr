@@ -162,6 +162,11 @@ app:
     peak-end-hour: 14
     evening-peak-start-hour: 18
     evening-peak-end-hour: 21
+    routing:
+      enabled: ${DELIVERY_ROUTING_ENABLED:false}
+      osrm-base-url: ${DELIVERY_ROUTING_OSRM_URL:https://router.project-osrm.org}
+      connect-timeout: ${DELIVERY_ROUTING_CONNECT_TIMEOUT:3000}
+      read-timeout: ${DELIVERY_ROUTING_READ_TIMEOUT:5000}
 
   referral:
     reward-amount: 10.00

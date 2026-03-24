@@ -14,6 +14,7 @@ import java.time.LocalTime;
 /**
  * Service for calculating delivery fees dynamically based on distance, time, and other factors.
  * Settings are loaded from the database via DeliveryFeeSettingsService.
+ * Distance calculation uses OSRM route distance when enabled, with Haversine fallback.
  */
 @Service
 @RequiredArgsConstructor
@@ -21,8 +22,7 @@ import java.time.LocalTime;
 public class DeliveryFeeCalculationService {
 
     private final DeliveryFeeSettingsService settingsService;
-
-    private static final double EARTH_RADIUS_KM = 6371.0;
+    private final RouteDistanceService routeDistanceService;
 
     /**
      * Calculate delivery fee based on distance between restaurant and delivery location.
@@ -48,8 +48,8 @@ public class DeliveryFeeCalculationService {
             return restaurant.getDeliveryFee() != null ? restaurant.getDeliveryFee() : settings.getBaseFee();
         }
 
-        // Calculate distance
-        double distanceKm = calculateDistanceKm(
+        // Calculate distance using route-based calculation (with Haversine fallback)
+        double distanceKm = routeDistanceService.calculateDistanceKm(
                 restaurant.getLatitude().doubleValue(),
                 restaurant.getLongitude().doubleValue(),
                 deliveryLatitude.doubleValue(),
@@ -85,22 +85,6 @@ public class DeliveryFeeCalculationService {
     }
 
     /**
-     * Calculate distance between two coordinates using Haversine formula.
-     */
-    private double calculateDistanceKm(double lat1, double lon1, double lat2, double lon2) {
-        double latDistance = Math.toRadians(lat2 - lat1);
-        double lonDistance = Math.toRadians(lon2 - lon1);
-
-        double a = Math.sin(latDistance / 2) * Math.sin(latDistance / 2)
-                + Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2))
-                * Math.sin(lonDistance / 2) * Math.sin(lonDistance / 2);
-
-        double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-
-        return EARTH_RADIUS_KM * c;
-    }
-
-    /**
      * Check if current time is during peak hours.
      */
     private boolean isPeakHour(DeliveryFeeSettingsDto settings) {
@@ -130,7 +114,7 @@ public class DeliveryFeeCalculationService {
             return true; // Allow if restaurant coordinates not set
         }
 
-        double distanceKm = calculateDistanceKm(
+        double distanceKm = routeDistanceService.calculateDistanceKm(
                 restaurant.getLatitude().doubleValue(),
                 restaurant.getLongitude().doubleValue(),
                 deliveryLatitude.doubleValue(),
@@ -176,8 +160,8 @@ public class DeliveryFeeCalculationService {
                     .build();
         }
 
-        // Calculate distance
-        double distanceKm = calculateDistanceKm(
+        // Calculate distance using route-based calculation (with Haversine fallback)
+        double distanceKm = routeDistanceService.calculateDistanceKm(
                 restaurant.getLatitude().doubleValue(),
                 restaurant.getLongitude().doubleValue(),
                 deliveryLatitude.doubleValue(),
