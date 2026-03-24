@@ -5,8 +5,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.jsontype.impl.LaissezFaireSubTypeValidator;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
+import org.springframework.cache.annotation.CachingConfigurer;
 import org.springframework.cache.annotation.EnableCaching;
+import org.springframework.cache.interceptor.CacheErrorHandler;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
@@ -27,7 +31,8 @@ import java.util.Map;
  */
 @Configuration
 @EnableCaching
-public class RedisConfig {
+@Slf4j
+public class RedisConfig implements CachingConfigurer {
 
     @Bean
     public RedisTemplate<String, Object> redisTemplate(RedisConnectionFactory connectionFactory) {
@@ -97,6 +102,11 @@ public class RedisConfig {
                 .build();
     }
 
+    @Override
+    public CacheErrorHandler errorHandler() {
+        return new RedisCacheErrorHandler();
+    }
+
     private ObjectMapper createObjectMapper() {
         ObjectMapper objectMapper = new ObjectMapper();
         objectMapper.registerModule(new JavaTimeModule());
@@ -107,5 +117,43 @@ public class RedisConfig {
                 JsonTypeInfo.As.PROPERTY
         );
         return objectMapper;
+    }
+
+    /**
+     * Handles Redis cache errors gracefully. On deserialization failures (e.g., stale
+     * entries from a previous serializer config), the error is logged and the cache
+     * entry is evicted so it gets re-populated with the correct format on next access.
+     */
+    static class RedisCacheErrorHandler implements CacheErrorHandler {
+
+        @Override
+        public void handleCacheGetError(RuntimeException exception, Cache cache, Object key) {
+            log.warn("Cache get error on cache '{}', key '{}': {}. Evicting stale entry.",
+                    cache.getName(), key, exception.getMessage());
+            try {
+                cache.evict(key);
+            } catch (RuntimeException evictEx) {
+                log.warn("Failed to evict stale cache entry '{}' from '{}': {}",
+                        key, cache.getName(), evictEx.getMessage());
+            }
+        }
+
+        @Override
+        public void handleCachePutError(RuntimeException exception, Cache cache, Object key, Object value) {
+            log.warn("Cache put error on cache '{}', key '{}': {}",
+                    cache.getName(), key, exception.getMessage());
+        }
+
+        @Override
+        public void handleCacheEvictError(RuntimeException exception, Cache cache, Object key) {
+            log.warn("Cache evict error on cache '{}', key '{}': {}",
+                    cache.getName(), key, exception.getMessage());
+        }
+
+        @Override
+        public void handleCacheClearError(RuntimeException exception, Cache cache) {
+            log.warn("Cache clear error on cache '{}': {}",
+                    cache.getName(), exception.getMessage());
+        }
     }
 }
