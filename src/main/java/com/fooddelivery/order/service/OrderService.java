@@ -140,6 +140,11 @@ public class OrderService {
         // Notify restaurant via WebSocket
         notifyRestaurant(order);
 
+        // Notify couriers via WebSocket about new delivery order
+        if (order.getOrderType() == OrderType.DELIVERY) {
+            notifyAvailableCouriers(order);
+        }
+
         return orderMapper.toDto(order);
     }
 
