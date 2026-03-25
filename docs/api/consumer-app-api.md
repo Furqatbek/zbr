@@ -804,10 +804,43 @@ Authorization: Bearer {token}
 
 ## 10. Notifications
 
-### Get Notifications
+### Get My Notifications
 ```
-GET /notifications
+GET /notifications/me
 Authorization: Bearer {token}
+```
+
+**Query Parameters:**
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| role | string | auto-detected | Filter by role (`CONSUMER`). Auto-detected from JWT if not provided. |
+| isRead | boolean | null | `true` = read only, `false` = unread only, null = all |
+| category | string | null | Filter by category (e.g. `ORDER`, `SYSTEM`) |
+| page | int | 0 | Page number (0-indexed) |
+| pageSize | int | 20 | Results per page |
+
+**Response:**
+```json
+{
+  "notifications": [
+    {
+      "id": 123,
+      "userId": 10,
+      "role": "CONSUMER",
+      "title": "Order Delivered",
+      "message": "Your order #ORD-2024-0456 has been delivered",
+      "category": "ORDER",
+      "read": false,
+      "readAt": null,
+      "dismissed": false,
+      "createdAt": "2024-01-15T13:10:00Z"
+    }
+  ],
+  "page": 0,
+  "pageSize": 20,
+  "totalElements": 15,
+  "totalPages": 1
+}
 ```
 
 ### Get Unread Count
@@ -815,6 +848,11 @@ Authorization: Bearer {token}
 GET /notifications/unread/count
 Authorization: Bearer {token}
 ```
+
+**Query Parameters:**
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| role | string | auto-detected | Filter by role (`CONSUMER`). Auto-detected from JWT if not provided. |
 
 **Response:**
 ```json
@@ -840,15 +878,32 @@ Authorization: Bearer {token}
   "category": "ORDER",
   "read": true,
   "readAt": "2024-01-15T13:15:00Z",
+  "dismissed": false,
   "createdAt": "2024-01-15T13:10:00Z"
 }
 ```
 
 ### Mark All as Read
 ```
-PUT /notifications/read-all
+PATCH /notifications/read-all?userId={userId}&role=CONSUMER
 Authorization: Bearer {token}
 ```
+
+**Response:**
+```json
+{
+  "status": "success",
+  "markedCount": 8
+}
+```
+
+### Dismiss Notification
+```
+PATCH /notifications/{id}/dismiss
+Authorization: Bearer {token}
+```
+
+Soft-deletes a notification. Dismissed notifications are excluded from queries by default.
 
 ---
 

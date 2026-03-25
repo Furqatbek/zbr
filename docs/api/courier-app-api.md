@@ -821,22 +821,55 @@ Authorization: Bearer {token}
 
 ## 7. Notifications
 
-### Get Notifications
+### Get My Notifications
 ```
-GET /notifications
-Authorization: Bearer {token}
-```
-
-### Get Unread Count
-```
-GET /notifications/unread/count
+GET /notifications/me
 Authorization: Bearer {token}
 ```
 
 **Query Parameters:**
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| role | string | Optional filter by role (COURIER) |
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| role | string | auto-detected | Filter by role (`COURIER`). Auto-detected from JWT if not provided. |
+| isRead | boolean | null | `true` = read only, `false` = unread only, null = all |
+| category | string | null | Filter by category (e.g. `ORDER`, `SYSTEM`) |
+| page | int | 0 | Page number (0-indexed) |
+| pageSize | int | 20 | Results per page |
+
+**Response:**
+```json
+{
+  "notifications": [
+    {
+      "id": 123,
+      "userId": 5,
+      "role": "COURIER",
+      "title": "New order nearby",
+      "message": "A new order is available for pickup near your location",
+      "category": "ORDER",
+      "read": false,
+      "readAt": null,
+      "dismissed": false,
+      "createdAt": "2024-01-15T12:55:00Z"
+    }
+  ],
+  "page": 0,
+  "pageSize": 20,
+  "totalElements": 42,
+  "totalPages": 3
+}
+```
+
+### Get Unread Count
+```
+GET /notifications/unread/count?role=COURIER
+Authorization: Bearer {token}
+```
+
+**Query Parameters:**
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| role | string | auto-detected | Filter by role (`COURIER`). Auto-detected from JWT if not provided. |
 
 **Response:**
 ```json
@@ -844,6 +877,14 @@ Authorization: Bearer {token}
   "unreadCount": 5
 }
 ```
+
+### Get Notification Counts
+```
+GET /notifications/user/{userId}/counts?role=COURIER
+Authorization: Bearer {token}
+```
+
+Returns total, unread, and per-category counts.
 
 ### Mark as Read
 ```
@@ -862,7 +903,73 @@ Authorization: Bearer {token}
   "category": "ORDER",
   "read": true,
   "readAt": "2024-01-15T13:00:00Z",
+  "dismissed": false,
   "createdAt": "2024-01-15T12:55:00Z"
+}
+```
+
+### Mark All as Read
+```
+PATCH /notifications/read-all?userId={userId}&role=COURIER
+Authorization: Bearer {token}
+```
+
+**Response:**
+```json
+{
+  "status": "success",
+  "markedCount": 12
+}
+```
+
+### Mark Batch as Read
+```
+PATCH /notifications/read-batch
+Authorization: Bearer {token}
+```
+
+**Request:**
+```json
+[123, 124, 125]
+```
+
+**Response:**
+```json
+{
+  "status": "success",
+  "markedCount": 3
+}
+```
+
+### Dismiss Notification
+```
+PATCH /notifications/{id}/dismiss
+Authorization: Bearer {token}
+```
+
+Soft-deletes a notification. Dismissed notifications are excluded from queries by default.
+
+### Bulk Action
+```
+POST /notifications/bulk-action
+Authorization: Bearer {token}
+```
+
+**Request:**
+```json
+{
+  "notificationIds": [123, 124, 125],
+  "action": "MARK_READ"
+}
+```
+
+**Actions:** `MARK_READ`, `DISMISS`, `DELETE`
+
+**Response:**
+```json
+{
+  "status": "success",
+  "affectedCount": 3
 }
 ```
 
@@ -871,6 +978,7 @@ Authorization: Bearer {token}
 | Type | Description |
 |------|-------------|
 | `NEW_ORDER_NEARBY` | New order available in your area |
+| `NEW_DELIVERY_AVAILABLE` | New delivery assignment via push notification |
 | `ORDER_ASSIGNED` | Order assigned to you |
 | `ORDER_CANCELLED` | Order was cancelled |
 | `PAYOUT_ISSUED` | Payout sent to your account |
