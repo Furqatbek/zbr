@@ -22,11 +22,9 @@ import com.fooddelivery.order.repository.OrderRepository;
 import com.fooddelivery.restaurant.entity.ItemOption;
 import com.fooddelivery.restaurant.entity.ItemVariant;
 import com.fooddelivery.restaurant.entity.MenuItem;
-import com.fooddelivery.notification.service.NotificationService;
 import com.fooddelivery.restaurant.entity.Restaurant;
 import com.fooddelivery.restaurant.repository.MenuItemRepository;
 import com.fooddelivery.restaurant.service.RestaurantService;
-import com.fooddelivery.sms.service.SmsNotificationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -57,8 +55,6 @@ public class OrderService {
     private final OrderMapper orderMapper;
     private final EventPublisher eventPublisher;
     private final SimpMessagingTemplate messagingTemplate;
-    private final SmsNotificationService smsNotificationService;
-    private final NotificationService notificationService;
     private final CourierRepository courierRepository;
     private final DeliveryFeeCalculationService deliveryFeeCalculationService;
 
@@ -143,9 +139,6 @@ public class OrderService {
 
         // Notify restaurant via WebSocket
         notifyRestaurant(order);
-
-        // Send immediate SMS and email notifications to restaurant owner
-        notifyRestaurantOwnerImmediately(order, consumer);
 
         return orderMapper.toDto(order);
     }
@@ -460,45 +453,6 @@ public class OrderService {
         }
     }
 
-    /**
-     * Send immediate SMS and email notifications to restaurant owner for new order.
-     */
-    private void notifyRestaurantOwnerImmediately(Order order, User consumer) {
-        Restaurant restaurant = order.getRestaurant();
-        User owner = restaurant.getOwner();
-        String orderNo = order.getExternalOrderNo();
-        String totalAmount = order.getTotal() != null ?
-                order.getTotal().toString() + " " + restaurant.getCurrency() : null;
-        String customerName = consumer.getFullName();
-
-        // Send SMS notification
-        try {
-            String phone = owner != null ? owner.getPhone() : null;
-            if (phone == null || phone.isBlank()) {
-                phone = restaurant.getPhone();
-            }
-            if (phone != null && !phone.isBlank()) {
-                smsNotificationService.sendNewOrderToRestaurant(phone, orderNo, totalAmount, customerName);
-                log.info("Immediate SMS sent to restaurant owner for order {}", orderNo);
-            }
-        } catch (Exception e) {
-            log.warn("Failed to send immediate SMS to restaurant owner for order {}: {}", orderNo, e.getMessage());
-        }
-
-        // Send email notification
-        try {
-            String email = owner != null ? owner.getEmail() : null;
-            if (email == null || email.isBlank()) {
-                email = restaurant.getEmail();
-            }
-            if (email != null && !email.isBlank()) {
-                notificationService.sendNewOrderToRestaurant(email, orderNo, totalAmount, customerName);
-                log.info("Immediate email sent to restaurant owner for order {}", orderNo);
-            }
-        } catch (Exception e) {
-            log.warn("Failed to send immediate email to restaurant owner for order {}: {}", orderNo, e.getMessage());
-        }
-    }
 
     private void notifyOrderStatusChange(Order order) {
         try {
@@ -565,96 +519,6 @@ public class OrderService {
         }
     }
 
-    /**
-     * Send order confirmation SMS to customer.
-     */
-    private void sendOrderConfirmationSms(Order order) {
-        try {
-            String phone = order.getCustomerPhone();
-            if (phone == null || phone.isBlank()) {
-                phone = order.getConsumer().getPhone();
-            }
-
-            if (phone != null && !phone.isBlank()) {
-                smsNotificationService.sendOrderConfirmation(
-                        phone,
-                        order.getExternalOrderNo(),
-                        order.getRestaurant().getName(),
-                        order.getTotal().toString() + " " + order.getRestaurant().getCurrency()
-                );
-            }
-        } catch (Exception e) {
-            log.warn("Failed to send order confirmation SMS: {}", e.getMessage());
-        }
-    }
-
-    /**
-     * Send order status update SMS to customer.
-     */
-    private void sendOrderStatusUpdateSms(Order order, OrderStatus previousStatus) {
-        try {
-            String phone = order.getCustomerPhone();
-            if (phone == null || phone.isBlank()) {
-                phone = order.getConsumer().getPhone();
-            }
-
-            if (phone == null || phone.isBlank()) {
-                return;
-            }
-
-            String statusMessage = getStatusMessage(order.getStatus());
-            String details = getStatusDetails(order);
-
-            // Send SMS for important status changes
-            switch (order.getStatus()) {
-                case ACCEPTED -> smsNotificationService.sendOrderStatusUpdate(
-                        phone, order.getExternalOrderNo(), statusMessage, details);
-                case PREPARING -> smsNotificationService.sendOrderStatusUpdate(
-                        phone, order.getExternalOrderNo(), statusMessage, details);
-                case READY -> smsNotificationService.sendOrderStatusUpdate(
-                        phone, order.getExternalOrderNo(), statusMessage, details);
-                case PICKED_UP -> {
-                    String courierName = order.getCourier() != null ?
-                            order.getCourier().getUser().getFullName() : null;
-                    String eta = order.getEstimatedDeliveryTime() != null ?
-                            order.getEstimatedDeliveryTime().toString() : null;
-                    smsNotificationService.sendDeliveryUpdate(
-                            phone, order.getExternalOrderNo(), courierName, eta);
-                }
-                case DELIVERED, COMPLETED -> smsNotificationService.sendOrderStatusUpdate(
-                        phone, order.getExternalOrderNo(), statusMessage, "Thank you for your order!");
-                case CANCELLED -> smsNotificationService.sendOrderStatusUpdate(
-                        phone, order.getExternalOrderNo(), statusMessage, order.getCancellationReason());
-                default -> {} // Don't send SMS for other statuses
-            }
-        } catch (Exception e) {
-            log.warn("Failed to send order status SMS: {}", e.getMessage());
-        }
-    }
-
-    private String getStatusMessage(OrderStatus status) {
-        return switch (status) {
-            case ACCEPTED -> "Your order has been accepted!";
-            case PREPARING -> "Your order is being prepared";
-            case READY -> "Your order is ready!";
-            case PICKED_UP -> "Your order is on the way!";
-            case DELIVERED -> "Your order has been delivered";
-            case COMPLETED -> "Order completed";
-            case CANCELLED -> "Order cancelled";
-            default -> "Order status updated";
-        };
-    }
-
-    private String getStatusDetails(Order order) {
-        return switch (order.getStatus()) {
-            case ACCEPTED -> order.getEstimatedPrepTimeMinutes() != null ?
-                    "Estimated prep time: " + order.getEstimatedPrepTimeMinutes() + " minutes" : "";
-            case READY -> order.getOrderType() == OrderType.PICKUP ?
-                    "Ready for pickup at " + order.getRestaurant().getName() :
-                    "Waiting for courier";
-            default -> "";
-        };
-    }
 
     // ============== Access Validation Methods ==============
 
