@@ -469,6 +469,7 @@ public class CourierService {
     @Transactional(readOnly = true)
     public List<CourierOrderDto> getActiveOrders(Long courierId) {
         List<OrderStatus> activeStatuses = List.of(
+                OrderStatus.COURIER_ASSIGNED,
                 OrderStatus.PICKED_UP,
                 OrderStatus.IN_TRANSIT
         );
