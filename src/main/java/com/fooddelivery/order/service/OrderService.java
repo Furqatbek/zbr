@@ -322,6 +322,9 @@ public class OrderService {
             if (request.getDeliveryAddress() == null || request.getDeliveryAddress().isBlank()) {
                 throw new BusinessException("Delivery address is required for delivery orders");
             }
+            if (request.getDeliveryLatitude() == null || request.getDeliveryLongitude() == null) {
+                throw new BusinessException("Delivery coordinates (latitude and longitude) are required for delivery orders");
+            }
         } else if (request.getOrderType() == OrderType.DINE_IN) {
             if (request.getTableId() == null || request.getTableId().isBlank()) {
                 throw new BusinessException("Table ID is required for dine-in orders");

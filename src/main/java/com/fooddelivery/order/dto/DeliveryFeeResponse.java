@@ -21,6 +21,15 @@ public class DeliveryFeeResponse {
     @Schema(description = "Calculated delivery fee")
     private BigDecimal deliveryFee;
 
+    @Schema(description = "Base fee component from settings")
+    private BigDecimal baseFee;
+
+    @Schema(description = "Per-kilometer fee rate from settings")
+    private BigDecimal perKmFee;
+
+    @Schema(description = "Distance-based fee component (perKmFee * distanceKm)")
+    private BigDecimal distanceFee;
+
     @Schema(description = "Distance in kilometers between restaurant and delivery location")
     private Double distanceKm;
 

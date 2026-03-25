@@ -39,13 +39,13 @@ public class DeliveryFeeCalculationService {
         DeliveryFeeSettingsDto settings = settingsService.getSettings();
 
         if (deliveryLatitude == null || deliveryLongitude == null) {
-            log.warn("Delivery coordinates not provided, using base fee");
-            return restaurant.getDeliveryFee() != null ? restaurant.getDeliveryFee() : settings.getBaseFee();
+            log.warn("Delivery coordinates not provided for restaurant {}, using base fee from settings", restaurant.getId());
+            return settings.getBaseFee();
         }
 
         if (restaurant.getLatitude() == null || restaurant.getLongitude() == null) {
-            log.warn("Restaurant coordinates not set for restaurant {}, using base fee", restaurant.getId());
-            return restaurant.getDeliveryFee() != null ? restaurant.getDeliveryFee() : settings.getBaseFee();
+            log.warn("Restaurant coordinates not set for restaurant {}, using base fee from settings", restaurant.getId());
+            return settings.getBaseFee();
         }
 
         // Calculate distance using route-based calculation (with Haversine fallback)
@@ -62,24 +62,27 @@ public class DeliveryFeeCalculationService {
         BigDecimal distanceFee = settings.getPerKmFee().multiply(BigDecimal.valueOf(distanceKm));
         BigDecimal calculatedFee = settings.getBaseFee().add(distanceFee);
 
+        log.info("Delivery fee breakdown for restaurant {}: baseFee={} + perKmFee={} x distance={} km = {}",
+                restaurant.getId(), settings.getBaseFee(), settings.getPerKmFee(),
+                String.format("%.2f", distanceKm), calculatedFee);
+
         // Apply peak hour surcharge if applicable
         if (isPeakHour(settings)) {
             calculatedFee = calculatedFee.add(settings.getPeakHourSurcharge());
-            log.debug("Peak hour surcharge applied: {}", settings.getPeakHourSurcharge());
+            log.info("Peak hour surcharge applied: {} -> total: {}", settings.getPeakHourSurcharge(), calculatedFee);
         }
 
         // Apply minimum and maximum constraints
         if (calculatedFee.compareTo(settings.getMinFee()) < 0) {
+            log.info("Fee {} below minimum {}, using minimum", calculatedFee, settings.getMinFee());
             calculatedFee = settings.getMinFee();
         } else if (calculatedFee.compareTo(settings.getMaxFee()) > 0) {
+            log.info("Fee {} above maximum {}, capping to maximum", calculatedFee, settings.getMaxFee());
             calculatedFee = settings.getMaxFee();
         }
 
         // Round to 2 decimal places
         calculatedFee = calculatedFee.setScale(2, RoundingMode.HALF_UP);
-
-        log.info("Delivery fee calculated for restaurant {}: {} (distance: {} km)",
-                restaurant.getId(), calculatedFee, String.format("%.2f", distanceKm));
 
         return calculatedFee;
     }
@@ -142,15 +145,18 @@ public class DeliveryFeeCalculationService {
                                                              BigDecimal deliveryLongitude) {
         DeliveryFeeSettingsDto settings = settingsService.getSettings();
 
-        // Handle missing coordinates
+        // Handle missing coordinates - use base fee from settings (not restaurant static fee)
         if (deliveryLatitude == null || deliveryLongitude == null ||
             restaurant.getLatitude() == null || restaurant.getLongitude() == null) {
 
-            BigDecimal baseFee = restaurant.getDeliveryFee() != null ?
-                    restaurant.getDeliveryFee() : settings.getBaseFee();
+            log.warn("Missing coordinates for fee calculation (delivery={}/{}, restaurant={}/{}), using base fee from settings",
+                    deliveryLatitude, deliveryLongitude, restaurant.getLatitude(), restaurant.getLongitude());
 
             return DeliveryFeeResponse.builder()
-                    .deliveryFee(baseFee)
+                    .deliveryFee(settings.getBaseFee())
+                    .baseFee(settings.getBaseFee())
+                    .perKmFee(settings.getPerKmFee())
+                    .distanceFee(BigDecimal.ZERO)
                     .distanceKm(null)
                     .withinDeliveryRadius(true)
                     .deliveryRadiusKm(restaurant.getDeliveryRadiusKm() != null ?
@@ -198,6 +204,9 @@ public class DeliveryFeeCalculationService {
 
         return DeliveryFeeResponse.builder()
                 .deliveryFee(calculatedFee)
+                .baseFee(settings.getBaseFee())
+                .perKmFee(settings.getPerKmFee())
+                .distanceFee(distanceFee)
                 .distanceKm(Math.round(distanceKm * 100.0) / 100.0)
                 .withinDeliveryRadius(withinRadius)
                 .deliveryRadiusKm(radiusKm)
