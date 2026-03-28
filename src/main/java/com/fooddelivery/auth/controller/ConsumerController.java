@@ -8,6 +8,7 @@ import com.fooddelivery.auth.service.ConsumerAddressService;
 import com.fooddelivery.auth.security.UserPrincipal;
 import com.fooddelivery.auth.service.PhoneAuthService;
 import com.fooddelivery.common.dto.ApiResponse;
+import com.fooddelivery.common.service.ImageStorageService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -21,6 +22,7 @@ import java.util.List;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 /**
  * Controller for consumer profile management.
@@ -35,6 +37,7 @@ public class ConsumerController {
 
     private final PhoneAuthService phoneAuthService;
     private final ConsumerAddressService addressService;
+    private final ImageStorageService imageStorageService;
 
     /**
      * Get current consumer profile.
@@ -65,6 +68,28 @@ public class ConsumerController {
         UserDto profile = phoneAuthService.updateProfile(principal.getId(), request);
 
         return ResponseEntity.ok(ApiResponse.success("Profile updated", profile));
+    }
+
+    /**
+     * Upload profile picture.
+     */
+    @PostMapping("/profile/picture")
+    @Operation(summary = "Upload profile picture", description = "Upload a profile picture for the current consumer")
+    @PreAuthorize("hasRole('CONSUMER')")
+    public ResponseEntity<ApiResponse<UserDto>> uploadProfilePicture(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @RequestParam("file") MultipartFile file) {
+
+        log.info("Upload profile picture request for user: {}", principal.getId());
+        String category = "profiles/" + principal.getId();
+        ImageStorageService.ImageInfo imageInfo = imageStorageService.storeImage(file, category);
+
+        UpdateProfileRequest updateRequest = UpdateProfileRequest.builder()
+                .profileImageUrl(imageInfo.getUrl())
+                .build();
+        UserDto profile = phoneAuthService.updateProfile(principal.getId(), updateRequest);
+
+        return ResponseEntity.ok(ApiResponse.success("Profile picture uploaded", profile));
     }
 
     /**

@@ -6,6 +6,7 @@ import com.fooddelivery.common.annotation.Auditable;
 import com.fooddelivery.common.dto.PagedResponse;
 import com.fooddelivery.common.exception.BusinessException;
 import com.fooddelivery.common.exception.ResourceNotFoundException;
+import com.fooddelivery.common.service.ImageStorageService;
 import com.fooddelivery.common.util.SlugUtils;
 import com.fooddelivery.restaurant.dto.*;
 import com.fooddelivery.restaurant.entity.Restaurant;
@@ -20,6 +21,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -35,6 +37,7 @@ public class RestaurantService {
     private final RestaurantRepository restaurantRepository;
     private final RestaurantMapper restaurantMapper;
     private final UserService userService;
+    private final ImageStorageService imageStorageService;
 
     /**
      * Create a new restaurant.
@@ -165,6 +168,29 @@ public class RestaurantService {
 
         restaurant = restaurantRepository.save(restaurant);
         log.info("Restaurant updated: {}", restaurant.getId());
+
+        return restaurantMapper.toDto(restaurant);
+    }
+
+    /**
+     * Upload and update restaurant image (logo or cover).
+     */
+    @Transactional
+    @CacheEvict(value = "restaurants", key = "#id")
+    public RestaurantDto updateRestaurantImage(Long id, MultipartFile file, String imageType) {
+        Restaurant restaurant = getRestaurantEntityById(id);
+
+        String category = "restaurants/" + id + "/" + imageType;
+        ImageStorageService.ImageInfo imageInfo = imageStorageService.storeImage(file, category);
+
+        if ("logo".equals(imageType)) {
+            restaurant.setLogoUrl(imageInfo.getUrl());
+        } else if ("cover".equals(imageType)) {
+            restaurant.setCoverImageUrl(imageInfo.getUrl());
+        }
+
+        restaurant = restaurantRepository.save(restaurant);
+        log.info("Restaurant {} {} image updated: {}", id, imageType, imageInfo.getUrl());
 
         return restaurantMapper.toDto(restaurant);
     }

@@ -28,6 +28,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -149,6 +150,40 @@ public class RestaurantController {
 
         RestaurantDto restaurant = restaurantService.updateRestaurant(id, request);
         return ResponseEntity.ok(ApiResponse.success("Restaurant updated successfully", restaurant));
+    }
+
+    @PostMapping("/{id}/logo")
+    @PreAuthorize("hasAnyRole('RESTAURANT_OWNER', 'RESTAURANT_STAFF', 'PLATFORM', 'ADMIN')")
+    @SecurityRequirement(name = "bearerAuth")
+    @Operation(summary = "Upload restaurant logo", description = "Upload a logo image for the restaurant")
+    public ResponseEntity<ApiResponse<RestaurantDto>> uploadLogo(
+            @AuthenticationPrincipal UserPrincipal currentUser,
+            @PathVariable Long id,
+            @RequestParam("file") MultipartFile file) {
+
+        boolean isAdminOrPlatform = currentUser.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ROLE_PLATFORM"));
+        restaurantService.validateRestaurantAccess(id, currentUser.getId(), isAdminOrPlatform);
+
+        RestaurantDto restaurant = restaurantService.updateRestaurantImage(id, file, "logo");
+        return ResponseEntity.ok(ApiResponse.success("Logo uploaded successfully", restaurant));
+    }
+
+    @PostMapping("/{id}/cover-image")
+    @PreAuthorize("hasAnyRole('RESTAURANT_OWNER', 'RESTAURANT_STAFF', 'PLATFORM', 'ADMIN')")
+    @SecurityRequirement(name = "bearerAuth")
+    @Operation(summary = "Upload restaurant cover image", description = "Upload a cover/banner image for the restaurant")
+    public ResponseEntity<ApiResponse<RestaurantDto>> uploadCoverImage(
+            @AuthenticationPrincipal UserPrincipal currentUser,
+            @PathVariable Long id,
+            @RequestParam("file") MultipartFile file) {
+
+        boolean isAdminOrPlatform = currentUser.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ROLE_PLATFORM"));
+        restaurantService.validateRestaurantAccess(id, currentUser.getId(), isAdminOrPlatform);
+
+        RestaurantDto restaurant = restaurantService.updateRestaurantImage(id, file, "cover");
+        return ResponseEntity.ok(ApiResponse.success("Cover image uploaded successfully", restaurant));
     }
 
     @PatchMapping("/{id}/status")
