@@ -44,4 +44,10 @@ public class DeliveryFeeResponse {
 
     @Schema(description = "Peak hour surcharge amount (if applied)")
     private BigDecimal peakHourSurcharge;
+
+    @Schema(description = "Minimum fee cap applied")
+    private BigDecimal minFee;
+
+    @Schema(description = "Maximum fee cap applied")
+    private BigDecimal maxFee;
 }

@@ -195,8 +195,10 @@ public class DeliveryFeeCalculationService {
 
         // Apply min/max constraints
         if (calculatedFee.compareTo(settings.getMinFee()) < 0) {
+            log.info("Fee {} below minimum {}, using minimum", calculatedFee, settings.getMinFee());
             calculatedFee = settings.getMinFee();
         } else if (calculatedFee.compareTo(settings.getMaxFee()) > 0) {
+            log.info("Fee {} above maximum {}, capping to maximum", calculatedFee, settings.getMaxFee());
             calculatedFee = settings.getMaxFee();
         }
 
@@ -212,6 +214,8 @@ public class DeliveryFeeCalculationService {
                 .deliveryRadiusKm(radiusKm)
                 .peakHourSurchargeApplied(isPeak)
                 .peakHourSurcharge(peakSurcharge)
+                .minFee(settings.getMinFee())
+                .maxFee(settings.getMaxFee())
                 .build();
     }
 }
