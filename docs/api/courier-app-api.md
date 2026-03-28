@@ -1007,7 +1007,13 @@ const stompClient = Stomp.over(new SockJS('/ws'));
 stompClient.connect(
   { 'Authorization': 'Bearer ' + accessToken },
   function(frame) {
-    // New orders nearby
+    // New available orders (broadcast to ALL online couriers)
+    stompClient.subscribe('/topic/couriers/orders/available', function(message) {
+      const order = JSON.parse(message.body);
+      showNewOrderNotification(order);
+    });
+
+    // New orders targeted to this courier specifically
     stompClient.subscribe('/user/queue/orders/new', function(message) {
       const order = JSON.parse(message.body);
       showNewOrderNotification(order);
@@ -1019,8 +1025,14 @@ stompClient.connect(
       updateOrderStatus(status);
     });
 
-    // Personal notifications
-    stompClient.subscribe('/user/queue/notifications', function(message) {
+    // All courier role notifications (order ready, new delivery available, etc.)
+    stompClient.subscribe('/topic/roles/courier/notifications', function(message) {
+      const notification = JSON.parse(message.body);
+      showNotification(notification);
+    });
+
+    // Personal notifications for this user
+    stompClient.subscribe('/topic/users/' + userId + '/notifications', function(message) {
       const notification = JSON.parse(message.body);
       showNotification(notification);
     });
@@ -1032,9 +1044,11 @@ stompClient.connect(
 
 | Topic | Description |
 |-------|-------------|
-| `/user/queue/orders/new` | New order offers in your area |
-| `/topic/orders/{orderId}/status` | Status updates for your orders |
-| `/user/queue/notifications` | Personal notifications |
+| `/topic/couriers/orders/available` | **New available orders broadcast to all couriers** |
+| `/user/queue/orders/new` | New order targeted to this courier specifically |
+| `/topic/orders/{orderId}/status` | Status updates for assigned orders |
+| `/topic/roles/courier/notifications` | All courier role notifications (order ready, assignments, etc.) |
+| `/topic/users/{userId}/notifications` | Personal notifications for this user |
 
 ### New Order Notification Format
 
