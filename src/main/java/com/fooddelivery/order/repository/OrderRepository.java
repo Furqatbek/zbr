@@ -37,7 +37,9 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     @Query("SELECT o FROM Order o LEFT JOIN FETCH o.consumer LEFT JOIN FETCH o.restaurant LEFT JOIN FETCH o.courier WHERE o.id = :id")
     Optional<Order> findByIdForCourierAssignment(@Param("id") Long id);
 
-    Page<Order> findByConsumerId(Long consumerId, Pageable pageable);
+    @Query(value = "SELECT o FROM Order o LEFT JOIN FETCH o.consumer LEFT JOIN FETCH o.restaurant LEFT JOIN FETCH o.courier WHERE o.consumer.id = :consumerId",
+           countQuery = "SELECT COUNT(o) FROM Order o WHERE o.consumer.id = :consumerId")
+    Page<Order> findByConsumerId(@Param("consumerId") Long consumerId, Pageable pageable);
 
     Page<Order> findByRestaurantId(Long restaurantId, Pageable pageable);
 
@@ -60,7 +62,7 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
             @Param("restaurantId") Long restaurantId,
             @Param("statuses") List<OrderStatus> statuses);
 
-    @Query("SELECT o FROM Order o WHERE o.courier.id = :courierId AND o.status IN :statuses")
+    @Query("SELECT o FROM Order o LEFT JOIN FETCH o.consumer LEFT JOIN FETCH o.restaurant LEFT JOIN FETCH o.courier WHERE o.courier.id = :courierId AND o.status IN :statuses")
     List<Order> findActiveOrdersByCourier(
             @Param("courierId") Long courierId,
             @Param("statuses") List<OrderStatus> statuses);
