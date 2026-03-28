@@ -1007,34 +1007,58 @@ const stompClient = Stomp.over(new SockJS('/ws'));
 stompClient.connect(
   { 'Authorization': 'Bearer ' + accessToken },
   function(frame) {
-    // New available orders (broadcast to ALL online couriers)
+
+    // 1. New available orders (broadcast to ALL online couriers)
+    //    Also receives ORDER_TAKEN when another courier accepts an order
     stompClient.subscribe('/topic/couriers/orders/available', function(message) {
-      const order = JSON.parse(message.body);
-      showNewOrderNotification(order);
+      const data = JSON.parse(message.body);
+      if (data.type === 'ORDER_TAKEN') {
+        removeOrderFromList(data.orderId);
+      } else {
+        showNewOrderNotification(data);
+      }
     });
 
-    // New orders targeted to this courier specifically
+    // 2. New orders targeted to this courier specifically
     stompClient.subscribe('/user/queue/orders/new', function(message) {
       const order = JSON.parse(message.body);
       showNewOrderNotification(order);
     });
 
-    // Order updates for assigned orders
-    stompClient.subscribe('/topic/orders/{orderId}/status', function(message) {
-      const status = JSON.parse(message.body);
-      updateOrderStatus(status);
+    // 3. Order status updates (subscribe per assigned order)
+    stompClient.subscribe('/topic/orders/' + orderId, function(message) {
+      const order = JSON.parse(message.body);
+      updateOrderStatus(order);
     });
 
-    // All courier role notifications (order ready, new delivery available, etc.)
+    // 4. Order taken by another courier (subscribe per order you're viewing)
+    stompClient.subscribe('/topic/orders/' + orderId + '/taken', function(message) {
+      const data = JSON.parse(message.body);
+      removeOrderFromList(data.orderId);
+    });
+
+    // 5. All courier role notifications
     stompClient.subscribe('/topic/roles/courier/notifications', function(message) {
       const notification = JSON.parse(message.body);
       showNotification(notification);
     });
 
-    // Personal notifications for this user
+    // 6. My personal notifications
     stompClient.subscribe('/topic/users/' + userId + '/notifications', function(message) {
       const notification = JSON.parse(message.body);
       showNotification(notification);
+    });
+
+    // 7. Platform-wide announcements
+    stompClient.subscribe('/topic/broadcast/notifications', function(message) {
+      const notification = JSON.parse(message.body);
+      showNotification(notification);
+    });
+
+    // 8. My location confirmation (optional)
+    stompClient.subscribe('/topic/couriers/' + courierId + '/location', function(message) {
+      const location = JSON.parse(message.body);
+      confirmLocationUpdate(location);
     });
   }
 );
@@ -1042,28 +1066,165 @@ stompClient.connect(
 
 ### Topics for Courier
 
-| Topic | Description |
-|-------|-------------|
-| `/topic/couriers/orders/available` | **New available orders broadcast to all couriers** |
-| `/user/queue/orders/new` | New order targeted to this courier specifically |
-| `/topic/orders/{orderId}/status` | Status updates for assigned orders |
-| `/topic/roles/courier/notifications` | All courier role notifications (order ready, assignments, etc.) |
-| `/topic/users/{userId}/notifications` | Personal notifications for this user |
+| # | Topic | Description | Subscribe |
+|---|-------|-------------|-----------|
+| 1 | `/topic/couriers/orders/available` | New available orders + order taken alerts | On connect |
+| 2 | `/user/queue/orders/new` | New order targeted to this courier | On connect |
+| 3 | `/topic/orders/{orderId}` | Full order status updates | Per assigned order |
+| 4 | `/topic/orders/{orderId}/taken` | Order taken by another courier | Per order being viewed |
+| 5 | `/topic/roles/courier/notifications` | All courier role notifications | On connect |
+| 6 | `/topic/users/{userId}/notifications` | Personal notifications | On connect |
+| 7 | `/topic/broadcast/notifications` | Platform-wide announcements | On connect |
+| 8 | `/topic/couriers/{courierId}/location` | My location update confirmation | On connect (optional) |
 
-### New Order Notification Format
+---
+
+### Topic Payloads
+
+#### 1. `/topic/couriers/orders/available` — New Available Order
+
+Sent when a new delivery order is created or when order becomes READY with no courier.
 
 ```json
 {
-  "type": "NEW_ORDER",
   "orderId": 456,
-  "orderNumber": "ORD-2024-0456",
-  "restaurant": {
-    "name": "Pizza Palace",
-    "distance": 1.2
+  "externalOrderNo": "ORD-2024-0456",
+  "restaurantId": 1,
+  "restaurantName": "Pizza Palace",
+  "restaurantAddress": "123 Main Street",
+  "restaurantLat": 41.2995,
+  "restaurantLng": 69.2401,
+  "deliveryAddress": "456 Elm Street, Apt 5A",
+  "deliveryLat": 41.3112,
+  "deliveryLng": 69.2797,
+  "deliveryFee": 15000,
+  "itemCount": 3,
+  "createdAt": "2024-01-15T12:30:00Z",
+  "readyAt": ""
+}
+```
+
+#### 1b. `/topic/couriers/orders/available` — Order Taken
+
+Sent when another courier accepts an order. Remove it from the available list.
+
+```json
+{
+  "type": "ORDER_TAKEN",
+  "orderId": 456,
+  "externalOrderNo": "ORD-2024-0456",
+  "courierId": 2,
+  "courierName": "Alex Courier",
+  "timestamp": "2024-01-15T12:47:00Z"
+}
+```
+
+> **Tip:** Check for `type === "ORDER_TAKEN"` to distinguish from new order payloads.
+
+#### 2. `/user/queue/orders/new` — New Order (Personal)
+
+Same payload as topic 1 (new available order). Sent to each individual online courier.
+
+#### 3. `/topic/orders/{orderId}` — Order Status Update
+
+Sent on every status change for a specific order. Full `OrderDto`:
+
+```json
+{
+  "id": 456,
+  "externalOrderNo": "ORD-2024-0456",
+  "consumerId": 10,
+  "consumerName": "John Doe",
+  "restaurantId": 1,
+  "restaurantName": "Pizza Palace",
+  "courierId": 1,
+  "courierName": "Alex Courier",
+  "orderType": "DELIVERY",
+  "status": "PICKED_UP",
+  "paymentStatus": "PAID",
+  "items": [...],
+  "subtotal": 85000,
+  "tax": 6800,
+  "deliveryFee": 15000,
+  "discount": 0,
+  "tipAmount": 3000,
+  "total": 109800,
+  "deliveryAddress": "456 Elm Street, Apt 5A",
+  "deliveryInstructions": "Ring doorbell twice",
+  "customerName": "John D.",
+  "customerPhone": "+998907654321",
+  "notes": null,
+  "estimatedPrepTimeMinutes": 20,
+  "estimatedDeliveryTime": "2024-01-15T13:15:00Z",
+  "createdAt": "2024-01-15T12:30:00Z",
+  "acceptedAt": "2024-01-15T12:32:00Z",
+  "readyAt": "2024-01-15T12:45:00Z",
+  "deliveredAt": null,
+  "cancellationReason": null
+}
+```
+
+#### 4. `/topic/orders/{orderId}/taken` — Order Taken
+
+Same payload as topic 1b (ORDER_TAKEN). Sent on the order-specific channel.
+
+#### 5. `/topic/roles/courier/notifications` — Courier Role Notification
+
+Sent for all courier-targeted notifications (order ready, new delivery available, assignments, etc.):
+
+```json
+{
+  "id": 789,
+  "userId": null,
+  "role": "COURIER",
+  "roleDisplayName": "Courier",
+  "title": "New Delivery Available",
+  "message": "New delivery from Pizza Palace. Order ORD-2024-0456.",
+  "category": "ORDER",
+  "categoryDisplayName": "Order",
+  "notificationType": "NEW_DELIVERY_AVAILABLE",
+  "notificationTypeDisplayName": "New Delivery Available",
+  "priority": "HIGH",
+  "priorityDisplayName": "High",
+  "orderId": 456,
+  "relatedEntityId": 456,
+  "relatedEntityType": "ORDER",
+  "createdAt": "2024-01-15T12:45:00Z",
+  "readAt": null,
+  "expiresAt": null,
+  "metadata": {
+    "orderNumber": "ORD-2024-0456",
+    "restaurantName": "Pizza Palace",
+    "courierName": null
   },
-  "deliveryDistance": 3.5,
-  "estimatedEarnings": 18000,
-  "expiresAt": "2024-01-15T12:35:00Z"
+  "actionUrl": "/orders/456",
+  "icon": "delivery",
+  "dismissed": false,
+  "dismissedAt": null,
+  "isRead": false,
+  "isExpired": false,
+  "timeAgo": "just now"
+}
+```
+
+#### 6. `/topic/users/{userId}/notifications` — Personal Notification
+
+Same structure as topic 5, but with `userId` set. Sent for notifications targeted to this specific user (e.g., courier assigned, rating received, payout issued).
+
+#### 7. `/topic/broadcast/notifications` — Platform Announcement
+
+Same structure as topic 5. Sent for platform-wide announcements (role = `ALL`).
+
+#### 8. `/topic/couriers/{courierId}/location` — Location Update
+
+Confirmation of location update:
+
+```json
+{
+  "courierId": 1,
+  "lat": 41.3001,
+  "lng": 69.2450,
+  "timestamp": "2024-01-15T12:50:00Z"
 }
 ```
 
