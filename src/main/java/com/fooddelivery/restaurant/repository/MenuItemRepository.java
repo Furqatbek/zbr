@@ -18,6 +18,9 @@ import java.util.Optional;
 @Repository
 public interface MenuItemRepository extends JpaRepository<MenuItem, Long> {
 
+    Optional<MenuItem> findByCategoryIdAndExternalSourceAndExternalId(
+            Long categoryId, String externalSource, Long externalId);
+
     List<MenuItem> findByCategoryIdOrderBySortOrderAsc(Long categoryId);
 
     List<MenuItem> findByCategoryIdAndActiveOrderBySortOrderAsc(Long categoryId, Boolean active);

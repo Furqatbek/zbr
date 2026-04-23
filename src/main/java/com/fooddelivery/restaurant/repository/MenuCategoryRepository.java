@@ -7,12 +7,18 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Repository for MenuCategory entity operations.
  */
 @Repository
 public interface MenuCategoryRepository extends JpaRepository<MenuCategory, Long> {
+
+    Optional<MenuCategory> findByRestaurantIdAndExternalSourceAndExternalId(
+            Long restaurantId, String externalSource, Long externalId);
+
+    List<MenuCategory> findByRestaurantIdAndExternalSource(Long restaurantId, String externalSource);
 
     List<MenuCategory> findByRestaurantIdOrderBySortOrderAsc(Long restaurantId);
 

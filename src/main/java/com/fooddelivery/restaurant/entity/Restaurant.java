@@ -156,6 +156,16 @@ public class Restaurant {
     @Column(name = "config_json", columnDefinition = "TEXT")
     private String configJson;
 
+    // External restaurant system integration
+    @Column(name = "external_system_url", length = 500)
+    private String externalSystemUrl;
+
+    @Column(name = "external_api_key", length = 255)
+    private String externalApiKey;
+
+    @Column(name = "last_menu_sync_at")
+    private LocalDateTime lastMenuSyncAt;
+
     @Version
     private Long version;
 

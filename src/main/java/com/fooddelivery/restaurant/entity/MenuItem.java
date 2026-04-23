@@ -105,6 +105,12 @@ public class MenuItem {
     @Builder.Default
     private Boolean active = true;
 
+    @Column(name = "external_id")
+    private Long externalId;
+
+    @Column(name = "external_source", length = 50)
+    private String externalSource;
+
     @OneToMany(mappedBy = "menuItem", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("sortOrder ASC")
     @Builder.Default
