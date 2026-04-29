@@ -74,6 +74,7 @@ public class OtpService {
         smsNotificationService.sendOtp(normalizedPhone, code);
 
         log.info("OTP sent to phone: {} for purpose: {}", maskPhone(normalizedPhone), purpose);
+        log.debug("OTP code for {}: {}", maskPhone(normalizedPhone), code);
 
         return otp;
     }
