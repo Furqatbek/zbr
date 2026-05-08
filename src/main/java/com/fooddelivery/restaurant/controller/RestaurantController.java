@@ -9,6 +9,7 @@ import com.fooddelivery.common.dto.PagedResponse;
 import com.fooddelivery.order.dto.ReviewDto;
 import com.fooddelivery.order.service.ReviewService;
 import com.fooddelivery.restaurant.dto.CreateRestaurantRequest;
+import com.fooddelivery.restaurant.dto.UpdateRestaurantRequest;
 import com.fooddelivery.restaurant.dto.RestaurantDto;
 import com.fooddelivery.restaurant.dto.RestaurantFinancialReportDto;
 import com.fooddelivery.restaurant.entity.RestaurantStatus;
@@ -137,19 +138,40 @@ public class RestaurantController {
     @PutMapping("/{id}")
     @PreAuthorize("hasAnyRole('RESTAURANT_OWNER', 'RESTAURANT_STAFF', 'PLATFORM', 'ADMIN')")
     @SecurityRequirement(name = "bearerAuth")
-    @Operation(summary = "Update restaurant", description = "Update restaurant details")
+    @Operation(summary = "Update restaurant", description = "Partial update — only provided fields are changed")
     public ResponseEntity<ApiResponse<RestaurantDto>> updateRestaurant(
             @AuthenticationPrincipal UserPrincipal currentUser,
             @PathVariable Long id,
-            @Valid @RequestBody CreateRestaurantRequest request) {
+            @Valid @RequestBody UpdateRestaurantRequest request) {
 
-        // Validate ownership (Admin/Platform can update any restaurant)
         boolean isAdminOrPlatform = currentUser.getAuthorities().stream()
                 .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ROLE_PLATFORM"));
         restaurantService.validateRestaurantAccess(id, currentUser.getId(), isAdminOrPlatform);
 
-        RestaurantDto restaurant = restaurantService.updateRestaurant(id, request);
+        RestaurantDto restaurant = restaurantService.updateRestaurantPartial(id, request);
         return ResponseEntity.ok(ApiResponse.success("Restaurant updated successfully", restaurant));
+    }
+
+    @PatchMapping("/{id}/location")
+    @PreAuthorize("hasAnyRole('RESTAURANT_OWNER', 'RESTAURANT_STAFF', 'PLATFORM', 'ADMIN')")
+    @SecurityRequirement(name = "bearerAuth")
+    @Operation(summary = "Update restaurant location", description = "Update only latitude and longitude")
+    public ResponseEntity<ApiResponse<RestaurantDto>> updateLocation(
+            @AuthenticationPrincipal UserPrincipal currentUser,
+            @PathVariable Long id,
+            @RequestParam BigDecimal latitude,
+            @RequestParam BigDecimal longitude) {
+
+        boolean isAdminOrPlatform = currentUser.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ROLE_PLATFORM"));
+        restaurantService.validateRestaurantAccess(id, currentUser.getId(), isAdminOrPlatform);
+
+        UpdateRestaurantRequest request = UpdateRestaurantRequest.builder()
+                .latitude(latitude)
+                .longitude(longitude)
+                .build();
+        RestaurantDto restaurant = restaurantService.updateRestaurantPartial(id, request);
+        return ResponseEntity.ok(ApiResponse.success("Location updated", restaurant));
     }
 
     @PostMapping("/{id}/logo")

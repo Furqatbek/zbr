@@ -173,6 +173,42 @@ public class RestaurantService {
     }
 
     /**
+     * Partial update — only non-null fields are updated.
+     */
+    @Transactional
+    @CacheEvict(value = "restaurants", key = "#id")
+    public RestaurantDto updateRestaurantPartial(Long id, UpdateRestaurantRequest request) {
+        Restaurant restaurant = getRestaurantEntityById(id);
+
+        if (request.getName() != null) restaurant.setName(request.getName());
+        if (request.getDescription() != null) restaurant.setDescription(request.getDescription());
+        if (request.getPhone() != null) restaurant.setPhone(request.getPhone());
+        if (request.getEmail() != null) restaurant.setEmail(request.getEmail());
+        if (request.getAddressLine1() != null) restaurant.setAddressLine1(request.getAddressLine1());
+        if (request.getAddressLine2() != null) restaurant.setAddressLine2(request.getAddressLine2());
+        if (request.getCity() != null) restaurant.setCity(request.getCity());
+        if (request.getState() != null) restaurant.setState(request.getState());
+        if (request.getPostalCode() != null) restaurant.setPostalCode(request.getPostalCode());
+        if (request.getCountry() != null) restaurant.setCountry(request.getCountry());
+        if (request.getLatitude() != null) restaurant.setLatitude(request.getLatitude());
+        if (request.getLongitude() != null) restaurant.setLongitude(request.getLongitude());
+        if (request.getAcceptsDelivery() != null) restaurant.setAcceptsDelivery(request.getAcceptsDelivery());
+        if (request.getAcceptsTakeaway() != null) restaurant.setAcceptsTakeaway(request.getAcceptsTakeaway());
+        if (request.getAcceptsDineIn() != null) restaurant.setAcceptsDineIn(request.getAcceptsDineIn());
+        if (request.getMinimumOrder() != null) restaurant.setMinimumOrder(request.getMinimumOrder());
+        if (request.getDeliveryFee() != null) restaurant.setDeliveryFee(request.getDeliveryFee());
+        if (request.getDeliveryRadiusKm() != null) restaurant.setDeliveryRadiusKm(request.getDeliveryRadiusKm());
+        if (request.getAveragePrepTimeMinutes() != null) restaurant.setAveragePrepTimeMinutes(request.getAveragePrepTimeMinutes());
+        if (request.getOpensAt() != null) restaurant.setOpensAt(request.getOpensAt());
+        if (request.getClosesAt() != null) restaurant.setClosesAt(request.getClosesAt());
+
+        restaurant = restaurantRepository.save(restaurant);
+        log.info("Restaurant partially updated: {}", restaurant.getId());
+
+        return restaurantMapper.toDto(restaurant);
+    }
+
+    /**
      * Upload and update restaurant image (logo or cover).
      */
     @Transactional
