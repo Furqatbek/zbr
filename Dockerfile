@@ -9,7 +9,6 @@ WORKDIR /app
 COPY pom.xml .
 
 # Download dependencies (cached if pom.xml unchanged)
-# Retry logic for transient network errors
 RUN for i in 1 2 3 4; do \
       mvn dependency:go-offline -B && break || \
       { echo "Attempt $i failed, retrying in $((i*2))s..."; sleep $((i*2)); }; \
@@ -18,8 +17,11 @@ RUN for i in 1 2 3 4; do \
 # Copy source code
 COPY src ./src
 
-# Build the application (skip test compilation due to test API mismatches)
-RUN mvn clean package -Dmaven.test.skip=true -B
+# Build: skip tests + JaCoCo, parallel compile (1 thread per CPU core)
+RUN mvn clean package -Dmaven.test.skip=true -Djacoco.skip=true -T 1C -B
+
+# Extract layered jar for faster Docker rebuilds
+RUN mkdir -p target/extracted && java -Djarmode=layertools -jar target/*.jar extract --destination target/extracted
 
 # Runtime stage
 FROM eclipse-temurin:17-jre-alpine
@@ -29,8 +31,11 @@ WORKDIR /app
 # Create non-root user for security
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 
-# Copy the built JAR from build stage
-COPY --from=build /app/target/*.jar app.jar
+# Copy layers separately — bottom layers change less often, Docker caches them
+COPY --from=build /app/target/extracted/dependencies/ ./
+COPY --from=build /app/target/extracted/spring-boot-loader/ ./
+COPY --from=build /app/target/extracted/snapshot-dependencies/ ./
+COPY --from=build /app/target/extracted/application/ ./
 
 # Set ownership
 RUN chown -R appuser:appgroup /app
@@ -46,7 +51,7 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
     CMD wget --no-verbose --tries=1 --spider http://localhost:8080/actuator/health || exit 1
 
 # JVM options for containers
-ENV JAVA_OPTS="-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:+UseG1GC -XX:+UseStringDeduplication"
+ENV JAVA_OPTS="-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:+UseG1GC -XX:+UseStringDeduplication -XX:TieredStopAtLevel=1"
 
-# Run the application
-ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]
+# Run with Spring Boot layered jar launcher
+ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS org.springframework.boot.loader.launch.JarLauncher"]
