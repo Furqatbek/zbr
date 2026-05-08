@@ -469,11 +469,19 @@ public class CourierService {
     @Transactional(readOnly = true)
     public List<CourierOrderDto> getActiveOrders(Long courierId) {
         List<OrderStatus> activeStatuses = List.of(
+                OrderStatus.READY,
                 OrderStatus.COURIER_ASSIGNED,
                 OrderStatus.PICKED_UP,
                 OrderStatus.IN_TRANSIT
         );
         List<Order> orders = orderRepository.findActiveOrdersByCourier(courierId, activeStatuses);
+        log.info("Active orders query for courierId={}: found {} orders (statuses={})",
+                courierId, orders.size(), activeStatuses);
+        if (orders.isEmpty()) {
+            // Debug: check if courier has ANY orders at all
+            long totalOrders = orderRepository.countByCourierId(courierId);
+            log.warn("Courier {} has 0 active orders but {} total orders in DB", courierId, totalOrders);
+        }
         return orders.stream().map(this::toOrderDto).toList();
     }
 

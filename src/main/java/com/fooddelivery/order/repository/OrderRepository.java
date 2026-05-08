@@ -45,6 +45,9 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 
     Page<Order> findByCourierId(Long courierId, Pageable pageable);
 
+    @Query("SELECT COUNT(o) FROM Order o WHERE o.courier.id = :courierId")
+    long countByCourierId(@Param("courierId") Long courierId);
+
     @Query("SELECT o FROM Order o WHERE o.consumer.id = :consumerId AND o.status = :status")
     Page<Order> findByConsumerIdAndStatus(
             @Param("consumerId") Long consumerId,

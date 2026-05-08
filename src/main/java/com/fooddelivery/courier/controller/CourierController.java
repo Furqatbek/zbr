@@ -134,6 +134,7 @@ public class CourierController {
     public ResponseEntity<ApiResponse<List<CourierOrderDto>>> getActiveOrders(
             @AuthenticationPrincipal UserPrincipal currentUser) {
         CourierDto courier = courierService.getCourierByUserId(currentUser.getId());
+        log.info("Getting active orders: userId={}, courierId={}", currentUser.getId(), courier.getId());
         List<CourierOrderDto> orders = courierService.getActiveOrders(courier.getId());
         return ResponseEntity.ok(ApiResponse.success(orders));
     }
