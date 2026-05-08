@@ -61,9 +61,20 @@ public class RouteDistanceService {
 
         try {
             double routeDistance = fetchRouteDistanceKm(osrmBaseUrl, lat1, lon1, lat2, lon2);
+            double haversineDistance = calculateHaversineDistanceKm(lat1, lon1, lat2, lon2);
+
+            // Sanity check: route distance can never be shorter than straight-line.
+            // OSRM snaps to nearest road — if points are far apart with no route,
+            // it can return a tiny distance between two unrelated road segments.
+            if (routeDistance < haversineDistance * 0.5) {
+                log.warn("OSRM returned suspicious distance: {} km (straight-line: {} km). Using Haversine.",
+                        String.format("%.2f", routeDistance), String.format("%.2f", haversineDistance));
+                return haversineDistance;
+            }
+
             log.debug("OSRM route distance: {} km (straight-line: {} km)",
                     String.format("%.2f", routeDistance),
-                    String.format("%.2f", calculateHaversineDistanceKm(lat1, lon1, lat2, lon2)));
+                    String.format("%.2f", haversineDistance));
             return routeDistance;
         } catch (Exception e) {
             log.warn("OSRM route calculation failed, falling back to Haversine: {}", e.getMessage());
