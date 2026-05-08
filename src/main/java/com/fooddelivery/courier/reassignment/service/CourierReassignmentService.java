@@ -176,6 +176,7 @@ public class CourierReassignmentService {
 
         // Assign courier to order
         order.setCourier(bestCourier);
+        order.setStatus(OrderStatus.COURIER_ASSIGNED);
         bestCourier.setStatus(CourierStatus.BUSY);
 
         orderRepository.save(order);
