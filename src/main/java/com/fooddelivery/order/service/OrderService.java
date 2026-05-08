@@ -471,6 +471,12 @@ public class OrderService {
                     dto
             );
 
+            // Notify restaurant about status change (cancellations, courier assigned, etc.)
+            messagingTemplate.convertAndSend(
+                    "/topic/restaurants/" + order.getRestaurant().getId() + "/orders",
+                    dto
+            );
+
             // If order is READY and is a delivery order, notify available couriers
             if (order.getStatus() == OrderStatus.READY &&
                 order.getOrderType() == OrderType.DELIVERY &&
