@@ -193,13 +193,14 @@ public class CourierService {
             throw new BusinessException("Order already has a courier assigned");
         }
 
-        if (order.getStatus() != OrderStatus.READY) {
-            throw new BusinessException("Order must be ready before courier assignment");
+        if (order.getStatus() != OrderStatus.ACCEPTED && order.getStatus() != OrderStatus.PREPARING
+                && order.getStatus() != OrderStatus.READY) {
+            throw new BusinessException("Order must be accepted by restaurant before courier assignment");
         }
 
         // Assign courier to order
         order.setCourier(courier);
-        order.updateStatus(OrderStatus.PICKED_UP);
+        order.updateStatus(OrderStatus.COURIER_ASSIGNED);
         orderRepository.save(order);
 
         // Update courier
@@ -559,8 +560,9 @@ public class CourierService {
             throw new BusinessException("Order already has a courier assigned");
         }
 
-        if (order.getStatus() != OrderStatus.READY) {
-            throw new BusinessException("Order must be ready before courier assignment");
+        if (order.getStatus() != OrderStatus.ACCEPTED && order.getStatus() != OrderStatus.PREPARING
+                && order.getStatus() != OrderStatus.READY) {
+            throw new BusinessException("Order must be accepted by restaurant before courier assignment");
         }
 
         order.setCourier(courier);

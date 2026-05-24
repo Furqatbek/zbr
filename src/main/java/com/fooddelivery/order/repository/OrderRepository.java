@@ -153,10 +153,12 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
      * Get available orders for pickup (near courier location).
      */
     @Query("SELECT o FROM Order o JOIN FETCH o.restaurant " +
-            "WHERE o.status = com.fooddelivery.order.entity.OrderStatus.READY " +
+            "WHERE o.status IN (com.fooddelivery.order.entity.OrderStatus.ACCEPTED, " +
+            "com.fooddelivery.order.entity.OrderStatus.PREPARING, " +
+            "com.fooddelivery.order.entity.OrderStatus.READY) " +
             "AND o.orderType = com.fooddelivery.order.entity.OrderType.DELIVERY " +
             "AND o.courier IS NULL " +
-            "ORDER BY o.readyAt ASC")
+            "ORDER BY o.createdAt ASC")
     List<Order> findAvailableOrdersForCourier();
 
     /**
