@@ -258,9 +258,11 @@ public class SupportTicketCollector {
             LocalDateTime startDate, LocalDateTime endDate) {
 
         Object[] refundStats = supportTicketRepository.getRefundStats(startDate, endDate);
-        Long refundsIssued = refundStats[0] != null ? ((Number) refundStats[0]).longValue() : 0L;
-        Double totalRefundAmount = refundStats[1] != null ? ((Number) refundStats[1]).doubleValue() : 0.0;
-        Double avgRefundAmount = refundStats[2] != null ? ((Number) refundStats[2]).doubleValue() : 0.0;
+        Object[] stats = (refundStats != null && refundStats.length > 0 && refundStats[0] instanceof Object[])
+                ? (Object[]) refundStats[0] : refundStats;
+        Long refundsIssued = (stats != null && stats[0] != null) ? ((Number) stats[0]).longValue() : 0L;
+        Double totalRefundAmount = (stats != null && stats[1] != null) ? ((Number) stats[1]).doubleValue() : 0.0;
+        Double avgRefundAmount = (stats != null && stats[2] != null) ? ((Number) stats[2]).doubleValue() : 0.0;
 
         return SupportTicketMetricsDto.ResolutionBreakdownDto.builder()
                 .refundsIssued(refundsIssued)
@@ -273,10 +275,12 @@ public class SupportTicketCollector {
      * Collect CSAT metrics.
      */
     private SupportTicketMetricsDto.CsatMetricsDto collectCsatMetrics(LocalDateTime startDate, LocalDateTime endDate) {
-        Object[] csatStats = supportTicketRepository.getCsatStats(startDate, endDate);
+        Object[] csatRaw = supportTicketRepository.getCsatStats(startDate, endDate);
+        Object[] csatStats = (csatRaw != null && csatRaw.length > 0 && csatRaw[0] instanceof Object[])
+                ? (Object[]) csatRaw[0] : csatRaw;
 
-        Double avgCsat = csatStats[0] != null ? ((Number) csatStats[0]).doubleValue() : null;
-        Long csatResponseCount = csatStats[1] != null ? ((Number) csatStats[1]).longValue() : 0L;
+        Double avgCsat = (csatStats != null && csatStats[0] != null) ? ((Number) csatStats[0]).doubleValue() : null;
+        Long csatResponseCount = (csatStats != null && csatStats[1] != null) ? ((Number) csatStats[1]).longValue() : 0L;
         Long satisfied = csatStats[2] != null ? ((Number) csatStats[2]).longValue() : 0L;
         Long dissatisfied = csatStats[3] != null ? ((Number) csatStats[3]).longValue() : 0L;
 
