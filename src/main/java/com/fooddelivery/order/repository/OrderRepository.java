@@ -140,6 +140,17 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
             @Param("courierId") Long courierId,
             @Param("since") LocalDateTime since);
 
+    @Query("SELECT COALESCE(SUM(o.deliveryFee), 0) + COALESCE(SUM(o.tipAmount), 0) FROM Order o " +
+            "JOIN com.fooddelivery.order.entity.Payment p ON p.order.id = o.id " +
+            "WHERE o.courier.id = :courierId " +
+            "AND o.status = com.fooddelivery.order.entity.OrderStatus.DELIVERED " +
+            "AND o.deliveredAt >= :since " +
+            "AND LOWER(p.paymentMethod) = :paymentMethod")
+    java.math.BigDecimal sumCourierEarningsByPaymentMethodSince(
+            @Param("courierId") Long courierId,
+            @Param("since") LocalDateTime since,
+            @Param("paymentMethod") String paymentMethod);
+
     /**
      * Get order history for a courier (completed/cancelled orders).
      */

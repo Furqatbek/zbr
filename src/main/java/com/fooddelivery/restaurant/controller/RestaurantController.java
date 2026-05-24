@@ -280,7 +280,7 @@ public class RestaurantController {
                 .restaurantId(restaurantId)
                 .periodStart(startDate)
                 .periodEnd(endDate)
-                .totalRevenue(gmvMetrics.getTotalGmv())
+                .totalRevenue(gmvMetrics.getFoodGmv())
                 .totalOrders(gmvMetrics.getTotalOrders())
                 .averageOrderValue(gmvMetrics.getAverageOrderValue())
                 .foodRevenue(gmvMetrics.getFoodGmv())

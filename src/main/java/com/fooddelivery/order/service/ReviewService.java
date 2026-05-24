@@ -4,6 +4,7 @@ import com.fooddelivery.auth.service.UserService;
 import com.fooddelivery.common.dto.PagedResponse;
 import com.fooddelivery.common.exception.BusinessException;
 import com.fooddelivery.common.exception.ResourceNotFoundException;
+import com.fooddelivery.courier.repository.CourierRepository;
 import com.fooddelivery.order.dto.CreateReviewRequest;
 import com.fooddelivery.order.dto.ReviewDto;
 import com.fooddelivery.order.entity.Order;
@@ -33,6 +34,7 @@ public class ReviewService {
     private final ReviewRepository reviewRepository;
     private final OrderRepository orderRepository;
     private final RestaurantRepository restaurantRepository;
+    private final CourierRepository courierRepository;
     private final UserService userService;
 
     /**
@@ -82,6 +84,11 @@ public class ReviewService {
 
         // Update restaurant average rating
         updateRestaurantRating(order.getRestaurant().getId());
+
+        // Update courier average rating
+        if (request.getCourierRating() != null && order.getCourier() != null) {
+            updateCourierRating(order.getCourier().getId());
+        }
 
         return mapToDto(review, order.getConsumer().getFullName());
     }
@@ -137,6 +144,20 @@ public class ReviewService {
             }
         } catch (Exception e) {
             log.warn("Failed to update restaurant rating: {}", e.getMessage());
+        }
+    }
+
+    private void updateCourierRating(Long courierId) {
+        try {
+            Double avgRating = reviewRepository.getAverageCourierRating(courierId);
+            if (avgRating != null) {
+                courierRepository.findById(courierId).ifPresent(courier -> {
+                    courier.setAverageRating(java.math.BigDecimal.valueOf(avgRating));
+                    courierRepository.save(courier);
+                });
+            }
+        } catch (Exception e) {
+            log.warn("Failed to update courier rating: {}", e.getMessage());
         }
     }
 

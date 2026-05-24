@@ -522,6 +522,12 @@ public class CourierService {
                 ? courier.getTotalEarnings().divide(BigDecimal.valueOf(courier.getTotalDeliveries()), 2, java.math.RoundingMode.HALF_UP)
                 : BigDecimal.ZERO;
 
+        // Split earnings by payment method
+        BigDecimal cashEarnings = orderRepository.sumCourierEarningsByPaymentMethodSince(
+                courierId, startOfMonth, "cash");
+        BigDecimal cardEarnings = orderRepository.sumCourierEarningsByPaymentMethodSince(
+                courierId, startOfMonth, "card");
+
         return CourierEarningsDto.builder()
                 .todayEarnings(todayEarnings != null ? todayEarnings : BigDecimal.ZERO)
                 .weekEarnings(weekEarnings != null ? weekEarnings : BigDecimal.ZERO)
@@ -532,7 +538,10 @@ public class CourierService {
                 .monthDeliveries((int) monthDeliveries)
                 .totalDeliveries(courier.getTotalDeliveries())
                 .averagePerDelivery(avgPerDelivery)
-                .pendingPayout(BigDecimal.ZERO) // Placeholder for payout system
+                .cashEarnings(cashEarnings != null ? cashEarnings : BigDecimal.ZERO)
+                .cardEarnings(cardEarnings != null ? cardEarnings : BigDecimal.ZERO)
+                .withdrawableBalance(cardEarnings != null ? cardEarnings : BigDecimal.ZERO)
+                .pendingPayout(BigDecimal.ZERO)
                 .build();
     }
 

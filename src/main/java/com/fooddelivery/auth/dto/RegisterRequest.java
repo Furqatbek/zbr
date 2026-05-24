@@ -21,8 +21,7 @@ import lombok.NoArgsConstructor;
 @Schema(description = "User registration request")
 public class RegisterRequest {
 
-    @Schema(description = "User email address", example = "john.doe@example.com", requiredMode = Schema.RequiredMode.REQUIRED)
-    @NotBlank(message = "Email is required")
+    @Schema(description = "User email address", example = "john.doe@example.com")
     @Email(message = "Invalid email format")
     @Size(max = 255, message = "Email must not exceed 255 characters")
     private String email;

@@ -22,4 +22,9 @@ public class CourierEarningsDto {
     private Integer totalDeliveries;
     private BigDecimal averagePerDelivery;
     private BigDecimal pendingPayout;
+
+    // Split by payment method
+    private BigDecimal cashEarnings;
+    private BigDecimal cardEarnings;
+    private BigDecimal withdrawableBalance;
 }
