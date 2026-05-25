@@ -299,7 +299,7 @@ public class CourierService {
      */
     @Transactional(readOnly = true)
     public PagedResponse<CourierDto> getPendingCouriers(Pageable pageable) {
-        Page<Courier> couriers = courierRepository.findPendingApproval(pageable);
+        Page<Courier> couriers = courierRepository.findPendingVerification(pageable);
         return PagedResponse.from(couriers, couriers.getContent().stream()
                 .map(this::toDto)
                 .toList());
