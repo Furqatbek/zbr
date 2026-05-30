@@ -88,6 +88,7 @@ public class CustomerExperienceAnalyticsController {
     }
 
     @GetMapping("/ratings/restaurant/{restaurantId}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'PLATFORM', 'OPERATIONS_MANAGER', 'SUPPORT_MANAGER', 'RESTAURANT_OWNER', 'RESTAURANT_STAFF')")
     @Operation(summary = "Get restaurant ratings by ID", description = "Retrieve rating metrics for a specific restaurant")
     public ResponseEntity<RestaurantRatingMetricsDto> getRestaurantRatings(
             @Parameter(description = "Restaurant ID", required = true)
