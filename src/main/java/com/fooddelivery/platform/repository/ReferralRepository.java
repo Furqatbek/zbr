@@ -40,6 +40,8 @@ public interface ReferralRepository extends JpaRepository<Referral, Long> {
     @Query("SELECT COUNT(r) FROM Referral r WHERE r.referrer.id = :userId AND r.status = 'COMPLETED'")
     long countCompletedByReferrer(@Param("userId") Long userId);
 
+    long countByReferrerIdAndStatus(Long referrerId, com.fooddelivery.platform.entity.ReferralStatus status);
+
     @Query("SELECT SUM(r.rewardAmount) FROM Referral r WHERE r.referrer.id = :userId AND r.referrerRewarded = true")
     java.math.BigDecimal sumRewardsByReferrer(@Param("userId") Long userId);
 

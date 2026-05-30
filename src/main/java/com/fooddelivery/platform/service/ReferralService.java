@@ -206,6 +206,40 @@ public class ReferralService {
                 .build();
     }
 
+    /**
+     * Get referral info for the mobile app (code + stats in one call).
+     */
+    @Transactional(readOnly = true)
+    public MyReferralInfoDto getMyReferralInfo(Long userId) {
+        // Find active referral code
+        String referralCode = referralRepository.findActiveReferralByUser(userId, LocalDateTime.now())
+                .map(Referral::getCode)
+                .orElse(null);
+
+        long totalReferrals = referralRepository.countCompletedByReferrer(userId);
+        BigDecimal earnedCredits = referralRepository.sumRewardsByReferrer(userId);
+        long pendingCount = referralRepository.countByReferrerIdAndStatus(userId, ReferralStatus.PENDING);
+        BigDecimal pendingCredits = BigDecimal.valueOf(pendingCount).multiply(rewardAmount);
+
+        return MyReferralInfoDto.builder()
+                .referralCode(referralCode)
+                .referralLink(referralCode != null ? "https://app.fooddelivery.com/r/" + referralCode : "")
+                .totalReferrals(totalReferrals)
+                .earnedCredits(earnedCredits != null ? earnedCredits : BigDecimal.ZERO)
+                .pendingCredits(pendingCredits)
+                .build();
+    }
+
+    @lombok.Data
+    @lombok.Builder
+    public static class MyReferralInfoDto {
+        private String referralCode;
+        private String referralLink;
+        private long totalReferrals;
+        private BigDecimal earnedCredits;
+        private BigDecimal pendingCredits;
+    }
+
     @lombok.Data
     @lombok.Builder
     public static class ReferralStatsDto {

@@ -41,8 +41,18 @@ public class ReferralController {
 
     @GetMapping("/my")
     @PreAuthorize("hasAnyRole('CONSUMER', 'PLATFORM', 'ADMIN')")
-    @Operation(summary = "Get my referrals", description = "Get referrals made by current user")
-    public ResponseEntity<ApiResponse<PagedResponse<ReferralDto>>> getMyReferrals(
+    @Operation(summary = "Get my referral info", description = "Get referral code and stats for current user")
+    public ResponseEntity<ApiResponse<ReferralService.MyReferralInfoDto>> getMyReferralInfo(
+            @AuthenticationPrincipal UserPrincipal currentUser) {
+
+        ReferralService.MyReferralInfoDto info = referralService.getMyReferralInfo(currentUser.getId());
+        return ResponseEntity.ok(ApiResponse.success(info));
+    }
+
+    @GetMapping("/my/history")
+    @PreAuthorize("hasAnyRole('CONSUMER', 'PLATFORM', 'ADMIN')")
+    @Operation(summary = "Get my referral history", description = "Get list of referrals made by current user")
+    public ResponseEntity<ApiResponse<PagedResponse<ReferralDto>>> getMyReferralHistory(
             @AuthenticationPrincipal UserPrincipal currentUser,
             @PageableDefault(size = 20) Pageable pageable) {
 
