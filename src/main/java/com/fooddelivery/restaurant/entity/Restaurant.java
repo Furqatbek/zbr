@@ -193,11 +193,11 @@ public class Restaurant {
         if (status != RestaurantStatus.ACTIVE) {
             return false;
         }
-        // If owner has manually set isOpen to true, respect that override
-        if (Boolean.TRUE.equals(isOpen)) {
-            return true;
+        // Owner's manual toggle takes priority
+        if (isOpen != null) {
+            return isOpen;
         }
-        // If isOpen is false or null, check business hours as fallback
+        // If isOpen is null (never toggled), check business hours
         if (opensAt == null || closesAt == null) {
             return false;
         }
