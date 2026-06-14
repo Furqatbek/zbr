@@ -267,9 +267,9 @@ public class RestaurantController {
                 .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ROLE_PLATFORM"));
         restaurantService.validateRestaurantAccess(restaurantId, currentUser.getId(), isAdminOrPlatform);
 
-        // Get GMV metrics for this restaurant
-        GmvMetricsDto gmvMetrics = financialAnalyticsService.getGmvByRestaurants(
-                startDate, endDate, List.of(restaurantId));
+        // Get restaurant-scoped revenue metrics (food revenue, order count, commission)
+        GmvMetricsDto gmvMetrics = financialAnalyticsService.getGmvForRestaurant(
+                restaurantId, startDate, endDate);
 
         // Get payout details for this restaurant
         RestaurantPayoutMetricsDto payoutMetrics = financialAnalyticsService.getRestaurantPayoutDetails(

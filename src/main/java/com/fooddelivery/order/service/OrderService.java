@@ -25,6 +25,7 @@ import com.fooddelivery.restaurant.entity.MenuItem;
 import com.fooddelivery.restaurant.entity.Restaurant;
 import com.fooddelivery.restaurant.repository.MenuItemRepository;
 import com.fooddelivery.restaurant.service.RestaurantService;
+import com.fooddelivery.analytics.financial.service.CommissionService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -57,6 +58,7 @@ public class OrderService {
     private final SimpMessagingTemplate messagingTemplate;
     private final CourierRepository courierRepository;
     private final DeliveryFeeCalculationService deliveryFeeCalculationService;
+    private final CommissionService commissionService;
 
     @Value("${app.order.auto-cancel-unpaid-minutes:30}")
     private int autoCancelMinutes;
@@ -404,8 +406,12 @@ public class OrderService {
                     );
                 }
             }
-            case COMPLETED -> {
-                order.getRestaurant().incrementOrderCount();
+            case DELIVERED, COMPLETED -> {
+                if (newStatus == OrderStatus.COMPLETED) {
+                    order.getRestaurant().incrementOrderCount();
+                }
+                // Record platform commission (idempotent — safe across DELIVERED then COMPLETED)
+                commissionService.recordCommission(order);
             }
             default -> {}
         }

@@ -94,6 +94,11 @@ public interface FinancialAnalyticsService {
     GmvMetricsDto getGmvByRestaurants(LocalDateTime startDate, LocalDateTime endDate, List<Long> restaurantIds);
 
     /**
+     * Restaurant-scoped GMV (food revenue, order count, commission) for the report.
+     */
+    GmvMetricsDto getGmvForRestaurant(Long restaurantId, LocalDateTime startDate, LocalDateTime endDate);
+
+    /**
      * Get payout details for a specific restaurant.
      *
      * @param restaurantId the restaurant ID

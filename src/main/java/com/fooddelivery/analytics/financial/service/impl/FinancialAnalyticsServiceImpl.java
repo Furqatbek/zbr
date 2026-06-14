@@ -859,6 +859,36 @@ public class FinancialAnalyticsServiceImpl implements FinancialAnalyticsService 
     }
 
     @Override
+    public GmvMetricsDto getGmvForRestaurant(Long restaurantId, LocalDateTime startDate, LocalDateTime endDate) {
+        Object[] summary = commissionRepository.getRestaurantRevenueSummary(restaurantId, startDate, endDate);
+        // Native/JPA aggregate can wrap result in an extra array layer
+        Object[] row = (summary != null && summary.length > 0 && summary[0] instanceof Object[])
+                ? (Object[]) summary[0] : summary;
+
+        BigDecimal foodRevenue = (row != null && row[0] != null)
+                ? new BigDecimal(row[0].toString()) : BigDecimal.ZERO;
+        long orderCount = (row != null && row[1] != null) ? ((Number) row[1]).longValue() : 0L;
+        BigDecimal averageOrderValue = orderCount > 0
+                ? foodRevenue.divide(BigDecimal.valueOf(orderCount), 2, RoundingMode.HALF_UP)
+                : BigDecimal.ZERO;
+
+        return GmvMetricsDto.builder()
+                .totalGmv(foodRevenue)
+                .totalOrders(orderCount)
+                .averageOrderValue(averageOrderValue)
+                .foodGmv(foodRevenue)
+                .deliveryFeeGmv(BigDecimal.ZERO)
+                .tipGmv(BigDecimal.ZERO)
+                .growthRate(BigDecimal.ZERO)
+                .previousPeriodGmv(BigDecimal.ZERO)
+                .byRestaurant(new ArrayList<>())
+                .dailyTrend(new ArrayList<>())
+                .periodStart(startDate)
+                .periodEnd(endDate)
+                .build();
+    }
+
+    @Override
     public RestaurantPayoutMetricsDto getRestaurantPayoutDetails(Long restaurantId,
                                                                   LocalDateTime startDate,
                                                                   LocalDateTime endDate) {

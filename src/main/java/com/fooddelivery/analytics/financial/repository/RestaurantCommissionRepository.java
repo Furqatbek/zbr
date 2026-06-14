@@ -18,6 +18,22 @@ import java.util.List;
 public interface RestaurantCommissionRepository extends JpaRepository<RestaurantCommission, Long> {
 
     /**
+     * Check if a commission record already exists for an order (idempotency guard).
+     */
+    boolean existsByOrderId(Long orderId);
+
+    /**
+     * Restaurant-scoped revenue summary for a period.
+     * Returns: [ sum(orderSubtotal), count(orders), sum(commissionAmount) ].
+     */
+    @Query("SELECT COALESCE(SUM(rc.orderSubtotal), 0), COUNT(rc), COALESCE(SUM(rc.commissionAmount), 0) " +
+           "FROM RestaurantCommission rc " +
+           "WHERE rc.restaurantId = :restaurantId AND rc.earnedAt BETWEEN :startDate AND :endDate")
+    Object[] getRestaurantRevenueSummary(@Param("restaurantId") Long restaurantId,
+                                         @Param("startDate") LocalDateTime startDate,
+                                         @Param("endDate") LocalDateTime endDate);
+
+    /**
      * Get total commission for a period.
      */
     @Query("SELECT COALESCE(SUM(rc.commissionAmount), 0) FROM RestaurantCommission rc " +

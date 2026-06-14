@@ -26,6 +26,7 @@ import com.fooddelivery.order.repository.DeliveryIssueRepository;
 import com.fooddelivery.order.repository.OrderRepository;
 import com.fooddelivery.order.repository.PaymentRepository;
 import com.fooddelivery.notification.service.PersistentNotificationService;
+import com.fooddelivery.analytics.financial.service.CommissionService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -54,6 +55,7 @@ public class CourierService {
     private final EventPublisher eventPublisher;
     private final SimpMessagingTemplate messagingTemplate;
     private final PersistentNotificationService notificationService;
+    private final CommissionService commissionService;
 
     /**
      * Register as a courier.
@@ -253,7 +255,10 @@ public class CourierService {
             );
         }
 
-        orderRepository.save(order);
+        order = orderRepository.save(order);
+
+        // Record platform commission for the delivered order
+        commissionService.recordCommission(order);
 
         courier.completeOrder();
         // Add delivery earnings (simplified)
@@ -701,6 +706,9 @@ public class CourierService {
         }
 
         order = orderRepository.save(order);
+
+        // Record platform commission for the delivered order
+        commissionService.recordCommission(order);
 
         courier.completeOrder();
         courier.addEarnings(order.getDeliveryFee().add(order.getTipAmount() != null ? order.getTipAmount() : BigDecimal.ZERO));
