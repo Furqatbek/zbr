@@ -213,7 +213,8 @@ public class OrderService {
     @Transactional(readOnly = true)
     public List<OrderDto> getActiveOrdersForRestaurant(Long restaurantId) {
         List<OrderStatus> activeStatuses = List.of(
-                OrderStatus.CREATED, OrderStatus.ACCEPTED, OrderStatus.PREPARING, OrderStatus.READY
+                OrderStatus.CREATED, OrderStatus.ACCEPTED, OrderStatus.PREPARING, OrderStatus.READY,
+                OrderStatus.COURIER_ASSIGNED, OrderStatus.PICKED_UP, OrderStatus.IN_TRANSIT, OrderStatus.DELIVERED
         );
         List<Order> orders = orderRepository.findActiveOrdersByRestaurant(restaurantId, activeStatuses);
         return orderMapper.toDtoList(orders);

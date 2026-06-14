@@ -627,6 +627,11 @@ public class CourierService {
             throw new BusinessException("Order cannot be picked up in current status: " + order.getStatus());
         }
 
+        // Don't allow pickup if restaurant hasn't marked the order as ready
+        if (order.getReadyAt() == null && order.getStatus() == OrderStatus.COURIER_ASSIGNED) {
+            throw new BusinessException("Order is not ready for pickup yet. Wait for the restaurant to prepare it.");
+        }
+
         OrderStatus previousStatus = order.getStatus();
         order.updateStatus(OrderStatus.PICKED_UP);
         order = orderRepository.save(order);
