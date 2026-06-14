@@ -116,6 +116,23 @@ public class ReviewService {
     }
 
     /**
+     * Get reviews for a courier.
+     */
+    @Transactional(readOnly = true)
+    public PagedResponse<ReviewDto> getCourierReviews(Long courierId, Pageable pageable) {
+        Page<Review> reviews = reviewRepository.findByCourierIdOrderByCreatedAtDesc(courierId, pageable);
+
+        List<ReviewDto> dtos = reviews.getContent().stream()
+                .map(review -> {
+                    String consumerName = getConsumerName(review.getConsumerId());
+                    return mapToDto(review, consumerName);
+                })
+                .toList();
+
+        return PagedResponse.from(reviews, dtos);
+    }
+
+    /**
      * Get review by order ID.
      */
     @Transactional(readOnly = true)

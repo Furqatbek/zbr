@@ -37,6 +37,7 @@ import java.util.List;
 public class CourierController {
 
     private final CourierService courierService;
+    private final com.fooddelivery.order.service.ReviewService reviewService;
 
     @PostMapping("/register")
     @PreAuthorize("hasRole('CONSUMER')")
@@ -158,6 +159,18 @@ public class CourierController {
         CourierDto courier = courierService.getCourierByUserId(currentUser.getId());
         CourierEarningsDto earnings = courierService.getEarnings(courier.getId());
         return ResponseEntity.ok(ApiResponse.success(earnings));
+    }
+
+    @GetMapping("/me/reviews")
+    @PreAuthorize("hasRole('COURIER')")
+    @Operation(summary = "Get my reviews", description = "Get customer reviews for this courier")
+    public ResponseEntity<ApiResponse<PagedResponse<com.fooddelivery.order.dto.ReviewDto>>> getMyReviews(
+            @AuthenticationPrincipal UserPrincipal currentUser,
+            @PageableDefault(size = 20) Pageable pageable) {
+        CourierDto courier = courierService.getCourierByUserId(currentUser.getId());
+        PagedResponse<com.fooddelivery.order.dto.ReviewDto> reviews =
+                reviewService.getCourierReviews(courier.getId(), pageable);
+        return ResponseEntity.ok(ApiResponse.success(reviews));
     }
 
     // ===== Order Management (Courier App) =====
