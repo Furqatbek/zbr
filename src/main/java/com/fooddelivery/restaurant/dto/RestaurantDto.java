@@ -1,5 +1,6 @@
 package com.fooddelivery.restaurant.dto;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fooddelivery.restaurant.entity.RestaurantStatus;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
@@ -37,9 +38,11 @@ public class RestaurantDto {
     private String description;
 
     @Schema(description = "Logo URL")
+    @JsonInclude(JsonInclude.Include.ALWAYS)
     private String logoUrl;
 
     @Schema(description = "Cover image URL")
+    @JsonInclude(JsonInclude.Include.ALWAYS)
     private String coverImageUrl;
 
     @Schema(description = "Phone number")
