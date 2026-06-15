@@ -37,6 +37,7 @@ public class SmsMessageConsumer {
     private final SmsTemplateService smsTemplateService;
     private final RabbitTemplate rabbitTemplate;
     private final ObjectMapper objectMapper;
+    private final com.fooddelivery.sms.config.SmsProperties smsProperties;
 
     private static final int MAX_RETRIES = 3;
     private static final Pattern OTP_CODE_PATTERN = Pattern.compile("\\b(\\d{4,6})\\b");
@@ -114,9 +115,25 @@ public class SmsMessageConsumer {
      */
     private void sendWithRetry(SmsMessage smsMessage, int currentRetry) {
         try {
+            // SMS globally disabled — discard the message (do not requeue, do not DLQ)
+            if (!smsProperties.isEnabled()) {
+                log.info("SMS is disabled, discarding message: phone={}",
+                        maskPhone(smsMessage.getPhoneNumber()));
+                return;
+            }
+
             if (!smsProviderFactory.isAnyProviderAvailable()) {
-                log.warn("No SMS provider is available, message will be requeued");
-                requeueMessage(smsMessage, currentRetry);
+                // Provider temporarily unavailable — increment retry so it eventually
+                // reaches the DLQ instead of requeuing forever.
+                if (currentRetry < MAX_RETRIES) {
+                    log.warn("No SMS provider available, requeueing (attempt {}/{})",
+                            currentRetry + 1, MAX_RETRIES);
+                    requeueMessage(smsMessage, currentRetry + 1);
+                } else {
+                    log.error("No SMS provider available after {} retries, moving to DLQ: phone={}",
+                            MAX_RETRIES, maskPhone(smsMessage.getPhoneNumber()));
+                    sendToDlq(smsMessage);
+                }
                 return;
             }
 
