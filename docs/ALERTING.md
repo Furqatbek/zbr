@@ -24,27 +24,35 @@ aren't paged twice for the same root cause.
 
 ## Setup (one time)
 
-Alertmanager delivers to **Slack** by default. The webhook URL is read from a
-mounted secret file that is **gitignored** (the repo's global `secrets/` rule),
-so it never lands in version control.
+Alertmanager delivers to a **Telegram bot**. The bot token is read from a mounted
+secret file that is **gitignored** (the repo's global `secrets/` rule), so it
+never lands in version control; the chat id is set in `alertmanager.yml`.
 
 ```bash
-# 1. Create an Incoming Webhook in Slack (Slack → Apps → Incoming Webhooks),
-#    pick the channel, copy the https://hooks.slack.com/services/... URL.
+# 1. Create a bot: message @BotFather on Telegram, send /newbot, follow the
+#    prompts, and copy the token it gives you (looks like 123456789:AA...).
 
-# 2. Drop it into the secret file (one line, the URL only):
-cp docker/alertmanager/secrets/slack_api_url.example docker/alertmanager/secrets/slack_api_url
-$EDITOR docker/alertmanager/secrets/slack_api_url   # paste your webhook
+# 2. Drop the token into the secret file (one line, the token only):
+cp docker/alertmanager/secrets/telegram_bot_token.example docker/alertmanager/secrets/telegram_bot_token
+$EDITOR docker/alertmanager/secrets/telegram_bot_token   # paste your bot token
 
-# 3. Start / restart the monitoring stack:
+# 3. Get the chat id to send alerts to:
+#    - For a group: add the bot to the group, then open
+#        https://api.telegram.org/bot<YOUR_TOKEN>/getUpdates
+#      and read "chat":{"id":-100...}. Group ids are negative.
+#    - For a DM: message the bot first, then read the positive "id" from getUpdates.
+#    Put that number in chat_id: in docker/alertmanager/alertmanager.yml
+$EDITOR docker/alertmanager/alertmanager.yml   # set chat_id
+
+# 4. Start / restart the monitoring stack:
 docker compose up -d prometheus alertmanager
 ```
 
-Adjust the target `channel:` in `docker/alertmanager/alertmanager.yml` if you
-don't use `#alerts`.
+The chat id is not a credential, so it's fine to commit it in `alertmanager.yml`.
+Keep the bot **token** only in the gitignored secret file.
 
-> Until you create `slack_api_url`, the Alertmanager container will not start —
-> that only affects alert delivery, not the application.
+> Until you create `telegram_bot_token`, the Alertmanager container will not
+> start — that only affects alert delivery, not the application.
 
 ## Verify it works
 
@@ -55,13 +63,16 @@ curl -s localhost:9093/-/healthy        # -> "OK"
 # Prometheus sees Alertmanager:
 #   http://localhost:9090/status  -> "Alertmanager" section lists alertmanager:9093
 
-# Fire a test alert straight into Alertmanager (proves the Slack path end to end):
+# Fire a test alert straight into Alertmanager (proves the Telegram path end to end):
 curl -s -XPOST localhost:9093/api/v2/alerts -H 'Content-Type: application/json' -d '[
   {"labels":{"alertname":"TestPage","severity":"critical"},
-   "annotations":{"summary":"Test alert — ignore","description":"If you see this in Slack, alerting works."}}
+   "annotations":{"summary":"Test alert — ignore","description":"If you see this in Telegram, alerting works."}}
 ]'
-# A message should land in your Slack channel within a few seconds.
+# A message should land in your Telegram chat within a few seconds.
 ```
+
+If nothing arrives, check `docker compose logs alertmanager` — a wrong token or
+chat id shows up there as a Telegram API error.
 
 You can also browse firing alerts at `http://localhost:9090/alerts` (Prometheus)
 and `http://localhost:9093` (Alertmanager UI).
@@ -94,14 +105,14 @@ Only the app's own port needs to be publicly reachable.
 
 ## Other channels
 
-Alertmanager can deliver to email, Telegram, PagerDuty, etc. Replace the
-`slack_configs` block in the `team-notifications` receiver. Examples:
+Prefer a different channel? Replace the `telegram_configs` block in the
+`team-notifications` receiver. Examples:
 
-**Telegram** (common for teams here; create a bot via @BotFather, get the chat id):
+**Slack** (Incoming Webhook URL in the secret file):
 ```yaml
-    telegram_configs:
-      - bot_token_file: /etc/alertmanager/secrets/telegram_bot_token
-        chat_id: -1001234567890
+    slack_configs:
+      - api_url_file: /etc/alertmanager/secrets/slack_api_url
+        channel: '#alerts'
         send_resolved: true
 ```
 

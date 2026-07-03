@@ -209,9 +209,9 @@ services:
       timeout: 10s
       retries: 3
 
-  # Alertmanager: routes Prometheus alerts to a real channel (Slack by default).
-  # The webhook URL is read from a mounted, gitignored secret file — see
-  # docs/ALERTING.md. Alertmanager failing to start does NOT affect the app.
+  # Alertmanager: routes Prometheus alerts to a Telegram bot. The bot token is
+  # read from a mounted, gitignored secret file — see docs/ALERTING.md.
+  # Alertmanager failing to start does NOT affect the app.
   alertmanager:
     image: prom/alertmanager:v0.27.0
     container_name: food-delivery-alertmanager

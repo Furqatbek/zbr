@@ -1,8 +1,9 @@
 # Alertmanager configuration.
 #
-# Delivery channel is Slack by default; the webhook URL is read from
-# /etc/alertmanager/secrets/slack_api_url (mounted, gitignored) so it is never
-# committed. See docs/ALERTING.md for Slack/Telegram/email setup.
+# Delivery channel is a Telegram bot. The bot token is read from
+# /etc/alertmanager/secrets/telegram_bot_token (mounted, gitignored) so it is
+# never committed; the chat id is set below. See docs/ALERTING.md for setup and
+# for Slack/email alternatives.
 
 global:
   resolve_timeout: 5m
@@ -22,14 +23,18 @@ route:
 
 receivers:
   - name: 'team-notifications'
-    slack_configs:
-      - api_url_file: /etc/alertmanager/secrets/slack_api_url
-        channel: '#alerts'
+    telegram_configs:
+      - bot_token_file: /etc/alertmanager/secrets/telegram_bot_token
+        # TODO: replace with your Telegram chat/group id (see docs/ALERTING.md).
+        # A group id is a negative number, e.g. -1001234567890.
+        chat_id: 123456789
         send_resolved: true
-        title: '{{ if eq .Status "firing" }}🔴 FIRING{{ else }}✅ RESOLVED{{ end }}: {{ .CommonAnnotations.summary }}'
-        text: >-
+        # Plain text (no parse_mode): alert descriptions contain '>' and '<'
+        # (e.g. "pending > 0"), which would break Telegram HTML/Markdown parsing.
+        message: |-
+          {{ if eq .Status "firing" }}🔴 FIRING{{ else }}✅ RESOLVED{{ end }}: {{ .CommonAnnotations.summary }}
           {{ range .Alerts -}}
-          *{{ .Labels.alertname }}* ({{ .Labels.severity }})
+          • {{ .Labels.alertname }} ({{ .Labels.severity }})
           {{ .Annotations.description }}
           {{ end }}
 
