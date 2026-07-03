@@ -40,6 +40,23 @@ docker run --rm -v zbr_postgres-backups:/backups -v "$PWD/offsite":/out \
 # then rsync/aws s3 cp the offsite/ dir somewhere durable
 ```
 
+### Encrypt the off-host copy
+
+A dump is the **entire database in cleartext** — bcrypt password hashes, customer
+names, phones, addresses. On the box it's protected by host access; the moment it
+leaves the box it must be encrypted, or a leaked backup file is a full data
+breach. Encrypt before it goes anywhere durable, e.g. with [age](https://age-encryption.org):
+
+```bash
+# Encrypt to a recipient public key (keep the private key OFF this host)
+age -r age1yourpublickey... -o dump.age /path/to/offsite/fooddelivery-*.dump
+# ...then upload dump.age. To restore: age -d -i key.txt dump.age > dump && pg_restore ...
+```
+
+Server-side encryption on the destination (e.g. S3 SSE) is a weaker fallback —
+it protects at rest on the provider but not in transit from this host, so prefer
+encrypting the file itself.
+
 ## Restore drill (do this regularly — a backup you haven't restored isn't a backup)
 
 `scripts/backup/verify_restore.sh` proves the latest dump is restorable **without

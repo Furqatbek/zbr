@@ -78,6 +78,20 @@ free uptime monitor (UptimeRobot, Better Uptime, a cron on another machine, etc.
 at `https://<your-host>/actuator/health` and have *it* alert you when the host is
 unreachable. The internal alerts above cover everything *except* total host loss.
 
+## ⚠️ Lock down the monitoring ports
+
+`docker-compose.yml` publishes Prometheus (9090), Alertmanager (9093), Grafana
+(3000), and the exporters (9187/9121) on the host. These have **no
+authentication** in front of them (Grafana aside), and Alertmanager's UI lets
+anyone create silences — i.e. quietly disable your alerts. Do **not** expose
+these ports to the public internet:
+
+- Bind them to localhost or a private interface (e.g. `127.0.0.1:9090:9090`), or
+- Drop the `ports:` mappings entirely and reach them over the compose network /
+  an SSH tunnel / an authenticated reverse proxy.
+
+Only the app's own port needs to be publicly reachable.
+
 ## Other channels
 
 Alertmanager can deliver to email, Telegram, PagerDuty, etc. Replace the
