@@ -5,6 +5,11 @@ spring:
   profiles:
     active: ${SPRING_PROFILES_ACTIVE:dev}
 
+  # Give in-flight requests (e.g. an order write or payment confirm) up to 30s
+  # to finish when the app is asked to stop, instead of being cut off.
+  lifecycle:
+    timeout-per-shutdown-phase: 30s
+
   # Database Configuration
   datasource:
     url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:fooddelivery}?currentSchema=public&TimeZone=UTC
@@ -111,6 +116,9 @@ spring:
 # Server Configuration
 server:
   port: ${SERVER_PORT:8080}
+  # Drain in-flight requests on SIGTERM before the JVM exits (paired with
+  # spring.lifecycle.timeout-per-shutdown-phase above).
+  shutdown: graceful
   servlet:
     context-path: /
   error:

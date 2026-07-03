@@ -40,6 +40,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * Service for order operations with state machine logic.
@@ -71,8 +72,19 @@ public class OrderService {
      */
     @Transactional
     @Auditable(action = "CREATE_ORDER", entityType = "Order")
-    public OrderDto createOrder(Long consumerId, CreateOrderRequest request) {
+    public OrderDto createOrder(Long consumerId, CreateOrderRequest request, String idempotencyKey) {
         log.info("Creating order for consumer: {} at restaurant: {}", consumerId, request.getRestaurantId());
+
+        // Idempotency: if this key already produced an order, return it instead of
+        // creating a duplicate. The partial unique index (V33) is the concurrency
+        // backstop for two requests that pass this check simultaneously.
+        if (idempotencyKey != null && !idempotencyKey.isBlank()) {
+            Optional<Order> existing = orderRepository.findByIdempotencyKey(idempotencyKey);
+            if (existing.isPresent()) {
+                log.info("Idempotent replay for key {} -> existing order {}", idempotencyKey, existing.get().getId());
+                return orderMapper.toDto(existing.get());
+            }
+        }
 
         // Validate restaurant
         Restaurant restaurant = restaurantService.getRestaurantEntityById(request.getRestaurantId());
@@ -102,6 +114,7 @@ public class OrderService {
         // Create order
         Order order = Order.builder()
                 .externalOrderNo(SlugUtils.generateOrderNumber())
+                .idempotencyKey(idempotencyKey)
                 .consumer(consumer)
                 .restaurant(restaurant)
                 .orderType(request.getOrderType())
@@ -158,6 +171,18 @@ public class OrderService {
     public OrderDto getOrderById(Long id) {
         Order order = orderRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Order", "id", id));
+        return orderMapper.toDto(order);
+    }
+
+    /**
+     * Get the order previously created under the given idempotency key. Used to
+     * resolve the winner when a concurrent duplicate create loses the unique-index
+     * race. Throws if no such order exists.
+     */
+    @Transactional(readOnly = true)
+    public OrderDto getOrderByIdempotencyKey(String idempotencyKey) {
+        Order order = orderRepository.findByIdempotencyKey(idempotencyKey)
+                .orElseThrow(() -> new ResourceNotFoundException("Order", "idempotencyKey", idempotencyKey));
         return orderMapper.toDto(order);
     }
 
@@ -779,7 +804,7 @@ public class OrderService {
         request.setItems(itemRequests);
 
         log.info("Creating reorder from order {} for consumer {}", orderId, consumerId);
-        return createOrder(consumerId, request);
+        return createOrder(consumerId, request, null);
     }
 
     /**

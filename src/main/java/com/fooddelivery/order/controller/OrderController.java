@@ -24,6 +24,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.dao.DataIntegrityViolationException;
+import com.fooddelivery.common.exception.ResourceNotFoundException;
 
 import java.util.List;
 
@@ -83,9 +85,25 @@ public class OrderController {
     @Operation(summary = "Create order", description = "Create a new order")
     public ResponseEntity<ApiResponse<OrderDto>> createOrder(
             @AuthenticationPrincipal UserPrincipal currentUser,
+            @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey,
             @Valid @RequestBody CreateOrderRequest request) {
 
-        OrderDto order = orderService.createOrder(currentUser.getId(), request);
+        OrderDto order;
+        try {
+            order = orderService.createOrder(currentUser.getId(), request, idempotencyKey);
+        } catch (DataIntegrityViolationException e) {
+            // A concurrent create with the same Idempotency-Key lost the unique-index
+            // race; return the order the winner created. If the key isn't the cause
+            // (no such order), surface the original error.
+            if (idempotencyKey == null || idempotencyKey.isBlank()) {
+                throw e;
+            }
+            try {
+                order = orderService.getOrderByIdempotencyKey(idempotencyKey);
+            } catch (ResourceNotFoundException notFound) {
+                throw e;
+            }
+        }
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success("Order created successfully", order));
     }

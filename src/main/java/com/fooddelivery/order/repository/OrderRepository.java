@@ -25,6 +25,8 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 
     Optional<Order> findByExternalOrderNo(String externalOrderNo);
 
+    Optional<Order> findByIdempotencyKey(String idempotencyKey);
+
     @Lock(LockModeType.OPTIMISTIC)
     @Query("SELECT o FROM Order o LEFT JOIN FETCH o.consumer LEFT JOIN FETCH o.restaurant LEFT JOIN FETCH o.courier WHERE o.id = :id")
     Optional<Order> findByIdWithLock(@Param("id") Long id);

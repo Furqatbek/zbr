@@ -44,6 +44,7 @@ import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 /**
@@ -106,9 +107,25 @@ class OrderServiceTest {
                     .orderType(OrderType.DINE_IN)
                     .build();
 
-            assertThatThrownBy(() -> orderService.createOrder(1L, request))
+            assertThatThrownBy(() -> orderService.createOrder(1L, request, null))
                     .isInstanceOf(BusinessException.class)
                     .hasMessageContaining("closed");
+        }
+
+        @Test
+        @DisplayName("idempotent replay returns the existing order without creating a new one")
+        void idempotentReplay() {
+            Order existing = mock(Order.class);
+            when(orderRepository.findByIdempotencyKey("key-123")).thenReturn(Optional.of(existing));
+            OrderDto dto = mock(OrderDto.class);
+            when(orderMapper.toDto(existing)).thenReturn(dto);
+
+            OrderDto result = orderService.createOrder(20L, CreateOrderRequest.builder().build(), "key-123");
+
+            assertThat(result).isSameAs(dto);
+            // The key short-circuits before any order work happens.
+            verify(orderRepository, never()).save(any());
+            verifyNoInteractions(restaurantService, userService, deliveryFeeCalculationService);
         }
     }
 

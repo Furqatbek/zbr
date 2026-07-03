@@ -39,6 +39,14 @@ public class Order {
     @Column(name = "external_order_no", nullable = false, unique = true, length = 50)
     private String externalOrderNo;
 
+    /**
+     * Optional client-supplied idempotency key. When present, a retried create
+     * request resolves to this same order instead of creating a duplicate.
+     * Uniqueness (for non-null values) is enforced by a partial index (V33).
+     */
+    @Column(name = "idempotency_key", length = 80)
+    private String idempotencyKey;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "consumer_id", nullable = false)
     private User consumer;
