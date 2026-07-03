@@ -21,6 +21,7 @@ import com.fooddelivery.order.repository.OrderRepository;
 import com.fooddelivery.restaurant.entity.Restaurant;
 import com.fooddelivery.restaurant.repository.MenuItemRepository;
 import com.fooddelivery.restaurant.service.RestaurantService;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
