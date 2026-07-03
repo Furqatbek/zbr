@@ -167,18 +167,19 @@ public class DashboardMetricsCalculator {
         long hours = (minutes % (24 * 60)) / 60;
         long mins = minutes % 60;
 
+        // Hierarchical format: show the largest non-zero unit and every smaller
+        // unit down to minutes (e.g. 1440 -> "1d 0h 0m", 60 -> "1h 0m"). This keeps
+        // the minutes component visible whenever a larger unit is present.
         StringBuilder sb = new StringBuilder();
         if (days > 0) {
-            sb.append(days).append("d ");
-        }
-        if (hours > 0) {
-            sb.append(hours).append("h ");
-        }
-        if (mins > 0 || sb.length() == 0) {
+            sb.append(days).append("d ").append(hours).append("h ").append(mins).append("m");
+        } else if (hours > 0) {
+            sb.append(hours).append("h ").append(mins).append("m");
+        } else {
             sb.append(mins).append("m");
         }
 
-        return sb.toString().trim();
+        return sb.toString();
     }
 
     /**

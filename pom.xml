@@ -292,6 +292,10 @@
                         <testExclude>**/integration/AuthIntegrationTest.java</testExclude>
                         <testExclude>**/notification/event/NotificationEventListenerTest.java</testExclude>
                         <testExclude>**/notification/service/PersistentNotificationServiceTest.java</testExclude>
+                        <!-- @SpringBootTest integration test: needs full infra, belongs in the
+                             verify step, not the unit run (surefire name-pattern exclude alone
+                             did not stop it). -->
+                        <testExclude>**/notification/integration/**/*Test.java</testExclude>
                         <!-- Stale against the current auth (phone login, HttpServletRequest
                              args, RefreshTokenRequest) and order APIs (CancelOrderRequest,
                              renamed builder fields, EventPublisher signatures). -->
