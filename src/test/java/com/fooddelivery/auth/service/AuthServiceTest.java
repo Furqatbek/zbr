@@ -1,19 +1,19 @@
 package com.fooddelivery.auth.service;
 
-import com.fooddelivery.auth.dto.AuthResponse;
 import com.fooddelivery.auth.dto.LoginRequest;
+import com.fooddelivery.auth.dto.RefreshTokenRequest;
 import com.fooddelivery.auth.dto.RegisterRequest;
 import com.fooddelivery.auth.entity.RefreshToken;
-import com.fooddelivery.auth.entity.Role;
 import com.fooddelivery.auth.entity.User;
 import com.fooddelivery.auth.entity.UserStatus;
+import com.fooddelivery.auth.repository.PasswordResetTokenRepository;
 import com.fooddelivery.auth.repository.RefreshTokenRepository;
 import com.fooddelivery.auth.repository.UserRepository;
 import com.fooddelivery.auth.security.JwtService;
-import com.fooddelivery.common.exception.BadRequestException;
-import com.fooddelivery.common.exception.ResourceNotFoundException;
-import com.fooddelivery.common.exception.UnauthorizedException;
-import org.junit.jupiter.api.BeforeEach;
+import com.fooddelivery.common.exception.BusinessException;
+import com.fooddelivery.common.exception.DuplicateResourceException;
+import com.fooddelivery.notification.service.NotificationService;
+import com.fooddelivery.platform.service.ReferralService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -21,252 +21,175 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.LockedException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
-import java.time.LocalDateTime;
 import java.util.Optional;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
+/**
+ * Guard-path tests for {@link AuthService}: the security checks that must reject
+ * bad input before any token is minted — duplicate accounts, locked/inactive
+ * logins, and invalid/revoked/expired refresh tokens. The happy paths depend on
+ * heavy JWT/principal plumbing and are exercised by the integration suite.
+ */
 @ExtendWith(MockitoExtension.class)
-@DisplayName("AuthService Tests")
+@MockitoSettings(strictness = Strictness.LENIENT)
+@DisplayName("AuthService guard-path tests")
 class AuthServiceTest {
 
-    @Mock
-    private UserRepository userRepository;
-
-    @Mock
-    private RefreshTokenRepository refreshTokenRepository;
-
-    @Mock
-    private PasswordEncoder passwordEncoder;
-
-    @Mock
-    private JwtService jwtService;
+    @Mock private UserRepository userRepository;
+    @Mock private RefreshTokenRepository refreshTokenRepository;
+    @Mock private PasswordResetTokenRepository passwordResetTokenRepository;
+    @Mock private PasswordEncoder passwordEncoder;
+    @Mock private JwtService jwtService;
+    @Mock private AuthenticationManager authenticationManager;
+    @Mock private NotificationService notificationService;
+    @Mock private ReferralService referralService;
 
     @InjectMocks
     private AuthService authService;
 
-    private User testUser;
-
-    @BeforeEach
-    void setUp() {
-        testUser = User.builder()
-                .id(1L)
-                .email("test@example.com")
-                .passwordHash("hashedPassword")
-                .fullName("Test User")
-                .phone("+1234567890")
-                .role(Role.CONSUMER)
-                .status(UserStatus.ACTIVE)
-                .emailVerified(true)
-                .failedLoginAttempts(0)
-                .build();
-    }
-
     @Nested
-    @DisplayName("Registration Tests")
-    class RegistrationTests {
+    @DisplayName("register")
+    class Register {
 
         @Test
-        @DisplayName("Should register new user successfully")
-        void shouldRegisterNewUser() {
+        @DisplayName("rejects a duplicate email")
+        void rejectsDuplicateEmail() {
+            when(userRepository.existsByEmail("taken@example.com")).thenReturn(true);
+
+            RegisterRequest request = RegisterRequest.builder()
+                    .email("taken@example.com")
+                    .phone("+998900000000")
+                    .build();
+
+            assertThatThrownBy(() -> authService.register(request, null))
+                    .isInstanceOf(DuplicateResourceException.class);
+        }
+
+        @Test
+        @DisplayName("rejects a duplicate phone")
+        void rejectsDuplicatePhone() {
+            when(userRepository.existsByEmail("new@example.com")).thenReturn(false);
+            when(userRepository.existsByPhone("+998900000000")).thenReturn(true);
+
             RegisterRequest request = RegisterRequest.builder()
                     .email("new@example.com")
-                    .password("Password123!")
-                    .fullName("New User")
-                    .phone("+1234567890")
-                    .role(Role.CONSUMER)
+                    .phone("+998900000000")
                     .build();
 
-            when(userRepository.existsByEmail(anyString())).thenReturn(false);
-            when(passwordEncoder.encode(anyString())).thenReturn("encodedPassword");
-            when(userRepository.save(any(User.class))).thenAnswer(invocation -> {
-                User user = invocation.getArgument(0);
-                user.setId(1L);
-                return user;
-            });
-            when(jwtService.generateAccessToken(any(User.class))).thenReturn("accessToken");
-            when(jwtService.generateRefreshToken(any(User.class))).thenReturn("refreshToken");
-            when(refreshTokenRepository.save(any(RefreshToken.class))).thenAnswer(i -> i.getArgument(0));
-
-            AuthResponse response = authService.register(request);
-
-            assertThat(response).isNotNull();
-            assertThat(response.getAccessToken()).isEqualTo("accessToken");
-            assertThat(response.getRefreshToken()).isEqualTo("refreshToken");
-            assertThat(response.getEmail()).isEqualTo("new@example.com");
-            verify(userRepository).save(any(User.class));
-        }
-
-        @Test
-        @DisplayName("Should throw exception when email already exists")
-        void shouldThrowExceptionWhenEmailExists() {
-            RegisterRequest request = RegisterRequest.builder()
-                    .email("existing@example.com")
-                    .password("Password123!")
-                    .fullName("Existing User")
-                    .build();
-
-            when(userRepository.existsByEmail(anyString())).thenReturn(true);
-
-            assertThatThrownBy(() -> authService.register(request))
-                    .isInstanceOf(BadRequestException.class)
-                    .hasMessageContaining("Email already registered");
-
-            verify(userRepository, never()).save(any(User.class));
+            assertThatThrownBy(() -> authService.register(request, null))
+                    .isInstanceOf(DuplicateResourceException.class);
         }
     }
 
     @Nested
-    @DisplayName("Login Tests")
-    class LoginTests {
+    @DisplayName("login")
+    class Login {
 
         @Test
-        @DisplayName("Should login user successfully")
-        void shouldLoginUserSuccessfully() {
+        @DisplayName("rejects an unknown user with bad credentials")
+        void rejectsUnknownUser() {
+            when(userRepository.findByEmailOrPhone(anyString(), anyString())).thenReturn(Optional.empty());
+
             LoginRequest request = LoginRequest.builder()
-                    .email("test@example.com")
-                    .password("correctPassword")
+                    .emailOrPhone("ghost@example.com")
+                    .password("whatever")
                     .build();
 
-            when(userRepository.findByEmail(anyString())).thenReturn(Optional.of(testUser));
-            when(passwordEncoder.matches(anyString(), anyString())).thenReturn(true);
-            when(jwtService.generateAccessToken(any(User.class))).thenReturn("accessToken");
-            when(jwtService.generateRefreshToken(any(User.class))).thenReturn("refreshToken");
-            when(refreshTokenRepository.save(any(RefreshToken.class))).thenAnswer(i -> i.getArgument(0));
-
-            AuthResponse response = authService.login(request);
-
-            assertThat(response).isNotNull();
-            assertThat(response.getAccessToken()).isEqualTo("accessToken");
-            assertThat(response.getEmail()).isEqualTo("test@example.com");
+            assertThatThrownBy(() -> authService.login(request, null))
+                    .isInstanceOf(BadCredentialsException.class);
         }
 
         @Test
-        @DisplayName("Should throw exception for invalid credentials")
-        void shouldThrowExceptionForInvalidCredentials() {
+        @DisplayName("rejects a locked account")
+        void rejectsLockedAccount() {
+            User user = mock(User.class);
+            when(user.isAccountLocked()).thenReturn(true);
+            when(userRepository.findByEmailOrPhone(anyString(), anyString())).thenReturn(Optional.of(user));
+
             LoginRequest request = LoginRequest.builder()
-                    .email("test@example.com")
-                    .password("wrongPassword")
+                    .emailOrPhone("locked@example.com")
+                    .password("secret")
                     .build();
 
-            when(userRepository.findByEmail(anyString())).thenReturn(Optional.of(testUser));
-            when(passwordEncoder.matches(anyString(), anyString())).thenReturn(false);
-
-            assertThatThrownBy(() -> authService.login(request))
-                    .isInstanceOf(UnauthorizedException.class)
-                    .hasMessageContaining("Invalid credentials");
+            assertThatThrownBy(() -> authService.login(request, null))
+                    .isInstanceOf(LockedException.class);
         }
 
         @Test
-        @DisplayName("Should throw exception for inactive user")
-        void shouldThrowExceptionForInactiveUser() {
-            testUser.setStatus(UserStatus.SUSPENDED);
+        @DisplayName("rejects a non-active account")
+        void rejectsInactiveAccount() {
+            User user = mock(User.class);
+            when(user.isAccountLocked()).thenReturn(false);
+            when(user.getStatus()).thenReturn(UserStatus.SUSPENDED);
+            when(userRepository.findByEmailOrPhone(anyString(), anyString())).thenReturn(Optional.of(user));
+
             LoginRequest request = LoginRequest.builder()
-                    .email("test@example.com")
-                    .password("correctPassword")
+                    .emailOrPhone("suspended@example.com")
+                    .password("secret")
                     .build();
 
-            when(userRepository.findByEmail(anyString())).thenReturn(Optional.of(testUser));
-
-            assertThatThrownBy(() -> authService.login(request))
-                    .isInstanceOf(UnauthorizedException.class)
-                    .hasMessageContaining("Account is not active");
-        }
-
-        @Test
-        @DisplayName("Should throw exception for locked user")
-        void shouldThrowExceptionForLockedUser() {
-            testUser.setLockedUntil(LocalDateTime.now().plusHours(1));
-            LoginRequest request = LoginRequest.builder()
-                    .email("test@example.com")
-                    .password("correctPassword")
-                    .build();
-
-            when(userRepository.findByEmail(anyString())).thenReturn(Optional.of(testUser));
-
-            assertThatThrownBy(() -> authService.login(request))
-                    .isInstanceOf(UnauthorizedException.class)
-                    .hasMessageContaining("Account is temporarily locked");
-        }
-
-        @Test
-        @DisplayName("Should throw exception for non-existent user")
-        void shouldThrowExceptionForNonExistentUser() {
-            LoginRequest request = LoginRequest.builder()
-                    .email("nonexistent@example.com")
-                    .password("password")
-                    .build();
-
-            when(userRepository.findByEmail(anyString())).thenReturn(Optional.empty());
-
-            assertThatThrownBy(() -> authService.login(request))
-                    .isInstanceOf(ResourceNotFoundException.class)
-                    .hasMessageContaining("User not found");
+            assertThatThrownBy(() -> authService.login(request, null))
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessageContaining("not active");
         }
     }
 
     @Nested
-    @DisplayName("Token Refresh Tests")
-    class TokenRefreshTests {
+    @DisplayName("refreshToken")
+    class Refresh {
 
         @Test
-        @DisplayName("Should refresh token successfully")
-        void shouldRefreshTokenSuccessfully() {
-            RefreshToken refreshToken = RefreshToken.builder()
-                    .id(1L)
-                    .user(testUser)
-                    .token("validRefreshToken")
-                    .expiresAt(LocalDateTime.now().plusDays(7))
-                    .revoked(false)
-                    .build();
+        @DisplayName("rejects a token that does not exist")
+        void rejectsUnknownToken() {
+            when(refreshTokenRepository.findByTokenAndRevokedFalse("nope")).thenReturn(Optional.empty());
+            when(refreshTokenRepository.findByToken("nope")).thenReturn(Optional.empty());
 
-            when(refreshTokenRepository.findByTokenAndRevokedFalse(anyString()))
-                    .thenReturn(Optional.of(refreshToken));
-            when(jwtService.generateAccessToken(any(User.class))).thenReturn("newAccessToken");
-            when(jwtService.generateRefreshToken(any(User.class))).thenReturn("newRefreshToken");
-            when(refreshTokenRepository.save(any(RefreshToken.class))).thenAnswer(i -> i.getArgument(0));
+            RefreshTokenRequest request = RefreshTokenRequest.builder().refreshToken("nope").build();
 
-            AuthResponse response = authService.refreshToken("validRefreshToken");
-
-            assertThat(response).isNotNull();
-            assertThat(response.getAccessToken()).isEqualTo("newAccessToken");
-            verify(refreshTokenRepository).save(argThat(token -> token.isRevoked()));
+            assertThatThrownBy(() -> authService.refreshToken(request))
+                    .isInstanceOf(BusinessException.class);
         }
 
         @Test
-        @DisplayName("Should throw exception for invalid refresh token")
-        void shouldThrowExceptionForInvalidRefreshToken() {
-            when(refreshTokenRepository.findByTokenAndRevokedFalse(anyString()))
-                    .thenReturn(Optional.empty());
+        @DisplayName("rejects a token that has been revoked")
+        void rejectsRevokedToken() {
+            when(refreshTokenRepository.findByTokenAndRevokedFalse("revoked")).thenReturn(Optional.empty());
+            when(refreshTokenRepository.findByToken("revoked")).thenReturn(Optional.of(mock(RefreshToken.class)));
 
-            assertThatThrownBy(() -> authService.refreshToken("invalidToken"))
-                    .isInstanceOf(UnauthorizedException.class)
-                    .hasMessageContaining("Invalid refresh token");
+            RefreshTokenRequest request = RefreshTokenRequest.builder().refreshToken("revoked").build();
+
+            assertThatThrownBy(() -> authService.refreshToken(request))
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessageContaining("revoked");
         }
 
         @Test
-        @DisplayName("Should throw exception for expired refresh token")
-        void shouldThrowExceptionForExpiredRefreshToken() {
-            RefreshToken refreshToken = RefreshToken.builder()
-                    .id(1L)
-                    .user(testUser)
-                    .token("expiredToken")
-                    .expiresAt(LocalDateTime.now().minusDays(1))
-                    .revoked(false)
-                    .build();
+        @DisplayName("rejects and revokes an expired token")
+        void rejectsExpiredToken() {
+            RefreshToken token = mock(RefreshToken.class);
+            when(token.isExpired()).thenReturn(true);
+            when(token.getUser()).thenReturn(mock(User.class));
+            when(refreshTokenRepository.findByTokenAndRevokedFalse("expired")).thenReturn(Optional.of(token));
 
-            when(refreshTokenRepository.findByTokenAndRevokedFalse(anyString()))
-                    .thenReturn(Optional.of(refreshToken));
+            RefreshTokenRequest request = RefreshTokenRequest.builder().refreshToken("expired").build();
 
-            assertThatThrownBy(() -> authService.refreshToken("expiredToken"))
-                    .isInstanceOf(UnauthorizedException.class)
-                    .hasMessageContaining("Refresh token expired");
+            assertThatThrownBy(() -> authService.refreshToken(request))
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessageContaining("expired");
+            verify(token).revoke("Expired");
+            verify(refreshTokenRepository).save(token);
         }
     }
 }

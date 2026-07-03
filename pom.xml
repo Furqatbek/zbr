@@ -296,9 +296,6 @@
                              verify step, not the unit run (surefire name-pattern exclude alone
                              did not stop it). -->
                         <testExclude>**/notification/integration/**/*Test.java</testExclude>
-                        <!-- Stale against the current auth API (phone login,
-                             HttpServletRequest args, RefreshTokenRequest). -->
-                        <testExclude>**/auth/service/AuthServiceTest.java</testExclude>
                     </testExcludes>
                 </configuration>
             </plugin>
