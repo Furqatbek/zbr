@@ -16,6 +16,8 @@ Prometheus and go nowhere.
 | `HighErrorRate` | warning | >5% of HTTP requests return 5xx for 5m |
 | `ApplicationErrorLogs` | warning | >5 ERROR log events in 5m (`logback_events_total`) |
 | `DatabaseConnectionPoolNearLimit` | warning | >15 of 20 Hikari connections active for 5m |
+| `RabbitMQQueueBacklog` | warning | >1000 messages ready across queues for 10m |
+| `RabbitMQRedeliveryStorm` | warning | sustained message redelivery (stuck consumer requeue loop) |
 | `HighHeapUsage`, `HighResponseTime`, cache/deadlock/etc. | warning | see `alerts.yml` |
 
 Critical alerts notify within ~10s and re-nag hourly; warnings batch (30s) and

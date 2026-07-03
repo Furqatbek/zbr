@@ -1,9 +1,13 @@
 apiVersion: 1
 
 datasources:
-  # Prometheus - Primary metrics datasource
+  # Prometheus - Primary metrics datasource.
+  # The explicit uid is REQUIRED: every provisioned dashboard panel references
+  # datasource uid "prometheus"; without it Grafana generates a random uid and
+  # all panels show "datasource not found" (empty dashboards).
   - name: Prometheus
     type: prometheus
+    uid: prometheus
     access: proxy
     url: http://prometheus:9090
     isDefault: true
@@ -12,14 +16,17 @@ datasources:
       timeInterval: "15s"
       httpMethod: POST
 
-  # PostgreSQL - Direct database access for analytics
+  # PostgreSQL - Direct database access for business/analytics panels.
+  # Password comes from the DB_PASSWORD env var passed to the Grafana container
+  # (see docker-compose.yml) — never hardcoded here.
   - name: PostgreSQL
     type: postgres
+    uid: PostgreSQL
     access: proxy
     url: postgres:5432
     user: postgres
     secureJsonData:
-      password: postgres
+      password: $__env{DB_PASSWORD}
     jsonData:
       database: fooddelivery
       sslmode: disable

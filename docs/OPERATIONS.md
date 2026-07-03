@@ -46,6 +46,10 @@ to the detailed doc. Read the **hard constraint** first; it shapes everything.
 - **Monitoring** (Prometheus 9090, Alertmanager 9093, exporters) is bound to
   `127.0.0.1`; reach it via SSH tunnel. Grafana (3000) has a password and is
   published. → [ALERTING.md § Monitoring ports](ALERTING.md)
+- **Dashboards** (Grafana, provisioned automatically): **Business Overview**
+  (home — live orders/revenue/couriers straight from the DB), Application
+  Overview (latency, errors, JVM, DB pool), PostgreSQL, Redis, and RabbitMQ
+  (queue backlog + redelivery storms).
 - **What pages you:** app down, DB/Redis down, DB connection pool exhausted
   (critical); high 5xx rate, error-log spikes, pool near limit, high heap/latency
   (warning). → [ALERTING.md § What you get paged for](ALERTING.md)

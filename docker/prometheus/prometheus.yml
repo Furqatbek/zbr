@@ -55,3 +55,12 @@ scrape_configs:
         labels:
           cache: 'redis'
           environment: 'docker'
+
+  # RabbitMQ Broker Metrics (rabbitmq_prometheus plugin)
+  - job_name: 'rabbitmq'
+    scrape_interval: 15s
+    static_configs:
+      - targets: ['rabbitmq:15692']
+        labels:
+          broker: 'rabbitmq'
+          environment: 'docker'

@@ -167,6 +167,29 @@ groups:
           summary: "Redis is rejecting connections"
           description: "Redis has rejected connections in the last 5 minutes."
 
+  # RabbitMQ Alerts
+  - name: rabbitmq
+    rules:
+      - alert: RabbitMQQueueBacklog
+        expr: rabbitmq_queue_messages_ready > 1000
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "RabbitMQ messages are piling up"
+          description: "More than 1000 messages ready across queues for 10m — consumers are down or too slow."
+
+      # A sustained redelivery rate means consumers keep rejecting/requeueing the
+      # same messages (e.g. the SMS infinite-requeue incident) — work loops forever.
+      - alert: RabbitMQRedeliveryStorm
+        expr: rate(rabbitmq_global_messages_redelivered_total[5m]) > 5
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "RabbitMQ redelivery storm"
+          description: "Messages are being redelivered at {{ $value | printf \"%.1f\" }}/s for 10m — a consumer is likely stuck rejecting/requeueing the same messages."
+
   # Infrastructure Alerts
   - name: infrastructure
     rules:

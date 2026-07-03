@@ -141,6 +141,9 @@ services:
       - RABBITMQ_DEFAULT_PASS=${RABBITMQ_PASSWORD:?set RABBITMQ_PASSWORD}
     volumes:
       - rabbitmq-data:/var/lib/rabbitmq
+      # Enables the rabbitmq_prometheus plugin (metrics on :15692, scraped over
+      # the compose network — no host port published).
+      - ./docker/rabbitmq/enabled_plugins:/etc/rabbitmq/enabled_plugins:ro
     networks:
       - food-delivery-network
     restart: unless-stopped
@@ -249,7 +252,10 @@ services:
       - GF_SECURITY_ADMIN_USER=admin
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:?set GRAFANA_PASSWORD}
       - GF_USERS_ALLOW_SIGN_UP=false
-      - GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH=/etc/grafana/provisioning/dashboards/application-overview.json
+      - GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH=/etc/grafana/provisioning/dashboards/business-overview.json
+      # Used by datasource provisioning ($__env{DB_PASSWORD}) for the PostgreSQL
+      # datasource that powers the business-overview SQL panels.
+      - DB_PASSWORD=${DB_PASSWORD:?set DB_PASSWORD}
     volumes:
       - grafana-data:/var/lib/grafana
       - ./docker/grafana/provisioning:/etc/grafana/provisioning:ro
