@@ -155,7 +155,9 @@ services:
     image: prometheuscommunity/postgres-exporter:v0.15.0
     container_name: food-delivery-postgres-exporter
     ports:
-      - "9187:9187"
+      # Loopback-only: exposes DB internals, no auth. Prometheus scrapes it over
+      # the compose network, so no public host port is needed.
+      - "127.0.0.1:9187:9187"
     environment:
       - DATA_SOURCE_NAME=postgresql://postgres:${DB_PASSWORD:?set DB_PASSWORD}@postgres:5432/fooddelivery?sslmode=disable
     networks:
@@ -170,7 +172,8 @@ services:
     image: oliver006/redis_exporter:v1.55.0
     container_name: food-delivery-redis-exporter
     ports:
-      - "9121:9121"
+      # Loopback-only: scraped over the compose network, no public port needed.
+      - "127.0.0.1:9121:9121"
     environment:
       - REDIS_ADDR=redis://redis:6379
     networks:
@@ -185,7 +188,9 @@ services:
     image: prom/prometheus:v2.47.0
     container_name: food-delivery-prometheus
     ports:
-      - "9090:9090"
+      # Loopback-only: no auth in front of Prometheus. Reach it via SSH tunnel or
+      # an authenticated reverse proxy; never expose it publicly.
+      - "127.0.0.1:9090:9090"
     volumes:
       - ./docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - ./docker/prometheus/alerts.yml:/etc/prometheus/alerts.yml:ro
@@ -216,7 +221,8 @@ services:
     image: prom/alertmanager:v0.27.0
     container_name: food-delivery-alertmanager
     ports:
-      - "9093:9093"
+      # Loopback-only: Alertmanager has no auth and its UI can silence alerts.
+      - "127.0.0.1:9093:9093"
     volumes:
       - ./docker/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
       - ./docker/alertmanager/secrets:/etc/alertmanager/secrets:ro

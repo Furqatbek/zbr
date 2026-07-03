@@ -89,19 +89,28 @@ free uptime monitor (UptimeRobot, Better Uptime, a cron on another machine, etc.
 at `https://<your-host>/actuator/health` and have *it* alert you when the host is
 unreachable. The internal alerts above cover everything *except* total host loss.
 
-## ⚠️ Lock down the monitoring ports
+## Monitoring ports are loopback-only
 
-`docker-compose.yml` publishes Prometheus (9090), Alertmanager (9093), Grafana
-(3000), and the exporters (9187/9121) on the host. These have **no
-authentication** in front of them (Grafana aside), and Alertmanager's UI lets
-anyone create silences — i.e. quietly disable your alerts. Do **not** expose
-these ports to the public internet:
+The no-auth monitoring services — Prometheus (9090), Alertmanager (9093), and the
+Postgres/Redis exporters (9187/9121) — are bound to `127.0.0.1` in
+`docker-compose.yml`, so they are **not** reachable from outside the host.
+Alertmanager's UI can silence alerts, and the exporters expose internals, so this
+is deliberate. To view them from your laptop, SSH-tunnel:
 
-- Bind them to localhost or a private interface (e.g. `127.0.0.1:9090:9090`), or
-- Drop the `ports:` mappings entirely and reach them over the compose network /
-  an SSH tunnel / an authenticated reverse proxy.
+```bash
+ssh -L 9090:127.0.0.1:9090 -L 9093:127.0.0.1:9093 user@your-host
+# then open http://localhost:9090 and http://localhost:9093 locally
+```
 
-Only the app's own port needs to be publicly reachable.
+Prometheus scrapes the app and exporters over the compose network, and Grafana
+reads Prometheus via `http://prometheus:9090`, so loopback binding does not
+affect collection or dashboards.
+
+**Still publicly published** (by design): the app (8080) and Grafana (3000, which
+has an admin password). Note `docker-compose.yml` also publishes Postgres (5432),
+Redis (6379), and RabbitMQ (5672 / management 15672) on the host for debugging —
+the app reaches those over the compose network, so if this host is internet-facing
+you should give them the same `127.0.0.1:` treatment or drop the mappings.
 
 ## Other channels
 
