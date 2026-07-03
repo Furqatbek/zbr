@@ -6,11 +6,11 @@ global:
   external_labels:
     monitor: 'food-delivery-monitor'
 
-# Alertmanager configuration (optional)
+# Alertmanager: alerts defined in alerts.yml are routed here for delivery.
 alerting:
   alertmanagers:
     - static_configs:
-        - targets: []
+        - targets: ['alertmanager:9093']
 
 # Load rules once and periodically evaluate them
 rule_files:

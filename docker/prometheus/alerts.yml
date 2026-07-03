@@ -40,14 +40,36 @@ groups:
           summary: "JVM heap usage is high"
           description: "JVM heap usage is above 85%."
 
-      - alert: TooManyOpenConnections
+      - alert: DatabaseConnectionPoolNearLimit
         expr: hikaricp_connections_active > 15
         for: 5m
         labels:
           severity: warning
         annotations:
-          summary: "Too many active database connections"
-          description: "HikariCP has more than 15 active connections."
+          summary: "Database connection pool near limit"
+          description: "HikariCP has >15 of 20 active connections for 5m — approaching pool exhaustion."
+
+      # Threads are BLOCKED waiting for a DB connection: the pool is exhausted and
+      # requests are stalling. This is the real "DB pool exhausted" pager signal.
+      - alert: DatabaseConnectionPoolExhausted
+        expr: hikaricp_connections_pending > 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Database connection pool exhausted"
+          description: "{{ $value }} thread(s) waiting for a DB connection for 2m — HikariCP pool is exhausted; requests are stalling."
+
+      # The application is logging ERRORs (unhandled exceptions, failed side effects).
+      # Complements HighErrorRate, which only sees errors that reach an HTTP 5xx.
+      - alert: ApplicationErrorLogs
+        expr: increase(logback_events_total{level="error"}[5m]) > 5
+        for: 0m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Application is logging errors"
+          description: "More than 5 ERROR log events in the last 5 minutes ({{ $value | printf \"%.0f\" }})."
 
   # PostgreSQL Alerts
   - name: postgresql

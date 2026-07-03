@@ -209,6 +209,30 @@ services:
       timeout: 10s
       retries: 3
 
+  # Alertmanager: routes Prometheus alerts to a real channel (Slack by default).
+  # The webhook URL is read from a mounted, gitignored secret file — see
+  # docs/ALERTING.md. Alertmanager failing to start does NOT affect the app.
+  alertmanager:
+    image: prom/alertmanager:v0.27.0
+    container_name: food-delivery-alertmanager
+    ports:
+      - "9093:9093"
+    volumes:
+      - ./docker/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - ./docker/alertmanager/secrets:/etc/alertmanager/secrets:ro
+      - alertmanager-data:/alertmanager
+    command:
+      - '--config.file=/etc/alertmanager/alertmanager.yml'
+      - '--storage.path=/alertmanager'
+    networks:
+      - food-delivery-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9093/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
   # Grafana for Dashboards
   grafana:
     image: grafana/grafana:10.1.5
@@ -245,6 +269,7 @@ volumes:
   redis-data:
   rabbitmq-data:
   prometheus-data:
+  alertmanager-data:
   grafana-data:
   images-data:
     driver: local
