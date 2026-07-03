@@ -281,10 +281,13 @@ public class OrderController {
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
-    // Payment confirmation endpoint
+    // Payment confirmation endpoint.
+    // NOT available to CONSUMER — a customer must never be able to mark their own
+    // payment confirmed. Real confirmation arrives via the (signature-verified)
+    // payment provider webhook; this endpoint is for platform/admin operations only.
     @PostMapping("/{orderId}/pay/confirm")
-    @PreAuthorize("hasAnyRole('CONSUMER', 'PLATFORM', 'ADMIN')")
-    @Operation(summary = "Confirm payment", description = "Confirm payment for an order")
+    @PreAuthorize("hasAnyRole('PLATFORM', 'ADMIN')")
+    @Operation(summary = "Confirm payment", description = "Confirm payment for an order (platform/admin only)")
     public ResponseEntity<ApiResponse<PaymentDto>> confirmPayment(
             @AuthenticationPrincipal UserPrincipal currentUser,
             @PathVariable Long orderId,

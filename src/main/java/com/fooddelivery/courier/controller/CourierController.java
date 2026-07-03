@@ -242,29 +242,10 @@ public class CourierController {
         return ResponseEntity.ok(ApiResponse.success("Issue reported"));
     }
 
-    // ===== Legacy endpoints (keeping for backward compatibility) =====
-
-    @PostMapping("/{courierId}/accept/{orderId}")
-    @PreAuthorize("hasRole('COURIER')")
-    @Operation(summary = "Accept order", description = "Accept an order assignment")
-    public ResponseEntity<ApiResponse<CourierDto>> acceptOrder(
-            @PathVariable Long courierId,
-            @PathVariable Long orderId) {
-
-        CourierDto courier = courierService.acceptOrder(courierId, orderId);
-        return ResponseEntity.ok(ApiResponse.success("Order accepted", courier));
-    }
-
-    @PostMapping("/{courierId}/complete/{orderId}")
-    @PreAuthorize("hasRole('COURIER')")
-    @Operation(summary = "Complete delivery", description = "Mark delivery as completed")
-    public ResponseEntity<ApiResponse<CourierDto>> completeDelivery(
-            @PathVariable Long courierId,
-            @PathVariable Long orderId) {
-
-        CourierDto courier = courierService.completeDelivery(courierId, orderId);
-        return ResponseEntity.ok(ApiResponse.success("Delivery completed", courier));
-    }
+    // NOTE: The legacy POST /{courierId}/accept/{orderId} and
+    // /{courierId}/complete/{orderId} endpoints were removed — they took the
+    // courier id from the URL (IDOR: any courier could act as any other).
+    // Use the token-derived /me/orders/{orderId}/accept and /complete instead.
 
     @GetMapping("/available")
     @PreAuthorize("hasAnyRole('PLATFORM', 'ADMIN', 'RESTAURANT_OWNER')")

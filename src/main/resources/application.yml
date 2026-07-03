@@ -146,8 +146,9 @@ app:
 
   payment:
     provider: stripe
-    webhook-secret: ${PAYMENT_WEBHOOK_SECRET:whsec_test_secret}
-    api-key: ${PAYMENT_API_KEY:sk_test_key}
+    # No committed defaults. The webhook fails closed if the secret is unset/placeholder.
+    webhook-secret: ${PAYMENT_WEBHOOK_SECRET:}
+    api-key: ${PAYMENT_API_KEY:}
 
   order:
     auto-cancel-unpaid-minutes: 30
@@ -265,7 +266,8 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics,prometheus,loggers,env
+        # env and loggers deliberately NOT exposed (config dump / runtime log-level flip).
+        include: health,info,metrics,prometheus
       base-path: /actuator
   endpoint:
     health:
@@ -331,12 +333,29 @@ spring:
   jpa:
     show-sql: false
 
+  # Do not leak internal exception messages to clients in production
+  mvc:
+    throw-exception-if-no-handler-found: true
+
 logging:
   level:
     root: WARN
     com.fooddelivery: INFO
   pattern:
     console: '{"timestamp":"%d{yyyy-MM-dd HH:mm:ss.SSS}","level":"%level","thread":"%thread","logger":"%logger{36}","message":"%msg"}%n'
+
+# Disable API docs / Swagger UI in production
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
+
+# Do not echo exception messages / binding errors to clients in production
+server:
+  error:
+    include-message: never
+    include-binding-errors: never
 
 ---
 # Docker Profile

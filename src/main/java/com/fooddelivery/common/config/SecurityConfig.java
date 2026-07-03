@@ -36,6 +36,9 @@ public class SecurityConfig {
     private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
     private final UserDetailsService userDetailsService;
 
+    @org.springframework.beans.factory.annotation.Value("${app.cors.allowed-origins}")
+    private String allowedOrigins;
+
     private static final String[] PUBLIC_ENDPOINTS = {
             "/api/v1/auth/**",
             "/api/v1/restaurants/*/menu",
@@ -69,10 +72,14 @@ public class SecurityConfig {
                 // Disable form login (we use JWT)
                 .formLogin(AbstractHttpConfigurer::disable)
 
-                // Configure CORS
+                // Configure CORS — explicit origin allowlist (never "*" with credentials)
                 .cors(cors -> cors.configurationSource(request -> {
                     var corsConfig = new org.springframework.web.cors.CorsConfiguration();
-                    corsConfig.addAllowedOriginPattern("*");
+                    for (String origin : allowedOrigins.split(",")) {
+                        if (!origin.isBlank()) {
+                            corsConfig.addAllowedOrigin(origin.trim());
+                        }
+                    }
                     corsConfig.addAllowedMethod("*");
                     corsConfig.addAllowedHeader("*");
                     corsConfig.setAllowCredentials(true);
@@ -102,6 +109,10 @@ public class SecurityConfig {
                         // Admin endpoints
                         .requestMatchers(ADMIN_ENDPOINTS).hasAnyRole("ADMIN", "PLATFORM")
 
+                        // Actuator: only health/info/prometheus are public (PUBLIC_ENDPOINTS).
+                        // Everything else (env, loggers, metrics, ...) is ADMIN-only.
+                        .requestMatchers("/actuator/**").hasRole("ADMIN")
+
                         // Restaurant management
                         .requestMatchers(HttpMethod.POST, "/api/v1/restaurants")
                             .hasAnyRole("RESTAURANT_OWNER", "PLATFORM", "ADMIN")
@@ -120,7 +131,7 @@ public class SecurityConfig {
 
                         // Consumer profile endpoints
                         .requestMatchers("/api/v1/consumers/profile").hasRole("CONSUMER")
-                        .requestMatchers("/api/v1/consumers/**").hasAnyRole("ADMIN", "RESTAURANT_OWNER", "CONSUMER")
+                        .requestMatchers("/api/v1/consumers/**").hasAnyRole("ADMIN", "PLATFORM", "RESTAURANT_OWNER", "CONSUMER")
 
                         // Notification endpoints - personal notification access for all authenticated users
                         .requestMatchers("/api/v1/notifications/me").authenticated()

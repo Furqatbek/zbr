@@ -8,11 +8,23 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
+
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 
 /**
  * Controller for handling external webhooks.
+ *
+ * SECURITY: this endpoint is publicly routable (payment providers are external),
+ * so it fails closed. The webhook secret must be configured to a non-default
+ * value, and every mutating call must present that secret in the Stripe-Signature
+ * header (constant-time compared). Until the real payment gateway is wired in,
+ * this shared-secret check is what prevents anonymous "mark any order paid"
+ * abuse; it should be replaced with real provider HMAC-over-raw-body verification.
  */
 @RestController
 @RequestMapping("/api/v1/webhooks")
@@ -21,10 +33,29 @@ import org.springframework.web.bind.annotation.*;
 @Tag(name = "Webhooks", description = "External webhook endpoints")
 public class WebhookController {
 
+    private static final String PLACEHOLDER_SECRET = "whsec_test_secret";
+
     private final PaymentService paymentService;
 
-    @Value("${app.payment.webhook-secret}")
+    @Value("${app.payment.webhook-secret:}")
     private String webhookSecret;
+
+    /**
+     * Reject the request unless the webhook secret is properly configured and the
+     * caller presents it. Fails closed on misconfiguration.
+     */
+    private void verifyWebhookAuth(String signature) {
+        if (webhookSecret == null || webhookSecret.isBlank() || PLACEHOLDER_SECRET.equals(webhookSecret)) {
+            log.error("Payment webhook rejected: PAYMENT_WEBHOOK_SECRET is not configured (or is the default placeholder).");
+            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "Webhook not configured");
+        }
+        if (signature == null || !MessageDigest.isEqual(
+                signature.getBytes(StandardCharsets.UTF_8),
+                webhookSecret.getBytes(StandardCharsets.UTF_8))) {
+            log.warn("Payment webhook rejected: missing/invalid signature");
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid webhook signature");
+        }
+    }
 
     /**
      * Handle payment provider webhook (Stripe-like).
@@ -35,10 +66,9 @@ public class WebhookController {
             @RequestHeader(value = "Stripe-Signature", required = false) String signature,
             @RequestBody PaymentWebhookPayload payload) {
 
-        log.info("Received payment webhook: type={}, id={}", payload.getType(), payload.getId());
+        verifyWebhookAuth(signature);
 
-        // In production, verify the signature:
-        // Webhook.constructEvent(payload, signature, webhookSecret);
+        log.info("Received payment webhook: type={}, id={}", payload.getType(), payload.getId());
 
         try {
             switch (payload.getType()) {
@@ -81,7 +111,10 @@ public class WebhookController {
     @PostMapping("/refund")
     @Operation(summary = "Refund webhook", description = "Handle refund webhooks")
     public ResponseEntity<ApiResponse<Void>> handleRefundWebhook(
+            @RequestHeader(value = "Stripe-Signature", required = false) String signature,
             @RequestBody PaymentWebhookPayload payload) {
+
+        verifyWebhookAuth(signature);
 
         log.info("Received refund webhook: {}", payload.getId());
 

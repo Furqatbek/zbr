@@ -238,22 +238,10 @@ public class CourierService {
 
         order.updateStatus(OrderStatus.DELIVERED);
 
-        // For cash payments, mark payment as confirmed when order is delivered
-        if (order.getPaymentStatus() == PaymentStatus.PENDING) {
-            final Order orderRef = order;
-            paymentRepository.findByOrderId(orderId).ifPresentOrElse(
-                    payment -> {
-                        if ("cash".equalsIgnoreCase(payment.getPaymentMethod())) {
-                            orderRef.setPaymentStatus(PaymentStatus.CONFIRMED);
-                            log.info("Cash payment confirmed for order {}", orderRef.getExternalOrderNo());
-                        }
-                    },
-                    () -> {
-                        orderRef.setPaymentStatus(PaymentStatus.CONFIRMED);
-                        log.info("Payment confirmed for order {} (no payment record - assumed cash)", orderRef.getExternalOrderNo());
-                    }
-            );
-        }
+        // Confirm payment on delivery ONLY for an explicit cash payment record.
+        // Never auto-confirm when no payment record exists — doing so would mark
+        // unpaid card orders as paid (free food). Those stay PENDING for follow-up.
+        confirmCashOnDelivery(order, orderId);
 
         order = orderRepository.save(order);
 
@@ -268,6 +256,30 @@ public class CourierService {
         log.info("Courier {} completed delivery for order {}", courierId, orderId);
 
         return toDto(courier);
+    }
+
+    /**
+     * Confirm payment on delivery only for an explicit CASH payment record.
+     * Orders with no payment record, or with a card/online method that was never
+     * paid, are deliberately left PENDING — we never grant free food by assuming cash.
+     */
+    private void confirmCashOnDelivery(Order order, Long orderId) {
+        if (order.getPaymentStatus() != PaymentStatus.PENDING) {
+            return;
+        }
+        paymentRepository.findByOrderId(orderId).ifPresentOrElse(
+                payment -> {
+                    if ("cash".equalsIgnoreCase(payment.getPaymentMethod())) {
+                        order.setPaymentStatus(PaymentStatus.CONFIRMED);
+                        log.info("Cash payment confirmed on delivery for order {}", order.getExternalOrderNo());
+                    } else {
+                        log.warn("Order {} delivered but payment ({}) is still PENDING — left unpaid, not auto-confirmed",
+                                order.getExternalOrderNo(), payment.getPaymentMethod());
+                    }
+                },
+                () -> log.warn("Order {} delivered with no payment record — left PENDING (not assumed cash)",
+                        order.getExternalOrderNo())
+        );
     }
 
     /**
@@ -692,23 +704,10 @@ public class CourierService {
         OrderStatus previousStatus = order.getStatus();
         order.updateStatus(OrderStatus.DELIVERED);
 
-        // For cash payments, mark payment as confirmed when order is delivered
-        if (order.getPaymentStatus() == PaymentStatus.PENDING) {
-            final Order orderToUpdate = order;
-            paymentRepository.findByOrderId(orderId).ifPresentOrElse(
-                    payment -> {
-                        if ("cash".equalsIgnoreCase(payment.getPaymentMethod())) {
-                            orderToUpdate.setPaymentStatus(PaymentStatus.CONFIRMED);
-                            log.info("Cash payment confirmed for order {}", orderToUpdate.getExternalOrderNo());
-                        }
-                    },
-                    () -> {
-                        // No payment record exists - assume cash payment
-                        orderToUpdate.setPaymentStatus(PaymentStatus.CONFIRMED);
-                        log.info("Payment confirmed for order {} (no payment record - assumed cash)", orderToUpdate.getExternalOrderNo());
-                    }
-            );
-        }
+        // Confirm payment on delivery ONLY for an explicit cash payment record.
+        // Never auto-confirm when no payment record exists (that would give away
+        // unpaid card orders for free). Unpaid orders stay PENDING for follow-up.
+        confirmCashOnDelivery(order, orderId);
 
         order = orderRepository.save(order);
 

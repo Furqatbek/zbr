@@ -95,9 +95,12 @@ public class ConsumerController {
     /**
      * Get consumer profile by ID (for other services).
      */
+    // Restricted to ADMIN/PLATFORM. Restaurant owners were removed — they could
+    // enumerate this endpoint to read any user's PII (name/phone/email) with no
+    // relationship to the consumer.
     @GetMapping("/{id}")
-    @Operation(summary = "Get consumer by ID", description = "Get consumer profile by ID")
-    @PreAuthorize("hasAnyRole('ADMIN', 'RESTAURANT_OWNER')")
+    @Operation(summary = "Get consumer by ID", description = "Get consumer profile by ID (admin/platform only)")
+    @PreAuthorize("hasAnyRole('ADMIN', 'PLATFORM')")
     public ResponseEntity<ApiResponse<UserDto>> getConsumerById(@PathVariable Long id) {
 
         log.info("Get consumer request for id: {}", id);
