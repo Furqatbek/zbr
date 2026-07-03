@@ -59,6 +59,7 @@ public class OrderService {
     private final CourierRepository courierRepository;
     private final DeliveryFeeCalculationService deliveryFeeCalculationService;
     private final CommissionService commissionService;
+    private final PaymentService paymentService;
 
     @Value("${app.order.auto-cancel-unpaid-minutes:30}")
     private int autoCancelMinutes;
@@ -283,6 +284,9 @@ public class OrderService {
         order = orderRepository.save(order);
         log.info("Order {} cancelled by user {}: {}", order.getExternalOrderNo(), cancelledBy, request.getReason());
 
+        // If the customer already paid, issue a refund so money isn't stranded.
+        refundIfPaid(order, request.getReason());
+
         // Publish event
         publishOrderStatusChangedEvent(order, previousStatus, request.getReason());
 
@@ -290,6 +294,24 @@ public class OrderService {
         notifyOrderStatusChange(order);
 
         return orderMapper.toDto(order);
+    }
+
+    /**
+     * Refund a cancelled order if its payment was confirmed. Failures are logged
+     * but never block the cancellation itself.
+     */
+    private void refundIfPaid(Order order, String reason) {
+        if (order.getPaymentStatus() != PaymentStatus.CONFIRMED) {
+            return;
+        }
+        try {
+            paymentService.refundPayment(order.getId(), null,
+                    reason != null ? reason : "Order cancelled");
+            log.info("Refund issued for cancelled order {}", order.getExternalOrderNo());
+        } catch (Exception e) {
+            log.error("Failed to refund cancelled order {} (manual refund required): {}",
+                    order.getExternalOrderNo(), e.getMessage());
+        }
     }
 
     /**
@@ -316,6 +338,64 @@ public class OrderService {
         }
 
         return cancelledCount;
+    }
+
+    /**
+     * Auto-complete orders that have been DELIVERED for longer than the grace period,
+     * so they leave the restaurant's active list instead of accumulating forever.
+     */
+    @Transactional
+    public int autoCompleteDeliveredOrders(int graceMinutes) {
+        LocalDateTime cutoff = LocalDateTime.now().minusMinutes(graceMinutes);
+        List<Order> delivered = orderRepository.findDeliveredBefore(cutoff);
+
+        int completed = 0;
+        for (Order order : delivered) {
+            try {
+                order.updateStatus(OrderStatus.COMPLETED);
+                order.getRestaurant().incrementOrderCount();
+                orderRepository.save(order);
+                completed++;
+            } catch (Exception e) {
+                log.error("Failed to auto-complete delivered order {}: {}",
+                        order.getExternalOrderNo(), e.getMessage());
+            }
+        }
+        if (completed > 0) {
+            log.info("Auto-completed {} delivered order(s) older than {} min", completed, graceMinutes);
+        }
+        return completed;
+    }
+
+    /**
+     * Time out delivery orders that have been READY with no courier for too long:
+     * cancel them and refund the customer so money isn't held for an order that
+     * will never be delivered.
+     */
+    @Transactional
+    public int cancelStuckNoCourierOrders(int timeoutMinutes) {
+        LocalDateTime cutoff = LocalDateTime.now().minusMinutes(timeoutMinutes);
+        List<Order> stuck = orderRepository.findReadyWithoutCourierBefore(cutoff);
+
+        int cancelled = 0;
+        for (Order order : stuck) {
+            try {
+                OrderStatus previousStatus = order.getStatus();
+                order.updateStatus(OrderStatus.CANCELLED);
+                String reason = "No courier available within " + timeoutMinutes + " minutes";
+                order.setCancellationReason(reason);
+                order = orderRepository.save(order);
+
+                refundIfPaid(order, reason);
+                publishOrderStatusChangedEvent(order, previousStatus, reason);
+                notifyOrderStatusChange(order);
+                cancelled++;
+                log.warn("Cancelled stuck no-courier order {}: {}", order.getExternalOrderNo(), reason);
+            } catch (Exception e) {
+                log.error("Failed to cancel stuck order {}: {}", order.getExternalOrderNo(), e.getMessage());
+            }
+        }
+        return cancelled;
     }
 
     private void validateOrderType(CreateOrderRequest request) {

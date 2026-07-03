@@ -18,7 +18,8 @@ services:
       - SPRING_RABBITMQ_PORT=5672
       - SPRING_RABBITMQ_USERNAME=guest
       - SPRING_RABBITMQ_PASSWORD=guest
-      - JWT_SECRET=K8mX2sP4vQ9wE1rT6yU0iO3aS7dF5gH2jL4zN6bV8cM0
+      # Must be supplied from the host environment; compose errors if unset. Generate with: openssl rand -base64 48
+      - JWT_SECRET=${JWT_SECRET:?JWT_SECRET must be set (e.g. export JWT_SECRET=$(openssl rand -base64 48))}
       - JWT_EXPIRATION=3600000
       - JWT_REFRESH_EXPIRATION=604800000
       - IMAGE_STORAGE_PATH=/app/images

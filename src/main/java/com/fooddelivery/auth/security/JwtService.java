@@ -4,6 +4,7 @@ import com.fooddelivery.auth.entity.User;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
+import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -22,7 +23,17 @@ import java.util.function.Function;
 @Slf4j
 public class JwtService {
 
-    @Value("${jwt.secret}")
+    /**
+     * The signing key that used to be committed to the repository as a
+     * ${JWT_SECRET:...} default. It is now permanently banned — if it ever
+     * appears (i.e. the env var was not set), the application must refuse to start.
+     */
+    private static final String BANNED_COMMITTED_SECRET = "K8mX2sP4vQ9wE1rT6yU0iO3aS7dF5gH2jL4zN6bV8cM0";
+
+    /** HS256 needs at least 256 bits of key material. */
+    private static final int MIN_SECRET_LENGTH = 32;
+
+    @Value("${jwt.secret:}")
     private String secretKey;
 
     @Value("${jwt.access-token.expiration}")
@@ -30,6 +41,31 @@ public class JwtService {
 
     @Value("${jwt.refresh-token.expiration}")
     private long refreshTokenExpiration;
+
+    /**
+     * Fail fast at startup if the JWT secret is missing, too weak, or the
+     * old committed default. A forgeable signing key is a full-compromise
+     * vector, so we refuse to boot rather than run insecurely.
+     */
+    @PostConstruct
+    void validateSecret() {
+        if (secretKey == null || secretKey.isBlank()) {
+            throw new IllegalStateException(
+                    "JWT_SECRET is not set. Provide a strong, unique secret via the JWT_SECRET " +
+                    "environment variable (at least " + MIN_SECRET_LENGTH + " characters). Refusing to start.");
+        }
+        if (BANNED_COMMITTED_SECRET.equals(secretKey.trim())) {
+            throw new IllegalStateException(
+                    "JWT_SECRET is set to the old committed default value, which is public and forgeable. " +
+                    "Generate a new secret (e.g. `openssl rand -base64 48`) and set JWT_SECRET. Refusing to start.");
+        }
+        if (secretKey.length() < MIN_SECRET_LENGTH) {
+            throw new IllegalStateException(
+                    "JWT_SECRET is too short (" + secretKey.length() + " chars). Use at least " +
+                    MIN_SECRET_LENGTH + " characters of high-entropy material. Refusing to start.");
+        }
+        log.info("JWT secret validated: length={} chars", secretKey.length());
+    }
 
     /**
      * Extract username from JWT token.

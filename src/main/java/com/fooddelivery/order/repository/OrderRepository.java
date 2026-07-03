@@ -228,4 +228,20 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     List<Order> findByStatusAndReadyAtBefore(
             @Param("status") OrderStatus status,
             @Param("threshold") LocalDateTime threshold);
+
+    /**
+     * Delivered orders whose deliveredAt is older than the threshold — used to auto-complete.
+     */
+    @Query("SELECT o FROM Order o WHERE o.status = com.fooddelivery.order.entity.OrderStatus.DELIVERED " +
+            "AND o.deliveredAt < :threshold")
+    List<Order> findDeliveredBefore(@Param("threshold") LocalDateTime threshold);
+
+    /**
+     * Delivery orders stuck READY with no courier assigned past the threshold — used to time out.
+     */
+    @Query("SELECT o FROM Order o WHERE o.status = com.fooddelivery.order.entity.OrderStatus.READY " +
+            "AND o.courier IS NULL " +
+            "AND o.orderType = com.fooddelivery.order.entity.OrderType.DELIVERY " +
+            "AND o.readyAt < :threshold")
+    List<Order> findReadyWithoutCourierBefore(@Param("threshold") LocalDateTime threshold);
 }

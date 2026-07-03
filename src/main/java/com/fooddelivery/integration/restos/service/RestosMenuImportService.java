@@ -30,6 +30,8 @@ public class RestosMenuImportService {
     private final RestaurantService restaurantService;
     private final MenuCategoryRepository categoryRepository;
     private final MenuItemRepository menuItemRepository;
+    private final com.fooddelivery.integration.restos.config.RestosProperties restosProperties;
+    private final com.fooddelivery.integration.restos.config.UrlSafetyValidator urlSafetyValidator;
 
     /**
      * Import full menu from Restos using endpoint #3 (full menu).
@@ -246,7 +248,13 @@ public class RestosMenuImportService {
     }
 
     private String normalizeBaseUrl(String baseUrl) {
+        if (!restosProperties.isEnabled()) {
+            throw new BusinessException("Restos integration is disabled");
+        }
         if (baseUrl == null || baseUrl.isBlank()) throw new BusinessException("Base URL is required");
-        return baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl;
+        String normalized = baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl;
+        // SSRF guard: reject non-public / internal / metadata targets before any server-side fetch.
+        urlSafetyValidator.validate(normalized);
+        return normalized;
     }
 }

@@ -67,7 +67,10 @@ public enum OrderStatus {
     private static final Set<OrderStatus> ACCEPTED_TRANSITIONS = EnumSet.of(PREPARING, READY, COURIER_ASSIGNED, CANCELLED);
     private static final Set<OrderStatus> PREPARING_TRANSITIONS = EnumSet.of(READY, COURIER_ASSIGNED, CANCELLED);
     private static final Set<OrderStatus> READY_TRANSITIONS = EnumSet.of(COURIER_ASSIGNED, DELIVERED, COMPLETED, CANCELLED);
-    private static final Set<OrderStatus> COURIER_ASSIGNED_TRANSITIONS = EnumSet.of(PICKED_UP, CANCELLED);
+    // A courier may accept before the kitchen finishes (COURIER_ASSIGNED with readyAt == null).
+    // The restaurant must still be able to advance the order to PREPARING/READY, otherwise the
+    // order deadlocks (courier can't pick up until readyAt is set). Hence PREPARING and READY here.
+    private static final Set<OrderStatus> COURIER_ASSIGNED_TRANSITIONS = EnumSet.of(PREPARING, READY, PICKED_UP, CANCELLED);
     private static final Set<OrderStatus> PICKED_UP_TRANSITIONS = EnumSet.of(IN_TRANSIT, DELIVERED);
     private static final Set<OrderStatus> IN_TRANSIT_TRANSITIONS = EnumSet.of(DELIVERED);
     private static final Set<OrderStatus> DELIVERED_TRANSITIONS = EnumSet.of(COMPLETED, REFUNDED);

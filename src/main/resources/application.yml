@@ -121,8 +121,10 @@ server:
     mime-types: application/json,application/xml,text/html,text/xml,text/plain
 
 # JWT Configuration
+# No default secret is committed. JWT_SECRET must be provided via environment.
+# The app refuses to start (JwtService.validateSecret) if it is missing/weak/the old default.
 jwt:
-  secret: ${JWT_SECRET:K8mX2sP4vQ9wE1rT6yU0iO3aS7dF5gH2jL4zN6bV8cM0}
+  secret: ${JWT_SECRET:}
   access-token:
     expiration: ${JWT_ACCESS_EXPIRATION:900000} # 15 minutes in ms
   refresh-token:
@@ -151,6 +153,19 @@ app:
     auto-cancel-unpaid-minutes: 30
     max-preparation-minutes: 60
     delivery-radius-km: 10
+    # Order-lifecycle scheduler (OrderLifecycleScheduler)
+    auto-complete-delivered-minutes: ${ORDER_AUTOCOMPLETE_MINUTES:60}
+    no-courier-timeout-minutes: ${ORDER_NO_COURIER_TIMEOUT_MINUTES:30}
+    lifecycle-check-interval-ms: ${ORDER_LIFECYCLE_INTERVAL_MS:300000}
+
+  # Restos external-menu integration (SSRF-guarded)
+  integration:
+    restos:
+      enabled: ${RESTOS_ENABLED:true}
+      connect-timeout-ms: ${RESTOS_CONNECT_TIMEOUT_MS:5000}
+      read-timeout-ms: ${RESTOS_READ_TIMEOUT_MS:10000}
+      # Optional hostname allowlist; private/loopback/metadata IPs are always blocked.
+      allowed-hosts: ${RESTOS_ALLOWED_HOSTS:}
 
   delivery:
     base-fee: ${DELIVERY_BASE_FEE:2.00}
