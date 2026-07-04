@@ -64,6 +64,7 @@ to the detailed doc. Read the **hard constraint** first; it shapes everything.
 | "Is the latest backup usable?" | Run the restore drill (non-destructive). → [BACKUP_RESTORE.md § Restore drill](BACKUP_RESTORE.md) |
 | Pager: DB pool exhausted | Threads are blocked on connections — check for slow queries / a stuck transaction; Hikari max is 20. |
 | Alerts went silent | Check `docker compose logs alertmanager` (bad token/chat id) and that Prometheus lists Alertmanager under `/status`. |
+| App crashloops with `28P01 password authentication failed` | `DB_PASSWORD` in `.env` doesn't match what the existing `postgres-data` volume was initialized with (`POSTGRES_PASSWORD` only applies on first init). Either `ALTER USER postgres PASSWORD '...'` inside the container, or (dev) remove the volume and reinit. |
 | Tempted to add a second app node | Don't — see the constraints doc. Fix the three blockers first. → [DEPLOYMENT_CONSTRAINTS.md](DEPLOYMENT_CONSTRAINTS.md) |
 
 ## Known limits
