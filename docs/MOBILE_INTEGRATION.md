@@ -65,6 +65,14 @@ the order has been READY.
 | `/topic/restaurants/{restaurantId}/orders` | **vendor** | OrderDto: new orders + status changes |
 | `/topic/couriers/orders/available` | all **couriers** | new delivery order available (broadcast) |
 | `/user/queue/orders/new` | online **courier** | new delivery order available (direct) |
+| `/topic/users/{userId}/notifications` | any logged-in user | persistent notifications (**canonical — subscribe to this one only**) |
+| `/topic/broadcast/notifications` | everyone | platform-wide announcements |
+
+> **Notifications: subscribe to exactly ONE user destination.**
+> `/topic/users/{userId}/notifications` is the only per-user destination the
+> backend publishes to. `/user/queue/notifications` appeared in older API docs
+> but nothing is ever sent there — drop that subscription (double-subscribing
+> was also the suspected unread-badge double-count).
 
 ---
 
@@ -84,6 +92,12 @@ the order has been READY.
    the *refresh* token, not the access token. Phone OTP flow:
    `/api/v1/auth/phone/request-otp → verify-otp → complete-registration`.
 7. Profile: use `/me` endpoints only; `GET /consumers/{id}` is admin-only now.
+8. **Courier contact + ETA in order payloads**: `OrderDto` (REST and WebSocket)
+   carries `courierId`, `courierName`, and now **`courierPhone`** — all null
+   until a courier is assigned, so gate the call-courier button on non-null.
+   For ETA, use `estimatedDeliveryTime` (set when the restaurant accepts with a
+   prep time; may be null before that — hide the ETA text when null). For live
+   courier coordinates use `GET /api/v1/orders/{orderId}/tracking`.
 
 ## Team 2 — Vendor (restaurant) app
 

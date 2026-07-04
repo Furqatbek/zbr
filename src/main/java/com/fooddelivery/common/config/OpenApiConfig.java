@@ -62,7 +62,8 @@ public class OpenApiConfig {
                                 - `/topic/orders/{orderId}` - Order status updates
                                 - `/topic/restaurants/{restaurantId}/orders` - Restaurant order updates
                                 - `/topic/couriers/{courierId}/location` - Courier location updates
-                                - `/user/queue/notifications` - User-specific notifications
+                                - `/topic/users/{userId}/notifications` - User notifications (canonical; subscribe to exactly one notification destination to avoid double-counting)
+                                - `/topic/broadcast/notifications` - Platform-wide announcements
                                 """)
                         .version("1.0.0")
                         .contact(new Contact()

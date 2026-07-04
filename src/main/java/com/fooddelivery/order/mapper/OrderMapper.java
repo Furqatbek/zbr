@@ -25,6 +25,7 @@ public interface OrderMapper {
     @Mapping(target = "restaurantName", source = "restaurant.name")
     @Mapping(target = "courierId", source = "courier.id")
     @Mapping(target = "courierName", expression = "java(order.getCourier() != null ? order.getCourier().getUser().getFullName() : null)")
+    @Mapping(target = "courierPhone", expression = "java(order.getCourier() != null ? order.getCourier().getUser().getPhone() : null)")
     OrderDto toDto(Order order);
 
     List<OrderDto> toDtoList(List<Order> orders);

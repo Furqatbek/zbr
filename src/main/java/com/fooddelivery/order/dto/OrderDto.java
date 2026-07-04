@@ -47,6 +47,9 @@ public class OrderDto {
     @Schema(description = "Courier name")
     private String courierName;
 
+    @Schema(description = "Courier phone (null until a courier is assigned)")
+    private String courierPhone;
+
     @Schema(description = "Order type")
     private OrderType orderType;
 
