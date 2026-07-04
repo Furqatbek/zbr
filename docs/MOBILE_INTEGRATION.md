@@ -112,6 +112,16 @@ the order has been READY.
    `PATCH /{id}/status`, `PATCH /{id}/toggle-open`.
 4. Expect orders to disappear from "active" on their own: DELIVERED orders
    auto-complete, stale unpaid orders auto-cancel.
+5. **Always send `estimatedPrepTimeMinutes`** in the status-update body when
+   moving an order to ACCEPTED/PREPARING (`PATCH /api/v1/orders/{orderId}/status`).
+   It is what powers the customer app's ETA display — omit it and customers see
+   no ETA at all.
+6. **READY orders can be auto-cancelled by the system** (no courier found within
+   the timeout; the customer is auto-refunded). The kitchen may have prepared
+   food for a cancelled order — surface `cancellationReason` (present on
+   OrderDto) so staff see why, instead of it looking like a glitch.
+7. `courierPhone` is now on OrderDto (null until assigned) — useful for
+   handoff coordination at pickup.
 
 ## Team 3 — Courier app
 
