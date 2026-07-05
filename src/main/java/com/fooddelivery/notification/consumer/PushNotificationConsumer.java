@@ -4,6 +4,7 @@ import com.fooddelivery.common.config.RabbitMQConfig;
 import com.fooddelivery.notification.dto.NotificationRequest;
 import com.fooddelivery.notification.entity.UserDeviceToken;
 import com.fooddelivery.notification.repository.UserDeviceTokenRepository;
+import com.fooddelivery.notification.service.ExpoPushService;
 import com.google.firebase.messaging.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -27,6 +28,7 @@ import java.util.stream.Collectors;
 public class PushNotificationConsumer {
 
     private final UserDeviceTokenRepository deviceTokenRepository;
+    private final ExpoPushService expoPushService;
 
     @Autowired(required = false)
     private FirebaseMessaging firebaseMessaging;
@@ -78,11 +80,33 @@ public class PushNotificationConsumer {
     }
 
     /**
-     * Send push notification to multiple devices.
+     * Send push notification to multiple devices, routing by token format:
+     * Expo tokens go through the Expo Push API, raw FCM tokens through Firebase.
      */
     private void sendToMultipleDevices(NotificationRequest request, List<String> tokens) {
+        Map<String, String> data = buildDataPayload(request);
+
+        List<String> expoTokens = tokens.stream()
+                .filter(ExpoPushService::isExpoToken)
+                .collect(Collectors.toList());
+        List<String> fcmTokens = tokens.stream()
+                .filter(t -> !ExpoPushService.isExpoToken(t))
+                .collect(Collectors.toList());
+
+        if (!expoTokens.isEmpty()) {
+            expoPushService.send(request.getSubject(), request.getBody(), data, expoTokens);
+        }
+        if (!fcmTokens.isEmpty()) {
+            sendFcm(request, fcmTokens, data);
+        }
+    }
+
+    /**
+     * Send to raw FCM/APNs registration tokens via Firebase.
+     */
+    private void sendFcm(NotificationRequest request, List<String> tokens, Map<String, String> data) {
         if (firebaseMessaging == null) {
-            log.warn("Firebase not configured, logging push notification instead");
+            log.warn("Firebase not configured, logging {} FCM push notification(s) instead", tokens.size());
             logPushNotification(request, tokens);
             return;
         }
@@ -93,9 +117,6 @@ public class PushNotificationConsumer {
                     .setTitle(request.getSubject())
                     .setBody(request.getBody())
                     .build();
-
-            // Build data payload
-            Map<String, String> data = buildDataPayload(request);
 
             // Configure Android specific options
             AndroidConfig androidConfig = AndroidConfig.builder()

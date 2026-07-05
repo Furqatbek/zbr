@@ -244,10 +244,19 @@ app:
   push:
     enabled: ${PUSH_ENABLED:true}
 
-  # Firebase Configuration for FCM push notifications
+  # Firebase Configuration for FCM push notifications (raw FCM/APNs tokens)
   firebase:
     enabled: ${FIREBASE_ENABLED:false}
     credentials-file: ${FIREBASE_CREDENTIALS_FILE:firebase-service-account.json}
+
+  # Expo Push transport for ExponentPushToken[...] device tokens (the mobile
+  # apps register these; Expo fans out to FCM/APNs). Routing is by token format,
+  # so Expo and Firebase transports coexist. access-token is optional.
+  expo:
+    push:
+      enabled: ${EXPO_PUSH_ENABLED:true}
+      url: ${EXPO_PUSH_URL:https://exp.host/--/api/v2/push/send}
+      access-token: ${EXPO_ACCESS_TOKEN:}
 
   # OTP Configuration
   otp:

@@ -14,8 +14,8 @@ reflect the fixes already shipped on branch `claude/investigate-delivery-fee-clv
 | Item | Concern | Verdict | Resolution | Owner |
 |------|---------|---------|------------|-------|
 | 1 | STOMP subscribe authz / PII | GAP | **FIXED** — per-destination subscribe authorization | backend ✅ |
-| 2 | Refresh-token rotation | CONFIRMED | Reuse-tolerant (no rotation) — safe for your 3 stacks | decision |
-| 3 | Expo vs FCM push | MISMATCH | **Needs decision** (app→native tokens, or backend→Expo transport) | decision 🔴 |
+| 2 | Refresh-token rotation | CONFIRMED | **Decided:** keep reuse-tolerant for MVP | closed |
+| 3 | Expo vs FCM push | MISMATCH | **FIXED** — backend Expo Push transport added | backend ✅ |
 | 4a–4d,4f,4g,4h | Notification endpoints | CONFIRMED | Exist as specified | — |
 | 4e | `read-batch` method | MISMATCH | **FIXED** — now accepts POST + PATCH | backend ✅ |
 | 5 | `DELETE /users/me` | GAP | **FIXED** — added | backend ✅ |
@@ -23,7 +23,7 @@ reflect the fixes already shipped on branch `claude/investigate-delivery-fee-clv
 | 7 | Reviews endpoint | PARTIAL | Exists; field is `courierRating` | app |
 | 8 | Earnings fields | CONFIRMED | Your fields win; `period` param ignored | app |
 | 9a | Auto-offline on disconnect | CONFIRMED | Works (AVAILABLE/ON_BREAK only) | — |
-| 9b | Status endpoint / clobber | CONFIRMED | Works; transition guard **deferred** | backend |
+| 9b | Status endpoint / clobber | CONFIRMED | Works; guard **deferred w/ condition** (before admin suspension ships) | backend |
 | 10 | `ORDER_TAKEN` broadcast | CONFIRMED | Exactly as expected | — |
 | 11.1 | Timestamp `Z` suffix | CONFIRMED | **FIXED** — all `LocalDateTime` now UTC+`Z` ⚠️ | backend ✅ |
 | 11.2 | JWT size | MISMATCH | Tiny (no roles in token); read role via `/me` | app |
@@ -55,17 +55,21 @@ App impact: none if you only subscribe to your own order/notification/location
 topics. A rejected subscribe returns a STOMP `ERROR` frame — handle it as
 "not authorized" (usually a bug in which id you subscribed to).
 
-### Item 3 — Expo push token vs raw FCM → NEEDS YOUR DECISION (still a blocker)
-Backend sends via **Firebase Admin (raw FCM/APNs)**, not the Expo Push API. It
-stores any token string, but FCM rejects an `ExponentPushToken[...]` as invalid
-and the backend then **deactivates that token** — so every push (including
-`NEW_DELIVERY_AVAILABLE`) is silently dropped. Pick one:
-- **App side:** register native device tokens (`getDevicePushTokenAsync` / bare
-  FCM) instead of Expo tokens. No backend change.
-- **Backend side:** we add an Expo transport (detect `ExponentPushToken[` → POST
-  to `https://exp.host/--/api/v2/push/send`) + token-format validation.
+### Item 3 — Expo push token vs raw FCM → FIXED (backend Expo transport)
+Decision: backend adds the Expo transport (iOS native tokens would have needed
+an APNs import step or the Firebase iOS SDK — a native dependency change too late
+in the cycle; Expo handles the FCM/APNs fan-out).
 
-Until this is resolved, courier push is non-functional.
+Now: `ExpoPushService` posts to `https://exp.host/--/api/v2/push/send`.
+`PushNotificationConsumer` routes **by token format** — `ExponentPushToken[...]`
+/ `ExpoPushToken[...]` → Expo; raw registration tokens → Firebase (unchanged) —
+so both transports coexist. Expo tokens are **no longer deactivated by the FCM
+error path**; they are only deactivated when Expo itself reports
+`DeviceNotRegistered`. Expo works even when Firebase is disabled.
+
+App impact: keep sending `ExponentPushToken[...]` as you do — no change needed.
+Config (ops): `EXPO_PUSH_ENABLED` (default true), `EXPO_PUSH_URL`,
+`EXPO_ACCESS_TOKEN` (optional).
 
 ---
 
@@ -129,13 +133,23 @@ Until this is resolved, courier push is non-functional.
 
 ---
 
-## Deferred / decisions needed
+## Decisions recorded
 
-- **Item 3 (Expo vs FCM)** — pick a side (above). Blocker until then.
-- **Item 2 (refresh rotation)** — recommend leaving reuse-tolerant for the MVP.
-  Say if you want strict rotation.
-- **Item 9b (status transition guard)** — a `SUSPENDED`/`PENDING_APPROVAL`
-  courier can currently self-clear via `PATCH /me/status`. Small backend guard;
-  deferred to avoid touching admin flows without review. Say the word.
-- **Item 11.5 (OSRM)** — ops: point `DELIVERY_ROUTING_OSRM_URL` at a self-hosted
-  OSRM for prod (default is the public `router.project-osrm.org` demo).
+- **Item 2 (refresh rotation)** — CLOSED: keep **reuse-tolerant** for the MVP
+  (the courier token manager handles it either way; rotation safety stays as
+  future-proofing on the client).
+- **Item 3 (Expo vs FCM)** — CLOSED: backend Expo transport shipped (above).
+
+## Deferred (with condition)
+
+- **Item 9b (status transition guard)** — DEFERRED, **on the written condition
+  that it lands before any admin/dispatcher suspension flow ships.** Today a
+  `SUSPENDED` / `PENDING_APPROVAL` courier can un-suspend themselves with one
+  `PATCH /me/status`; that is only harmless because no suspension flow exists
+  yet. A `MUST-DO` comment is pinned in `CourierService.updateStatus` so the
+  guard is added alongside the first suspension feature.
+
+## Ops
+
+- **Item 11.5 (OSRM)** — point `DELIVERY_ROUTING_OSRM_URL` at a self-hosted OSRM
+  for prod (default is the public `router.project-osrm.org` demo).

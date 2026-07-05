@@ -117,6 +117,12 @@ public class CourierService {
             throw new BusinessException("Courier must be verified before going online");
         }
 
+        // MUST-DO before any admin/dispatcher suspension flow ships: reject a
+        // self-service transition OUT of SUSPENDED/PENDING_APPROVAL here, otherwise
+        // a suspended courier can un-suspend themselves with one PATCH /me/status.
+        // (Deferred per courier-app verification Item 9b — see
+        // docs/COURIER_VERIFICATION_RESPONSE.md.)
+
         courier.setStatus(status);
         courier = courierRepository.save(courier);
         log.info("Courier {} status updated to: {}", courierId, status);
