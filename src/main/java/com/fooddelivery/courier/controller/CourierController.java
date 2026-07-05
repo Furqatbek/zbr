@@ -6,6 +6,7 @@ import com.fooddelivery.common.dto.PagedResponse;
 import com.fooddelivery.courier.dto.CourierDto;
 import com.fooddelivery.courier.dto.CourierEarningsDto;
 import com.fooddelivery.courier.dto.CourierOrderDto;
+import com.fooddelivery.courier.dto.CourierOrderRatingRequest;
 import com.fooddelivery.courier.dto.CourierStatisticsDto;
 import com.fooddelivery.courier.dto.CreateCourierRequest;
 import com.fooddelivery.courier.dto.UpdateCourierRequest;
@@ -240,6 +241,19 @@ public class CourierController {
         CourierDto courier = courierService.getCourierByUserId(currentUser.getId());
         courierService.reportOrderIssue(courier.getId(), orderId, body.get("issueType"), body.get("description"));
         return ResponseEntity.ok(ApiResponse.success("Issue reported"));
+    }
+
+    @PostMapping("/me/orders/{orderId}/rating")
+    @PreAuthorize("hasRole('COURIER')")
+    @Operation(summary = "Rate a delivered order",
+            description = "Courier's 1-5 rating of a delivery; only the assigned courier, only after delivery")
+    public ResponseEntity<ApiResponse<Void>> rateOrder(
+            @AuthenticationPrincipal UserPrincipal currentUser,
+            @PathVariable Long orderId,
+            @Valid @RequestBody CourierOrderRatingRequest request) {
+        CourierDto courier = courierService.getCourierByUserId(currentUser.getId());
+        courierService.rateOrder(courier.getId(), orderId, request.getRating(), request.getComment());
+        return ResponseEntity.ok(ApiResponse.success("Rating submitted"));
     }
 
     // NOTE: The legacy POST /{courierId}/accept/{orderId} and

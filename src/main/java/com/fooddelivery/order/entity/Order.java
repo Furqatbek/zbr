@@ -186,6 +186,13 @@ public class Order {
     @Column(name = "consumer_review", length = 1000)
     private String consumerReview;
 
+    /** Courier's rating of this delivery (courier -> order), 1..5, set post-delivery. */
+    @Column(name = "courier_delivery_rating")
+    private Integer courierDeliveryRating;
+
+    @Column(name = "courier_delivery_comment", length = 1000)
+    private String courierDeliveryComment;
+
     // Concurrency control
     @Version
     private Long version;

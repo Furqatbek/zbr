@@ -18,7 +18,8 @@ import lombok.NoArgsConstructor;
 public class OtpVerifyRequest {
 
     @NotBlank(message = "Phone number is required")
-    @Pattern(regexp = "^\\+?[0-9]{9,15}$", message = "Invalid phone number format")
+    @Pattern(regexp = "^(\\+?998[0-9]{9}|[0-9]{9})$",
+            message = "Enter a valid Uzbek phone number, e.g. +998901234567")
     private String phone;
 
     @NotBlank(message = "OTP code is required")

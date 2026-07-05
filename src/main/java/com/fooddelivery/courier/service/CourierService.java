@@ -727,6 +727,31 @@ public class CourierService {
     }
 
     /**
+     * Record the courier's rating of a delivered order (courier -> order/customer).
+     * Only the assigned courier may rate, and only once the order has been delivered.
+     */
+    @Transactional
+    @Auditable(action = "RATE_ORDER", entityType = "Courier")
+    public void rateOrder(Long courierId, Long orderId, Integer rating, String comment) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Order", "id", orderId));
+
+        Courier courier = order.getCourier();
+        if (courier == null || !courier.getId().equals(courierId)) {
+            throw new BusinessException("This order is not assigned to you");
+        }
+
+        if (order.getStatus() != OrderStatus.DELIVERED && order.getStatus() != OrderStatus.COMPLETED) {
+            throw new BusinessException("You can only rate an order after it is delivered");
+        }
+
+        order.setCourierDeliveryRating(rating);
+        order.setCourierDeliveryComment(comment);
+        orderRepository.save(order);
+        log.info("Courier {} rated order {}: {}", courierId, orderId, rating);
+    }
+
+    /**
      * Report an issue with an order.
      */
     @Transactional

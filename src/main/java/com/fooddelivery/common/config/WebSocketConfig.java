@@ -4,6 +4,7 @@ import com.fooddelivery.auth.security.JwtService;
 import io.jsonwebtoken.ExpiredJwtException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
@@ -15,7 +16,9 @@ import org.springframework.messaging.simp.stomp.StompCommand;
 import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.messaging.support.ChannelInterceptor;
 import org.springframework.messaging.support.MessageHeaderAccessor;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -37,6 +40,8 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     private final JwtService jwtService;
     private final UserDetailsService userDetailsService;
+    // Lazy provider avoids an init cycle (authorizer -> OrderService -> messaging infra).
+    private final ObjectProvider<WebSocketDestinationAuthorizer> subscriptionAuthorizer;
 
     @Override
     public void configureMessageBroker(MessageBrokerRegistry config) {
@@ -115,6 +120,18 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
                         } catch (Exception e) {
                             log.warn("WebSocket authentication failed: {}", e.getMessage());
                         }
+                    }
+                }
+
+                // Authorize SUBSCRIBE frames per destination so a connected client cannot
+                // read another user's data on broadcast /topic/** destinations.
+                if (accessor != null && StompCommand.SUBSCRIBE.equals(accessor.getCommand())) {
+                    String destination = accessor.getDestination();
+                    Authentication auth = accessor.getUser() instanceof Authentication a ? a : null;
+                    if (!subscriptionAuthorizer.getObject().canSubscribe(auth, destination)) {
+                        log.warn("Rejected WebSocket SUBSCRIBE to '{}' for {}", destination,
+                                auth != null ? auth.getName() : "unauthenticated session");
+                        throw new AccessDeniedException("Not authorized to subscribe to " + destination);
                     }
                 }
 

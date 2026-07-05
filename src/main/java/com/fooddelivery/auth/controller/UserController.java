@@ -60,6 +60,18 @@ public class UserController {
         return ResponseEntity.ok(ApiResponse.success("Profile updated successfully", user));
     }
 
+    @DeleteMapping("/me")
+    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "Delete own account",
+            description = "Permanently delete the currently authenticated user's account. "
+                    + "Required by app stores for apps that support account creation.")
+    public ResponseEntity<ApiResponse<Void>> deleteCurrentUser(
+            @AuthenticationPrincipal UserPrincipal currentUser) {
+
+        userService.deleteUser(currentUser.getId());
+        return ResponseEntity.ok(ApiResponse.success("Account deleted"));
+    }
+
     @PostMapping("/me/change-password")
     @PreAuthorize("isAuthenticated()")
     @Operation(summary = "Change password", description = "Change password for the currently authenticated user")

@@ -17,6 +17,9 @@ import lombok.NoArgsConstructor;
 public class PhoneLoginRequest {
 
     @NotBlank(message = "Phone number is required")
-    @Pattern(regexp = "^\\+?[0-9]{9,15}$", message = "Invalid phone number format")
+    // Uzbek numbers only: +998XXXXXXXXX / 998XXXXXXXXX / bare 9-digit local.
+    // Rejects wrong-length (e.g. 13-digit) and non-+998 country codes before any SMS is sent.
+    @Pattern(regexp = "^(\\+?998[0-9]{9}|[0-9]{9})$",
+            message = "Enter a valid Uzbek phone number, e.g. +998901234567")
     private String phone;
 }

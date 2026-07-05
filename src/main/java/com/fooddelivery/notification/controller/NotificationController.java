@@ -325,7 +325,8 @@ public class NotificationController {
     /**
      * Mark multiple notifications as read.
      */
-    @PatchMapping("/read-batch")
+    // Accept both PATCH and POST: the mobile clients call POST /read-batch.
+    @RequestMapping(value = "/read-batch", method = {RequestMethod.PATCH, RequestMethod.POST})
     @PreAuthorize("isAuthenticated()")
     @Operation(summary = "Mark batch as read",
             description = "Mark multiple notifications as read by IDs")
