@@ -205,6 +205,14 @@ public class RestosMenuImportService {
 
         if (existingOpt.isPresent()) {
             MenuItem existing = existingOpt.get();
+
+            // overwriteExisting=false (Import) must NOT touch an existing product —
+            // skip it. Only overwriteExisting=true (Sync) updates in place.
+            if (!overwrite) {
+                result.setProductsSkipped(result.getProductsSkipped() + 1);
+                return;
+            }
+
             result.setProductsUpdated(result.getProductsUpdated() + 1);
 
             existing.setName(ext.getName());

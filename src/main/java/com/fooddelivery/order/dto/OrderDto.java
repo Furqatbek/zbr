@@ -117,8 +117,20 @@ public class OrderDto {
     @Schema(description = "Ready at")
     private LocalDateTime readyAt;
 
+    @Schema(description = "Picked up at")
+    private LocalDateTime pickedUpAt;
+
+    @Schema(description = "In transit at")
+    private LocalDateTime inTransitAt;
+
     @Schema(description = "Delivered at")
     private LocalDateTime deliveredAt;
+
+    @Schema(description = "Completed at")
+    private LocalDateTime completedAt;
+
+    @Schema(description = "Cancelled at")
+    private LocalDateTime cancelledAt;
 
     @Schema(description = "Cancellation reason")
     private String cancellationReason;

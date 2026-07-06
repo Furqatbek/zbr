@@ -193,16 +193,13 @@ public class Restaurant {
         if (status != RestaurantStatus.ACTIVE) {
             return false;
         }
-        // Owner's manual toggle takes priority
-        if (isOpen != null) {
-            return isOpen;
-        }
-        // If isOpen is null (never toggled), check business hours
-        if (opensAt == null || closesAt == null) {
-            return false;
-        }
-        LocalTime now = LocalTime.now();
-        return !now.isBefore(opensAt) && !now.isAfter(closesAt);
+        // The owner's manual toggle is authoritative: a null or false toggle means
+        // closed. This guarantees isCurrentlyOpen is never true while isOpen is
+        // false/null (previously a null isOpen fell through to a schedule check,
+        // which could report open while the serialized isOpen was null).
+        // Layering opensAt/closesAt on top ("open only within hours") is a
+        // deliberate product change, not applied here.
+        return Boolean.TRUE.equals(isOpen);
     }
 
     public void updateRating(BigDecimal newRating) {

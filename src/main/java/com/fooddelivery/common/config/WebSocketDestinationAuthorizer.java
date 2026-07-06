@@ -4,6 +4,7 @@ import com.fooddelivery.auth.entity.Role;
 import com.fooddelivery.auth.security.UserPrincipal;
 import com.fooddelivery.courier.repository.CourierRepository;
 import com.fooddelivery.order.service.OrderService;
+import com.fooddelivery.restaurant.service.RestaurantService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.Authentication;
@@ -31,11 +32,14 @@ public class WebSocketDestinationAuthorizer {
 
     private final OrderService orderService;
     private final CourierRepository courierRepository;
+    private final RestaurantService restaurantService;
 
     private static final Pattern USER_NOTIFICATIONS = Pattern.compile("^/topic/users/(\\d+)/notifications$");
     private static final Pattern ORDER = Pattern.compile("^/topic/orders/(\\d+)$");
     private static final Pattern ORDER_TAKEN = Pattern.compile("^/topic/orders/(\\d+)/taken$");
     private static final Pattern COURIER_LOCATION = Pattern.compile("^/topic/couriers/(\\d+)/location$");
+    // /topic/restaurants/{id}/orders (customer PII) and /kitchen* tickets.
+    private static final Pattern RESTAURANT_TOPIC = Pattern.compile("^/topic/restaurants/(\\d+)/(orders|kitchen).*$");
 
     /**
      * @return true if the authenticated user may subscribe to this destination.
@@ -71,10 +75,23 @@ public class WebSocketDestinationAuthorizer {
             if (isAdminOrPlatform(principal)) return true;
             long courierId = Long.parseLong(m.group(1));
             // Only the courier themselves may stream their own live location.
-            // Consumers get the assigned courier's position via GET /orders/{id}/tracking.
+            // Consumers get the assigned courier's position via GET /orders/{id}/track.
             return courierRepository.findByUserId(principal.getId())
                     .map(c -> c.getId().equals(courierId))
                     .orElse(false);
+        }
+
+        m = RESTAURANT_TOPIC.matcher(destination);
+        if (m.matches()) {
+            // Restaurant order/kitchen feeds carry customer PII — owner or admin only.
+            if (principal == null) return false;
+            if (isAdminOrPlatform(principal)) return true;
+            long restaurantId = Long.parseLong(m.group(1));
+            try {
+                return restaurantService.isRestaurantOwner(restaurantId, principal.getId());
+            } catch (RuntimeException e) {
+                return false;
+            }
         }
 
         // Everything else (the broadcast offer feed, /queue, /user/**, /app) is allowed.

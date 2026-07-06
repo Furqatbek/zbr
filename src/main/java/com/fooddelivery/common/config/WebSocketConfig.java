@@ -121,6 +121,15 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
                             log.warn("WebSocket authentication failed: {}", e.getMessage());
                         }
                     }
+
+                    // Reject the CONNECT if no valid principal was established: a
+                    // missing/invalid/expired token must not open an (unauthenticated)
+                    // socket. Subscribe authz already fails closed, but this stops the
+                    // session from being created at all.
+                    if (accessor.getUser() == null) {
+                        throw new AccessDeniedException(
+                                "WebSocket CONNECT requires a valid 'Authorization: Bearer <token>' header");
+                    }
                 }
 
                 // Authorize SUBSCRIBE frames per destination so a connected client cannot

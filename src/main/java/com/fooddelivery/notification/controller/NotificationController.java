@@ -302,7 +302,8 @@ public class NotificationController {
     /**
      * Mark all notifications as read for a user.
      */
-    @PatchMapping("/read-all")
+    // Accept both PATCH and POST: the mobile clients call POST /read-all.
+    @RequestMapping(value = "/read-all", method = {RequestMethod.PATCH, RequestMethod.POST})
     @PreAuthorize("hasRole('ADMIN') or #userId == authentication.principal.id")
     @Operation(summary = "Mark all as read",
             description = "Mark all notifications as read for a user")
