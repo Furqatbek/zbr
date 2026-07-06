@@ -16,7 +16,7 @@ verified against the backend source. Reflects fixes shipped on branch
 | 3 | JWT on STOMP CONNECT | **CONFIRMED + hardened** — `Authorization: Bearer <token>` on CONNECT authenticates; **now also rejects** a missing/invalid token instead of soft-failing. |
 | 4 | `courierPhone` + `estimatedDeliveryTime` on OrderDto | **CONFIRMED** — both on `OrderDto`; and the WebSocket sends the **full OrderDto**, so `courierPhone` rides `/topic/restaurants/{id}/orders`, not just REST. |
 | 5 | `isOpen` vs `isCurrentlyOpen` | **FIXED** — `isCurrentlyOpen` is now `ACTIVE && isOpen==true`; can never be true while `isOpen` is false/null. |
-| 6 | Idempotency on status/cancel | **Not idempotent** — see below; client must handle 422 on replay (offer to make same-state a no-op). |
+| 6 | Idempotency on status/cancel | **FIXED** — a replay of the same status, or a repeat cancel of an already-cancelled order, now returns the current order (200 no-op) instead of 422. |
 
 ## ✅ Fixed on the backend (this cycle)
 
@@ -44,14 +44,14 @@ verified against the backend source. Reflects fixes shipped on branch
    outside hours — a behavior change).
 2. **`courierPhone` on WS `/topic/restaurants/{id}/orders`** → YES, confirmed
    (full OrderDto payload).
-3. **Status/cancel idempotent?** → **No.** The order state machine has no
-   self-transitions, so replaying an already-applied status (e.g. `status=ACCEPTED`
-   when already ACCEPTED) returns **422 "Cannot transition"**, and a second cancel
-   on an already-CANCELLED order returns 422 "cannot be cancelled". **Client
-   mitigation:** on 422 for a mutation, re-fetch `GET /orders/{id}` and treat
-   "already in target state" as success. If you'd rather the backend treat a
-   same-state transition as an idempotent no-op (200 echo), say so — it's a small
-   state-machine change but I didn't want to alter money-path semantics unasked.
+3. **Status/cancel idempotent?** → **FIXED — now idempotent.** A `PATCH
+   /orders/{id}/status` whose target equals the current status returns the current
+   order (200) with **no side effects** (no event, no commission re-record), and a
+   `POST /orders/{id}/cancel` on an **already-CANCELLED** order returns the current
+   order (200). So a retry across a deploy drain / network blip is safe. A
+   genuinely invalid change (e.g. cancelling a DELIVERED order, or an illegal
+   forward transition) still returns 422 — only *replays of the already-applied
+   change* are treated as success.
 4. **Order-topic payload: full order or delta?** → **Full `OrderDto`** on every
    message. You only need the reconnect re-fetch to catch messages missed while
    disconnected — no per-message re-fetch.

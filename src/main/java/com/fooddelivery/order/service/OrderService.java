@@ -258,6 +258,15 @@ public class OrderService {
         OrderStatus previousStatus = order.getStatus();
         OrderStatus newStatus = request.getStatus();
 
+        // Idempotent replay: already in the requested status -> return the current
+        // order (200) with no side effects, so a client retry across a deploy drain
+        // or network blip is safe instead of a 422 "cannot transition".
+        if (previousStatus == newStatus) {
+            log.debug("Order {} already in status {} — idempotent no-op",
+                    order.getExternalOrderNo(), newStatus);
+            return orderMapper.toDto(order);
+        }
+
         // Validate transition
         if (!order.canTransitionTo(newStatus)) {
             throw new InvalidOperationException(
@@ -293,6 +302,14 @@ public class OrderService {
     public OrderDto cancelOrder(Long orderId, CancelOrderRequest request, Long cancelledBy) {
         Order order = orderRepository.findByIdWithLock(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Order", "id", orderId));
+
+        // Idempotent replay: already cancelled -> return the current order (200),
+        // so a retried cancel does not 422. (A refund only moves paymentStatus, not
+        // the order status, so a cancelled order stays CANCELLED here.)
+        if (order.getStatus() == OrderStatus.CANCELLED) {
+            log.debug("Order {} already cancelled — idempotent no-op", order.getExternalOrderNo());
+            return orderMapper.toDto(order);
+        }
 
         if (!order.isCancellable()) {
             throw new InvalidOperationException(

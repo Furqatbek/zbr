@@ -156,6 +156,25 @@ class OrderServiceTest {
         }
 
         @Test
+        @DisplayName("is an idempotent no-op when already in the requested status")
+        void idempotentSameStatus() {
+            Order order = mockOrder(OrderStatus.ACCEPTED, PaymentStatus.PENDING);
+            when(orderRepository.findByIdWithLock(1L)).thenReturn(Optional.of(order));
+            OrderDto dto = mock(OrderDto.class);
+            when(orderMapper.toDto(order)).thenReturn(dto);
+
+            UpdateOrderStatusRequest request = UpdateOrderStatusRequest.builder()
+                    .status(OrderStatus.ACCEPTED)
+                    .build();
+
+            OrderDto result = orderService.updateOrderStatus(1L, request);
+
+            assertThat(result).isSameAs(dto);
+            verify(order, never()).updateStatus(any());
+            verify(orderRepository, never()).save(any());
+        }
+
+        @Test
         @DisplayName("rejects an invalid transition")
         void invalidTransition() {
             Order order = mockOrder(OrderStatus.DELIVERED, PaymentStatus.CONFIRMED);
@@ -210,6 +229,23 @@ class OrderServiceTest {
             verify(order).setCancellationReason("Customer changed mind");
             verify(orderRepository).save(order);
             // Unpaid order: money was never taken, so no refund should be attempted.
+            verify(paymentService, never()).refundPayment(anyLong(), any(), anyString());
+        }
+
+        @Test
+        @DisplayName("is an idempotent no-op when the order is already cancelled")
+        void idempotentAlreadyCancelled() {
+            Order order = mockOrder(OrderStatus.CANCELLED, PaymentStatus.CONFIRMED);
+            when(orderRepository.findByIdWithLock(1L)).thenReturn(Optional.of(order));
+            OrderDto dto = mock(OrderDto.class);
+            when(orderMapper.toDto(order)).thenReturn(dto);
+
+            CancelOrderRequest request = CancelOrderRequest.builder().reason("retry").build();
+
+            OrderDto result = orderService.cancelOrder(1L, request, 20L);
+
+            assertThat(result).isSameAs(dto);
+            verify(orderRepository, never()).save(any());
             verify(paymentService, never()).refundPayment(anyLong(), any(), anyString());
         }
 
