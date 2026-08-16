@@ -38,6 +38,14 @@ public class UserDeviceToken {
     @Builder.Default
     private DeviceType deviceType = DeviceType.UNKNOWN;
 
+    /**
+     * Stable per-device identifier from the app. Registration upserts on
+     * (userId, deviceId) so a rotated token replaces the row instead of adding
+     * a duplicate (which would cause N copies of every push).
+     */
+    @Column(name = "device_id", length = 200)
+    private String deviceId;
+
     @Column(name = "device_name", length = 100)
     private String deviceName;
 

@@ -4,6 +4,7 @@ import com.fooddelivery.common.config.RabbitMQConfig;
 import com.fooddelivery.notification.dto.NotificationRequest;
 import com.fooddelivery.notification.entity.UserDeviceToken;
 import com.fooddelivery.notification.repository.UserDeviceTokenRepository;
+import com.fooddelivery.notification.service.ApnsPushService;
 import com.fooddelivery.notification.service.ExpoPushService;
 import com.google.firebase.messaging.*;
 import lombok.RequiredArgsConstructor;
@@ -29,9 +30,18 @@ public class PushNotificationConsumer {
 
     private final UserDeviceTokenRepository deviceTokenRepository;
     private final ExpoPushService expoPushService;
+    private final ApnsPushService apnsPushService;
 
     @Autowired(required = false)
     private FirebaseMessaging firebaseMessaging;
+
+    /** Must match the channel the Android app creates (bump together, e.g. orders_v3). */
+    @org.springframework.beans.factory.annotation.Value("${app.push.android.channel-id:orders_v2}")
+    private String androidChannelId;
+
+    /** Sound resource name WITHOUT the file extension. */
+    @org.springframework.beans.factory.annotation.Value("${app.push.android.sound:new_order}")
+    private String androidSound;
 
     /**
      * Process push notification requests from the queue.
@@ -64,13 +74,9 @@ public class PushNotificationConsumer {
                 return;
             }
 
-            // Send to all user devices
-            List<String> tokens = deviceTokens.stream()
-                    .map(UserDeviceToken::getDeviceToken)
-                    .collect(Collectors.toList());
-
-            sendToMultipleDevices(request, tokens);
-            log.info("Push notification sent to {} devices for user {}", tokens.size(), request.getUserId());
+            sendToMultipleDevices(request, deviceTokens);
+            log.info("Push notification sent to {} devices for user {}",
+                    deviceTokens.size(), request.getUserId());
 
         } catch (Exception e) {
             log.error("Failed to send push notification to user {}: {}",
@@ -80,21 +86,36 @@ public class PushNotificationConsumer {
     }
 
     /**
-     * Send push notification to multiple devices, routing by token format:
-     * Expo tokens go through the Expo Push API, raw FCM tokens through Firebase.
+     * Fan a notification out to a user's devices, routing per device:
+     * iOS -> APNs (HTTP/2 + .p8), Android/unknown raw tokens -> FCM, and any
+     * ExponentPushToken[...] -> the Expo Push API (apps still on Expo tokens).
      */
-    private void sendToMultipleDevices(NotificationRequest request, List<String> tokens) {
+    private void sendToMultipleDevices(NotificationRequest request, List<UserDeviceToken> devices) {
         Map<String, String> data = buildDataPayload(request);
 
-        List<String> expoTokens = tokens.stream()
+        // Expo tokens are identified by format regardless of the registered platform.
+        List<String> expoTokens = devices.stream()
+                .map(UserDeviceToken::getDeviceToken)
                 .filter(ExpoPushService::isExpoToken)
                 .collect(Collectors.toList());
-        List<String> fcmTokens = tokens.stream()
-                .filter(t -> !ExpoPushService.isExpoToken(t))
+
+        List<String> apnsTokens = devices.stream()
+                .filter(d -> !ExpoPushService.isExpoToken(d.getDeviceToken()))
+                .filter(d -> d.getDeviceType() == UserDeviceToken.DeviceType.IOS)
+                .map(UserDeviceToken::getDeviceToken)
+                .collect(Collectors.toList());
+
+        List<String> fcmTokens = devices.stream()
+                .filter(d -> !ExpoPushService.isExpoToken(d.getDeviceToken()))
+                .filter(d -> d.getDeviceType() != UserDeviceToken.DeviceType.IOS)
+                .map(UserDeviceToken::getDeviceToken)
                 .collect(Collectors.toList());
 
         if (!expoTokens.isEmpty()) {
             expoPushService.send(request.getSubject(), request.getBody(), data, expoTokens);
+        }
+        if (!apnsTokens.isEmpty()) {
+            apnsPushService.send(request.getSubject(), request.getBody(), data, apnsTokens);
         }
         if (!fcmTokens.isEmpty()) {
             sendFcm(request, fcmTokens, data);
@@ -118,19 +139,29 @@ public class PushNotificationConsumer {
                     .setBody(request.getBody())
                     .build();
 
-            // Configure Android specific options
+            // Android: HIGH priority is mandatory to bypass Doze (normal priority
+            // batches and arrives minutes late). Channel id must match the channel
+            // the app creates at start-up; sound omits the file extension.
             AndroidConfig androidConfig = AndroidConfig.builder()
                     .setPriority(AndroidConfig.Priority.HIGH)
                     .setNotification(AndroidNotification.builder()
-                            .setSound("default")
+                            .setChannelId(androidChannelId)
+                            .setSound(androidSound)
+                            .setPriority(AndroidNotification.Priority.MAX)
+                            .setVisibility(AndroidNotification.Visibility.PUBLIC)
+                            .setDefaultVibrateTimings(false)
+                            .setVibrateTimingsInMillis(new long[]{0L, 400L, 200L, 400L})
                             .setClickAction("OPEN_NOTIFICATION")
                             .build())
                     .build();
 
-            // Configure iOS specific options
+            // iOS via FCM is only a fallback for legacy tokens registered without a
+            // platform; native APNs delivery is handled by ApnsPushService.
             ApnsConfig apnsConfig = ApnsConfig.builder()
+                    .putHeader("apns-push-type", "alert")
+                    .putHeader("apns-priority", "10")
                     .setAps(Aps.builder()
-                            .setSound("default")
+                            .setSound("new_order.wav")
                             .setBadge(1)
                             .build())
                     .build();
@@ -185,6 +216,24 @@ public class PushNotificationConsumer {
                     dataBuilder.put(key, value.toString());
                 }
             });
+        }
+
+        // The apps deep-link on data.orderId and switch UI on data.type, so both
+        // must be present. orderId MUST be a bare numeric string — the clients
+        // validate it before navigating and drop anything else.
+        if ("ORDER".equalsIgnoreCase(request.getReferenceType()) && request.getReferenceId() != null) {
+            String orderId = request.getReferenceId().trim();
+            if (orderId.matches("\\d+")) {
+                dataBuilder.put("orderId", orderId);
+            } else {
+                log.warn("Not setting data.orderId — reference id '{}' is not numeric", orderId);
+            }
+        }
+        // A caller-supplied notification type (e.g. NEW_ORDER_RECEIVED) wins over
+        // the generic default; templateData may already have set it above.
+        if (request.getTemplateId() != null && !request.getTemplateId().isBlank()
+                && "notification".equals(dataBuilder.get("type"))) {
+            dataBuilder.put("type", request.getTemplateId());
         }
 
         return dataBuilder;

@@ -30,6 +30,9 @@ public interface UserDeviceTokenRepository extends JpaRepository<UserDeviceToken
      */
     Optional<UserDeviceToken> findByDeviceToken(String deviceToken);
 
+    /** One row per physical device: registration upserts on (user, deviceId). */
+    Optional<UserDeviceToken> findByUserIdAndDeviceId(Long userId, String deviceId);
+
     /**
      * Check if a device token exists for a user.
      */

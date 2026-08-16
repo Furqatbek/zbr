@@ -246,6 +246,12 @@ app:
   # Push Notification settings
   push:
     enabled: ${PUSH_ENABLED:true}
+    android:
+      # Must match the notification channel the Android app creates at start-up.
+      # If the app bumps the channel (e.g. orders_v3), bump this together.
+      channel-id: ${PUSH_ANDROID_CHANNEL_ID:orders_v2}
+      # Sound resource name WITHOUT the file extension (FCM requirement).
+      sound: ${PUSH_ANDROID_SOUND:new_order}
 
   # Firebase Configuration for FCM push notifications (raw FCM/APNs tokens)
   firebase:
@@ -260,6 +266,20 @@ app:
       enabled: ${EXPO_PUSH_ENABLED:true}
       url: ${EXPO_PUSH_URL:https://exp.host/--/api/v2/push/send}
       access-token: ${EXPO_ACCESS_TOKEN:}
+
+  # APNs (iOS) via HTTP/2 with a provider .p8 key — no Firebase on iOS.
+  # Devices registered with platform=IOS are delivered here.
+  # APNS_KEY_FILE is a SECRET: mount it, never commit it.
+  # production=false targets api.sandbox.push.apple.com (Xcode/dev builds);
+  # set APNS_PRODUCTION=true for TestFlight/App Store builds. Tokens are
+  # environment-specific — a mismatch returns 400 BadDeviceToken.
+  apns:
+    enabled: ${APNS_ENABLED:false}
+    key-file: ${APNS_KEY_FILE:}
+    key-id: ${APNS_KEY_ID:}
+    team-id: ${APNS_TEAM_ID:}
+    topic: ${APNS_TOPIC:com.zbr.owner}
+    production: ${APNS_PRODUCTION:false}
 
   # OTP Configuration
   otp:

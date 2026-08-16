@@ -30,6 +30,25 @@ public class DeviceTokenService {
     public UserDeviceToken registerToken(Long userId, DeviceTokenRequest request) {
         log.info("Registering device token for user {}", userId);
 
+        // Prefer upserting on (user, deviceId): the OS rotates push tokens, and
+        // keying on the token alone would leave the old row behind so the device
+        // receives duplicate pushes. One row per physical device.
+        if (request.getDeviceId() != null && !request.getDeviceId().isBlank()) {
+            Optional<UserDeviceToken> byDevice =
+                    deviceTokenRepository.findByUserIdAndDeviceId(userId, request.getDeviceId());
+            if (byDevice.isPresent()) {
+                UserDeviceToken token = byDevice.get();
+                token.setDeviceToken(request.getDeviceToken());
+                token.setActive(true);
+                token.setDeviceType(request.getDeviceType() != null ? request.getDeviceType() : token.getDeviceType());
+                token.setDeviceName(request.getDeviceName() != null ? request.getDeviceName() : token.getDeviceName());
+                token.setAppVersion(request.getAppVersion() != null ? request.getAppVersion() : token.getAppVersion());
+                token.setLastUsedAt(LocalDateTime.now());
+                log.debug("Updated token for user {} device {}", userId, request.getDeviceId());
+                return deviceTokenRepository.save(token);
+            }
+        }
+
         // Check if token already exists
         Optional<UserDeviceToken> existingToken = deviceTokenRepository.findByDeviceToken(request.getDeviceToken());
 
@@ -42,6 +61,7 @@ public class DeviceTokenService {
                 token.setDeviceType(request.getDeviceType() != null ? request.getDeviceType() : token.getDeviceType());
                 token.setDeviceName(request.getDeviceName() != null ? request.getDeviceName() : token.getDeviceName());
                 token.setAppVersion(request.getAppVersion() != null ? request.getAppVersion() : token.getAppVersion());
+                if (request.getDeviceId() != null) token.setDeviceId(request.getDeviceId());
                 token.setLastUsedAt(LocalDateTime.now());
                 log.debug("Updated existing token for user {}", userId);
                 return deviceTokenRepository.save(token);
@@ -52,6 +72,7 @@ public class DeviceTokenService {
                 token.setDeviceType(request.getDeviceType() != null ? request.getDeviceType() : token.getDeviceType());
                 token.setDeviceName(request.getDeviceName() != null ? request.getDeviceName() : token.getDeviceName());
                 token.setAppVersion(request.getAppVersion() != null ? request.getAppVersion() : token.getAppVersion());
+                if (request.getDeviceId() != null) token.setDeviceId(request.getDeviceId());
                 token.setLastUsedAt(LocalDateTime.now());
                 log.debug("Reassigned token from another user to user {}", userId);
                 return deviceTokenRepository.save(token);
@@ -62,6 +83,7 @@ public class DeviceTokenService {
         UserDeviceToken newToken = UserDeviceToken.builder()
                 .userId(userId)
                 .deviceToken(request.getDeviceToken())
+                .deviceId(request.getDeviceId())
                 .deviceType(request.getDeviceType() != null ? request.getDeviceType() : UserDeviceToken.DeviceType.UNKNOWN)
                 .deviceName(request.getDeviceName())
                 .appVersion(request.getAppVersion())
