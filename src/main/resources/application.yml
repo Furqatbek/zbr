@@ -399,6 +399,13 @@ spring:
       host: redis
       port: 6379
 
+# Local Docker launch: allow ALL origins (no CORS enforcement) by default, so a
+# web frontend on any host/port works out of the box. A prod deploy via compose
+# MUST set CORS_ORIGINS to explicit real domains — that overrides this default.
+app:
+  cors:
+    allowed-origins: ${CORS_ORIGINS:*}
+
 ---
 # Test Profile
 spring:

@@ -24,6 +24,9 @@ services:
       - JWT_REFRESH_EXPIRATION=604800000
       - IMAGE_STORAGE_PATH=/app/images
       - IMAGE_BASE_URL=http://localhost:8080/api/v1/images
+      # CORS: defaults to "*" (no enforcement) for local launch. In prod set
+      # CORS_ORIGINS in .env to explicit domains, e.g. https://app.example.com
+      - CORS_ORIGINS=${CORS_ORIGINS:-*}
       # SMS Configuration (Eskiz.uz)
       - SMS_ENABLED=${SMS_ENABLED:-true}
       - SMS_EMAIL=${SMS_EMAIL:-}
