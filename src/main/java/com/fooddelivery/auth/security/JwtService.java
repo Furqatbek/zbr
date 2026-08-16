@@ -3,11 +3,14 @@ package com.fooddelivery.auth.security;
 import com.fooddelivery.auth.entity.User;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.io.Decoders;
+import io.jsonwebtoken.io.DecodingException;
 import io.jsonwebtoken.security.Keys;
 import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
+
+import java.nio.charset.StandardCharsets;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
@@ -260,7 +263,17 @@ public class JwtService {
     }
 
     private SecretKey getSigningKey() {
-        byte[] keyBytes = Decoders.BASE64.decode(secretKey);
+        byte[] keyBytes;
+        try {
+            // Preferred: a Base64-encoded secret (e.g. `openssl rand -base64 48`),
+            // but only if it decodes to a strong-enough key for HS256 (>=256 bits).
+            byte[] decoded = Decoders.BASE64.decode(secretKey);
+            keyBytes = decoded.length >= 32 ? decoded : secretKey.getBytes(StandardCharsets.UTF_8);
+        } catch (DecodingException e) {
+            // Not Base64 (e.g. a human-readable dev secret with '-') — use the raw
+            // UTF-8 bytes. validateSecret() guarantees >=32 chars, so this is >=256 bits.
+            keyBytes = secretKey.getBytes(StandardCharsets.UTF_8);
+        }
         return Keys.hmacShaKeyFor(keyBytes);
     }
 }
