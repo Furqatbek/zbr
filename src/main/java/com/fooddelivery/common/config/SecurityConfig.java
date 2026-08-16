@@ -72,12 +72,16 @@ public class SecurityConfig {
                 // Disable form login (we use JWT)
                 .formLogin(AbstractHttpConfigurer::disable)
 
-                // Configure CORS — explicit origin allowlist (never "*" with credentials)
+                // CORS — origin allow-list from app.cors.allowed-origins. Uses
+                // origin PATTERNS (addAllowedOriginPattern), which is the correct
+                // way to combine wildcards with credentials and also matches exact
+                // origins. Dev defaults to http://localhost:* ; prod sets explicit
+                // real domains via CORS_ORIGINS. Never a bare "*".
                 .cors(cors -> cors.configurationSource(request -> {
                     var corsConfig = new org.springframework.web.cors.CorsConfiguration();
                     for (String origin : allowedOrigins.split(",")) {
                         if (!origin.isBlank()) {
-                            corsConfig.addAllowedOrigin(origin.trim());
+                            corsConfig.addAllowedOriginPattern(origin.trim());
                         }
                     }
                     corsConfig.addAllowedMethod("*");

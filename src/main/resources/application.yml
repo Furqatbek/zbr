@@ -141,7 +141,10 @@ jwt:
 # Application Configuration
 app:
   cors:
-    allowed-origins: ${CORS_ORIGINS:http://localhost:3000,http://localhost:8080}
+    # Origin patterns (addAllowedOriginPattern). Dev default accepts any localhost
+    # port so a local web frontend works out of the box. PROD MUST set CORS_ORIGINS
+    # to explicit real domains, e.g. CORS_ORIGINS=https://app.example.com
+    allowed-origins: ${CORS_ORIGINS:http://localhost:*,http://127.0.0.1:*}
     allowed-methods: GET,POST,PUT,PATCH,DELETE,OPTIONS
     allowed-headers: "*"
     allow-credentials: true
