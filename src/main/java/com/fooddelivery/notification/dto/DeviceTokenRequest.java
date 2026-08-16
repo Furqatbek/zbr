@@ -2,6 +2,7 @@ package com.fooddelivery.notification.dto;
 
 import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fooddelivery.notification.entity.UserDeviceToken.DeviceType;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -23,6 +24,7 @@ public class DeviceTokenRequest {
 
     /** Raw FCM registration token (Android) or APNs device token (iOS, 64-char hex). */
     @JsonAlias("deviceToken")
+    @NotBlank(message = "Device token is required")
     @Size(max = 500, message = "Device token must not exceed 500 characters")
     private String token;
 
