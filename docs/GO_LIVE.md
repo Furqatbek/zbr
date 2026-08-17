@@ -273,11 +273,93 @@ SELECT * FROM restaurant_commissions WHERE order_id = <OID>;
 
 ---
 
-## Step 7 — Right after order #1 works
+## Step 7 — Turn on push notifications
+
+Until this is done, couriers only see new orders while the app is **open** — a
+backgrounded phone misses them. Android and iOS are independent; you can enable
+one before the other.
+
+Both credentials can be supplied as **base64 in `.env`**, so neither key has to
+sit on the VPS filesystem. (Mounting files into `./secrets/` also works — see
+[PUSH_DELIVERY.md](PUSH_DELIVERY.md).)
+
+**7a. Android — Firebase service account**
+
+Firebase Console → Project Settings → **Service accounts** → *Generate new
+private key*. Must be the **same Firebase project as the app**
+(`push-notifications-for-zbr`).
+
+> This is **not** `google-services.json`. That one is client-side, ships inside
+> the app, and is not a secret. The service-account key **is** a secret — it can
+> push to every user. Never commit it.
+
+```bash
+base64 -w0 firebase-service-account.json                                  # Linux/macOS
+# PowerShell:
+# [Convert]::ToBase64String([IO.File]::ReadAllBytes("firebase-service-account.json"))
+```
+
+```bash
+# .env
+FIREBASE_ENABLED=true
+FIREBASE_CREDENTIALS_BASE64=<paste the base64>
+```
+
+⚠️ **`FIREBASE_ENABLED=true` with a missing/invalid credential stops the whole
+app from starting** (Firebase initializes at boot). Set the flag and the
+credential in the same deploy, and watch the logs on restart.
+
+**7b. iOS — APNs auth key**
+
+Apple Developer portal → Keys → create an **APNs** key. The `.p8` downloads
+**once only**; record the 10-character Key ID.
+
+```bash
+base64 -w0 AuthKey_ABC123XYZ9.p8                                          # Linux/macOS
+# PowerShell:
+# [Convert]::ToBase64String([IO.File]::ReadAllBytes("AuthKey_ABC123XYZ9.p8"))
+```
+
+```bash
+# .env
+APNS_ENABLED=true
+APNS_KEY_BASE64=<paste the base64>
+APNS_KEY_ID=ABC123XYZ9
+APNS_TEAM_ID=VQ56W9S7S9
+APNS_TOPIC=com.zbr.owner
+APNS_PRODUCTION=false      # false = Xcode/dev builds; true = TestFlight/App Store
+```
+
+⚠️ **`APNS_PRODUCTION` must match the build the tester installed.** Device tokens
+are environment-specific: a dev-build token sent to the production host returns
+`400 BadDeviceToken` and the backend prunes it (so it silently stops working).
+
+**7c. Apply and verify**
+
+```bash
+docker compose up -d app
+docker compose logs -f app | grep -iE "firebase|apns"    # init errors show here
+```
+
+Then, on a **physical device** (simulators/emulators cannot receive push), log
+into the app so it registers its token, and confirm:
+
+```sql
+SELECT user_id, device_type, is_active, left(device_token, 24) AS token
+  FROM user_device_tokens WHERE is_active = true;
+```
+
+Place a test order and confirm the courier phone buzzes **with the app in the
+background**. If a token disappears (`is_active=false`) right after a send, the
+provider rejected it — for iOS that's almost always the sandbox/production
+mismatch above.
+
+---
+
+## Step 8 — Finish hardening
 
 | Do | Where |
 |----|-------|
-| Push credentials (APNs `.p8` + Firebase JSON) — without them couriers miss backgrounded orders | [PUSH_DELIVERY.md](PUSH_DELIVERY.md) |
 | Telegram alert bot token — otherwise nothing pages you | [ALERTING.md](ALERTING.md) |
 | Validate the FKs on live data | [`scripts/db/README.md`](../scripts/db/README.md) |
 | Copy backups **off-host, encrypted**; run the restore drill | [BACKUP_RESTORE.md](BACKUP_RESTORE.md) |
