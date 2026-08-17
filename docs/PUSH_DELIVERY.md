@@ -70,11 +70,24 @@ omitted rather than sent.
 | Env var | Meaning |
 |---------|---------|
 | `APNS_ENABLED` | `true` to enable (default `false`) |
-| `APNS_KEY_FILE` | path to the `.p8` provider key — **SECRET**, mount it, never commit |
+| `APNS_KEY_BASE64` | the `.p8` contents, base64 — **SECRET**. Nothing on disk; wins over `APNS_KEY_FILE` |
+| `APNS_KEY_FILE` | alternative: path to the mounted `.p8` (e.g. `/run/secrets/apns_auth_key.p8`) |
 | `APNS_KEY_ID` | 10-char Key ID from the Apple Developer portal |
 | `APNS_TEAM_ID` | Apple Team ID (e.g. `VQ56W9S7S9`) |
 | `APNS_TOPIC` | bundle id (default `com.zbr.owner`) |
 | `APNS_PRODUCTION` | `false` → `api.sandbox.push.apple.com` (Xcode/dev builds); `true` → `api.push.apple.com` (TestFlight/App Store) |
+
+**Two ways to supply the `.p8` — pick one:**
+
+```bash
+# A. No file on the server (recommended): paste it into .env as base64
+#    Linux/macOS:  base64 -w0 AuthKey_ABC123XYZ9.p8
+#    PowerShell:   [Convert]::ToBase64String([IO.File]::ReadAllBytes("AuthKey_ABC123XYZ9.p8"))
+APNS_KEY_BASE64=LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0t...
+
+# B. Mount the file: drop it in ./secrets/ (gitignored, mounted read-only at /run/secrets)
+APNS_KEY_FILE=/run/secrets/apns_auth_key.p8
+```
 
 ⚠️ **Device tokens are environment-specific.** A token from a dev build sent to
 the production host (or vice versa) is rejected with `400 BadDeviceToken` and the

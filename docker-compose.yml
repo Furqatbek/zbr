@@ -27,6 +27,18 @@ services:
       # CORS: defaults to "*" (no enforcement) for local launch. In prod set
       # CORS_ORIGINS in .env to explicit domains, e.g. https://app.example.com
       - CORS_ORIGINS=${CORS_ORIGINS:-*}
+      # Push — Android (FCM via Firebase) and iOS (APNs HTTP/2 + .p8).
+      # See docs/PUSH_DELIVERY.md. Supply the APNs key EITHER as base64 in .env
+      # (APNS_KEY_BASE64 — nothing on disk) OR as a file mounted at ./secrets.
+      - FIREBASE_ENABLED=${FIREBASE_ENABLED:-false}
+      - FIREBASE_CREDENTIALS_FILE=${FIREBASE_CREDENTIALS_FILE:-firebase-service-account.json}
+      - APNS_ENABLED=${APNS_ENABLED:-false}
+      - APNS_KEY_BASE64=${APNS_KEY_BASE64:-}
+      - APNS_KEY_FILE=${APNS_KEY_FILE:-}
+      - APNS_KEY_ID=${APNS_KEY_ID:-}
+      - APNS_TEAM_ID=${APNS_TEAM_ID:-}
+      - APNS_TOPIC=${APNS_TOPIC:-com.zbr.owner}
+      - APNS_PRODUCTION=${APNS_PRODUCTION:-false}
       # SMS Configuration (Eskiz.uz)
       - SMS_ENABLED=${SMS_ENABLED:-true}
       - SMS_EMAIL=${SMS_EMAIL:-}
@@ -36,6 +48,9 @@ services:
     volumes:
       - images-data:/app/images
       - ./data/images:/app/images
+      # Push credentials (.p8 / firebase JSON) if you supply them as files.
+      # Gitignored; the dir may be empty when using APNS_KEY_BASE64 instead.
+      - ./secrets:/run/secrets:ro
     depends_on:
       postgres:
         condition: service_healthy

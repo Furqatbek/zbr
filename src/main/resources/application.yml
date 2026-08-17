@@ -275,6 +275,9 @@ app:
   # environment-specific — a mismatch returns 400 BadDeviceToken.
   apns:
     enabled: ${APNS_ENABLED:false}
+    # Supply the .p8 EITHER as base64 in the environment (nothing on disk,
+    # secret-manager friendly) OR as a mounted file path. key-base64 wins.
+    key-base64: ${APNS_KEY_BASE64:}
     key-file: ${APNS_KEY_FILE:}
     key-id: ${APNS_KEY_ID:}
     team-id: ${APNS_TEAM_ID:}

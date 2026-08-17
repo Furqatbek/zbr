@@ -58,6 +58,7 @@ public class ApnsPushService {
 
     private final boolean enabled;
     private final String keyFile;
+    private final String keyBase64;
     private final String keyId;
     private final String teamId;
     private final String topic;
@@ -70,6 +71,7 @@ public class ApnsPushService {
             UserDeviceTokenRepository deviceTokenRepository,
             @Value("${app.apns.enabled:false}") boolean enabled,
             @Value("${app.apns.key-file:}") String keyFile,
+            @Value("${app.apns.key-base64:}") String keyBase64,
             @Value("${app.apns.key-id:}") String keyId,
             @Value("${app.apns.team-id:}") String teamId,
             @Value("${app.apns.topic:}") String topic,
@@ -77,6 +79,7 @@ public class ApnsPushService {
         this.deviceTokenRepository = deviceTokenRepository;
         this.enabled = enabled;
         this.keyFile = keyFile;
+        this.keyBase64 = keyBase64;
         this.keyId = keyId;
         this.teamId = teamId;
         this.topic = topic;
@@ -196,9 +199,23 @@ public class ApnsPushService {
         return cachedJwt;
     }
 
-    /** Load the PKCS#8 EC private key from the .p8 file. */
+    /**
+     * Load the PKCS#8 EC private key, either from the .p8 file (app.apns.key-file)
+     * or straight from configuration (app.apns.key-base64 / APNS_KEY_BASE64), which
+     * lets the key come from a secret manager without ever landing on disk.
+     */
     private PrivateKey loadPrivateKey() throws Exception {
-        String pem = Files.readString(Path.of(keyFile), StandardCharsets.UTF_8);
+        String pem;
+        if (keyBase64 != null && !keyBase64.isBlank()) {
+            // Accept either a base64-wrapped whole .p8 file or the bare PEM body.
+            String raw = keyBase64.trim();
+            pem = raw.contains("BEGIN PRIVATE KEY")
+                    ? raw
+                    : new String(Base64.getDecoder().decode(raw.replaceAll("\\s", "")),
+                            StandardCharsets.UTF_8);
+        } else {
+            pem = Files.readString(Path.of(keyFile), StandardCharsets.UTF_8);
+        }
         String base64 = pem
                 .replace("-----BEGIN PRIVATE KEY-----", "")
                 .replace("-----END PRIVATE KEY-----", "")
