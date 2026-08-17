@@ -5,6 +5,7 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: food-delivery-app
+    mem_limit: 1500m
     ports:
       - "8080:8080"
     environment:
@@ -73,6 +74,7 @@ services:
   postgres:
     image: postgres:15-alpine
     container_name: food-delivery-postgres
+    mem_limit: 768m
     ports:
       - "5432:5432"
     environment:
@@ -97,6 +99,7 @@ services:
   postgres-backup:
     image: postgres:15-alpine
     container_name: food-delivery-postgres-backup
+    mem_limit: 128m
     environment:
       - PGHOST=postgres
       - PGPORT=5432
@@ -134,6 +137,7 @@ services:
   redis:
     image: redis:7-alpine
     container_name: food-delivery-redis
+    mem_limit: 384m
     ports:
       - "6379:6379"
     command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
@@ -152,6 +156,7 @@ services:
   rabbitmq:
     image: rabbitmq:3.12-management-alpine
     container_name: food-delivery-rabbitmq
+    mem_limit: 512m
     ports:
       - "5672:5672"
       - "15672:15672"
@@ -176,6 +181,7 @@ services:
   postgres-exporter:
     image: prometheuscommunity/postgres-exporter:v0.15.0
     container_name: food-delivery-postgres-exporter
+    mem_limit: 64m
     ports:
       # Loopback-only: exposes DB internals, no auth. Prometheus scrapes it over
       # the compose network, so no public host port is needed.
@@ -193,6 +199,7 @@ services:
   redis-exporter:
     image: oliver006/redis_exporter:v1.55.0
     container_name: food-delivery-redis-exporter
+    mem_limit: 64m
     ports:
       # Loopback-only: scraped over the compose network, no public port needed.
       - "127.0.0.1:9121:9121"
@@ -209,6 +216,7 @@ services:
   prometheus:
     image: prom/prometheus:v2.47.0
     container_name: food-delivery-prometheus
+    mem_limit: 512m
     ports:
       # Loopback-only: no auth in front of Prometheus. Reach it via SSH tunnel or
       # an authenticated reverse proxy; never expose it publicly.
@@ -242,6 +250,7 @@ services:
   alertmanager:
     image: prom/alertmanager:v0.27.0
     container_name: food-delivery-alertmanager
+    mem_limit: 128m
     ports:
       # Loopback-only: Alertmanager has no auth and its UI can silence alerts.
       - "127.0.0.1:9093:9093"
@@ -265,6 +274,7 @@ services:
   grafana:
     image: grafana/grafana:10.1.5
     container_name: food-delivery-grafana
+    mem_limit: 256m
     ports:
       - "3000:3000"
     environment:

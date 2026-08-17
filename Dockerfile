@@ -50,8 +50,12 @@ EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
     CMD wget --no-verbose --tries=1 --spider http://localhost:8080/actuator/health || exit 1
 
-# JVM options for containers
-ENV JAVA_OPTS="-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:+UseG1GC -XX:+UseStringDeduplication -XX:TieredStopAtLevel=1"
+# JVM options for containers.
+# MaxRAMPercentage is read from the CONTAINER's memory limit — so the container
+# MUST have one (docker-compose sets mem_limit). Without a limit the JVM sizes
+# its heap against the whole host and starves Postgres/Redis/RabbitMQ on a small
+# VPS, which ends in the kernel OOM-killer. Override with JAVA_OPTS if needed.
+ENV JAVA_OPTS="-XX:+UseContainerSupport -XX:MaxRAMPercentage=70.0 -XX:+UseG1GC -XX:+UseStringDeduplication -XX:TieredStopAtLevel=1 -XX:+ExitOnOutOfMemoryError"
 
 # Run with Spring Boot layered jar launcher
 ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS org.springframework.boot.loader.launch.JarLauncher"]

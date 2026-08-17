@@ -5,6 +5,41 @@ Short guide to deploying this backend. Everything runs via `docker compose`.
 > ⚠️ **Run exactly ONE app instance** — state lives in JVM memory and local disk.
 > → [DEPLOYMENT_CONSTRAINTS.md](DEPLOYMENT_CONSTRAINTS.md)
 
+## 0. Server sizing
+
+The stack is 10 containers on one host (app, Postgres, Redis, RabbitMQ, backup
+job, Prometheus, Alertmanager, Grafana, 2 exporters). **Memory is the binding
+constraint, not CPU** — at MVP scale (~100 restaurants / 100 couriers / 100
+customers) the request load is trivial; the containers' baseline footprint is not.
+
+| | vCPU | RAM | SSD | Notes |
+|---|------|-----|-----|-------|
+| **Recommended** | 4 | **8 GB** | 60 GB | Comfortable; room for growth and a rebuild while running |
+| **Minimum** | 2 | **4 GB** | 40 GB | Works, but tight — see the trim option below |
+| Too small | — | 2 GB | — | The JVM alone wants ~1 GB; do not attempt |
+
+Per-container limits are set in `docker-compose.yml` (`mem_limit`) and total
+**~4.2 GB**, leaving headroom for the OS and Docker on an 8 GB box.
+
+**On a 4 GB VPS**, drop the monitoring stack (frees ~1 GB) and keep alerting via
+an external uptime monitor:
+
+```bash
+docker compose up -d app postgres postgres-backup redis rabbitmq
+```
+
+Disk goes mostly to: Docker images (~3 GB), Prometheus 15-day retention (~2 GB),
+7 days of DB backups, and **restaurant/menu images on local disk** — 100
+restaurants with photos is roughly 0.5–1 GB and grows.
+
+> ⚠️ **Never run the app container without a memory limit.** The JVM sizes its
+> heap from the container limit (`MaxRAMPercentage`); with no limit it sizes
+> against the *whole host*, claims most of it, and the kernel OOM-killer takes
+> out Postgres. The compose file sets these — keep them if you edit it.
+
+Vertical scaling is the only option: the app tier is **single-instance**
+([DEPLOYMENT_CONSTRAINTS.md](DEPLOYMENT_CONSTRAINTS.md)).
+
 ## 1. Configure secrets
 
 ```bash
