@@ -256,6 +256,10 @@ app:
   # Firebase Configuration for FCM push notifications (raw FCM/APNs tokens)
   firebase:
     enabled: ${FIREBASE_ENABLED:false}
+    # Service-account key (SECRET — not the client-side google-services.json).
+    # Supply EITHER as base64 in the environment (nothing on disk) OR as a
+    # mounted file path. credentials-base64 wins.
+    credentials-base64: ${FIREBASE_CREDENTIALS_BASE64:}
     credentials-file: ${FIREBASE_CREDENTIALS_FILE:firebase-service-account.json}
 
   # Expo Push transport for ExponentPushToken[...] device tokens (the mobile

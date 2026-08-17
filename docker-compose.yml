@@ -31,6 +31,7 @@ services:
       # See docs/PUSH_DELIVERY.md. Supply the APNs key EITHER as base64 in .env
       # (APNS_KEY_BASE64 — nothing on disk) OR as a file mounted at ./secrets.
       - FIREBASE_ENABLED=${FIREBASE_ENABLED:-false}
+      - FIREBASE_CREDENTIALS_BASE64=${FIREBASE_CREDENTIALS_BASE64:-}
       - FIREBASE_CREDENTIALS_FILE=${FIREBASE_CREDENTIALS_FILE:-firebase-service-account.json}
       - APNS_ENABLED=${APNS_ENABLED:-false}
       - APNS_KEY_BASE64=${APNS_KEY_BASE64:-}

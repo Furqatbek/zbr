@@ -96,11 +96,35 @@ came from.
 
 ### Android / FCM
 
-`FIREBASE_ENABLED=true` + `FIREBASE_CREDENTIALS_FILE` (service-account JSON — **secret**).
-Optional: `PUSH_ANDROID_CHANNEL_ID`, `PUSH_ANDROID_SOUND`.
+| Env var | Meaning |
+|---------|---------|
+| `FIREBASE_ENABLED` | `true` to enable (default `false`) |
+| `FIREBASE_CREDENTIALS_BASE64` | service-account JSON, base64 — **SECRET**. Nothing on disk; wins over the file |
+| `FIREBASE_CREDENTIALS_FILE` | alternative: path to the mounted JSON (e.g. `/run/secrets/firebase-service-account.json`) |
+| `PUSH_ANDROID_CHANNEL_ID`, `PUSH_ANDROID_SOUND` | optional overrides |
 
-If Firebase is disabled, Android pushes are logged instead of sent — iOS and Expo
-delivery are unaffected.
+The credential is the **service-account private key** from
+Firebase Console → Project Settings → Service accounts → *Generate new private
+key*. It is **not** `google-services.json` (that one is client-side, ships inside
+the app, and is not a secret). It must belong to the same Firebase project as the
+app.
+
+**Two ways to supply it — pick one:**
+
+```bash
+# A. No file on the server (recommended)
+#    Linux/macOS:  base64 -w0 firebase-service-account.json
+#    PowerShell:   [Convert]::ToBase64String([IO.File]::ReadAllBytes("firebase-service-account.json"))
+FIREBASE_CREDENTIALS_BASE64=eyJ0eXBlIjoic2VydmljZV9hY2NvdW50Iiw...
+
+# B. Mount the file into ./secrets/ (gitignored, mounted read-only at /run/secrets)
+FIREBASE_CREDENTIALS_FILE=/run/secrets/firebase-service-account.json
+```
+
+⚠️ With `FIREBASE_ENABLED=true` and **no** usable credential, Firebase init fails
+in `@PostConstruct` and **the whole app will not start** — set the flag and the
+credential together. With Firebase disabled, Android pushes are logged instead of
+sent and iOS/Expo delivery is unaffected.
 
 ## Not yet implemented (needs a decision)
 
