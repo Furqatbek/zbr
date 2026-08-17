@@ -1,6 +1,7 @@
 package com.fooddelivery.notification.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fooddelivery.notification.entity.UserDeviceToken;
 import com.fooddelivery.notification.repository.UserDeviceTokenRepository;
 import io.jsonwebtoken.Jwts;
 import lombok.extern.slf4j.Slf4j;
@@ -100,7 +101,7 @@ public class ApnsPushService {
      *
      * @param data extra top-level keys (e.g. {@code type}, {@code orderId})
      */
-    public void send(String title, String body, Map<String, String> data, List<String> deviceTokens) {
+    public void send(String title, String body, Map<String, String> data, List<UserDeviceToken> deviceTokens) {
         if (!enabled) {
             log.warn("APNs disabled; skipping {} iOS token(s). Set app.apns.* to enable.", deviceTokens.size());
             return;
@@ -112,8 +113,13 @@ public class ApnsPushService {
             log.error("APNs payload build failed: {}", e.getMessage());
             return;
         }
-        for (String deviceToken : deviceTokens) {
-            sendOne(deviceToken, payload);
+        for (UserDeviceToken device : deviceTokens) {
+            // One .p8 is scoped to the Apple TEAM, so it can serve several apps —
+            // but each push must carry that app's own bundle id as apns-topic.
+            String appTopic = device.getAppId() != null && !device.getAppId().isBlank()
+                    ? device.getAppId()
+                    : topic;
+            sendOne(device.getDeviceToken(), payload, appTopic);
         }
     }
 
@@ -142,14 +148,14 @@ public class ApnsPushService {
         return objectMapper.writeValueAsString(root);
     }
 
-    private void sendOne(String deviceToken, String payload) {
+    private void sendOne(String deviceToken, String payload, String apnsTopic) {
         try {
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create(host + "/3/device/" + deviceToken))
                     .header("authorization", "bearer " + providerToken())
                     .header("apns-push-type", "alert")
                     .header("apns-priority", "10")
-                    .header("apns-topic", topic)
+                    .header("apns-topic", apnsTopic)
                     .header("content-type", "application/json")
                     .timeout(Duration.ofSeconds(10))
                     .POST(HttpRequest.BodyPublishers.ofString(payload, StandardCharsets.UTF_8))

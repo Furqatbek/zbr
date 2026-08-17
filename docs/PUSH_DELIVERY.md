@@ -18,8 +18,14 @@ Routing is **per registered device**, so all three coexist:
 `POST /api/v1/device-tokens` (authenticated)
 
 ```json
-{ "token": "<raw FCM or APNs token>", "platform": "ANDROID", "deviceId": "<stable device id>" }
+{ "token": "<raw FCM or APNs token>", "platform": "ANDROID",
+  "deviceId": "<stable device id>", "appId": "com.zbr.owner" }
 ```
+
+- **`appId`** is the app's bundle identifier / package name. **iOS apps must send
+  it** when several apps share one APNs key — it becomes the `apns-topic`. If
+  omitted, the configured default `APNS_TOPIC` is used (fine when only one iOS
+  app exists). Aliases accepted: `bundleId`, `packageName`.
 
 - Legacy field names `deviceToken` / `deviceType` are still accepted (aliases).
 - **One row per `deviceId`**: registration upserts on `(userId, deviceId)`, so an
@@ -74,7 +80,7 @@ omitted rather than sent.
 | `APNS_KEY_FILE` | alternative: path to the mounted `.p8` (e.g. `/run/secrets/apns_auth_key.p8`) |
 | `APNS_KEY_ID` | 10-char Key ID from the Apple Developer portal |
 | `APNS_TEAM_ID` | Apple Team ID (e.g. `VQ56W9S7S9`) |
-| `APNS_TOPIC` | bundle id (default `com.zbr.owner`) |
+| `APNS_TOPIC` | **default** bundle id (default `com.zbr.owner`) — used only for tokens registered without an `appId` |
 | `APNS_PRODUCTION` | `false` → `api.sandbox.push.apple.com` (Xcode/dev builds); `true` → `api.push.apple.com` (TestFlight/App Store) |
 
 **Two ways to supply the `.p8` — pick one:**
@@ -93,6 +99,25 @@ APNS_KEY_FILE=/run/secrets/apns_auth_key.p8
 the production host (or vice versa) is rejected with `400 BadDeviceToken` and the
 token is pruned. Point `APNS_PRODUCTION` at the environment the installed build
 came from.
+
+### Serving all three apps (customer / vendor / courier)
+
+You do **not** need three keys:
+
+- **iOS — one `.p8` is enough.** An APNs auth key is scoped to your Apple **Team**,
+  not to an app, so it can push to every bundle id under that team. (Apple caps
+  you at 2 auth keys anyway.) The per-app difference is the **`apns-topic`
+  header**, which the backend takes from each token's `appId`. Each app must
+  therefore send its own bundle id at registration.
+- **Android — one Firebase project is enough.** Register all three Android apps
+  in the same project (each gets its own client-side `google-services.json`); the
+  backend needs only **one** service-account key. FCM routes by the registration
+  token itself, so no per-app backend config is required.
+
+⚠️ If an iOS app registers **without** `appId`, it gets the default `APNS_TOPIC`.
+A wrong topic is rejected by Apple (`400 BadDeviceToken` / `403 TopicDisallowed`)
+and the dead-token pruning then **deactivates that valid token** — the symptom is
+"push worked once, then stopped for one app".
 
 ### Android / FCM
 

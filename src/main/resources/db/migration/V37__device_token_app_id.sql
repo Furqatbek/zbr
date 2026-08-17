@@ -1,0 +1,12 @@
+-- Which app a device token belongs to (iOS bundle identifier / Android package).
+--
+-- One APNs .p8 auth key is scoped to the Apple TEAM, so it can push to every app
+-- under that team — but each push must carry that app's own bundle id in the
+-- `apns-topic` header. With three apps (customer / vendor / courier) a single
+-- global topic would make pushes to the other two fail with 400 BadDeviceToken /
+-- 403 TopicDisallowed, and the dead-token pruning would then deactivate perfectly
+-- valid tokens. Storing the app id per token lets each push use the right topic.
+--
+-- Nullable: tokens registered before the apps send it fall back to the configured
+-- default topic (app.apns.topic).
+ALTER TABLE user_device_tokens ADD COLUMN IF NOT EXISTS app_id VARCHAR(200);

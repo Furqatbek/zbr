@@ -49,6 +49,15 @@ public class UserDeviceToken {
     @Column(name = "device_name", length = 100)
     private String deviceName;
 
+    /**
+     * Which app this token belongs to — the iOS bundle identifier / Android
+     * package name (e.g. {@code com.zbr.owner}). Used as the APNs {@code apns-topic}
+     * so one .p8 team key can serve several apps. Null falls back to
+     * {@code app.apns.topic}.
+     */
+    @Column(name = "app_id", length = 200)
+    private String appId;
+
     @Column(name = "app_version", length = 20)
     private String appVersion;
 

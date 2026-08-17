@@ -99,10 +99,11 @@ public class PushNotificationConsumer {
                 .filter(ExpoPushService::isExpoToken)
                 .collect(Collectors.toList());
 
-        List<String> apnsTokens = devices.stream()
+        // Passed as entities, not raw strings: each carries its own appId, which
+        // becomes the apns-topic so one .p8 team key can serve all three apps.
+        List<UserDeviceToken> apnsDevices = devices.stream()
                 .filter(d -> !ExpoPushService.isExpoToken(d.getDeviceToken()))
                 .filter(d -> d.getDeviceType() == UserDeviceToken.DeviceType.IOS)
-                .map(UserDeviceToken::getDeviceToken)
                 .collect(Collectors.toList());
 
         List<String> fcmTokens = devices.stream()
@@ -114,8 +115,8 @@ public class PushNotificationConsumer {
         if (!expoTokens.isEmpty()) {
             expoPushService.send(request.getSubject(), request.getBody(), data, expoTokens);
         }
-        if (!apnsTokens.isEmpty()) {
-            apnsPushService.send(request.getSubject(), request.getBody(), data, apnsTokens);
+        if (!apnsDevices.isEmpty()) {
+            apnsPushService.send(request.getSubject(), request.getBody(), data, apnsDevices);
         }
         if (!fcmTokens.isEmpty()) {
             sendFcm(request, fcmTokens, data);

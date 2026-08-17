@@ -42,6 +42,7 @@ public class DeviceTokenService {
                 token.setActive(true);
                 token.setDeviceType(request.getDeviceType() != null ? request.getDeviceType() : token.getDeviceType());
                 token.setDeviceName(request.getDeviceName() != null ? request.getDeviceName() : token.getDeviceName());
+                token.setAppId(request.getAppId() != null ? request.getAppId() : token.getAppId());
                 token.setAppVersion(request.getAppVersion() != null ? request.getAppVersion() : token.getAppVersion());
                 token.setLastUsedAt(LocalDateTime.now());
                 log.debug("Updated token for user {} device {}", userId, request.getDeviceId());
@@ -60,6 +61,7 @@ public class DeviceTokenService {
                 token.setActive(true);
                 token.setDeviceType(request.getDeviceType() != null ? request.getDeviceType() : token.getDeviceType());
                 token.setDeviceName(request.getDeviceName() != null ? request.getDeviceName() : token.getDeviceName());
+                token.setAppId(request.getAppId() != null ? request.getAppId() : token.getAppId());
                 token.setAppVersion(request.getAppVersion() != null ? request.getAppVersion() : token.getAppVersion());
                 if (request.getDeviceId() != null) token.setDeviceId(request.getDeviceId());
                 token.setLastUsedAt(LocalDateTime.now());
@@ -71,6 +73,7 @@ public class DeviceTokenService {
                 token.setActive(true);
                 token.setDeviceType(request.getDeviceType() != null ? request.getDeviceType() : token.getDeviceType());
                 token.setDeviceName(request.getDeviceName() != null ? request.getDeviceName() : token.getDeviceName());
+                token.setAppId(request.getAppId() != null ? request.getAppId() : token.getAppId());
                 token.setAppVersion(request.getAppVersion() != null ? request.getAppVersion() : token.getAppVersion());
                 if (request.getDeviceId() != null) token.setDeviceId(request.getDeviceId());
                 token.setLastUsedAt(LocalDateTime.now());
@@ -86,6 +89,7 @@ public class DeviceTokenService {
                 .deviceId(request.getDeviceId())
                 .deviceType(request.getDeviceType() != null ? request.getDeviceType() : UserDeviceToken.DeviceType.UNKNOWN)
                 .deviceName(request.getDeviceName())
+                .appId(request.getAppId())
                 .appVersion(request.getAppVersion())
                 .active(true)
                 .lastUsedAt(LocalDateTime.now())

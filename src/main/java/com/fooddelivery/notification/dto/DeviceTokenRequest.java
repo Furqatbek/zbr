@@ -39,6 +39,16 @@ public class DeviceTokenRequest {
     @Size(max = 100, message = "Device name must not exceed 100 characters")
     private String deviceName;
 
+    /**
+     * Which app is registering — the iOS bundle identifier / Android package
+     * (e.g. {@code com.zbr.owner}). Required for iOS when several apps share one
+     * APNs key: it becomes the {@code apns-topic}. Omit and the configured
+     * default topic is used.
+     */
+    @JsonAlias({"bundleId", "packageName"})
+    @Size(max = 200, message = "App id must not exceed 200 characters")
+    private String appId;
+
     @Size(max = 20, message = "App version must not exceed 20 characters")
     private String appVersion;
 
