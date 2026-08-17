@@ -16,6 +16,7 @@ and Swagger (`/swagger-ui.html` on stage).
 | `GET /api/v1/consumers/{id}` is now ADMIN/PLATFORM-only | Customer | Use the `/me` profile endpoints for the logged-in user. |
 | No per-event SMS/email anymore | All | Order/status updates arrive **only** via WebSocket + push. Don't tell users to "check SMS" (OTP SMS for login still works). |
 | Online card payment is **not** available in this MVP (no acquiring contract) | Customer, Vendor | Offer **CASH only** as the payment method (`paymentMethod: "CASH"` on `POST /{orderId}/pay`). Hide/disable card UI. |
+| iOS device-token registration must send `appId` (your bundle id) | **All (iOS)** | One APNs key serves all three apps, so each push needs your app's own `apns-topic`. Omit it and your tokens get rejected **and auto-deactivated**. → [see below](#push-notifications--device-token-registration-all-teams) |
 
 ## New: Idempotency-Key on order creation (Customer team — strongly recommended)
 
@@ -75,6 +76,41 @@ the order has been READY.
 > was also the suspected unread-badge double-count).
 
 ---
+
+## Push notifications — device token registration (all teams)
+
+Register after login and again whenever the OS rotates the token:
+
+```
+POST /api/v1/device-tokens
+{ "token": "<raw token>", "platform": "IOS", "deviceId": "<stable device id>",
+  "appId": "com.zbr.owner" }
+```
+
+| Field | Notes |
+|-------|-------|
+| `token` | Raw **FCM** registration token (Android) or raw **APNs** device token, 64-char hex (iOS). `ExponentPushToken[...]` is still accepted and routed via Expo, but native tokens are preferred. |
+| `platform` | `ANDROID` \| `IOS` (alias: `deviceType`) |
+| `deviceId` | Stable per-device id. Registration **upserts on (user, deviceId)** — a rotated token replaces the row instead of creating a duplicate (duplicates = N copies of every push). |
+| `appId` | **iOS: required.** Your bundle identifier. Aliases: `bundleId`, `packageName`. |
+
+Unregister on logout: `DELETE /api/v1/device-tokens` with `{"deviceToken": "..."}`.
+
+### ⚠️ iOS: `appId` is mandatory once more than one app exists
+
+One APNs `.p8` key serves **all three apps** (the key is scoped to the Apple Team,
+not to an app), but every push must carry that app's own bundle id in the
+`apns-topic` header — the backend takes it from the `appId` you registered.
+
+If you omit `appId`, your tokens fall back to the backend's single default topic.
+For two of the three apps that topic is wrong, Apple rejects the push
+(`400 BadDeviceToken` / `403 TopicDisallowed`), and the backend's dead-token
+pruning then **deactivates the token**. The symptom is *"push worked once, then
+stopped forever for our app"*. Send `appId` and this cannot happen.
+
+Android needs no equivalent — all three Android apps live in **one Firebase
+project** (each with its own client-side `google-services.json`), and FCM routes
+by the registration token itself.
 
 ## Team 1 — Customer app
 
