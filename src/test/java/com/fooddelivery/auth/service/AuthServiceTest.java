@@ -10,6 +10,7 @@ import com.fooddelivery.auth.repository.PasswordResetTokenRepository;
 import com.fooddelivery.auth.repository.RefreshTokenRepository;
 import com.fooddelivery.auth.repository.UserRepository;
 import com.fooddelivery.auth.security.JwtService;
+import com.fooddelivery.auth.entity.Role;
 import com.fooddelivery.common.exception.BusinessException;
 import com.fooddelivery.common.exception.DuplicateResourceException;
 import com.fooddelivery.notification.service.NotificationService;
@@ -31,7 +32,12 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
+
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -62,6 +68,23 @@ class AuthServiceTest {
     @Nested
     @DisplayName("register")
     class Register {
+
+        @ParameterizedTest
+        @EnumSource(value = Role.class, names = {"ADMIN", "PLATFORM", "SYSTEM",
+                "OPERATIONS_MANAGER", "FINANCE_MANAGER", "SECURITY_ANALYST", "RESTAURANT_STAFF"})
+        @DisplayName("refuses to self-register a privileged role (public endpoint)")
+        void rejectsPrivilegedSelfRegistration(Role privileged) {
+            RegisterRequest request = RegisterRequest.builder()
+                    .email("attacker@example.com")
+                    .phone("+998900000001")
+                    .role(privileged)
+                    .build();
+
+            assertThatThrownBy(() -> authService.register(request, null))
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessageContaining("cannot be self-registered");
+            verify(userRepository, never()).save(any());
+        }
 
         @Test
         @DisplayName("rejects a duplicate email")

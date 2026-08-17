@@ -39,6 +39,14 @@ import java.util.UUID;
 @Slf4j
 public class AuthService {
 
+    /**
+     * Roles a user may assign to themselves through the PUBLIC /auth/register
+     * endpoint. Everything else (ADMIN, PLATFORM, the manager/analyst roles,
+     * SYSTEM, RESTAURANT_STAFF) must be granted by an admin.
+     */
+    private static final Set<Role> SELF_REGISTERABLE_ROLES =
+            EnumSet.of(Role.CONSUMER, Role.COURIER, Role.RESTAURANT_OWNER);
+
     private final UserRepository userRepository;
     private final RefreshTokenRepository refreshTokenRepository;
     private final PasswordResetTokenRepository passwordResetTokenRepository;
@@ -65,9 +73,19 @@ public class AuthService {
             throw new DuplicateResourceException("User", "phone", request.getPhone());
         }
 
-        // Create user
+        // Create user. SECURITY: /api/v1/auth/register is a PUBLIC endpoint, so the
+        // client-supplied role must never be trusted — otherwise anyone could
+        // register as ADMIN/PLATFORM and take over. Only the self-service app roles
+        // are accepted here; privileged roles are granted by an admin afterwards
+        // (POST /api/v1/users/{id}/roles/{role}).
+        Role requestedRole = request.getRole() != null ? request.getRole() : Role.CONSUMER;
+        if (!SELF_REGISTERABLE_ROLES.contains(requestedRole)) {
+            log.warn("SECURITY: rejected self-registration with privileged role {} for email {}",
+                    requestedRole, request.getEmail());
+            throw new BusinessException("Role " + requestedRole + " cannot be self-registered");
+        }
         Set<Role> roles = new HashSet<>();
-        roles.add(request.getRole() != null ? request.getRole() : Role.CONSUMER);
+        roles.add(requestedRole);
 
         User user = User.builder()
                 .email(request.getEmail())
