@@ -84,5 +84,7 @@ idempotent, so a brief mid-deploy retry from a client is safe.
 | Alertmanager won't start | Missing `docker/alertmanager/secrets/telegram_bot_token`. Affects alert delivery only, not the app. |
 | App won't start, no obvious cause | `docker compose logs app` — the deepest `Caused by:` names the real failure. |
 
+Onboarding the first vendor, courier and order → [GO_LIVE.md](GO_LIVE.md).
+
 Day-2 operations (backups, alerts, incident response) →
 [OPERATIONS.md](OPERATIONS.md).

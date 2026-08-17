@@ -11,6 +11,7 @@ to the detailed doc. Read the **hard constraint** first; it shapes everything.
 | Concern | Doc |
 |---------|-----|
 | **Deploying (start here)** | [DEPLOYMENT.md](DEPLOYMENT.md) |
+| **Going live: first vendor/courier/order** | [GO_LIVE.md](GO_LIVE.md) |
 | Single-instance mandate & what breaks with 2+ nodes | [DEPLOYMENT_CONSTRAINTS.md](DEPLOYMENT_CONSTRAINTS.md) |
 | Push notifications (FCM / APNs) | [PUSH_DELIVERY.md](PUSH_DELIVERY.md) |
 | Mobile app integration contract | [MOBILE_INTEGRATION.md](MOBILE_INTEGRATION.md) |
