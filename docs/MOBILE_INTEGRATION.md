@@ -154,3 +154,29 @@ the order has been READY.
   when you send the Idempotency-Key).
 - One backend serves all three apps on stage — coordinate breaking-change
   testing in a shared channel before shipping app updates.
+- `POST /api/v1/auth/refresh` returns the **same** refresh token (it is not
+  rotated) — keep reusing it; don't expect a new one back.
+
+## Not implemented (don't build UI against these yet)
+
+Confirmed absent on the backend — keep them feature-flagged off:
+
+- **No self-push** — the push pipeline addresses a *user*, not the originating
+  *device*, so the vendor who caused an event still receives its push. Clients
+  dedupe by `orderId` against the WebSocket event.
+- **Vendor review reply** — no `POST /restaurants/{id}/reviews/{reviewId}/reply`.
+- **Vendor → courier rating** — the only rating endpoint is
+  `POST /couriers/me/orders/{orderId}/rating` (courier → order, a different
+  direction).
+- **Notification preferences** — `category` is a read-time filter only; nothing
+  is persisted or honored server-side at send time.
+- **Financial report `refunds` / `cancellations` fields** and **`soldItems[]`
+  breakdown** — not on the report DTO.
+- **Staff accounts CRUD** — no staff entity/endpoints; only the restaurant owner
+  has access today.
+
+## Known backend caveat
+
+A courier whose status is `SUSPENDED` / `PENDING_APPROVAL` can currently clear it
+themselves via `PATCH /couriers/me/status`. Harmless while no admin suspension
+flow exists; a server-side guard must land with the first suspension feature.

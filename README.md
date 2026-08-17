@@ -62,10 +62,11 @@ The SMS integration uses RabbitMQ for async message delivery with retry and dead
 
 ## Getting Started
 
-> **Deploying or operating this service?** Start with the
-> **[Operations Runbook](docs/OPERATIONS.md)** — it covers required secrets,
-> bring-up, backups, alerting, and the single-instance constraint. The quick
-> start below is the bare minimum for a local spin-up.
+> **Deploying?** → **[Deployment guide](docs/DEPLOYMENT.md)** (secrets, bring-up,
+> verification, production steps).
+> **Running it day to day?** → **[Operations runbook](docs/OPERATIONS.md)**
+> (backups, alerting, incident response).
+> The quick start below is the bare minimum for a local spin-up.
 
 ### Prerequisites
 

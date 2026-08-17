@@ -10,7 +10,10 @@ to the detailed doc. Read the **hard constraint** first; it shapes everything.
 
 | Concern | Doc |
 |---------|-----|
+| **Deploying (start here)** | [DEPLOYMENT.md](DEPLOYMENT.md) |
 | Single-instance mandate & what breaks with 2+ nodes | [DEPLOYMENT_CONSTRAINTS.md](DEPLOYMENT_CONSTRAINTS.md) |
+| Push notifications (FCM / APNs) | [PUSH_DELIVERY.md](PUSH_DELIVERY.md) |
+| Mobile app integration contract | [MOBILE_INTEGRATION.md](MOBILE_INTEGRATION.md) |
 | Backups, restore, and the restore drill | [BACKUP_RESTORE.md](BACKUP_RESTORE.md) |
 | Alerting (Telegram) and monitoring access | [ALERTING.md](ALERTING.md) |
 | Promoting the V32 foreign keys to validated | [../scripts/db/README.md](../scripts/db/README.md) |
