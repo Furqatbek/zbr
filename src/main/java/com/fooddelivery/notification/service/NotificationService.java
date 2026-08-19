@@ -234,16 +234,6 @@ public class NotificationService {
         );
     }
 
-    /**
-     * Queue SMS notification for async processing.
-     */
-    public void queueSmsNotification(NotificationRequest request) {
-        rabbitTemplate.convertAndSend(
-                RabbitMQConfig.NOTIFICATION_EXCHANGE,
-                RabbitMQConfig.NOTIFICATION_SMS_KEY,
-                request
-        );
-    }
 
     /**
      * Queue push notification for async processing.

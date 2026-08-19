@@ -18,7 +18,8 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 import java.nio.charset.StandardCharsets;
-import java.util.Map;
+import java.util.EnumSet;
+import java.util.Set;
 import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -43,6 +44,14 @@ public class SmsMessageConsumer {
     private static final Pattern OTP_CODE_PATTERN = Pattern.compile("\\b(\\d{4,6})\\b");
 
     /**
+     * SMS is reserved for auth/security codes the user is actively waiting for.
+     * Business notifications (orders, delivery, promos, welcome) are delivered by
+     * push + WebSocket only, so anything outside this set is dropped.
+     */
+    private static final Set<SmsMessage.SmsType> AUTH_SMS_TYPES =
+            EnumSet.of(SmsMessage.SmsType.OTP, SmsMessage.SmsType.PASSWORD_RESET);
+
+    /**
      * Process SMS notification requests from the queue.
      */
     @RabbitListener(
@@ -59,46 +68,30 @@ public class SmsMessageConsumer {
             }
         }
 
-        // Handle both NotificationRequest (new messages) and SmsMessage (retries)
+        // SMS is reserved for auth/security codes (OTP, password reset). Everything
+        // else — order confirmations, status updates, delivery updates, welcome
+        // messages — is delivered by push + WebSocket only.
         if (payload instanceof SmsMessage smsMessage) {
+            if (!AUTH_SMS_TYPES.contains(smsMessage.getType())) {
+                log.debug("Dropping non-auth SMS (type={}): notifications go out via push only",
+                        smsMessage.getType());
+                return;
+            }
             handleSmsRetry(smsMessage);
             return;
         }
 
-        if (!(payload instanceof NotificationRequest request)) {
-            log.warn("Unknown message type received: {}", payload.getClass().getName());
+        // NotificationRequest on this queue is always a business-notification
+        // fan-out. Drop it — this also drains any stale messages left in the
+        // durable queue from before SMS notifications were switched off.
+        if (payload instanceof NotificationRequest request) {
+            log.debug("Dropping SMS notification request (subject={}): notifications go out via push only",
+                    request.getSubject());
             return;
         }
 
-        log.info("Received SMS notification request: phone={}, subject={}",
-                maskPhone(request.getPhone()), request.getSubject());
-
-        if (request.getPhone() == null || request.getPhone().isBlank()) {
-            log.warn("SMS notification skipped: no phone number provided");
-            return;
-        }
-
-        if (request.getBody() == null || request.getBody().isBlank()) {
-            log.warn("SMS notification skipped: no message body provided");
-            return;
-        }
-
-        try {
-            SmsMessage smsMessage = SmsMessage.builder()
-                    .messageId(UUID.randomUUID().toString())
-                    .phoneNumber(request.getPhone())
-                    .message(buildSmsContent(request))
-                    .type(determineSmsType(request))
-                    .referenceId(request.getReferenceId())
-                    .referenceType(request.getReferenceType())
-                    .priority(request.getPriority() != null ? request.getPriority() : 5)
-                    .build();
-
-            sendWithRetry(smsMessage, 0);
-
-        } catch (Exception e) {
-            log.error("Failed to process SMS notification: {}", e.getMessage(), e);
-        }
+        log.warn("Unknown message type received: {}", payload.getClass().getName());
+        return;
     }
 
     /**
@@ -218,46 +211,7 @@ public class SmsMessageConsumer {
         );
     }
 
-    /**
-     * Build SMS content from notification request.
-     */
-    private String buildSmsContent(NotificationRequest request) {
-        StringBuilder content = new StringBuilder();
 
-        if (request.getSubject() != null && !request.getSubject().isBlank()) {
-            content.append(request.getSubject()).append("\n");
-        }
-
-        content.append(request.getBody());
-
-        // SMS character limit consideration (160 for single SMS, 153 for multi-part)
-        String message = content.toString();
-        if (message.length() > 450) {
-            message = message.substring(0, 447) + "...";
-        }
-
-        return message;
-    }
-
-    /**
-     * Determine SMS type from notification request.
-     */
-    private SmsMessage.SmsType determineSmsType(NotificationRequest request) {
-        if (request.getReferenceType() == null) {
-            return SmsMessage.SmsType.GENERAL;
-        }
-
-        return switch (request.getReferenceType().toUpperCase()) {
-            case "ORDER" -> SmsMessage.SmsType.ORDER_STATUS_UPDATE;
-            case "ORDER_CONFIRMATION" -> SmsMessage.SmsType.ORDER_CONFIRMATION;
-            case "PAYMENT" -> SmsMessage.SmsType.PAYMENT_CONFIRMATION;
-            case "DELIVERY" -> SmsMessage.SmsType.DELIVERY_UPDATE;
-            case "OTP" -> SmsMessage.SmsType.OTP;
-            case "PASSWORD_RESET" -> SmsMessage.SmsType.PASSWORD_RESET;
-            case "WELCOME" -> SmsMessage.SmsType.WELCOME;
-            default -> SmsMessage.SmsType.GENERAL;
-        };
-    }
 
     /**
      * Mask phone number for logging.
