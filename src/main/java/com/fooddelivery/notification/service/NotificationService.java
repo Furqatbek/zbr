@@ -14,7 +14,8 @@ import org.springframework.stereotype.Service;
 
 /**
  * Service for sending notifications via various channels.
- * Supports email, SMS, and push notifications.
+ * Supports email and push notifications. SMS is NOT a notification channel —
+ * it is reserved for auth codes (OTP / password reset) in the sms module.
  */
 @Service
 @RequiredArgsConstructor

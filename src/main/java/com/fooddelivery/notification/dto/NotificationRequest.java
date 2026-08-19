@@ -25,7 +25,7 @@ public class NotificationRequest implements Serializable {
     private String deviceToken;
     private String subject;
     private String body;
-    private String channel; // email, sms, push
+    private String channel; // email | push  (SMS is auth-codes only, not a notification channel)
     private String templateId;
     private Map<String, Object> templateData;
     private Integer priority; // 1-10
