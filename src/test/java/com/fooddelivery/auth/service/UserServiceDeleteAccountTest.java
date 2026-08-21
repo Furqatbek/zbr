@@ -5,7 +5,14 @@ import com.fooddelivery.auth.entity.UserStatus;
 import com.fooddelivery.auth.repository.ConsumerAddressRepository;
 import com.fooddelivery.auth.repository.RefreshTokenRepository;
 import com.fooddelivery.auth.repository.UserRepository;
+import com.fooddelivery.courier.entity.Courier;
+import com.fooddelivery.courier.entity.CourierStatus;
+import com.fooddelivery.courier.repository.CourierRepository;
 import com.fooddelivery.notification.repository.UserDeviceTokenRepository;
+import com.fooddelivery.order.repository.OrderRepository;
+import com.fooddelivery.restaurant.entity.Restaurant;
+import com.fooddelivery.restaurant.entity.RestaurantStatus;
+import com.fooddelivery.restaurant.repository.RestaurantRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -41,6 +48,9 @@ class UserServiceDeleteAccountTest {
     @Mock private RefreshTokenRepository refreshTokenRepository;
     @Mock private UserDeviceTokenRepository deviceTokenRepository;
     @Mock private ConsumerAddressRepository consumerAddressRepository;
+    @Mock private CourierRepository courierRepository;
+    @Mock private RestaurantRepository restaurantRepository;
+    @Mock private OrderRepository orderRepository;
 
     @InjectMocks private UserService userService;
 
@@ -63,6 +73,8 @@ class UserServiceDeleteAccountTest {
         User user = existingUser();
         when(userRepository.findById(42L)).thenReturn(Optional.of(user));
         when(deviceTokenRepository.findByUserId(42L)).thenReturn(List.of());
+        when(courierRepository.findByUserId(42L)).thenReturn(Optional.empty());
+        when(restaurantRepository.findByOwnerId(42L)).thenReturn(List.of());
 
         userService.deleteAccount(42L);
 
@@ -97,9 +109,81 @@ class UserServiceDeleteAccountTest {
         var token = new com.fooddelivery.notification.entity.UserDeviceToken();
         when(userRepository.findById(42L)).thenReturn(Optional.of(user));
         when(deviceTokenRepository.findByUserId(42L)).thenReturn(List.of(token));
+        when(courierRepository.findByUserId(42L)).thenReturn(Optional.empty());
+        when(restaurantRepository.findByOwnerId(42L)).thenReturn(List.of());
 
         userService.deleteAccount(42L);
 
         verify(deviceTokenRepository).delete(token);
+    }
+
+    @Test
+    @DisplayName("courier: erases licence/vehicle/location and goes offline")
+    void erasesCourierProfile() {
+        User user = existingUser();
+        Courier courier = new Courier();
+        courier.setId(7L);
+        courier.setVehicleNumber("01A123BC");
+        courier.setLicenseNumber("AA1234567");
+        courier.setCurrentLat(new java.math.BigDecimal("41.31"));
+        courier.setCurrentLng(new java.math.BigDecimal("69.24"));
+        courier.setStatus(CourierStatus.AVAILABLE);
+
+        when(userRepository.findById(42L)).thenReturn(Optional.of(user));
+        when(deviceTokenRepository.findByUserId(42L)).thenReturn(List.of());
+        when(courierRepository.findByUserId(42L)).thenReturn(Optional.of(courier));
+        when(orderRepository.findActiveOrdersByCourier(anyLong(), any())).thenReturn(List.of());
+        when(restaurantRepository.findByOwnerId(42L)).thenReturn(List.of());
+
+        userService.deleteAccount(42L);
+
+        assertThat(courier.getVehicleNumber()).isNull();
+        assertThat(courier.getLicenseNumber()).isNull();
+        assertThat(courier.getCurrentLat()).isNull();
+        assertThat(courier.getCurrentLng()).isNull();
+        assertThat(courier.getStatus()).isEqualTo(CourierStatus.OFFLINE);
+        verify(courierRepository).save(courier);
+    }
+
+    @Test
+    @DisplayName("courier: refuses while a delivery is still in hand")
+    void refusesWhileDeliveryInProgress() {
+        User user = existingUser();
+        Courier courier = new Courier();
+        courier.setId(7L);
+
+        when(userRepository.findById(42L)).thenReturn(Optional.of(user));
+        when(courierRepository.findByUserId(42L)).thenReturn(Optional.of(courier));
+        when(orderRepository.findActiveOrdersByCourier(anyLong(), any()))
+                .thenReturn(List.of(new com.fooddelivery.order.entity.Order()));
+
+        org.assertj.core.api.Assertions
+                .assertThatThrownBy(() -> userService.deleteAccount(42L))
+                .isInstanceOf(com.fooddelivery.common.exception.BusinessException.class)
+                .hasMessageContaining("delivery in progress");
+
+        // Nothing may be erased when deletion is refused.
+        verify(userRepository, org.mockito.Mockito.never()).save(any());
+    }
+
+    @Test
+    @DisplayName("restaurant owner: their restaurants are closed so no new orders arrive")
+    void closesOwnedRestaurants() {
+        User user = existingUser();
+        Restaurant restaurant = new Restaurant();
+        restaurant.setId(9L);
+        restaurant.setStatus(RestaurantStatus.ACTIVE);
+        restaurant.setIsOpen(true);
+
+        when(userRepository.findById(42L)).thenReturn(Optional.of(user));
+        when(deviceTokenRepository.findByUserId(42L)).thenReturn(List.of());
+        when(courierRepository.findByUserId(42L)).thenReturn(Optional.empty());
+        when(restaurantRepository.findByOwnerId(42L)).thenReturn(List.of(restaurant));
+
+        userService.deleteAccount(42L);
+
+        assertThat(restaurant.getStatus()).isEqualTo(RestaurantStatus.CLOSED);
+        assertThat(restaurant.getIsOpen()).isFalse();
+        verify(restaurantRepository).save(restaurant);
     }
 }

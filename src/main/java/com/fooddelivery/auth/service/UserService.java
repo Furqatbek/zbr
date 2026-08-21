@@ -11,7 +11,14 @@ import java.time.LocalDateTime;
 import com.fooddelivery.auth.repository.ConsumerAddressRepository;
 import com.fooddelivery.auth.repository.RefreshTokenRepository;
 import com.fooddelivery.auth.repository.UserRepository;
+import com.fooddelivery.courier.entity.CourierStatus;
+import com.fooddelivery.courier.repository.CourierRepository;
 import com.fooddelivery.notification.repository.UserDeviceTokenRepository;
+import com.fooddelivery.order.entity.OrderStatus;
+import com.fooddelivery.order.repository.OrderRepository;
+import com.fooddelivery.restaurant.entity.Restaurant;
+import com.fooddelivery.restaurant.entity.RestaurantStatus;
+import com.fooddelivery.restaurant.repository.RestaurantRepository;
 import com.fooddelivery.common.annotation.Auditable;
 import com.fooddelivery.common.dto.PagedResponse;
 import com.fooddelivery.common.exception.BusinessException;
@@ -23,6 +30,7 @@ import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 
 import java.util.HashSet;
+import java.util.List;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -42,6 +50,9 @@ public class UserService {
     private final RefreshTokenRepository refreshTokenRepository;
     private final UserDeviceTokenRepository deviceTokenRepository;
     private final ConsumerAddressRepository consumerAddressRepository;
+    private final CourierRepository courierRepository;
+    private final RestaurantRepository restaurantRepository;
+    private final OrderRepository orderRepository;
 
     /**
      * Get user by ID.
@@ -269,6 +280,10 @@ public class UserService {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User", "id", id));
 
+        // Role-specific profiles carry their own personal data and business state.
+        eraseCourierProfile(id);
+        closeOwnedRestaurants(id);
+
         // Release the unique identifiers so the address/number can be reused,
         // using per-user placeholders so repeated deletions cannot collide.
         user.setEmail("deleted-" + id + "@deleted.invalid");
@@ -293,6 +308,48 @@ public class UserService {
         consumerAddressRepository.deleteByUserId(id);
 
         log.info("Account permanently deleted and personal data erased for user id {}", id);
+    }
+
+    /**
+     * Erase a courier profile's personal data. The courier row is kept because
+     * past orders reference it, but the identifying details are destroyed.
+     * Refuses while a delivery is physically in the courier's hands — the order
+     * must be completed or reassigned first.
+     */
+    private void eraseCourierProfile(Long userId) {
+        courierRepository.findByUserId(userId).ifPresent(courier -> {
+            List<OrderStatus> inHand = List.of(
+                    OrderStatus.COURIER_ASSIGNED, OrderStatus.PICKED_UP, OrderStatus.IN_TRANSIT);
+            if (!orderRepository.findActiveOrdersByCourier(courier.getId(), inHand).isEmpty()) {
+                throw new BusinessException(
+                        "You still have a delivery in progress. Complete or hand over the order, "
+                                + "then delete your account.");
+            }
+
+            courier.setStatus(CourierStatus.OFFLINE);
+            courier.setVehicleNumber(null);   // vehicle plate
+            courier.setLicenseNumber(null);   // government ID document
+            courier.setCurrentLat(null);      // last known location
+            courier.setCurrentLng(null);
+            courierRepository.save(courier);
+            log.info("Erased courier profile data for user id {}", userId);
+        });
+    }
+
+    /**
+     * Close every restaurant owned by the departing user so it stops accepting
+     * new orders. The restaurant record itself is retained — orders, menus and
+     * financial history reference it — but it is no longer live or orderable.
+     */
+    private void closeOwnedRestaurants(Long userId) {
+        List<Restaurant> owned = restaurantRepository.findByOwnerId(userId);
+        for (Restaurant restaurant : owned) {
+            restaurant.setStatus(RestaurantStatus.CLOSED);
+            restaurant.setIsOpen(false);
+            restaurantRepository.save(restaurant);
+            log.info("Closed restaurant {} because owner (user {}) deleted their account",
+                    restaurant.getId(), userId);
+        }
     }
 
     private UserDto mapToDto(User user) {
