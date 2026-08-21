@@ -6,7 +6,12 @@ import com.fooddelivery.auth.dto.UserDto;
 import com.fooddelivery.auth.entity.Role;
 import com.fooddelivery.auth.entity.User;
 import com.fooddelivery.auth.entity.UserStatus;
+import java.time.LocalDateTime;
+
+import com.fooddelivery.auth.repository.ConsumerAddressRepository;
+import com.fooddelivery.auth.repository.RefreshTokenRepository;
 import com.fooddelivery.auth.repository.UserRepository;
+import com.fooddelivery.notification.repository.UserDeviceTokenRepository;
 import com.fooddelivery.common.annotation.Auditable;
 import com.fooddelivery.common.dto.PagedResponse;
 import com.fooddelivery.common.exception.BusinessException;
@@ -34,6 +39,9 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final RefreshTokenRepository refreshTokenRepository;
+    private final UserDeviceTokenRepository deviceTokenRepository;
+    private final ConsumerAddressRepository consumerAddressRepository;
 
     /**
      * Get user by ID.
@@ -241,6 +249,50 @@ public class UserService {
         userRepository.save(user);
 
         log.info("User soft deleted: {}", user.getEmail());
+    }
+
+    /**
+     * Permanently erase a user's account and personal data (self-service deletion).
+     *
+     * This is a real deletion, not a deactivation: every personal field is
+     * destroyed and the unique identifiers (email, phone) are released so the
+     * person can sign up again. The row itself is retained ONLY as an anonymous
+     * stub because orders/payments reference it by foreign key and must survive
+     * for financial and tax records — but nothing personally identifying remains.
+     *
+     * Effect is immediate and irreversible; there is no grace period.
+     */
+    @Transactional
+    @CacheEvict(value = "users", key = "#id")
+    @Auditable(action = "DELETE_ACCOUNT", entityType = "User")
+    public void deleteAccount(Long id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("User", "id", id));
+
+        // Release the unique identifiers so the address/number can be reused,
+        // using per-user placeholders so repeated deletions cannot collide.
+        user.setEmail("deleted-" + id + "@deleted.invalid");
+        user.setPhone("deleted-" + id);
+
+        // Destroy the remaining personal data.
+        user.setFirstName("Deleted");
+        user.setLastName("User");
+        user.setProfileImageUrl(null);
+        user.setEmailVerified(false);
+        user.setPhoneVerified(false);
+        // Unusable credential — no bcrypt hash matches this, so it cannot be logged into.
+        user.setPasswordHash("ACCOUNT_DELETED");
+        user.setStatus(UserStatus.DELETED);
+        userRepository.save(user);
+
+        // Kill every active session and stop all push to the device.
+        refreshTokenRepository.revokeAllUserTokens(id, LocalDateTime.now(), "Account deleted");
+        deviceTokenRepository.findByUserId(id).forEach(deviceTokenRepository::delete);
+
+        // Saved delivery addresses are personal data too.
+        consumerAddressRepository.deleteByUserId(id);
+
+        log.info("Account permanently deleted and personal data erased for user id {}", id);
     }
 
     private UserDto mapToDto(User user) {

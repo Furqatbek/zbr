@@ -63,12 +63,14 @@ public class UserController {
     @DeleteMapping("/me")
     @PreAuthorize("isAuthenticated()")
     @Operation(summary = "Delete own account",
-            description = "Permanently delete the currently authenticated user's account. "
-                    + "Required by app stores for apps that support account creation.")
+            description = "Permanently deletes the authenticated user's account and erases their "
+                    + "personal data (name, email, phone, profile image, saved addresses). Sessions "
+                    + "are revoked and push tokens removed. Immediate and irreversible — there is no "
+                    + "grace period. Required by app stores for apps that support account creation.")
     public ResponseEntity<ApiResponse<Void>> deleteCurrentUser(
             @AuthenticationPrincipal UserPrincipal currentUser) {
 
-        userService.deleteUser(currentUser.getId());
+        userService.deleteAccount(currentUser.getId());
         return ResponseEntity.ok(ApiResponse.success("Account deleted"));
     }
 
