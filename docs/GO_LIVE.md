@@ -367,6 +367,67 @@ mismatch above.
 
 ---
 
+## Step 9 — Before submitting the apps to the stores
+
+App reviewers sit outside Uzbekistan and **cannot receive your OTP SMS**, so
+without a test number they cannot get past the login screen and the app is
+rejected. The backend supports a whitelisted number that accepts a fixed code
+and sends no SMS — and it works in the **production** build.
+
+**9a. Enable the review number** (production `.env`, then restart the app):
+
+```bash
+OTP_REVIEW_NUMBERS=+998900000000
+OTP_REVIEW_CODE=123456
+```
+
+Both must be set or the feature stays off. Matching is exact (formatting is
+normalised, so `+998 90 000 00 00` is the same number); it is never a prefix or
+wildcard. Multiple numbers can be comma-separated — useful for giving each app's
+reviewer a separate account.
+
+**9b. Create the account behind that number.** The whitelist only gets the
+reviewer past OTP; they still need a usable account, or they log into an empty
+or blocked app:
+
+| App | What the review account needs |
+|-----|-------------------------------|
+| Customer | a `CONSUMER` user, and at least one **open** restaurant with menu items in range of the address they pick |
+| Vendor | a `RESTAURANT_OWNER` user **with a restaurant** (Step 3) — otherwise the app has nothing to show |
+| Courier | a `COURIER` user that an admin has **verified** (Step 4b) — an unverified courier can never go online |
+
+**9c. Verify it end to end before submitting:**
+
+```bash
+curl -s -X POST $BASE/api/v1/auth/phone/request-otp \
+  -H 'Content-Type: application/json' -d '{"phone":"+998900000000"}'
+# -> success, and NO SMS is sent
+
+curl -s -X POST $BASE/api/v1/auth/phone/verify-otp \
+  -H 'Content-Type: application/json' \
+  -d '{"phone":"+998900000000","code":"123456"}'
+# -> tokens
+```
+
+The app logs a `REVIEW NUMBER used …` WARNING on every such login, so you can
+confirm it is active (and later confirm it is gone).
+
+**9d. ⚠️ Clear it once the app is approved:**
+
+```bash
+# remove both lines from .env, then
+docker compose up -d app
+```
+
+This is a deliberate auth bypass for one number — it should not outlive the
+review. It is config-only, so removing the lines and restarting is enough; no
+code change or redeploy needed. Confirm the `REVIEW NUMBER used` warnings stop.
+
+> Give the store reviewer the number **and** the code in the App Review notes,
+> along with a test account for the role that app serves.
+
+---
+
 ## Known limitations at MVP
 
 - **Cash only** — no card acquiring; card UI is hidden in all apps.
