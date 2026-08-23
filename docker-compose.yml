@@ -42,6 +42,9 @@ services:
       - APNS_TOPIC=${APNS_TOPIC:-com.zbr.owner}
       - APNS_PRODUCTION=${APNS_PRODUCTION:-false}
       # SMS Configuration (Eskiz.uz)
+      # App-store review test number (see docs/GO_LIVE.md). Clear after review.
+      - OTP_REVIEW_NUMBERS=${OTP_REVIEW_NUMBERS:-}
+      - OTP_REVIEW_CODE=${OTP_REVIEW_CODE:-}
       - SMS_ENABLED=${SMS_ENABLED:-true}
       - SMS_EMAIL=${SMS_EMAIL:-}
       - SMS_PASSWORD=${SMS_PASSWORD:-}

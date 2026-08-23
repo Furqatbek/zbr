@@ -292,6 +292,12 @@ app:
   otp:
     expiry-minutes: ${OTP_EXPIRY_MINUTES:5}
     max-attempts: ${OTP_MAX_ATTEMPTS:3}
+    # App-store review test numbers. For these EXACT numbers, request-otp
+    # succeeds WITHOUT sending an SMS and verify-otp accepts review-code — a
+    # reviewer cannot receive our SMS. Both must be set or the feature stays off.
+    # Set only while a review is in flight, then clear them.
+    review-numbers: ${OTP_REVIEW_NUMBERS:}
+    review-code: ${OTP_REVIEW_CODE:}
     rate-limit-per-hour: ${OTP_RATE_LIMIT:5}
     code-length: 6
 

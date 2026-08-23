@@ -37,6 +37,18 @@ public class OtpService {
     @Value("${app.otp.rate-limit-per-hour:5}")
     private int rateLimitPerHour;
 
+    /**
+     * App-store review test numbers (comma-separated). For these, request-otp
+     * succeeds WITHOUT sending an SMS and verify-otp accepts {@code review-code}.
+     * Empty by default — the feature is off unless both properties are set.
+     * Remove once review is complete.
+     */
+    @Value("${app.otp.review-numbers:}")
+    private String reviewNumbers;
+
+    @Value("${app.otp.review-code:}")
+    private String reviewCode;
+
     @Value("${app.otp.code-length:6}")
     private int codeLength;
 
@@ -51,14 +63,22 @@ public class OtpService {
     public OtpCode generateAndSendOtp(String phone, OtpCode.OtpPurpose purpose) {
         String normalizedPhone = normalizePhone(phone);
 
-        // Rate limiting check
-        checkRateLimit(normalizedPhone);
+        // App-store review accounts: a reviewer cannot receive our SMS, so a
+        // configured test number accepts a fixed code and no SMS is sent. Exact
+        // match only, disabled unless both properties are set.
+        boolean reviewNumber = isReviewNumber(normalizedPhone);
+
+        // Rate limiting check (skipped for review numbers so a reviewer retrying
+        // the login screen cannot lock themselves out mid-review)
+        if (!reviewNumber) {
+            checkRateLimit(normalizedPhone);
+        }
 
         // Invalidate any existing OTPs for this phone
         otpCodeRepository.invalidateAllForPhone(normalizedPhone);
 
         // Generate new OTP
-        String code = generateOtpCode();
+        String code = reviewNumber ? reviewCode.trim() : generateOtpCode();
 
         OtpCode otp = OtpCode.builder()
                 .phone(normalizedPhone)
@@ -70,12 +90,41 @@ public class OtpService {
 
         otp = otpCodeRepository.save(otp);
 
-        // Send OTP via SMS
-        smsNotificationService.sendOtp(normalizedPhone, code);
-
-        log.info("OTP sent to phone: {} for purpose: {}", maskPhone(normalizedPhone), purpose);
+        if (reviewNumber) {
+            // Deliberately no SMS. Logged at WARN so this is visible in production
+            // logs and cannot be quietly left enabled after review.
+            log.warn("REVIEW NUMBER used for {} — fixed OTP accepted, no SMS sent. "
+                    + "Remove app.otp.review-numbers once store review is complete.",
+                    maskPhone(normalizedPhone));
+        } else {
+            smsNotificationService.sendOtp(normalizedPhone, code);
+            log.info("OTP sent to phone: {} for purpose: {}", maskPhone(normalizedPhone), purpose);
+        }
 
         return otp;
+    }
+
+    /**
+     * True when this phone is a configured app-store review test number.
+     * Requires BOTH a non-empty number list and a non-empty fixed code, so a
+     * half-configured deployment fails closed and behaves normally.
+     */
+    private boolean isReviewNumber(String normalizedPhone) {
+        if (reviewNumbers == null || reviewNumbers.isBlank()
+                || reviewCode == null || reviewCode.isBlank()) {
+            return false;
+        }
+        for (String candidate : reviewNumbers.split(",")) {
+            if (candidate.isBlank()) {
+                continue;
+            }
+            // Compare in normalized form so "+998 90 000 00 00" and "998900000000"
+            // are the same number. Exact match only — never a prefix or wildcard.
+            if (normalizePhone(candidate.trim()).equals(normalizedPhone)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
