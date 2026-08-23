@@ -81,23 +81,75 @@ curl -s localhost:8080/actuator/health     # {"status":"UP"}
 docker compose logs -f app                 # "Started FoodDeliveryApplication"
 ```
 
-- API: `http://<host>:8080`
-- Swagger: `http://<host>:8080/swagger-ui.html` (disabled in the `prod` profile)
-- Grafana: `http://<host>:3000` (admin / `GRAFANA_PASSWORD`)
+Ports are bound to `127.0.0.1`, so run these **on the server** (or over an SSH
+tunnel). In production the public entry point is nginx — see 3b.
+
+- API: `http://127.0.0.1:8080`
+- Swagger: `http://127.0.0.1:8080/swagger-ui.html` (disabled in the `prod` profile)
+- Grafana: `http://127.0.0.1:3000` (admin / `GRAFANA_PASSWORD`)
+
+## 3b. TLS with nginx (production)
+
+The mobile apps **require** `https://` and `wss://` — iOS ATS and Android's
+cleartext policy block plain `http`/`ws` in release builds. `docker compose`
+includes an nginx reverse proxy and a certbot renewer. Only ports **80/443** are
+public; the app, database, Redis, RabbitMQ and monitoring are bound to
+`127.0.0.1`.
+
+**1. DNS.** Point an A record at the server and let it propagate before asking
+for a certificate:
+
+```
+api.zbrr.uz.   A   <your-server-ip>
+```
+
+Verify with `dig +short api.zbrr.uz` — certificate issuance fails if it does not
+resolve to this host.
+
+**2. Issue the certificate.** nginx will not start without one, and certbot
+needs nginx to serve the challenge — break the cycle by running certbot with its
+own temporary web server, with nginx stopped:
+
+```bash
+docker compose run --rm --service-ports --entrypoint "\
+  certbot certonly --standalone -d api.zbrr.uz \
+  --email you@zbrr.uz --agree-tos --no-eff-email" certbot
+```
+
+**3. Start everything:**
+
+```bash
+docker compose up -d
+curl -s https://api.zbrr.uz/actuator/health   # blocked by nginx — expected
+curl -sI https://api.zbrr.uz/api/v1/restaurants | head -1   # 200
+```
+
+Renewal is automatic (certbot checks twice daily; nginx reloads every 6h).
+
+**Using a different hostname?** Replace `api.zbrr.uz` throughout
+`docker/nginx/conf.d/api.conf`, reissue the certificate, and update
+`IMAGE_BASE_URL` and `CORS_ORIGINS` in `.env`.
+
+**Two settings that must match the domain,** or things break in ways that are
+hard to trace:
+
+- `IMAGE_BASE_URL=https://api.zbrr.uz/api/v1/images` — otherwise every logo and
+  menu photo URL sent to the apps points at localhost and no image loads.
+- `CORS_ORIGINS=https://zbrr.uz` — real origins, never `*` in production.
 
 ## 4. Production-only steps
 
-1. **Put it behind a reverse proxy with TLS** (nginx/Caddy/Traefik) — a single
-   upstream, no round-robin. iOS and Android release builds reject plain
-   `http://` and `ws://`, so `https://` + `wss://` are mandatory for the apps.
+1. **TLS** — done in 3b (nginx + certbot, single upstream).
 2. **Validate the foreign keys** once the data is clean →
    [`scripts/db/README.md`](../scripts/db/README.md).
 3. **Set up alerting** (Telegram bot token) → [ALERTING.md](ALERTING.md).
 4. **Verify backups**: they run automatically; you must copy them **off-host and
    encrypted**, and run the restore drill → [BACKUP_RESTORE.md](BACKUP_RESTORE.md).
-5. **Lock down monitoring ports** — Prometheus/Alertmanager/exporters are bound
-   to `127.0.0.1`; reach them over an SSH tunnel. Postgres/Redis/RabbitMQ host
-   ports are published for debugging — close them on an internet-facing host.
+5. **Confirm nothing but nginx is public.** Every other service is bound to
+   `127.0.0.1`; reach them over an SSH tunnel:
+   ```bash
+   ss -tlnp | grep -v 127.0.0.1     # should show only :80 and :443
+   ```
 
 ## Updating
 
@@ -117,6 +169,9 @@ idempotent, so a brief mid-deploy retry from a client is safe.
 | `Schema-validation: wrong column type` | Entity/migration mismatch — the app runs `ddl-auto: validate`. Fix with a migration; don't edit an applied one. |
 | CORS errors from the browser | Add the exact origin to `CORS_ORIGINS` (scheme + host + port), or `*` for local. |
 | Alertmanager won't start | Missing `docker/alertmanager/secrets/telegram_bot_token`. Affects alert delivery only, not the app. |
+| nginx: `cannot load certificate ... no such file` | The certificate was never issued, or the hostname in `api.conf` doesn't match the one certbot issued. Re-run step 3b.2. |
+| Certificate issuance fails | DNS not propagated (`dig +short api.zbrr.uz`), or port 80 blocked by a firewall/another process. |
+| WebSocket connects then drops after ~1 min | A proxy in front of nginx (Cloudflare, a load balancer) is closing idle sockets — nginx itself is set to 1h. |
 | App won't start, no obvious cause | `docker compose logs app` — the deepest `Caused by:` names the real failure. |
 
 Onboarding the first vendor, courier and order → [GO_LIVE.md](GO_LIVE.md).

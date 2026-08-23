@@ -7,7 +7,9 @@ services:
     container_name: food-delivery-app
     mem_limit: 1500m
     ports:
-      - "8080:8080"
+      # Loopback only: nginx reaches the app over the compose network. Publishing
+      # 8080 publicly would bypass TLS entirely.
+      - "127.0.0.1:8080:8080"
     environment:
       - SPRING_PROFILES_ACTIVE=docker
       - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/fooddelivery
@@ -78,13 +80,48 @@ services:
       retries: 5
       start_period: 60s
 
+  # TLS reverse proxy — the only service exposed to the internet.
+  # Mobile release builds reject plain http/ws, so https/wss is mandatory.
+  nginx:
+    image: nginx:1.25-alpine
+    container_name: food-delivery-nginx
+    mem_limit: 128m
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./docker/nginx/conf.d:/etc/nginx/conf.d:ro
+      - certbot-www:/var/www/certbot:ro
+      - certbot-conf:/etc/letsencrypt:ro
+    depends_on:
+      - app
+    networks:
+      - food-delivery-network
+    restart: unless-stopped
+    # Pick up renewed certificates without a restart.
+    command: >-
+      sh -c "while :; do sleep 6h; nginx -s reload; done & nginx -g 'daemon off;'"
+
+  # Certificate issuance/renewal (Let's Encrypt, webroot challenge).
+  # Issue once manually (docs/DEPLOYMENT.md), then this renews twice a day.
+  certbot:
+    image: certbot/certbot:latest
+    container_name: food-delivery-certbot
+    volumes:
+      - certbot-www:/var/www/certbot
+      - certbot-conf:/etc/letsencrypt
+    entrypoint: >-
+      sh -c "trap exit TERM; while :; do certbot renew --webroot -w /var/www/certbot --quiet; sleep 12h & wait $${!}; done"
+    restart: unless-stopped
+
   # PostgreSQL Database
   postgres:
     image: postgres:15-alpine
     container_name: food-delivery-postgres
     mem_limit: 768m
     ports:
-      - "5432:5432"
+      # Loopback only: never expose the database to the internet.
+      - "127.0.0.1:5432:5432"
     environment:
       - POSTGRES_DB=fooddelivery
       - POSTGRES_USER=postgres
@@ -147,7 +184,8 @@ services:
     container_name: food-delivery-redis
     mem_limit: 384m
     ports:
-      - "6379:6379"
+      # Loopback only: Redis has no auth configured.
+      - "127.0.0.1:6379:6379"
     command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
     volumes:
       - redis-data:/data
@@ -166,8 +204,9 @@ services:
     container_name: food-delivery-rabbitmq
     mem_limit: 512m
     ports:
-      - "5672:5672"
-      - "15672:15672"
+      # Loopback only: AMQP + the management UI must not be public.
+      - "127.0.0.1:5672:5672"
+      - "127.0.0.1:15672:15672"
     environment:
       - RABBITMQ_DEFAULT_USER=${RABBITMQ_USER:?set RABBITMQ_USER}
       - RABBITMQ_DEFAULT_PASS=${RABBITMQ_PASSWORD:?set RABBITMQ_PASSWORD}
@@ -284,7 +323,8 @@ services:
     container_name: food-delivery-grafana
     mem_limit: 256m
     ports:
-      - "3000:3000"
+      # Loopback only: reach Grafana over an SSH tunnel (see docs/ALERTING.md).
+      - "127.0.0.1:3000:3000"
     environment:
       - GF_SECURITY_ADMIN_USER=admin
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:?set GRAFANA_PASSWORD}
@@ -313,6 +353,8 @@ networks:
     driver: bridge
 
 volumes:
+  certbot-www:
+  certbot-conf:
   postgres-data:
   postgres-backups:
   redis-data:

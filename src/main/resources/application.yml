@@ -116,6 +116,9 @@ spring:
 # Server Configuration
 server:
   port: ${SERVER_PORT:8080}
+  # Behind the nginx TLS proxy: honour X-Forwarded-Proto/Host so the app knows
+  # requests arrived over https, and X-Forwarded-For for per-IP rate limiting.
+  forward-headers-strategy: framework
   # Drain in-flight requests on SIGTERM before the JVM exits (paired with
   # spring.lifecycle.timeout-per-shutdown-phase above).
   shutdown: graceful
