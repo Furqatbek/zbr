@@ -173,9 +173,14 @@ docker compose exec certbot certbot certificates                              # 
 docker compose exec certbot certbot renew --webroot -w /var/www/certbot --dry-run
 ```
 
-The apps call **`https://zbrr.uz/api/v1/...`** and connect WebSockets to
-**`wss://zbrr.uz/ws`**. `www.zbrr.uz` 301-redirects to the apex so there is one
-canonical origin.
+The apps call **`https://zbrr.uz/api/v1/...`** (bare apex) and connect
+WebSockets to **`wss://zbrr.uz/ws`**. `www.zbrr.uz` **308**-redirects to the apex
+so there is one canonical origin — 308 rather than 301 because a 301 lets the
+client replay the request as a bodyless `GET`, which would turn a mis-pointed
+app's `POST /orders` into a silent no-op.
+
+> A redirect cannot carry a WebSocket `Upgrade` handshake, so `wss://www.zbrr.uz/ws`
+> fails outright — the `www` fallback covers REST only. The apps must use the apex.
 
 **Using a different hostname?** Replace `zbrr.uz` throughout
 `docker/nginx/conf.d/zbrr.conf` (including the two `ssl_certificate` paths — they

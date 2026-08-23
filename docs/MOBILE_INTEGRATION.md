@@ -11,12 +11,30 @@ and Swagger (`/swagger-ui.html` on stage).
 
 | Change | Who | What to do |
 |--------|-----|------------|
+| **Production base URL is the bare apex** `https://zbrr.uz/api/v1` | All | WebSockets: `wss://zbrr.uz/ws`. Do **not** use `www.` — see below. |
 | `POST /api/v1/orders/{id}/pay/confirm` is now PLATFORM/ADMIN-only | Customer | Remove any client call to `/pay/confirm`. Payment confirmation is server-side (cash is confirmed when the courier completes delivery). |
 | Legacy courier endpoints `POST /api/v1/couriers/{courierId}/accept/{orderId}` and `/complete/{orderId}` were **removed** (IDOR) | Courier | Use the `/me` equivalents: `POST /me/orders/{orderId}/accept`, `PUT .../pickup`, `PUT .../transit`, `POST .../complete`. |
 | `GET /api/v1/consumers/{id}` is now ADMIN/PLATFORM-only | Customer | Use the `/me` profile endpoints for the logged-in user. |
 | No per-event SMS/email anymore | All | Order/status updates arrive **only** via WebSocket + push. Don't tell users to "check SMS" (OTP SMS for login still works). |
 | Online card payment is **not** available in this MVP (no acquiring contract) | Customer, Vendor | Offer **CASH only** as the payment method (`paymentMethod: "CASH"` on `POST /{orderId}/pay`). Hide/disable card UI. |
 | iOS device-token registration must send `appId` (your bundle id) | **All (iOS)** | One APNs key serves all three apps, so each push needs your app's own `apns-topic`. Omit it and your tokens get rejected **and auto-deactivated**. → [see below](#push-notifications--device-token-registration-all-teams) |
+
+## Production base URL (all three teams)
+
+```
+REST       https://zbrr.uz/api/v1
+WebSocket  wss://zbrr.uz/ws
+Images     https://zbrr.uz/api/v1/images/...   (returned by the API; don't build these yourself)
+```
+
+**Use the bare apex — no `www.`.** `www.zbrr.uz` answers with a `308` to the
+apex, so REST calls survive a mis-pointed build (308 preserves the method and
+body; a 301 would not). **WebSockets do not**: a redirect cannot carry the
+`Upgrade` handshake, so `wss://www.zbrr.uz/ws` fails outright and the app gets no
+live order updates. Hardcode the apex.
+
+`http://` is redirected but should never be used — iOS ATS and Android's
+cleartext policy block plain `http`/`ws` in release builds anyway.
 
 ## New: Idempotency-Key on order creation (Customer team — strongly recommended)
 
