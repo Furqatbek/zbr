@@ -25,7 +25,18 @@ public class CorsConfig {
     @Value("${app.cors.allowed-headers:*}")
     private String allowedHeaders;
 
-    @Value("${app.cors.allow-credentials:true}")
+    /**
+     * Defaults to false, and should stay false: authentication is a Bearer JWT
+     * in the Authorization header, which a browser never attaches on its own.
+     * Nothing here uses cookies or HTTP auth, so there are no credentials to
+     * allow. It matters because setAllowedOriginPatterns permits "*" TOGETHER
+     * with credentials — Spring echoes the caller's Origin back — which is the
+     * combination the CORS spec otherwise forbids. With credentials off, a
+     * permissive origin list cannot be turned into a credentialed cross-site
+     * read. Only flip this on if a browser client is added that authenticates
+     * with cookies, and then never alongside a wildcard origin.
+     */
+    @Value("${app.cors.allow-credentials:false}")
     private boolean allowCredentials;
 
     @Value("${app.cors.max-age:3600}")

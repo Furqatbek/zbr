@@ -20,6 +20,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfigurationSource;
 
 /**
  * Security configuration for the application.
@@ -35,9 +36,7 @@ public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
     private final UserDetailsService userDetailsService;
-
-    @org.springframework.beans.factory.annotation.Value("${app.cors.allowed-origins}")
-    private String allowedOrigins;
+    private final CorsConfigurationSource corsConfigurationSource;
 
     private static final String[] PUBLIC_ENDPOINTS = {
             "/api/v1/auth/**",
@@ -72,24 +71,11 @@ public class SecurityConfig {
                 // Disable form login (we use JWT)
                 .formLogin(AbstractHttpConfigurer::disable)
 
-                // CORS — origin allow-list from app.cors.allowed-origins. Uses
-                // origin PATTERNS (addAllowedOriginPattern), which is the correct
-                // way to combine wildcards with credentials and also matches exact
-                // origins. Dev defaults to http://localhost:* ; prod sets explicit
-                // real domains via CORS_ORIGINS. Never a bare "*".
-                .cors(cors -> cors.configurationSource(request -> {
-                    var corsConfig = new org.springframework.web.cors.CorsConfiguration();
-                    for (String origin : allowedOrigins.split(",")) {
-                        if (!origin.isBlank()) {
-                            corsConfig.addAllowedOriginPattern(origin.trim());
-                        }
-                    }
-                    corsConfig.addAllowedMethod("*");
-                    corsConfig.addAllowedHeader("*");
-                    corsConfig.setAllowCredentials(true);
-                    corsConfig.setMaxAge(3600L);
-                    return corsConfig;
-                }))
+                // CORS — single source of truth is CorsConfig, driven by the
+                // app.cors.* properties. This used to build its own inline
+                // configuration, which silently overrode that bean and pinned
+                // allow-credentials to true regardless of configuration.
+                .cors(cors -> cors.configurationSource(corsConfigurationSource))
 
                 // Configure session management
                 .sessionManagement(session ->

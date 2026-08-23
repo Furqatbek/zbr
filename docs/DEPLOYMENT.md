@@ -193,7 +193,12 @@ hard to trace:
 
 - `IMAGE_BASE_URL=https://zbrr.uz/api/v1/images` — otherwise every logo and
   menu photo URL sent to the apps points at localhost and no image loads.
-- `CORS_ORIGINS=https://zbrr.uz` — real origins, never `*` in production.
+- `CORS_ORIGINS=https://zbrr.uz` — real origins, not `*`, in production.
+  CORS applies to **browsers only**; the three Expo apps send no `Origin` header
+  and are unaffected either way. Credentials are disabled (auth is a header
+  Bearer token, never a cookie), so a wildcard here is not exploitable today —
+  but set real origins anyway, so the setting is already correct on the day an
+  admin dashboard or Expo web build appears.
 
 ## 4. Production-only steps
 

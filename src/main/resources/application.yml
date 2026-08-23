@@ -144,13 +144,19 @@ jwt:
 # Application Configuration
 app:
   cors:
+    # CORS only ever applies to BROWSER clients. The three React Native / Expo
+    # apps use OkHttp and NSURLSession, send no Origin header, and are unaffected
+    # by everything in this block. It exists for web callers: an Expo web build,
+    # a future admin dashboard, a browser console.
+    #
     # Origin patterns (addAllowedOriginPattern). Dev default accepts any localhost
     # port so a local web frontend works out of the box. PROD MUST set CORS_ORIGINS
     # to explicit real domains, e.g. CORS_ORIGINS=https://app.example.com
     allowed-origins: ${CORS_ORIGINS:http://localhost:*,http://127.0.0.1:*}
-    allowed-methods: GET,POST,PUT,PATCH,DELETE,OPTIONS
+    allowed-methods: GET,HEAD,POST,PUT,PATCH,DELETE,OPTIONS
     allowed-headers: "*"
-    allow-credentials: true
+    # Keep false — auth is a header Bearer token, not cookies. See CorsConfig.
+    allow-credentials: false
     max-age: 3600
 
   rate-limit:
@@ -435,9 +441,11 @@ spring:
       host: redis
       port: 6379
 
-# Local Docker launch: allow ALL origins (no CORS enforcement) by default, so a
-# web frontend on any host/port works out of the box. A prod deploy via compose
-# MUST set CORS_ORIGINS to explicit real domains — that overrides this default.
+# Local Docker launch: accept any origin by default so a web frontend on any
+# host/port works out of the box. Safe here because allow-credentials is false —
+# a wildcard origin cannot be turned into a credentialed cross-site read. A prod
+# deploy via compose MUST still set CORS_ORIGINS to explicit real domains, so the
+# door is shut before a browser client exists to walk through it.
 app:
   cors:
     allowed-origins: ${CORS_ORIGINS:*}
