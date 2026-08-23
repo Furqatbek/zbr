@@ -168,11 +168,11 @@ public class ApnsPushService {
                 log.debug("APNs push delivered");
             } else if (status == 410) {
                 // Device no longer registered — prune it.
-                deviceTokenRepository.deactivateToken(deviceToken);
+                deviceTokenRepository.deactivateRejectedToken(deviceToken);
                 log.info("Deactivated unregistered APNs token (410)");
             } else if (status == 400 && response.body() != null && response.body().contains("BadDeviceToken")) {
                 // Wrong environment (sandbox token sent to prod, or vice versa) or malformed.
-                deviceTokenRepository.deactivateToken(deviceToken);
+                deviceTokenRepository.deactivateRejectedToken(deviceToken);
                 log.warn("Deactivated APNs token: BadDeviceToken (check sandbox vs production). body={}",
                         response.body());
             } else {

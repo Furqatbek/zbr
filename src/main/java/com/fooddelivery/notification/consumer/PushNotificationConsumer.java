@@ -257,7 +257,7 @@ public class PushNotificationConsumer {
                     if (errorCode == MessagingErrorCode.INVALID_ARGUMENT ||
                             errorCode == MessagingErrorCode.UNREGISTERED) {
                         log.info("Deactivating invalid FCM token: {}", token.substring(0, Math.min(20, token.length())));
-                        deviceTokenRepository.deactivateToken(token);
+                        deviceTokenRepository.deactivateRejectedToken(token);
                     } else {
                         log.warn("FCM error for token: {} - {}",
                                 token.substring(0, Math.min(20, token.length())),

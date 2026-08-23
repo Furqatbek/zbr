@@ -119,7 +119,7 @@ public class ExpoPushService {
             if (!"ok".equalsIgnoreCase(ticket.getStatus())) {
                 String error = ticket.getDetails() != null ? ticket.getDetails().getError() : null;
                 if ("DeviceNotRegistered".equals(error)) {
-                    deviceTokenRepository.deactivateToken(tokens.get(i));
+                    deviceTokenRepository.deactivateRejectedToken(tokens.get(i));
                     log.info("Deactivated unregistered Expo token");
                 } else {
                     log.warn("Expo push error: status={} message={} error={}",

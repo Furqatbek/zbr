@@ -102,9 +102,16 @@ public class DeviceTokenService {
     /**
      * Deactivate a device token (e.g., on logout).
      */
-    public void deactivateToken(String deviceToken) {
-        log.info("Deactivating device token");
-        deviceTokenRepository.deactivateToken(deviceToken);
+    public void deactivateToken(Long userId, String deviceToken) {
+        int updated = deviceTokenRepository.deactivateToken(userId, deviceToken);
+        if (updated == 0) {
+            // Either the token was already inactive or it is not this user's.
+            // Same response either way — do not confirm existence to a caller
+            // probing for someone else's token.
+            log.info("No active device token deactivated for user {}", userId);
+        } else {
+            log.info("Deactivated device token for user {}", userId);
+        }
     }
 
     /**

@@ -80,6 +80,8 @@ public class PhoneAuthController {
     /**
      * Complete phone registration for new users with additional details.
      */
+    // Also verifies an OTP, so it is a second guessing door onto the same code.
+    @RateLimited(requestsPerMinute = 10, keyType = RateLimited.KeyType.IP)
     @PostMapping("/complete-registration")
     @Operation(summary = "Complete registration", description = "Complete phone registration with user details for new users")
     public ResponseEntity<ApiResponse<AuthResponse>> completeRegistration(

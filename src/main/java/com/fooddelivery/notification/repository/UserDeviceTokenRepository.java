@@ -46,11 +46,30 @@ public interface UserDeviceTokenRepository extends JpaRepository<UserDeviceToken
     int deactivateAllForUser(@Param("userId") Long userId);
 
     /**
-     * Deactivate a specific token.
+     * Deactivate a specific token belonging to the given user.
+     *
+     * <p>Scoped by userId deliberately. Keyed on the token alone, any
+     * authenticated caller who learned another user's device token could
+     * silently switch off their push notifications — for a courier that is
+     * missed order offers, for a vendor missed orders.
+     */
+    @Modifying
+    @Query("UPDATE UserDeviceToken t SET t.active = false "
+            + "WHERE t.deviceToken = :token AND t.userId = :userId")
+    int deactivateToken(@Param("userId") Long userId, @Param("token") String deviceToken);
+
+    /**
+     * Deactivate a token the push transport itself rejected (APNs
+     * BadDeviceToken, FCM UNREGISTERED, an Expo DeviceNotRegistered receipt).
+     *
+     * <p>Unscoped ON PURPOSE, and only for that: the provider has told us this
+     * token is dead, and there is no user in context. Never call this for a
+     * user-initiated removal — use {@link #deactivateToken(Long, String)}, or a
+     * caller can switch off push for an account that is not theirs.
      */
     @Modifying
     @Query("UPDATE UserDeviceToken t SET t.active = false WHERE t.deviceToken = :token")
-    int deactivateToken(@Param("token") String deviceToken);
+    int deactivateRejectedToken(@Param("token") String deviceToken);
 
     /**
      * Update last used timestamp.

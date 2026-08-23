@@ -66,7 +66,9 @@ public class DeviceTokenController {
             @ApiResponse(responseCode = "200", description = "Token removed successfully"),
             @ApiResponse(responseCode = "401", description = "Not authenticated")
     })
-    public ResponseEntity<Map<String, Object>> removeToken(@RequestBody Map<String, String> request) {
+    public ResponseEntity<Map<String, Object>> removeToken(
+            @AuthenticationPrincipal UserPrincipal currentUser,
+            @RequestBody Map<String, String> request) {
         String deviceToken = request.get("deviceToken");
         if (deviceToken == null || deviceToken.isBlank()) {
             return ResponseEntity.badRequest().body(Map.of(
@@ -75,7 +77,7 @@ public class DeviceTokenController {
             ));
         }
 
-        deviceTokenService.deactivateToken(deviceToken);
+        deviceTokenService.deactivateToken(currentUser.getId(), deviceToken);
 
         return ResponseEntity.ok(Map.of(
                 "success", true,
