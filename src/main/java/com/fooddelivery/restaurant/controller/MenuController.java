@@ -135,7 +135,7 @@ public class MenuController {
             @Valid @RequestBody CreateMenuCategoryRequest request) {
 
         validateAccess(restaurantId, currentUser);
-        MenuCategoryDto category = menuService.updateCategory(categoryId, request);
+        MenuCategoryDto category = menuService.updateCategory(restaurantId, categoryId, request);
         return ResponseEntity.ok(ApiResponse.success("Category updated successfully", category));
     }
 
@@ -149,7 +149,7 @@ public class MenuController {
             @PathVariable Long categoryId) {
 
         validateAccess(restaurantId, currentUser);
-        menuService.deleteCategory(categoryId);
+        menuService.deleteCategory(restaurantId, categoryId);
         return ResponseEntity.ok(ApiResponse.success("Category deleted successfully"));
     }
 
@@ -179,7 +179,7 @@ public class MenuController {
             @Valid @RequestBody CreateMenuItemRequest request) {
 
         validateAccess(restaurantId, currentUser);
-        MenuItemDto item = menuService.updateItem(itemId, request);
+        MenuItemDto item = menuService.updateItem(restaurantId, itemId, request);
         return ResponseEntity.ok(ApiResponse.success("Menu item updated successfully", item));
     }
 
@@ -194,7 +194,7 @@ public class MenuController {
             @RequestParam Boolean inStock) {
 
         validateAccess(restaurantId, currentUser);
-        MenuItemDto item = menuService.updateItemStock(itemId, inStock);
+        MenuItemDto item = menuService.updateItemStock(restaurantId, itemId, inStock);
         return ResponseEntity.ok(ApiResponse.success(
                 "Item is now " + (inStock ? "in stock" : "out of stock"), item));
     }
@@ -209,7 +209,7 @@ public class MenuController {
             @PathVariable Long itemId) {
 
         validateAccess(restaurantId, currentUser);
-        menuService.deleteItem(itemId);
+        menuService.deleteItem(restaurantId, itemId);
         return ResponseEntity.ok(ApiResponse.success("Menu item deleted successfully"));
     }
 
@@ -225,7 +225,7 @@ public class MenuController {
 
         validateAccess(restaurantId, currentUser);
         log.info("Uploading image for menu item: {} in restaurant: {}", itemId, restaurantId);
-        MenuItemDto item = menuService.updateItemImage(itemId, file);
+        MenuItemDto item = menuService.updateItemImage(restaurantId, itemId, file);
         return ResponseEntity.ok(ApiResponse.success("Image uploaded successfully", item));
     }
 
@@ -240,7 +240,7 @@ public class MenuController {
 
         validateAccess(restaurantId, currentUser);
         log.info("Deleting image for menu item: {} in restaurant: {}", itemId, restaurantId);
-        MenuItemDto item = menuService.deleteItemImage(itemId);
+        MenuItemDto item = menuService.deleteItemImage(restaurantId, itemId);
         return ResponseEntity.ok(ApiResponse.success("Image deleted successfully", item));
     }
 }

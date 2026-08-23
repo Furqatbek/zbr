@@ -107,9 +107,8 @@ public class MenuService {
     @Transactional
     @CacheEvict(value = "menus", allEntries = true)
     @Auditable(action = "UPDATE_CATEGORY", entityType = "MenuCategory")
-    public MenuCategoryDto updateCategory(Long categoryId, CreateMenuCategoryRequest request) {
-        MenuCategory category = categoryRepository.findById(categoryId)
-                .orElseThrow(() -> new ResourceNotFoundException("MenuCategory", "id", categoryId));
+    public MenuCategoryDto updateCategory(Long restaurantId, Long categoryId, CreateMenuCategoryRequest request) {
+        MenuCategory category = getCategoryForRestaurant(restaurantId, categoryId);
 
         if (request.getName() != null) {
             category.setName(request.getName());
@@ -134,9 +133,8 @@ public class MenuService {
     @Transactional
     @CacheEvict(value = "menus", allEntries = true)
     @Auditable(action = "DELETE_CATEGORY", entityType = "MenuCategory")
-    public void deleteCategory(Long categoryId) {
-        MenuCategory category = categoryRepository.findById(categoryId)
-                .orElseThrow(() -> new ResourceNotFoundException("MenuCategory", "id", categoryId));
+    public void deleteCategory(Long restaurantId, Long categoryId) {
+        MenuCategory category = getCategoryForRestaurant(restaurantId, categoryId);
 
         category.setActive(false);
         categoryRepository.save(category);
@@ -249,9 +247,8 @@ public class MenuService {
     @Transactional
     @CacheEvict(value = {"menus", "menuItems"}, allEntries = true)
     @Auditable(action = "UPDATE_ITEM", entityType = "MenuItem")
-    public MenuItemDto updateItem(Long itemId, CreateMenuItemRequest request) {
-        MenuItem item = itemRepository.findById(itemId)
-                .orElseThrow(() -> new ResourceNotFoundException("MenuItem", "id", itemId));
+    public MenuItemDto updateItem(Long restaurantId, Long itemId, CreateMenuItemRequest request) {
+        MenuItem item = getItemForRestaurant(restaurantId, itemId);
 
         if (request.getName() != null) {
             item.setName(request.getName());
@@ -306,9 +303,8 @@ public class MenuService {
      */
     @Transactional
     @CacheEvict(value = {"menus", "menuItems"}, allEntries = true)
-    public MenuItemDto updateItemStock(Long itemId, Boolean inStock) {
-        MenuItem item = itemRepository.findById(itemId)
-                .orElseThrow(() -> new ResourceNotFoundException("MenuItem", "id", itemId));
+    public MenuItemDto updateItemStock(Long restaurantId, Long itemId, Boolean inStock) {
+        MenuItem item = getItemForRestaurant(restaurantId, itemId);
 
         item.setInStock(inStock);
         item = itemRepository.save(item);
@@ -323,9 +319,8 @@ public class MenuService {
     @Transactional
     @CacheEvict(value = {"menus", "menuItems"}, allEntries = true)
     @Auditable(action = "DELETE_ITEM", entityType = "MenuItem")
-    public void deleteItem(Long itemId) {
-        MenuItem item = itemRepository.findById(itemId)
-                .orElseThrow(() -> new ResourceNotFoundException("MenuItem", "id", itemId));
+    public void deleteItem(Long restaurantId, Long itemId) {
+        MenuItem item = getItemForRestaurant(restaurantId, itemId);
 
         item.setActive(false);
         itemRepository.save(item);
@@ -338,9 +333,8 @@ public class MenuService {
     @Transactional
     @CacheEvict(value = {"menus", "menuItems"}, allEntries = true)
     @Auditable(action = "UPDATE_ITEM_IMAGE", entityType = "MenuItem")
-    public MenuItemDto updateItemImage(Long itemId, MultipartFile imageFile) {
-        MenuItem item = itemRepository.findById(itemId)
-                .orElseThrow(() -> new ResourceNotFoundException("MenuItem", "id", itemId));
+    public MenuItemDto updateItemImage(Long restaurantId, Long itemId, MultipartFile imageFile) {
+        MenuItem item = getItemForRestaurant(restaurantId, itemId);
 
         // Delete old image if exists
         if (item.getImagePath() != null) {
@@ -372,9 +366,8 @@ public class MenuService {
     @Transactional
     @CacheEvict(value = {"menus", "menuItems"}, allEntries = true)
     @Auditable(action = "DELETE_ITEM_IMAGE", entityType = "MenuItem")
-    public MenuItemDto deleteItemImage(Long itemId) {
-        MenuItem item = itemRepository.findById(itemId)
-                .orElseThrow(() -> new ResourceNotFoundException("MenuItem", "id", itemId));
+    public MenuItemDto deleteItemImage(Long restaurantId, Long itemId) {
+        MenuItem item = getItemForRestaurant(restaurantId, itemId);
 
         if (item.getImagePath() != null) {
             String relativePath = extractRelativePath(item.getImagePath());
@@ -407,5 +400,43 @@ public class MenuService {
             return fullPath.substring(menuItemsIndex);
         }
         return null;
+    }
+
+    /**
+     * Load a menu item and prove it belongs to the restaurant in the URL.
+     *
+     * <p>The controller validates that the caller owns {restaurantId}, but the
+     * mutation targets {itemId} — two different things. Without this, an owner
+     * could pass their OWN restaurant id with ANOTHER restaurant's item id and
+     * rewrite its price, delete it, or mark it out of stock. Menu item ids are
+     * sequential and returned in public menu responses, so they take no effort
+     * to find. createItem already made this check for categories; these are its
+     * missing siblings.
+     *
+     * <p>Reports 404, not 403: a caller must not learn that someone else's item
+     * exists.
+     */
+    private MenuItem getItemForRestaurant(Long restaurantId, Long itemId) {
+        MenuItem item = itemRepository.findById(itemId)
+                .orElseThrow(() -> new ResourceNotFoundException("MenuItem", "id", itemId));
+        Long owner = item.getCategory().getRestaurant().getId();
+        if (!owner.equals(restaurantId)) {
+            log.warn("SECURITY: restaurant {} attempted to modify menu item {} owned by restaurant {}",
+                    restaurantId, itemId, owner);
+            throw new ResourceNotFoundException("MenuItem", "id", itemId);
+        }
+        return item;
+    }
+
+    private MenuCategory getCategoryForRestaurant(Long restaurantId, Long categoryId) {
+        MenuCategory category = categoryRepository.findById(categoryId)
+                .orElseThrow(() -> new ResourceNotFoundException("MenuCategory", "id", categoryId));
+        Long owner = category.getRestaurant().getId();
+        if (!owner.equals(restaurantId)) {
+            log.warn("SECURITY: restaurant {} attempted to modify menu category {} owned by restaurant {}",
+                    restaurantId, categoryId, owner);
+            throw new ResourceNotFoundException("MenuCategory", "id", categoryId);
+        }
+        return category;
     }
 }
