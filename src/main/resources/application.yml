@@ -149,6 +149,12 @@ app:
   # Changing this does not convert existing rows; it only labels new ones.
   currency: ${APP_CURRENCY:UZS}
 
+  # Business timezone — used ONLY for wall-clock decisions like peak-hour
+  # windows. Storage stays UTC (the JVM is pinned to it in
+  # FoodDeliveryApplication, as is the JDBC connection), so this never changes
+  # how a timestamp is persisted or returned.
+  timezone: ${APP_TIMEZONE:Asia/Tashkent}
+
   cors:
     # CORS only ever applies to BROWSER clients. The three React Native / Expo
     # apps use OkHttp and NSURLSession, send no Origin header, and are unaffected
@@ -401,6 +407,14 @@ spring:
   jpa:
     show-sql: false
 
+  # Re-assert the safe values EXPLICITLY. The docker profile relaxes both for
+  # local iteration, and production normally runs "docker,prod" — a key this
+  # block does not define keeps whatever docker set. Silently skipping
+  # validation of an already-applied migration is exactly how a schema drifts.
+  flyway:
+    validate-on-migrate: true
+    out-of-order: false
+
   # Do not leak internal exception messages to clients in production
   mvc:
     throw-exception-if-no-handler-found: true
@@ -424,6 +438,12 @@ server:
   error:
     include-message: never
     include-binding-errors: never
+
+# Same reasoning as flyway above: the docker profile defaults origins to "*",
+# and production must not inherit that just because CORS_ORIGINS went unset.
+app:
+  cors:
+    allowed-origins: ${CORS_ORIGINS:https://zbrr.uz}
 
 ---
 # Docker Profile

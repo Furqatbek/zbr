@@ -11,7 +11,13 @@ services:
       # 8080 publicly would bypass TLS entirely.
       - "127.0.0.1:8080:8080"
     environment:
-      - SPRING_PROFILES_ACTIVE=docker
+      # Defaults to production-safe. "prod" is what disables Swagger, stops
+      # exception messages reaching clients, restores Flyway migration
+      # validation and switches logging to JSON — none of which happen under
+      # "docker" alone. Listed last so it wins where the two profiles disagree.
+      # For local development with Swagger, set SPRING_PROFILES_ACTIVE=docker
+      # in .env (see .env.dev.example).
+      - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE:-docker,prod}
       - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/fooddelivery
       - SPRING_DATASOURCE_USERNAME=postgres
       - SPRING_DATASOURCE_PASSWORD=${DB_PASSWORD:?set DB_PASSWORD}

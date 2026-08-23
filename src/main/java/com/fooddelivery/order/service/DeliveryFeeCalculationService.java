@@ -5,11 +5,13 @@ import com.fooddelivery.order.dto.DeliveryFeeSettingsDto;
 import com.fooddelivery.restaurant.entity.Restaurant;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalTime;
+import java.time.ZoneId;
 
 /**
  * Service for calculating delivery fees dynamically based on distance, time, and other factors.
@@ -23,6 +25,18 @@ public class DeliveryFeeCalculationService {
 
     private final DeliveryFeeSettingsService settingsService;
     private final RouteDistanceService routeDistanceService;
+
+    /**
+     * Initialised as well as injected: Spring overwrites this, but @Value is
+     * not honoured by Mockito's @InjectMocks, and a null zone would throw at
+     * fee calculation — the one code path every order goes through.
+     */
+    private ZoneId businessZone = ZoneId.of("Asia/Tashkent");
+
+    @Value("${app.timezone:Asia/Tashkent}")
+    void setBusinessZone(String zone) {
+        this.businessZone = ZoneId.of(zone);
+    }
 
     /**
      * Calculate delivery fee based on distance between restaurant and delivery location.
@@ -89,9 +103,14 @@ public class DeliveryFeeCalculationService {
 
     /**
      * Check if current time is during peak hours.
+     *
+     * <p>Evaluated in the business timezone, NOT the JVM's. The JVM is pinned
+     * to UTC so timestamps store consistently; reading the clock directly here
+     * put the 11–14 lunch window at 16:00–19:00 Tashkent and the 18–21 dinner
+     * window at 23:00–02:00, so the surcharge missed both real rushes.
      */
     private boolean isPeakHour(DeliveryFeeSettingsDto settings) {
-        LocalTime now = LocalTime.now();
+        LocalTime now = LocalTime.now(businessZone);
         int hour = now.getHour();
 
         // Lunch peak hours

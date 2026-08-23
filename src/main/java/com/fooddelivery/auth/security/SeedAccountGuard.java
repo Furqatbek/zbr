@@ -25,7 +25,12 @@ import java.util.List;
  * untouched.
  */
 @Component
-@Profile("prod")
+// Deliberately NOT @Profile("prod"). This ran only under "prod" while
+// docker-compose activated "docker", so on the one deployment path anybody
+// actually uses, the guard never ran and admin@fooddelivery.com / "password"
+// stayed live. Gating on the ABSENCE of the local profiles means a server can
+// only lose this protection by explicitly asking for a development profile.
+@Profile("!test & !dev")
 @RequiredArgsConstructor
 @Slf4j
 public class SeedAccountGuard implements ApplicationRunner {

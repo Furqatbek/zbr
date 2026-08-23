@@ -36,8 +36,8 @@ means 15 000 so'm, not minor units.
 
 ## Step 1 — Bootstrap a real admin
 
-The `prod` profile runs `SeedAccountGuard`, which **suspends any seed account
-still using the committed password** (`admin@fooddelivery.com`,
+`SeedAccountGuard` runs on every profile except `dev` and `test`, and **suspends
+any seed account still using the committed password** (`admin@fooddelivery.com`,
 `platform@fooddelivery.com`, `owner@pizzapalace.com`, `john.doe@example.com`,
 `courier@fooddelivery.com`). So you cannot log in with the seeded admin — by
 design. The guard keys off the **password hash**, so setting a real password

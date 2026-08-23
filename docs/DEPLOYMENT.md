@@ -86,7 +86,9 @@ Ports are bound to `127.0.0.1`, so run these **on the server** (or over an SSH
 tunnel). In production the public entry point is nginx — see 3b.
 
 - API: `http://127.0.0.1:8080`
-- Swagger: `http://127.0.0.1:8080/swagger-ui.html` (disabled in the `prod` profile)
+- Swagger: `http://127.0.0.1:8080/swagger-ui.html` — **off by default.** Compose
+  runs `docker,prod`, and `prod` disables it. Set `SPRING_PROFILES_ACTIVE=docker`
+  in `.env` for local work; never on a public server.
 - Grafana: `http://127.0.0.1:3000` (admin / `GRAFANA_PASSWORD`)
 
 ## 3b. TLS with nginx (production)
