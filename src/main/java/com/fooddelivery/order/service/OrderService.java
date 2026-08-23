@@ -669,14 +669,6 @@ public class OrderService {
     // ============== Access Validation Methods ==============
 
     /**
-     * Validate that user has access to the order.
-     * Consumer can only access their own orders.
-     * Restaurant owner/staff can access orders for their restaurants.
-     * Courier can access orders assigned to them.
-     * Admin/Platform can access all orders.
-     */
-    @Transactional(readOnly = true)
-    /**
      * Which statuses each actor may set through the generic status endpoint.
      *
      * <p>{@code canTransitionTo} enforces the ORDER of the state machine but not
@@ -712,6 +704,14 @@ public class OrderService {
         throw new BusinessException("You are not allowed to set this order status");
     }
 
+    /**
+     * Validate that user has access to the order.
+     * Consumer can only access their own orders.
+     * Restaurant owner/staff can access orders for their restaurants.
+     * Courier can access orders assigned to them.
+     * Admin/Platform can access all orders.
+     */
+    @Transactional(readOnly = true)
     public void validateOrderAccess(Long orderId, Long userId, boolean isAdminOrPlatform,
                                     boolean isRestaurantRole, boolean isCourier) {
         if (isAdminOrPlatform) {
