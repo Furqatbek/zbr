@@ -23,9 +23,14 @@ BASE=https://zbrr.uz
 | 3 | Port **80 open and left open** | Renewal runs through it every 12h; closing it after issuance breaks renewal silently |
 | 4 | `.env` complete, app healthy | `curl -s $BASE/actuator/health` → `{"status":"UP"}` |
 | 5 | `IMAGE_BASE_URL=https://zbrr.uz/api/v1/images` | Otherwise every logo and menu photo URL points at localhost |
-| 6 | `CORS_ORIGINS` set to real domains (not `*`) | |
+| 6 | `CORS_ORIGINS` set to real domains (not `*`) | Browser clients only — the Expo apps ignore CORS entirely |
+| 7 | `FIREBASE_ENABLED=true` **and** `APNS_ENABLED=true` with real credentials | These ship **off**. The stack comes up healthy either way, but vendors get no new-order alert and couriers get no offers → [PUSH_DELIVERY.md](PUSH_DELIVERY.md) |
+| 8 | **Delivery fees set in the admin panel** (`PUT /api/v1/admin/delivery-fee-settings`) | Until saved once, the code falls back to `base 2.00 / per-km 0.50 / max 15.00` — placeholder figures that are nonsense as som. Order #1 would be charged 2 so'm for delivery. |
 
 The apps call `https://zbrr.uz/api/v1/...` and connect to `wss://zbrr.uz/ws`.
+
+Money is **UZS** throughout (`APP_CURRENCY`), stored as plain decimals — `15000`
+means 15 000 so'm, not minor units.
 
 ---
 

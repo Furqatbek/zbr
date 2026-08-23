@@ -143,6 +143,12 @@ jwt:
 
 # Application Configuration
 app:
+  # ISO-4217 code stamped on payments, payouts, referrals and analytics. The
+  # platform operates in Uzbekistan, so amounts throughout are UZS. Money values
+  # are stored as plain decimals, NOT minor units — 15000 means 15 000 so'm.
+  # Changing this does not convert existing rows; it only labels new ones.
+  currency: ${APP_CURRENCY:UZS}
+
   cors:
     # CORS only ever applies to BROWSER clients. The three React Native / Expo
     # apps use OkHttp and NSURLSession, send no Origin header, and are unaffected
@@ -206,7 +212,7 @@ app:
 
   referral:
     reward-amount: 10.00
-    currency: USD
+    currency: ${APP_CURRENCY:UZS}
     expiry-days: 30
 
   storage:

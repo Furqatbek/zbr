@@ -47,9 +47,11 @@ public class Payment {
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal amount;
 
+    // Fallback only — PaymentService stamps app.currency explicitly. Kept in
+    // step with that default so a row built without it is not mislabelled.
     @Column(length = 3)
     @Builder.Default
-    private String currency = "USD";
+    private String currency = "UZS";
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)

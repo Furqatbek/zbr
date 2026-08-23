@@ -41,6 +41,9 @@ public class PaymentService {
     @Value("${app.payment.provider:stripe}")
     private String paymentProvider;
 
+    @Value("${app.currency:UZS}")
+    private String currency = "UZS";
+
     /**
      * Create a payment intent for an order.
      * In production, this would integrate with Stripe or similar provider.
@@ -66,7 +69,7 @@ public class PaymentService {
                 .paymentIntentId(paymentIntentId)
                 .paymentMethod(request.getPaymentMethod())
                 .amount(order.getTotal())
-                .currency("USD")
+                .currency(currency)
                 .status(PaymentStatus.PENDING)
                 .build();
 

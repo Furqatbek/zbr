@@ -30,6 +30,12 @@ public class NotificationEventListener {
     private final PersistentNotificationService notificationService;
     private final RestaurantRepository restaurantRepository;
 
+    // Initialised as well as injected: Spring overwrites this at runtime, but
+    // @Value is not honoured by Mockito's @InjectMocks, and a null here would
+    // format payout notifications as "null 1500.00".
+    @org.springframework.beans.factory.annotation.Value("${app.currency:UZS}")
+    private String defaultCurrency = "UZS";
+
     // ===== Support Ticket Events =====
 
     /**
@@ -140,7 +146,7 @@ public class NotificationEventListener {
             }
 
             String formattedAmount = String.format("%s %s",
-                    event.getCurrency() != null ? event.getCurrency() : "USD",
+                    event.getCurrency() != null ? event.getCurrency() : defaultCurrency,
                     event.getAmount().toPlainString());
 
             notificationService.notifyPayoutIssued(

@@ -34,6 +34,9 @@ public class AdminController {
     private final PaymentRepository paymentRepository;
     private final ReferralService referralService;
 
+    @org.springframework.beans.factory.annotation.Value("${app.currency:UZS}")
+    private String currency = "UZS";
+
     @GetMapping("/analytics/orders")
     @Operation(summary = "Get order analytics", description = "Get basic order metrics")
     public ResponseEntity<ApiResponse<AnalyticsDto>> getOrderAnalytics(
@@ -51,7 +54,7 @@ public class AdminController {
                 .totalOrders(totalOrders)
                 .gmv(gmv != null ? gmv : BigDecimal.ZERO)
                 .averageOrderValue(avgTicket != null ? avgTicket : BigDecimal.ZERO)
-                .currency("USD")
+                .currency(currency)
                 .build();
 
         return ResponseEntity.ok(ApiResponse.success(analytics));

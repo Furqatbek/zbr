@@ -51,7 +51,7 @@ public class Referral {
 
     @Column(length = 3)
     @Builder.Default
-    private String currency = "USD";
+    private String currency = "UZS";
 
     @Column(name = "referrer_rewarded")
     @Builder.Default
