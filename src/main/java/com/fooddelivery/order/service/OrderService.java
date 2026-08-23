@@ -38,9 +38,11 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * Service for order operations with state machine logic.
@@ -251,12 +253,16 @@ public class OrderService {
      */
     @Transactional
     @Auditable(action = "UPDATE_ORDER_STATUS", entityType = "Order")
-    public OrderDto updateOrderStatus(Long orderId, UpdateOrderStatusRequest request) {
+    public OrderDto updateOrderStatus(Long orderId, UpdateOrderStatusRequest request,
+                                      boolean isAdminOrPlatform, boolean isRestaurantRole,
+                                      boolean isCourier) {
         Order order = orderRepository.findByIdWithLock(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Order", "id", orderId));
 
         OrderStatus previousStatus = order.getStatus();
         OrderStatus newStatus = request.getStatus();
+
+        validateActorMaySet(orderId, newStatus, isAdminOrPlatform, isRestaurantRole, isCourier);
 
         // Idempotent replay: already in the requested status -> return the current
         // order (200) with no side effects, so a client retry across a deploy drain
@@ -670,6 +676,42 @@ public class OrderService {
      * Admin/Platform can access all orders.
      */
     @Transactional(readOnly = true)
+    /**
+     * Which statuses each actor may set through the generic status endpoint.
+     *
+     * <p>{@code canTransitionTo} enforces the ORDER of the state machine but not
+     * WHO may drive it, and access validation only proves the caller is party to
+     * this order. Between them a restaurant could walk its own order
+     * READY -> PICKED_UP -> IN_TRANSIT -> DELIVERED with no courier involved —
+     * every step a legal transition — and on a cash platform that is what marks
+     * the order settled. A courier could likewise drive the kitchen's states.
+     *
+     * <p>COURIER_ASSIGNED, COMPLETED and REFUNDED are intentionally in nobody's
+     * set: they are set by dispatch, the auto-complete scheduler and the refund
+     * path respectively, never by a party to the order.
+     */
+    private static final Set<OrderStatus> RESTAURANT_SETTABLE = EnumSet.of(
+            OrderStatus.ACCEPTED, OrderStatus.PREPARING, OrderStatus.READY, OrderStatus.CANCELLED);
+
+    private static final Set<OrderStatus> COURIER_SETTABLE = EnumSet.of(
+            OrderStatus.PICKED_UP, OrderStatus.IN_TRANSIT, OrderStatus.DELIVERED);
+
+    private void validateActorMaySet(Long orderId, OrderStatus newStatus, boolean isAdminOrPlatform,
+                                     boolean isRestaurantRole, boolean isCourier) {
+        if (isAdminOrPlatform) {
+            return;
+        }
+        if (isRestaurantRole && RESTAURANT_SETTABLE.contains(newStatus)) {
+            return;
+        }
+        if (isCourier && COURIER_SETTABLE.contains(newStatus)) {
+            return;
+        }
+        log.warn("SECURITY: actor (restaurant={}, courier={}) attempted to set order {} to {}",
+                isRestaurantRole, isCourier, orderId, newStatus);
+        throw new BusinessException("You are not allowed to set this order status");
+    }
+
     public void validateOrderAccess(Long orderId, Long userId, boolean isAdminOrPlatform,
                                     boolean isRestaurantRole, boolean isCourier) {
         if (isAdminOrPlatform) {

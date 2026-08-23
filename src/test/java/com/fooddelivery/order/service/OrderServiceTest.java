@@ -147,7 +147,7 @@ class OrderServiceTest {
                     .status(OrderStatus.ACCEPTED)
                     .build();
 
-            OrderDto result = orderService.updateOrderStatus(1L, request);
+            OrderDto result = orderService.updateOrderStatus(1L, request, false, true, false);
 
             assertThat(result).isSameAs(dto);
             verify(order).updateStatus(OrderStatus.ACCEPTED);
@@ -167,7 +167,7 @@ class OrderServiceTest {
                     .status(OrderStatus.ACCEPTED)
                     .build();
 
-            OrderDto result = orderService.updateOrderStatus(1L, request);
+            OrderDto result = orderService.updateOrderStatus(1L, request, false, true, false);
 
             assertThat(result).isSameAs(dto);
             verify(order, never()).updateStatus(any());
@@ -185,7 +185,7 @@ class OrderServiceTest {
                     .status(OrderStatus.PREPARING)
                     .build();
 
-            assertThatThrownBy(() -> orderService.updateOrderStatus(1L, request))
+            assertThatThrownBy(() -> orderService.updateOrderStatus(1L, request, false, true, false))
                     .isInstanceOf(InvalidOperationException.class);
             verify(orderRepository, never()).save(any());
         }
@@ -199,8 +199,59 @@ class OrderServiceTest {
                     .status(OrderStatus.ACCEPTED)
                     .build();
 
-            assertThatThrownBy(() -> orderService.updateOrderStatus(999L, request))
+            assertThatThrownBy(() -> orderService.updateOrderStatus(999L, request, false, true, false))
                     .isInstanceOf(ResourceNotFoundException.class);
+        }
+
+        @Test
+        @DisplayName("refuses to let a restaurant mark its own order DELIVERED")
+        void restaurantCannotSelfDeliver() {
+            Order order = mockOrder(OrderStatus.READY, PaymentStatus.PENDING);
+            when(orderRepository.findByIdWithLock(1L)).thenReturn(Optional.of(order));
+
+            UpdateOrderStatusRequest request = UpdateOrderStatusRequest.builder()
+                    .status(OrderStatus.DELIVERED)
+                    .build();
+
+            // DELIVERED is a legal transition from READY, and the restaurant is a
+            // party to this order — only the actor check stops it settling an
+            // undelivered order.
+            assertThatThrownBy(() -> orderService.updateOrderStatus(1L, request, false, true, false))
+                    .isInstanceOf(BusinessException.class);
+            verify(orderRepository, never()).save(any());
+        }
+
+        @Test
+        @DisplayName("refuses to let a courier drive the kitchen's states")
+        void courierCannotSetReady() {
+            Order order = mockOrder(OrderStatus.PREPARING, PaymentStatus.PENDING);
+            when(orderRepository.findByIdWithLock(1L)).thenReturn(Optional.of(order));
+
+            UpdateOrderStatusRequest request = UpdateOrderStatusRequest.builder()
+                    .status(OrderStatus.READY)
+                    .build();
+
+            assertThatThrownBy(() -> orderService.updateOrderStatus(1L, request, false, false, true))
+                    .isInstanceOf(BusinessException.class);
+            verify(orderRepository, never()).save(any());
+        }
+
+        @Test
+        @DisplayName("lets the assigned courier mark the order DELIVERED")
+        void courierMayDeliver() {
+            Order order = mockOrder(OrderStatus.IN_TRANSIT, PaymentStatus.PENDING);
+            when(order.canTransitionTo(OrderStatus.DELIVERED)).thenReturn(true);
+            when(orderRepository.findByIdWithLock(1L)).thenReturn(Optional.of(order));
+            when(orderRepository.save(order)).thenReturn(order);
+            OrderDto dto = mock(OrderDto.class);
+            when(orderMapper.toDto(order)).thenReturn(dto);
+
+            UpdateOrderStatusRequest request = UpdateOrderStatusRequest.builder()
+                    .status(OrderStatus.DELIVERED)
+                    .build();
+
+            assertThat(orderService.updateOrderStatus(1L, request, false, false, true)).isSameAs(dto);
+            verify(order).updateStatus(OrderStatus.DELIVERED);
         }
     }
 

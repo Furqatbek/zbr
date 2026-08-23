@@ -59,15 +59,16 @@ public class OrderController {
     /**
      * Helper method to validate order access based on user roles.
      */
-    private void validateAccess(Long orderId, UserPrincipal currentUser) {
-        boolean isAdminOrPlatform = currentUser.getAuthorities().stream()
-                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ROLE_PLATFORM"));
-        boolean isRestaurantRole = currentUser.getAuthorities().stream()
-                .anyMatch(a -> a.getAuthority().equals("ROLE_RESTAURANT_OWNER") || a.getAuthority().equals("ROLE_RESTAURANT_STAFF"));
-        boolean isCourier = currentUser.getAuthorities().stream()
-                .anyMatch(a -> a.getAuthority().equals("ROLE_COURIER"));
+    private boolean hasRole(UserPrincipal user, String... roles) {
+        return user.getAuthorities().stream()
+                .anyMatch(a -> java.util.Arrays.asList(roles).contains(a.getAuthority()));
+    }
 
-        orderService.validateOrderAccess(orderId, currentUser.getId(), isAdminOrPlatform, isRestaurantRole, isCourier);
+    private void validateAccess(Long orderId, UserPrincipal currentUser) {
+        orderService.validateOrderAccess(orderId, currentUser.getId(),
+                hasRole(currentUser, "ROLE_ADMIN", "ROLE_PLATFORM"),
+                hasRole(currentUser, "ROLE_RESTAURANT_OWNER", "ROLE_RESTAURANT_STAFF"),
+                hasRole(currentUser, "ROLE_COURIER"));
     }
 
     @GetMapping
@@ -188,7 +189,10 @@ public class OrderController {
             @Valid @RequestBody UpdateOrderStatusRequest request) {
 
         validateAccess(orderId, currentUser);
-        OrderDto order = orderService.updateOrderStatus(orderId, request);
+        OrderDto order = orderService.updateOrderStatus(orderId, request,
+                hasRole(currentUser, "ROLE_ADMIN", "ROLE_PLATFORM"),
+                hasRole(currentUser, "ROLE_RESTAURANT_OWNER", "ROLE_RESTAURANT_STAFF"),
+                hasRole(currentUser, "ROLE_COURIER"));
         return ResponseEntity.ok(ApiResponse.success("Order status updated", order));
     }
 
