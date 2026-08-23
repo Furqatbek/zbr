@@ -58,8 +58,9 @@ Compose **refuses to start** unless these are set:
 Production should also set:
 
 ```bash
-CORS_ORIGINS=https://your-domain.com   # local defaults to "*"; lock this down
-SMS_ENABLED=true                       # + SMS_EMAIL / SMS_PASSWORD
+IMAGE_BASE_URL=https://zbrr.uz/api/v1/images   # else app image URLs point at localhost
+CORS_ORIGINS=https://zbrr.uz                   # local defaults to "*"; lock this down
+SMS_ENABLED=true                               # + SMS_ESKIZ_EMAIL / SMS_ESKIZ_PASSWORD
 ```
 
 Push notifications are optional and off by default → [PUSH_DELIVERY.md](PUSH_DELIVERY.md).
@@ -100,10 +101,11 @@ public; the app, database, Redis, RabbitMQ and monitoring are bound to
 for a certificate:
 
 ```
-api.zbrr.uz.   A   <your-server-ip>
+zbrr.uz.       A   <your-server-ip>
+www.zbrr.uz.   A   <your-server-ip>
 ```
 
-Verify with `dig +short api.zbrr.uz` — certificate issuance fails if it does not
+Verify with `dig +short zbrr.uz` — certificate issuance fails if it does not
 resolve to this host.
 
 **2. Issue the certificate.** nginx will not start without one, and certbot
@@ -112,7 +114,7 @@ own temporary web server, with nginx stopped:
 
 ```bash
 docker compose run --rm --service-ports --entrypoint "\
-  certbot certonly --standalone -d api.zbrr.uz \
+  certbot certonly --standalone -d zbrr.uz -d www.zbrr.uz \
   --email you@zbrr.uz --agree-tos --no-eff-email" certbot
 ```
 
@@ -120,20 +122,24 @@ docker compose run --rm --service-ports --entrypoint "\
 
 ```bash
 docker compose up -d
-curl -s https://api.zbrr.uz/actuator/health   # blocked by nginx — expected
-curl -sI https://api.zbrr.uz/api/v1/restaurants | head -1   # 200
+curl -s https://zbrr.uz/actuator/health   # blocked by nginx — expected
+curl -sI https://zbrr.uz/api/v1/restaurants | head -1   # 200
 ```
 
 Renewal is automatic (certbot checks twice daily; nginx reloads every 6h).
 
-**Using a different hostname?** Replace `api.zbrr.uz` throughout
-`docker/nginx/conf.d/api.conf`, reissue the certificate, and update
+The apps call **`https://zbrr.uz/api/v1/...`** and connect WebSockets to
+**`wss://zbrr.uz/ws`**. `www.zbrr.uz` 301-redirects to the apex so there is one
+canonical origin.
+
+**Using a different hostname?** Replace `zbrr.uz` throughout
+`docker/nginx/conf.d/zbrr.conf`, reissue the certificate, and update
 `IMAGE_BASE_URL` and `CORS_ORIGINS` in `.env`.
 
 **Two settings that must match the domain,** or things break in ways that are
 hard to trace:
 
-- `IMAGE_BASE_URL=https://api.zbrr.uz/api/v1/images` — otherwise every logo and
+- `IMAGE_BASE_URL=https://zbrr.uz/api/v1/images` — otherwise every logo and
   menu photo URL sent to the apps points at localhost and no image loads.
 - `CORS_ORIGINS=https://zbrr.uz` — real origins, never `*` in production.
 
@@ -169,8 +175,8 @@ idempotent, so a brief mid-deploy retry from a client is safe.
 | `Schema-validation: wrong column type` | Entity/migration mismatch — the app runs `ddl-auto: validate`. Fix with a migration; don't edit an applied one. |
 | CORS errors from the browser | Add the exact origin to `CORS_ORIGINS` (scheme + host + port), or `*` for local. |
 | Alertmanager won't start | Missing `docker/alertmanager/secrets/telegram_bot_token`. Affects alert delivery only, not the app. |
-| nginx: `cannot load certificate ... no such file` | The certificate was never issued, or the hostname in `api.conf` doesn't match the one certbot issued. Re-run step 3b.2. |
-| Certificate issuance fails | DNS not propagated (`dig +short api.zbrr.uz`), or port 80 blocked by a firewall/another process. |
+| nginx: `cannot load certificate ... no such file` | The certificate was never issued, or the hostname in `zbrr.conf` doesn't match the one certbot issued. Re-run step 3b.2. |
+| Certificate issuance fails | DNS not propagated (`dig +short zbrr.uz`), or port 80 blocked by a firewall/another process. |
 | WebSocket connects then drops after ~1 min | A proxy in front of nginx (Cloudflare, a load balancer) is closing idle sockets — nginx itself is set to 1h. |
 | App won't start, no obvious cause | `docker compose logs app` — the deepest `Caused by:` names the real failure. |
 
