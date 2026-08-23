@@ -90,14 +90,27 @@ public class PhoneAuthService {
         User user = userRepository.findByPhone(phone)
                 .orElseGet(() -> createNewConsumer(phone));
 
-        // Ensure user is active
+        // Ensure user is active.
+        //
+        // Only PENDING_VERIFICATION may be promoted here — that is what "verify
+        // your phone" means. This previously blocked SUSPENDED and promoted
+        // EVERYTHING else to ACTIVE, so a BANNED or INACTIVE account un-banned
+        // itself simply by logging in with an OTP.
         if (user.getStatus() != UserStatus.ACTIVE) {
-            if (user.getStatus() == UserStatus.SUSPENDED) {
-                throw new BusinessException("Your account has been suspended. Please contact support.");
+            switch (user.getStatus()) {
+                case PENDING_VERIFICATION -> {
+                    user.setStatus(UserStatus.ACTIVE);
+                    user = userRepository.save(user);
+                }
+                case SUSPENDED -> throw new BusinessException(
+                        "Your account has been suspended. Please contact support.");
+                default -> {
+                    log.warn("SECURITY: OTP login attempted on {} account (user {})",
+                            user.getStatus(), user.getId());
+                    throw new BusinessException(
+                            "This account cannot be used. Please contact support.");
+                }
             }
-            // Activate pending users on successful OTP verification
-            user.setStatus(UserStatus.ACTIVE);
-            user = userRepository.save(user);
         }
 
         // Mark phone as verified

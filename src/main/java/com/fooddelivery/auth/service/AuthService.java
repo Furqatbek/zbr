@@ -212,6 +212,19 @@ public class AuthService {
         }
 
         User user = refreshToken.getUser();
+
+        // Refresh is a second door into the system and must apply the same
+        // account checks as login. Otherwise suspending an account only stops
+        // it logging in again, while its refresh token keeps minting access
+        // tokens until it expires — up to seven days of full API access after
+        // the suspension. Revoke on the way out so it cannot be retried.
+        if (user.getStatus() != UserStatus.ACTIVE) {
+            log.warn("SECURITY: refresh attempted by {} account: {}", user.getStatus(), user.getEmail());
+            refreshToken.revoke("Account not active: " + user.getStatus());
+            refreshTokenRepository.save(refreshToken);
+            throw new BusinessException("Account is not active. Please contact support.");
+        }
+
         UserPrincipal userPrincipal = UserPrincipal.create(user);
 
         // Verify JWT token signature and username (expiration is handled by DB)

@@ -56,7 +56,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 if (userEmail != null) {
                     UserDetails userDetails = userDetailsService.loadUserByUsername(userEmail);
 
-                    if (jwtService.isTokenValid(jwt, userDetails) && jwtService.isAccessToken(jwt)) {
+                    // Account state must be re-checked on EVERY request, not
+                    // just at login. DaoAuthenticationProvider applies these
+                    // checks when a password is exchanged for a token; this
+                    // filter builds an Authentication by hand, so nothing
+                    // applied them here. Without this, suspending or banning an
+                    // account did not end its session: the existing access
+                    // token kept working, and /auth/refresh issued fresh ones.
+                    if (!isAccountUsable(userDetails)) {
+                        log.warn("Rejected request from non-active account: {}", userEmail);
+                    } else if (jwtService.isTokenValid(jwt, userDetails) && jwtService.isAccessToken(jwt)) {
                         UsernamePasswordAuthenticationToken authentication =
                                 new UsernamePasswordAuthenticationToken(
                                         userDetails,
@@ -84,6 +93,17 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         filterChain.doFilter(request, response);
+    }
+
+    /**
+     * Whether the loaded account may still act. Maps to UserPrincipal:
+     * enabled = ACTIVE, non-locked = not SUSPENDED/BANNED, non-expired =
+     * not DELETED.
+     */
+    private boolean isAccountUsable(UserDetails userDetails) {
+        return userDetails.isEnabled()
+                && userDetails.isAccountNonLocked()
+                && userDetails.isAccountNonExpired();
     }
 
     private String extractJwtFromRequest(HttpServletRequest request) {
