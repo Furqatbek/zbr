@@ -31,11 +31,13 @@ to the detailed doc. Read the **hard constraint** first; it shapes everything.
 2. **Alerting secret.** Create the Telegram bot token file and set the chat id,
    or Alertmanager won't start (delivery only — the app is unaffected).
    → [ALERTING.md § Setup](ALERTING.md)
-3. **Bring it up** (single app instance, behind your TLS/reverse proxy):
+3. **Bring it up.** In production, do this through the TLS bootstrap — it issues
+   the certificate, starts the stack, and verifies renewal in one go:
    ```bash
-   docker compose up -d
+   ./scripts/tls/init-letsencrypt.sh you@zbrr.uz    # → docker compose up -d
    docker compose ps          # every service should be healthy
    ```
+   → [DEPLOYMENT.md § 3b](DEPLOYMENT.md#3b-tls-with-nginx-production)
 4. **Smoke-check:** `curl -s localhost:8080/actuator/health` → `{"status":"UP"}`.
 5. **Prove alerting** end to end with the test-alert curl. → [ALERTING.md § Verify](ALERTING.md)
 6. **After the DB has real data and is clean,** promote the foreign keys:
@@ -59,6 +61,15 @@ to the detailed doc. Read the **hard constraint** first; it shapes everything.
   (warning). → [ALERTING.md § What you get paged for](ALERTING.md)
 - **Add an external uptime monitor** off the box (UptimeRobot/etc.) on
   `/actuator/health` — the internal stack can't page you if the whole host dies.
+  Most of them also watch **certificate expiry**; turn that on. Nothing in this
+  stack alerts on a stalled renewal, and the failure is silent for ~60 days.
+- **TLS certificates** renew themselves (certbot every 12h, nginx reloads every
+  6h). The one thing that breaks it is **closing port 80** — renewal runs
+  through it. Spot-check quarterly:
+  ```bash
+  docker compose exec certbot certbot certificates    # expiry dates
+  docker compose exec certbot certbot renew --webroot -w /var/www/certbot --dry-run
+  ```
 
 ## Incident response
 
@@ -68,6 +79,7 @@ to the detailed doc. Read the **hard constraint** first; it shapes everything.
 | "Is the latest backup usable?" | Run the restore drill (non-destructive). → [BACKUP_RESTORE.md § Restore drill](BACKUP_RESTORE.md) |
 | Pager: DB pool exhausted | Threads are blocked on connections — check for slow queries / a stuck transaction; Hikari max is 20. |
 | Alerts went silent | Check `docker compose logs alertmanager` (bad token/chat id) and that Prometheus lists Alertmanager under `/status`. |
+| Apps report a TLS error / expired certificate | `docker compose logs certbot` and run the `--dry-run` above. Almost always port 80 got firewalled. After fixing: `docker compose exec certbot certbot renew --webroot -w /var/www/certbot --force-renewal && docker compose exec nginx nginx -s reload`. |
 | App crashloops with `28P01 password authentication failed` | `DB_PASSWORD` in `.env` doesn't match what the existing `postgres-data` volume was initialized with (`POSTGRES_PASSWORD` only applies on first init). Either `ALTER USER postgres PASSWORD '...'` inside the container, or (dev) remove the volume and reinit. |
 | Tempted to add a second app node | Don't — see the constraints doc. Fix the three blockers first. → [DEPLOYMENT_CONSTRAINTS.md](DEPLOYMENT_CONSTRAINTS.md) |
 

@@ -4,10 +4,10 @@ Step-by-step for taking the platform live and getting order #1 through it. Every
 call below was verified against the code. Deployment mechanics live in
 [DEPLOYMENT.md](DEPLOYMENT.md); this is what to do **after** the stack is up.
 
-Assumes `BASE=https://api.your-domain.com`. Set it once:
+Assumes `BASE=https://zbrr.uz`. Set it once:
 
 ```bash
-BASE=https://api.your-domain.com
+BASE=https://zbrr.uz
 ```
 
 > **MVP scope:** cash-only payments, one app instance, one city/service area.
@@ -18,9 +18,14 @@ BASE=https://api.your-domain.com
 
 | # | Item | Why it blocks |
 |---|------|---------------|
-| 1 | **TLS: `https://` + `wss://`** via reverse proxy, single upstream | iOS ATS and Android cleartext policy **reject `http`/`ws` in release builds** — the apps cannot connect at all |
-| 2 | `.env` complete, app healthy | `curl -s $BASE/actuator/health` → `{"status":"UP"}` |
-| 3 | `CORS_ORIGINS` set to real domains (not `*`) | |
+| 1 | **DNS**: `zbrr.uz` and `www.zbrr.uz` A records point at the server | Certificate issuance fails without it |
+| 2 | **TLS: `https://` + `wss://`** — `./scripts/tls/init-letsencrypt.sh you@zbrr.uz` ([DEPLOYMENT.md §3b](DEPLOYMENT.md#3b-tls-with-nginx-production)) | iOS ATS and Android cleartext policy **reject `http`/`ws` in release builds** — the apps cannot connect at all |
+| 3 | Port **80 open and left open** | Renewal runs through it every 12h; closing it after issuance breaks renewal silently |
+| 4 | `.env` complete, app healthy | `curl -s $BASE/actuator/health` → `{"status":"UP"}` |
+| 5 | `IMAGE_BASE_URL=https://zbrr.uz/api/v1/images` | Otherwise every logo and menu photo URL points at localhost |
+| 6 | `CORS_ORIGINS` set to real domains (not `*`) | |
+
+The apps call `https://zbrr.uz/api/v1/...` and connect to `wss://zbrr.uz/ws`.
 
 ---
 
@@ -40,7 +45,7 @@ Generate a bcrypt hash (any bcrypt tool, cost 12), then:
 UPDATE users
    SET password_hash = '<your-bcrypt-hash>',
        status        = 'ACTIVE',
-       email         = 'ops@your-domain.com'   -- optional but recommended
+       email         = 'ops@zbrr.uz'   -- optional but recommended
  WHERE email = 'admin@fooddelivery.com';
 ```
 
@@ -48,7 +53,7 @@ Restart the app (the guard runs at startup) and confirm login:
 
 ```bash
 curl -s -X POST $BASE/api/v1/auth/login -H 'Content-Type: application/json' \
-  -d '{"emailOrPhone":"ops@your-domain.com","password":"<your-password>"}'
+  -d '{"emailOrPhone":"ops@zbrr.uz","password":"<your-password>"}'
 ```
 
 Save the token: `ADMIN=<accessToken>`.

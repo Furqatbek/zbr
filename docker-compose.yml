@@ -98,20 +98,37 @@ services:
     networks:
       - food-delivery-network
     restart: unless-stopped
-    # Pick up renewed certificates without a restart.
+    # A renewed certificate is a NEW file behind the same path; nginx keeps
+    # serving the one it loaded at startup until told otherwise. Reloading every
+    # 6h picks it up on its own — certbot renews 30 days before expiry, so there
+    # is a wide window and no need to signal across containers.
     command: >-
       sh -c "while :; do sleep 6h; nginx -s reload; done & nginx -g 'daemon off;'"
 
-  # Certificate issuance/renewal (Let's Encrypt, webroot challenge).
-  # Issue once manually (docs/DEPLOYMENT.md), then this renews twice a day.
+  # Certificate renewal (Let's Encrypt, webroot challenge through nginx).
+  # Issue the FIRST certificate with scripts/tls/init-letsencrypt.sh — nginx
+  # cannot start without one, so it is issued with certbot's own web server
+  # while nginx is down. From then on this loop renews it twice a day.
+  #
+  # The two volumes are the whole contract with nginx:
+  #   certbot-www  — certbot writes the ACME challenge here, nginx serves it
+  #                  from /.well-known/acme-challenge/ (see zbrr.conf)
+  #   certbot-conf — certbot writes the certificate here, nginx reads it
+  # nginx mounts both read-only: it never writes a certificate, only serves one.
   certbot:
     image: certbot/certbot:latest
     container_name: food-delivery-certbot
+    mem_limit: 64m
     volumes:
       - certbot-www:/var/www/certbot
       - certbot-conf:/etc/letsencrypt
+    networks:
+      - food-delivery-network
+    # --webroot is passed explicitly so renewal uses nginx even though the first
+    # certificate was issued with --standalone. Verify with:
+    #   docker compose exec certbot certbot renew --webroot -w /var/www/certbot --dry-run
     entrypoint: >-
-      sh -c "trap exit TERM; while :; do certbot renew --webroot -w /var/www/certbot --quiet; sleep 12h & wait $${!}; done"
+      sh -c "trap exit TERM; while :; do certbot renew --webroot -w /var/www/certbot --quiet; sleep 12h & wait $$!; done"
     restart: unless-stopped
 
   # PostgreSQL Database

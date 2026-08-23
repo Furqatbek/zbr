@@ -108,33 +108,80 @@ www.zbrr.uz.   A   <your-server-ip>
 Verify with `dig +short zbrr.uz` — certificate issuance fails if it does not
 resolve to this host.
 
-**2. Issue the certificate.** nginx will not start without one, and certbot
-needs nginx to serve the challenge — break the cycle by running certbot with its
-own temporary web server, with nginx stopped:
+**2. Issue the certificate and start the stack.** Port 80 must be open to the
+internet and free (`ss -tlnp | grep :80`):
 
 ```bash
-docker compose run --rm --service-ports --entrypoint "\
-  certbot certonly --standalone -d zbrr.uz -d www.zbrr.uz \
-  --email you@zbrr.uz --agree-tos --no-eff-email" certbot
+./scripts/tls/init-letsencrypt.sh you@zbrr.uz
 ```
 
-**3. Start everything:**
+The script checks DNS, issues the certificate, brings everything up, and then
+runs a renewal **dry run** so you find out today — not in 60 days — if renewal
+is broken. Rehearse against Let's Encrypt's staging CA first if you like
+(`STAGING=1 ./scripts/tls/init-letsencrypt.sh ...`); the certificate will not be
+trusted, but there are no rate limits. Then wipe the staging certificate and go
+again for real:
 
 ```bash
-docker compose up -d
+docker compose down && docker volume rm zbr_certbot-conf
+./scripts/tls/init-letsencrypt.sh you@zbrr.uz
+```
+
+**3. Verify:**
+
+```bash
 curl -s https://zbrr.uz/actuator/health   # blocked by nginx — expected
 curl -sI https://zbrr.uz/api/v1/restaurants | head -1   # 200
 ```
 
-Renewal is automatic (certbot checks twice daily; nginx reloads every 6h).
+### How issuance and renewal actually work
+
+nginx will not start without a certificate, and certbot's webroot challenge
+needs nginx to serve it. The bootstrap breaks that cycle by issuing the first
+certificate with certbot's own temporary web server, with nginx stopped — this
+is what the script runs, and the only reason to run it by hand:
+
+```bash
+docker compose stop nginx
+docker compose run --rm -p 80:80 --entrypoint certbot certbot \
+  certonly --standalone -d zbrr.uz -d www.zbrr.uz \
+  --email you@zbrr.uz --agree-tos --no-eff-email
+docker compose up -d
+```
+
+> `-p 80:80` is required. The `certbot` service declares no ports, so without it
+> the ACME server cannot reach the container and validation times out.
+
+Everything after that is automatic and goes **through** nginx:
+
+| | |
+|---|---|
+| `certbot` container | wakes every 12h, renews within 30 days of expiry |
+| challenge | written to the `certbot-www` volume; nginx serves it from `/.well-known/acme-challenge/` on port 80 |
+| certificate | written to the `certbot-conf` volume; nginx mounts it **read-only** |
+| pickup | nginx reloads every 6h, so a renewed certificate goes live within hours |
+
+Two consequences worth remembering: **port 80 must stay open forever** (closing
+it after issuance silently breaks renewal), and the certificate directory is
+named after the *first* `-d` argument — `live/zbrr.uz/`, which is the path
+`docker/nginx/conf.d/zbrr.conf` reads.
+
+Check renewal health at any time:
+
+```bash
+docker compose exec certbot certbot certificates                              # expiry dates
+docker compose exec certbot certbot renew --webroot -w /var/www/certbot --dry-run
+```
 
 The apps call **`https://zbrr.uz/api/v1/...`** and connect WebSockets to
 **`wss://zbrr.uz/ws`**. `www.zbrr.uz` 301-redirects to the apex so there is one
 canonical origin.
 
 **Using a different hostname?** Replace `zbrr.uz` throughout
-`docker/nginx/conf.d/zbrr.conf`, reissue the certificate, and update
-`IMAGE_BASE_URL` and `CORS_ORIGINS` in `.env`.
+`docker/nginx/conf.d/zbrr.conf` (including the two `ssl_certificate` paths — they
+must match the first domain you pass to certbot), reissue with
+`DOMAINS="example.com www.example.com" ./scripts/tls/init-letsencrypt.sh ...`,
+and update `IMAGE_BASE_URL` and `CORS_ORIGINS` in `.env`.
 
 **Two settings that must match the domain,** or things break in ways that are
 hard to trace:
@@ -175,8 +222,10 @@ idempotent, so a brief mid-deploy retry from a client is safe.
 | `Schema-validation: wrong column type` | Entity/migration mismatch — the app runs `ddl-auto: validate`. Fix with a migration; don't edit an applied one. |
 | CORS errors from the browser | Add the exact origin to `CORS_ORIGINS` (scheme + host + port), or `*` for local. |
 | Alertmanager won't start | Missing `docker/alertmanager/secrets/telegram_bot_token`. Affects alert delivery only, not the app. |
-| nginx: `cannot load certificate ... no such file` | The certificate was never issued, or the hostname in `zbrr.conf` doesn't match the one certbot issued. Re-run step 3b.2. |
+| nginx: `cannot load certificate ... no such file` | The certificate was never issued, or the hostname in `zbrr.conf` doesn't match the directory certbot created (it's named after the first `-d`). Re-run `scripts/tls/init-letsencrypt.sh`. |
 | Certificate issuance fails | DNS not propagated (`dig +short zbrr.uz`), or port 80 blocked by a firewall/another process. |
+| Certificate expired even though certbot is running | Renewal goes through nginx on **port 80** — if the firewall was closed after issuance, every renewal since has failed silently. Reopen it and run the `--dry-run` above. |
+| `too many certificates already issued` | Let's Encrypt rate limit (5 per domain per week) from repeated attempts. Wait, and rehearse with `STAGING=1` next time. |
 | WebSocket connects then drops after ~1 min | A proxy in front of nginx (Cloudflare, a load balancer) is closing idle sockets — nginx itself is set to 1h. |
 | App won't start, no obvious cause | `docker compose logs app` — the deepest `Caused by:` names the real failure. |
 
