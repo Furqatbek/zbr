@@ -9,7 +9,7 @@ services:
     ports:
       # Loopback only: nginx reaches the app over the compose network. Publishing
       # 8080 publicly would bypass TLS entirely.
-      - "127.0.0.1:8080:8080"
+      - "127.0.0.1:${APP_HOST_PORT:-8080}:8080"
     environment:
       # Defaults to production-safe. "prod" is what disables Swagger, stops
       # exception messages reaching clients, restores Flyway migration
@@ -144,7 +144,7 @@ services:
     mem_limit: 768m
     ports:
       # Loopback only: never expose the database to the internet.
-      - "127.0.0.1:5432:5432"
+      - "127.0.0.1:${DB_HOST_PORT:-5432}:5432"
     environment:
       - POSTGRES_DB=fooddelivery
       - POSTGRES_USER=postgres
@@ -208,7 +208,7 @@ services:
     mem_limit: 384m
     ports:
       # Loopback only: Redis has no auth configured.
-      - "127.0.0.1:6379:6379"
+      - "127.0.0.1:${REDIS_HOST_PORT:-6379}:6379"
     command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
     volumes:
       - redis-data:/data
@@ -228,8 +228,8 @@ services:
     mem_limit: 512m
     ports:
       # Loopback only: AMQP + the management UI must not be public.
-      - "127.0.0.1:5672:5672"
-      - "127.0.0.1:15672:15672"
+      - "127.0.0.1:${RABBITMQ_HOST_PORT:-5672}:5672"
+      - "127.0.0.1:${RABBITMQ_UI_HOST_PORT:-15672}:15672"
     environment:
       - RABBITMQ_DEFAULT_USER=${RABBITMQ_USER:?set RABBITMQ_USER}
       - RABBITMQ_DEFAULT_PASS=${RABBITMQ_PASSWORD:?set RABBITMQ_PASSWORD}
@@ -290,7 +290,7 @@ services:
     ports:
       # Loopback-only: no auth in front of Prometheus. Reach it via SSH tunnel or
       # an authenticated reverse proxy; never expose it publicly.
-      - "127.0.0.1:9090:9090"
+      - "127.0.0.1:${PROMETHEUS_HOST_PORT:-9090}:9090"
     volumes:
       - ./docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - ./docker/prometheus/alerts.yml:/etc/prometheus/alerts.yml:ro
@@ -347,7 +347,7 @@ services:
     mem_limit: 256m
     ports:
       # Loopback only: reach Grafana over an SSH tunnel (see docs/ALERTING.md).
-      - "127.0.0.1:3000:3000"
+      - "127.0.0.1:${GRAFANA_HOST_PORT:-3000}:3000"
     environment:
       - GF_SECURITY_ADMIN_USER=admin
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:?set GRAFANA_PASSWORD}

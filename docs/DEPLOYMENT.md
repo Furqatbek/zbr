@@ -239,6 +239,7 @@ idempotent, so a brief mid-deploy retry from a client is safe.
 | Certificate expired even though certbot is running | Renewal goes through nginx on **port 80** — if the firewall was closed after issuance, every renewal since has failed silently. Reopen it and run the `--dry-run` above. |
 | `too many certificates already issued` | Let's Encrypt rate limit (5 per domain per week) from repeated attempts. Wait, and rehearse with `STAGING=1` next time. |
 | WebSocket connects then drops after ~1 min | A proxy in front of nginx (Cloudflare, a load balancer) is closing idle sockets — nginx itself is set to 1h. |
+| `Ports are not available: ... bind: An attempt was made to access a socket in a way forbidden by its access permissions` (Windows) | Either something already holds the port (`netstat -ano \| findstr :5432` — a locally installed PostgreSQL is the usual culprit) or Hyper-V/WSL has **reserved** the range without using it (`netsh interface ipv4 show excludedportrange protocol=tcp`). For a reservation, `net stop winnat && net start winnat` in an **admin** shell releases it. Either way the quick fix is to move the host side: `DB_HOST_PORT=5433` in `.env`. Containers are unaffected — they reach each other on 5432 over the compose network. |
 | App won't start, no obvious cause | `docker compose logs app` — the deepest `Caused by:` names the real failure. |
 
 Onboarding the first vendor, courier and order → [GO_LIVE.md](GO_LIVE.md).
