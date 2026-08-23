@@ -345,6 +345,17 @@ public class AuthService {
     }
 
     private String getClientIp(HttpServletRequest request) {
+        // X-Real-IP FIRST, deliberately. nginx overwrites it with a single
+        // authoritative value, whereas X-Forwarded-For is a client-supplied
+        // list that a misconfigured proxy may merely append to — trusting its
+        // leftmost entry lets a caller choose its own rate-limit bucket. Both
+        // headers are only meaningful because nothing but nginx can reach this
+        // app (all other ports are bound to 127.0.0.1).
+        String realIp = request.getHeader("X-Real-IP");
+        if (realIp != null && !realIp.isEmpty()) {
+            return realIp.trim();
+        }
+
         String forwardedFor = request.getHeader("X-Forwarded-For");
         if (forwardedFor != null && !forwardedFor.isEmpty()) {
             return forwardedFor.split(",")[0].trim();

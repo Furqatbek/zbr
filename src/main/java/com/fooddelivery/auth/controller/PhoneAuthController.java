@@ -3,6 +3,7 @@ package com.fooddelivery.auth.controller;
 import com.fooddelivery.auth.dto.*;
 import com.fooddelivery.auth.security.UserPrincipal;
 import com.fooddelivery.auth.service.PhoneAuthService;
+import com.fooddelivery.common.annotation.RateLimited;
 import com.fooddelivery.common.dto.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -29,6 +30,11 @@ public class PhoneAuthController {
      * Request OTP to phone number for login/signup.
      */
     @PostMapping("/request-otp")
+    // Every OTP is a paid SMS. OtpService caps 5/hour PER PHONE, which bounds
+    // the cost of targeting one number but not the cost of walking through
+    // many — without a per-IP cap a script can bill us across the whole
+    // +998 range. These two limits are complementary, not redundant.
+    @RateLimited(requestsPerMinute = 5, keyType = RateLimited.KeyType.IP)
     @Operation(summary = "Request OTP", description = "Send verification code to phone number")
     public ResponseEntity<ApiResponse<OtpSendResponse>> sendOtp(
             @Valid @RequestBody PhoneLoginRequest request) {
@@ -43,6 +49,9 @@ public class PhoneAuthController {
      * Verify OTP and complete login/signup.
      */
     @PostMapping("/verify-otp")
+    // Guessing a 6-digit code: OtpService allows 3 attempts per issued code,
+    // but nothing stopped re-requesting codes and guessing indefinitely.
+    @RateLimited(requestsPerMinute = 10, keyType = RateLimited.KeyType.IP)
     @Operation(summary = "Verify OTP", description = "Verify OTP code and authenticate user")
     public ResponseEntity<ApiResponse<AuthResponse>> verifyOtp(
             @Valid @RequestBody OtpVerifyRequest request) {
@@ -57,6 +66,7 @@ public class PhoneAuthController {
      * Resend OTP to phone number.
      */
     @PostMapping("/resend-otp")
+    @RateLimited(requestsPerMinute = 3, keyType = RateLimited.KeyType.IP)
     @Operation(summary = "Resend OTP", description = "Resend verification code to phone number")
     public ResponseEntity<ApiResponse<OtpSendResponse>> resendOtp(
             @Valid @RequestBody PhoneLoginRequest request) {
