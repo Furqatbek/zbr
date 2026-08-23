@@ -70,8 +70,12 @@ public class ImageStorageService {
         String extension = getFileExtension(originalFilename);
         String uniqueFilename = UUID.randomUUID().toString() + "." + extension;
 
-        // Create category subdirectory
-        Path categoryPath = rootLocation.resolve(category);
+        // Category reaches here straight from a @PathVariable on /images/upload
+        // and is used as a directory name. Validate BEFORE creating anything:
+        // the traversal check used to run after createDirectories, so a crafted
+        // category could still mkdir outside the store even though the write
+        // was then refused.
+        Path categoryPath = resolveWithinRoot(category, "category");
         try {
             Files.createDirectories(categoryPath);
         } catch (IOException e) {
@@ -79,11 +83,6 @@ public class ImageStorageService {
         }
 
         Path destinationFile = categoryPath.resolve(uniqueFilename).normalize().toAbsolutePath();
-
-        // Security check - prevent path traversal
-        if (!destinationFile.getParent().equals(categoryPath.toAbsolutePath())) {
-            throw new BusinessException("Cannot store file outside designated directory");
-        }
 
         try (InputStream inputStream = file.getInputStream()) {
             Files.copy(inputStream, destinationFile, StandardCopyOption.REPLACE_EXISTING);
@@ -111,7 +110,10 @@ public class ImageStorageService {
      */
     public Resource loadImage(String relativePath) {
         try {
-            Path file = rootLocation.resolve(relativePath).normalize();
+            // Containment check, as in deleteImage. Without it this method will
+            // read and serve ANY file the JVM can open — the path arrives from
+            // a {filename:.+} path variable, which matches slashes.
+            Path file = resolveWithinRoot(relativePath, "image path");
             Resource resource = new UrlResource(file.toUri());
 
             if (resource.exists() && resource.isReadable()) {
@@ -129,12 +131,7 @@ public class ImageStorageService {
      */
     public boolean deleteImage(String relativePath) {
         try {
-            Path file = rootLocation.resolve(relativePath).normalize();
-
-            // Security check
-            if (!file.startsWith(rootLocation)) {
-                throw new BusinessException("Cannot delete file outside storage directory");
-            }
+            Path file = resolveWithinRoot(relativePath, "image path");
 
             boolean deleted = Files.deleteIfExists(file);
             if (deleted) {
@@ -145,6 +142,30 @@ public class ImageStorageService {
             log.error("Failed to delete image: {}", relativePath, e);
             return false;
         }
+    }
+
+    /**
+     * Resolve a caller-supplied relative path against the image root and refuse
+     * anything that escapes it.
+     *
+     * <p>The single place path containment is enforced. Comparing the resolved,
+     * normalised, absolute path against the equally absolute root is what makes
+     * this reliable: {@code rootLocation} is built from a configured string and
+     * is not necessarily absolute, and {@code startsWith} on paths of differing
+     * absoluteness silently returns false — or, worse, compares the wrong
+     * prefix.
+     */
+    private Path resolveWithinRoot(String relativePath, String what) {
+        if (relativePath == null || relativePath.isBlank()) {
+            throw new BusinessException("Invalid " + what);
+        }
+        Path root = rootLocation.toAbsolutePath().normalize();
+        Path resolved = root.resolve(relativePath).normalize().toAbsolutePath();
+        if (!resolved.startsWith(root)) {
+            log.warn("SECURITY: rejected {} escaping the image store: {}", what, relativePath);
+            throw new BusinessException("Invalid " + what);
+        }
+        return resolved;
     }
 
     /**

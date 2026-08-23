@@ -73,8 +73,14 @@ public class ImageController {
                 .body(resource);
     }
 
+    // ADMIN/PLATFORM only. Images carry no ownership record, so any owner who
+    // could reach this endpoint could delete ANY image — and image URLs are
+    // public in menu responses, so a competitor's filenames are simply readable.
+    // Vendors never need it: MenuService deletes the old file itself when a
+    // menu-item image is replaced or the item removed, behind the ownership
+    // check that endpoint already enforces.
     @DeleteMapping("/{category}/{filename:.+}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'PLATFORM', 'RESTAURANT_OWNER', 'RESTAURANT_STAFF')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'PLATFORM')")
     @Operation(summary = "Delete image", description = "Delete an image by category and filename")
     public ResponseEntity<ApiResponse<Void>> deleteImage(
             @PathVariable String category,
