@@ -117,10 +117,22 @@ public class CourierService {
             throw new BusinessException("Courier must be verified before going online");
         }
 
-        // MUST-DO before any admin/dispatcher suspension flow ships: reject a
-        // self-service transition OUT of SUSPENDED/PENDING_APPROVAL here, otherwise
-        // a suspended courier can un-suspend themselves with one PATCH /me/status.
-        // (Deliberately deferred while no suspension feature exists.)
+        // SUSPENDED and PENDING_APPROVAL are administrative states, and this
+        // method is reached only from the courier's own PATCH/PUT /me/status.
+        // Without this a suspended courier lifts their own suspension with one
+        // request — they are already verified, so the check above waves them
+        // through to AVAILABLE and they are taking orders again.
+        //
+        // Clearing either state is activateCourier(), behind
+        // POST /couriers/{id}/activate (PLATFORM/ADMIN).
+        CourierStatus current = courier.getStatus();
+        if (current == CourierStatus.SUSPENDED || current == CourierStatus.PENDING_APPROVAL) {
+            log.warn("SECURITY: courier {} attempted to leave {} via self-service status update",
+                    courierId, current);
+            throw new BusinessException(current == CourierStatus.SUSPENDED
+                    ? "Your account is suspended. Please contact support."
+                    : "Your account is awaiting approval.");
+        }
 
         courier.setStatus(status);
         courier = courierRepository.save(courier);
