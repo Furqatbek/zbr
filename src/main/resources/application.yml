@@ -236,6 +236,17 @@ app:
     fallback-enabled: ${SMS_FALLBACK_ENABLED:false}
     fallback-provider: ${SMS_FALLBACK_PROVIDER:}  # Options: ESKIZ, DEVSMS
 
+    # Text used ONLY when no APPROVED template exists for that type. Manage the
+    # real wording through the template API (/api/v1/sms/templates); these exist
+    # so the backend never ships user-facing wording that cannot be changed
+    # without a redeploy. "{code}" is substituted; the rest is sent verbatim.
+    # Named default-text, NOT fallback-*, which above means the backup PROVIDER.
+    # Note Eskiz rejects text that is not a registered template, so in
+    # production these send only when a template is genuinely missing.
+    default-text:
+      otp: "${SMS_OTP_TEXT:Your verification code is: {code}}"
+      password-reset: "${SMS_PASSWORD_RESET_TEXT:Your password reset code: {code}}"
+
     # Eskiz SMS Provider (eskiz.uz)
     eskiz:
       enabled: ${SMS_ESKIZ_ENABLED:true}

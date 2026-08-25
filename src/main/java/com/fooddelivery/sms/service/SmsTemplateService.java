@@ -76,6 +76,8 @@ public class SmsTemplateService {
         SmsTemplate template = templateRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Template not found: " + id));
 
+        boolean contentChanged = !java.util.Objects.equals(template.getContent(), request.getContent());
+
         template.setName(request.getName());
         template.setContent(request.getContent());
         template.setTemplateType(request.getTemplateType());
@@ -83,8 +85,13 @@ public class SmsTemplateService {
         template.setLanguage(request.getLanguage());
         template.setDescription(request.getDescription());
 
-        // If content changed, mark as needing re-sync
-        template.setStatus(SmsTemplateStatus.DRAFT);
+        // Only a CONTENT change invalidates provider approval — the provider
+        // approved specific text. Renaming a template or editing its
+        // description used to reset it to DRAFT too, which silently stopped it
+        // being used for sending until someone noticed and re-synced.
+        if (contentChanged) {
+            template.setStatus(SmsTemplateStatus.DRAFT);
+        }
 
         template = templateRepository.save(template);
         log.info("Updated SMS template: id={}, code={}", template.getId(), template.getTemplateCode());
@@ -250,6 +257,40 @@ public class SmsTemplateService {
         return templateRepository.findFirstByTemplateTypeAndProviderAndStatusAndActiveTrueOrderByUpdatedAtDesc(
                 type, provider, SmsTemplateStatus.APPROVED)
                 .orElse(null);
+    }
+
+    /**
+     * Record an approval that happened outside this system.
+     *
+     * <p>Eskiz templates are normally registered and approved in their web
+     * cabinet, not through the API. Without this, a template approved there
+     * could never reach APPROVED here — {@code /sync} is the only other path
+     * and it needs a working provider API — so sending would fall back to the
+     * built-in text forever, which is exactly the symptom that looks like
+     * "the backend ignores my templates".
+     *
+     * <p>This asserts nothing about the provider's real state; it records what
+     * an administrator says is true. {@code refreshStatus} remains the way to
+     * reconcile with the provider where the API supports it.
+     */
+    @Transactional
+    public SmsTemplateResponse markApproved(Long id, String providerTemplateId) {
+        SmsTemplate template = templateRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Template not found: " + id));
+
+        if (providerTemplateId != null && !providerTemplateId.isBlank()) {
+            template.setProviderTemplateId(providerTemplateId.trim());
+        }
+        template.setStatus(SmsTemplateStatus.APPROVED);
+        template.setActive(true);
+        template.setRejectionReason(null);
+        template.setLastSyncedAt(LocalDateTime.now());
+
+        template = templateRepository.save(template);
+        log.info("Template {} ({}) marked APPROVED manually, providerTemplateId={}",
+                template.getId(), template.getTemplateCode(), template.getProviderTemplateId());
+
+        return SmsTemplateResponse.fromEntity(template);
     }
 
     /**

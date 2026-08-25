@@ -119,6 +119,28 @@ public class SmsTemplateController {
         return ResponseEntity.ok(response);
     }
 
+    @PostMapping("/{id}/mark-approved")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Record a provider approval granted outside this system",
+            description = "Eskiz templates are usually approved in their web cabinet rather than "
+                    + "over the API. Use this to record that, optionally supplying the provider's "
+                    + "template id. Only APPROVED + active templates are used for sending, so "
+                    + "without this a cabinet-approved template would never take effect and OTPs "
+                    + "would keep using the built-in fallback text.")
+    public ResponseEntity<SmsTemplateResponse> markApproved(
+            @PathVariable Long id,
+            @RequestBody(required = false) MarkApprovedRequest request) {
+        String providerTemplateId = request != null ? request.getProviderTemplateId() : null;
+        log.info("Marking SMS template approved manually: id={}", id);
+        return ResponseEntity.ok(templateService.markApproved(id, providerTemplateId));
+    }
+
+    /** Body for {@link #markApproved}; the provider template id is optional. */
+    @lombok.Data
+    public static class MarkApprovedRequest {
+        private String providerTemplateId;
+    }
+
     @PostMapping("/sync-all")
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Sync all pending templates",

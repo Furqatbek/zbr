@@ -30,6 +30,19 @@ public class SmsNotificationService {
     private final SmsProviderFactory smsProviderFactory;
 
     /**
+     * Text used only when no APPROVED template exists for the type. Configurable
+     * so no user-facing wording is compiled into the backend — the platform
+     * operates in Uzbek and an English string baked into a jar cannot be fixed
+     * without a redeploy. {code} is substituted; everything else is sent as-is.
+     * The template API remains the primary mechanism; these are the safety net.
+     */
+    @org.springframework.beans.factory.annotation.Value("${app.sms.default-text.otp:Your verification code is: {code}}")
+    private String otpText = "Your verification code is: {code}";
+
+    @org.springframework.beans.factory.annotation.Value("${app.sms.default-text.password-reset:Your password reset code: {code}}")
+    private String passwordResetText = "Your password reset code: {code}";
+
+    /**
      * Send OTP code via SMS.
      * First tries to use an approved OTP template, falls back to hardcoded message if not available.
      */
@@ -46,7 +59,7 @@ public class SmsNotificationService {
         }
 
         // Fallback to hardcoded message if template not available
-        String message = String.format("Your verification code is: %s\nValid for 5 minutes.\n- Food Delivery", otpCode);
+        String message = otpText.replace("{code}", otpCode);
 
         SmsMessage smsMessage = SmsMessage.builder()
                 .messageId(UUID.randomUUID().toString())
@@ -156,10 +169,7 @@ public class SmsNotificationService {
             return;
         }
 
-        String message = String.format(
-                "Your password reset code: %s\nValid for 1 hour.\nIf you didn't request this, ignore this message.",
-                resetCode
-        );
+        String message = passwordResetText.replace("{code}", resetCode);
 
         SmsMessage smsMessage = SmsMessage.builder()
                 .messageId(UUID.randomUUID().toString())
