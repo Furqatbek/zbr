@@ -137,7 +137,11 @@ server:
 jwt:
   secret: ${JWT_SECRET:}
   access-token:
-    expiration: ${JWT_ACCESS_EXPIRATION:900000} # 15 minutes in ms
+    # JWT_EXPIRATION is honoured as a fallback: docker-compose set that name for
+    # a long time while the app only ever read JWT_ACCESS_EXPIRATION, so the
+    # configured value was silently ignored and every deployment ran the
+    # 15-minute default.
+    expiration: ${JWT_ACCESS_EXPIRATION:${JWT_EXPIRATION:900000}} # ms
   refresh-token:
     expiration: ${JWT_REFRESH_EXPIRATION:604800000} # 7 days in ms
 

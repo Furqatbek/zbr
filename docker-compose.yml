@@ -29,8 +29,11 @@ services:
       - SPRING_RABBITMQ_PASSWORD=${RABBITMQ_PASSWORD:?set RABBITMQ_PASSWORD}
       # Must be supplied from the host environment; compose errors if unset. Generate with: openssl rand -base64 48
       - JWT_SECRET=${JWT_SECRET:?JWT_SECRET must be set (e.g. export JWT_SECRET=$(openssl rand -base64 48))}
-      - JWT_EXPIRATION=3600000
-      - JWT_REFRESH_EXPIRATION=604800000
+      # Access-token lifetime. Clients MUST refresh via /api/v1/auth/refresh
+      # before this elapses; a short value with no client-side refresh logs
+      # users out mid-session.
+      - JWT_ACCESS_EXPIRATION=${JWT_ACCESS_EXPIRATION:-3600000}
+      - JWT_REFRESH_EXPIRATION=${JWT_REFRESH_EXPIRATION:-604800000}
       - IMAGE_STORAGE_PATH=/app/images
       # MUST be the public URL in production or every image URL returned to the
       # mobile apps points at localhost and no photo loads.
