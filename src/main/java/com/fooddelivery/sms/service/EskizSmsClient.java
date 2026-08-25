@@ -476,8 +476,8 @@ public class EskizSmsClient implements SmsProvider {
     }
 
     @Override
-    public List<SmsTemplateSyncResponse> listProviderTemplates() {
-        List<SmsTemplateSyncResponse> templates = new ArrayList<>();
+    public List<com.fooddelivery.sms.dto.ProviderTemplateDto> listProviderTemplates() {
+        List<com.fooddelivery.sms.dto.ProviderTemplateDto> templates = new ArrayList<>();
 
         if (!isAvailable()) {
             return templates;
@@ -507,7 +507,23 @@ public class EskizSmsClient implements SmsProvider {
                             Map templateData = (Map) item;
                             String templateId = templateData.get("id") != null ? templateData.get("id").toString() : null;
                             String status = templateData.get("status") != null ? templateData.get("status").toString() : "unknown";
-                            templates.add(SmsTemplateSyncResponse.success(templateId, mapProviderStatus(status), getProviderName()));
+                            // Eskiz has used both keys for the body text across
+                            // API versions; take whichever is present so an
+                            // import is never silently contentless.
+                            Object text = templateData.get("template");
+                            if (text == null) {
+                                text = templateData.get("original_text");
+                            }
+                            if (text == null) {
+                                text = templateData.get("text");
+                            }
+                            Object name = templateData.get("name");
+                            templates.add(com.fooddelivery.sms.dto.ProviderTemplateDto.builder()
+                                    .providerTemplateId(templateId)
+                                    .name(name != null ? name.toString() : ("eskiz-" + templateId))
+                                    .content(text != null ? text.toString() : null)
+                                    .status(mapProviderStatus(status))
+                                    .build());
                         }
                     }
                 }

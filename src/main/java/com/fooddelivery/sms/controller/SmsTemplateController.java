@@ -119,6 +119,20 @@ public class SmsTemplateController {
         return ResponseEntity.ok(response);
     }
 
+    @PostMapping("/import/{provider}")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Import templates that already exist on the provider",
+            description = "Pulls the templates registered with the provider into this system, "
+                    + "matching on the provider's template id. /sync and /sync-all only push "
+                    + "local drafts OUT, so templates registered directly with Eskiz were "
+                    + "previously invisible here. Imported templates come in as type GENERAL "
+                    + "and must be retyped to OTP before they are used for sending.")
+    public ResponseEntity<List<SmsTemplateResponse>> importFromProvider(
+            @PathVariable SmsProviderType provider) {
+        log.info("Importing SMS templates from provider: {}", provider);
+        return ResponseEntity.ok(templateService.importFromProvider(provider));
+    }
+
     @PostMapping("/{id}/mark-approved")
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Record a provider approval granted outside this system",

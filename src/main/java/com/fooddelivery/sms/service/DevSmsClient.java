@@ -258,8 +258,10 @@ public class DevSmsClient implements SmsProvider {
     }
 
     @Override
-    public List<SmsTemplateSyncResponse> listProviderTemplates() {
-        // DevSMS has no template API - return empty list
+    public List<com.fooddelivery.sms.dto.ProviderTemplateDto> listProviderTemplates() {
+        // DevSMS exposes no template API, so there is nothing to import. It also
+        // needs none: getTemplateStatus reports APPROVED unconditionally and
+        // sending uses raw text.
         return new ArrayList<>();
     }
 

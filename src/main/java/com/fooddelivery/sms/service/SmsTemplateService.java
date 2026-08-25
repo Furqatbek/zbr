@@ -260,6 +260,76 @@ public class SmsTemplateService {
     }
 
     /**
+     * Import templates that already exist on the provider into this system.
+     *
+     * <p>{@code syncAllPendingTemplates} only ever pushed LOCAL drafts OUT to
+     * the provider — it looks at {@code findTemplatesPendingSync()}, which is
+     * local rows in DRAFT. Nothing pulled the other way, so templates already
+     * registered with Eskiz were invisible here and could never be used for
+     * sending. The provider clients could already list them; no caller existed.
+     *
+     * <p>Matching is by {@code providerTemplateId}: an existing row is updated
+     * in place, a new one is created. Nothing is deleted — a template missing
+     * from the provider's list is left alone rather than removed, because a
+     * transient API failure returning an empty list must not wipe the table.
+     *
+     * @return the templates now held locally for that provider
+     */
+    @Transactional
+    public List<SmsTemplateResponse> importFromProvider(SmsProviderType providerType) {
+        SmsProvider provider = providerFactory.getProvider(providerType);
+        if (provider == null) {
+            throw new IllegalArgumentException("No client for provider " + providerType);
+        }
+
+        List<com.fooddelivery.sms.dto.ProviderTemplateDto> remote = provider.listProviderTemplates();
+        log.info("Provider {} returned {} template(s) to import", providerType, remote.size());
+
+        int created = 0;
+        int updated = 0;
+        for (com.fooddelivery.sms.dto.ProviderTemplateDto dto : remote) {
+            if (dto.getProviderTemplateId() == null) {
+                continue;
+            }
+            SmsTemplate template = templateRepository
+                    .findByProviderTemplateIdAndProvider(dto.getProviderTemplateId(), providerType)
+                    .orElse(null);
+
+            if (template == null) {
+                template = SmsTemplate.builder()
+                        .templateCode(providerType.name().toLowerCase() + "-" + dto.getProviderTemplateId())
+                        .name(dto.getName())
+                        .content(dto.getContent())
+                        // Type cannot be inferred from the provider's payload;
+                        // GENERAL is a holding value the administrator retypes.
+                        // Only OTP and PASSWORD_RESET are ever sent, so an
+                        // imported template does nothing until it is retyped.
+                        .templateType(SmsTemplateType.GENERAL)
+                        .provider(providerType)
+                        .providerTemplateId(dto.getProviderTemplateId())
+                        .status(dto.getStatus())
+                        .active(true)
+                        .language("uz")
+                        .description("Imported from " + providerType)
+                        .build();
+                created++;
+            } else {
+                template.setName(dto.getName() != null ? dto.getName() : template.getName());
+                if (dto.getContent() != null) {
+                    template.setContent(dto.getContent());
+                }
+                template.setStatus(dto.getStatus());
+                updated++;
+            }
+            template.setLastSyncedAt(LocalDateTime.now());
+            templateRepository.save(template);
+        }
+
+        log.info("Imported from {}: {} created, {} updated", providerType, created, updated);
+        return listTemplatesByProvider(providerType);
+    }
+
+    /**
      * Record an approval that happened outside this system.
      *
      * <p>Eskiz templates are normally registered and approved in their web

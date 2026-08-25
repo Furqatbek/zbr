@@ -87,11 +87,15 @@ public interface SmsProvider {
     SmsTemplateSyncResponse getTemplateStatus(String providerTemplateId);
 
     /**
-     * List all templates registered with the provider.
+     * List all templates registered with the provider, WITH their text.
      *
-     * @return list of template sync responses
+     * <p>Returns ProviderTemplateDto rather than a sync response: importing
+     * needs the message content, and a sync response carries only an id and a
+     * status.
+     *
+     * @return templates as the provider holds them; empty if unsupported
      */
-    List<SmsTemplateSyncResponse> listProviderTemplates();
+    List<com.fooddelivery.sms.dto.ProviderTemplateDto> listProviderTemplates();
 
     /**
      * Send SMS using a registered template.
