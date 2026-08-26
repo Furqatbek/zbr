@@ -105,10 +105,10 @@ public interface SystemMetricSnapshotRepository extends JpaRepository<SystemMetr
     /**
      * Get hourly average for a metric.
      */
-    @Query(value = "SELECT EXTRACT(HOUR FROM recorded_at) as hour, AVG(metric_value) " +
+    @Query(value = "SELECT EXTRACT(HOUR FROM business_ts(recorded_at)) as hour, AVG(metric_value) " +
            "FROM system_metric_snapshots WHERE metric_name = :metricName " +
            "AND recorded_at BETWEEN :start AND :end " +
-           "GROUP BY EXTRACT(HOUR FROM recorded_at) ORDER BY hour", nativeQuery = true)
+           "GROUP BY EXTRACT(HOUR FROM business_ts(recorded_at)) ORDER BY hour", nativeQuery = true)
     List<Object[]> getHourlyAverage(@Param("metricName") String metricName,
                                     @Param("start") LocalDateTime start,
                                     @Param("end") LocalDateTime end);

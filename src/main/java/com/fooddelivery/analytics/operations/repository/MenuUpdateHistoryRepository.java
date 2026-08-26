@@ -55,11 +55,11 @@ public interface MenuUpdateHistoryRepository extends JpaRepository<MenuUpdateHis
      * Get daily menu update counts for a restaurant.
      * Returns [date, count].
      */
-    @Query(value = "SELECT DATE(updated_at) as day, COUNT(*) as count " +
+    @Query(value = "SELECT DATE(business_ts(updated_at)) as day, COUNT(*) as count " +
             "FROM menu_update_history " +
             "WHERE restaurant_id = :restaurantId " +
             "AND updated_at >= :startTime AND updated_at <= :endTime " +
-            "GROUP BY DATE(updated_at) " +
+            "GROUP BY DATE(business_ts(updated_at)) " +
             "ORDER BY day", nativeQuery = true)
     List<Object[]> getDailyMenuUpdates(
             @Param("restaurantId") Long restaurantId,
@@ -83,10 +83,10 @@ public interface MenuUpdateHistoryRepository extends JpaRepository<MenuUpdateHis
      * Get average menu updates per day across all restaurants.
      */
     @Query(value = "SELECT AVG(daily_updates) FROM (" +
-            "  SELECT restaurant_id, DATE(updated_at) as day, COUNT(*) as daily_updates " +
+            "  SELECT restaurant_id, DATE(business_ts(updated_at)) as day, COUNT(*) as daily_updates " +
             "  FROM menu_update_history " +
             "  WHERE updated_at >= :startTime AND updated_at <= :endTime " +
-            "  GROUP BY restaurant_id, DATE(updated_at)" +
+            "  GROUP BY restaurant_id, DATE(business_ts(updated_at))" +
             ") as daily_counts", nativeQuery = true)
     Double getAverageMenuUpdatesPerDay(
             @Param("startTime") LocalDateTime startTime,

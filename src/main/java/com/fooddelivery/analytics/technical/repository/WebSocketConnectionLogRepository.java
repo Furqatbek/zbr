@@ -61,7 +61,7 @@ public interface WebSocketConnectionLogRepository extends JpaRepository<WebSocke
     @Query(value = "SELECT MAX(concurrent) FROM (" +
            "SELECT COUNT(*) as concurrent FROM websocket_connection_logs " +
            "WHERE connected_at <= :checkTime AND (disconnected_at IS NULL OR disconnected_at > :checkTime) " +
-           "GROUP BY EXTRACT(HOUR FROM connected_at)) subq", nativeQuery = true)
+           "GROUP BY EXTRACT(HOUR FROM business_ts(connected_at))) subq", nativeQuery = true)
     Long getMaxConcurrentConnections(@Param("checkTime") LocalDateTime checkTime);
 
     /**
@@ -104,21 +104,21 @@ public interface WebSocketConnectionLogRepository extends JpaRepository<WebSocke
     /**
      * Get hourly connection distribution.
      */
-    @Query(value = "SELECT EXTRACT(HOUR FROM connected_at) as hour, " +
+    @Query(value = "SELECT EXTRACT(HOUR FROM business_ts(connected_at)) as hour, " +
            "SUM(CASE WHEN disconnected_at IS NULL OR disconnected_at > :end THEN 1 ELSE 0 END), " +
            "COUNT(*), " +
            "SUM(CASE WHEN disconnected_at BETWEEN :start AND :end THEN 1 ELSE 0 END), " +
            "SUM(messages_sent) " +
            "FROM websocket_connection_logs WHERE connected_at BETWEEN :start AND :end " +
-           "GROUP BY EXTRACT(HOUR FROM connected_at) ORDER BY hour", nativeQuery = true)
+           "GROUP BY EXTRACT(HOUR FROM business_ts(connected_at)) ORDER BY hour", nativeQuery = true)
     List<Object[]> getHourlyDistribution(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
 
     /**
      * Get peak connection hour.
      */
-    @Query(value = "SELECT EXTRACT(HOUR FROM connected_at) as hour, COUNT(*) as cnt " +
+    @Query(value = "SELECT EXTRACT(HOUR FROM business_ts(connected_at)) as hour, COUNT(*) as cnt " +
            "FROM websocket_connection_logs WHERE connected_at BETWEEN :start AND :end " +
-           "GROUP BY EXTRACT(HOUR FROM connected_at) ORDER BY cnt DESC", nativeQuery = true)
+           "GROUP BY EXTRACT(HOUR FROM business_ts(connected_at)) ORDER BY cnt DESC", nativeQuery = true)
     List<Object[]> getPeakHour(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
 
     /**

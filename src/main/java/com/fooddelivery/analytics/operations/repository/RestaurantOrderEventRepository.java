@@ -118,12 +118,12 @@ public interface RestaurantOrderEventRepository extends JpaRepository<Restaurant
      * Get orders by hour for a restaurant.
      * Returns [hour, count].
      */
-    @Query(value = "SELECT EXTRACT(HOUR FROM event_timestamp) as hour, COUNT(*) as count " +
+    @Query(value = "SELECT EXTRACT(HOUR FROM business_ts(event_timestamp)) as hour, COUNT(*) as count " +
             "FROM restaurant_order_events " +
             "WHERE restaurant_id = :restaurantId " +
             "AND event_type = 'RECEIVED' " +
             "AND event_timestamp >= :startTime AND event_timestamp <= :endTime " +
-            "GROUP BY EXTRACT(HOUR FROM event_timestamp) " +
+            "GROUP BY EXTRACT(HOUR FROM business_ts(event_timestamp)) " +
             "ORDER BY hour", nativeQuery = true)
     List<Object[]> getOrdersByHour(
             @Param("restaurantId") Long restaurantId,
@@ -134,7 +134,7 @@ public interface RestaurantOrderEventRepository extends JpaRepository<Restaurant
      * Get daily metrics for a restaurant.
      * Returns [date, received, accepted, rejected, ready, cancelled].
      */
-    @Query(value = "SELECT DATE(event_timestamp) as day, " +
+    @Query(value = "SELECT DATE(business_ts(event_timestamp)) as day, " +
             "COUNT(CASE WHEN event_type = 'RECEIVED' THEN 1 END) as received, " +
             "COUNT(CASE WHEN event_type = 'ACCEPTED' THEN 1 END) as accepted, " +
             "COUNT(CASE WHEN event_type = 'REJECTED' THEN 1 END) as rejected, " +
@@ -145,7 +145,7 @@ public interface RestaurantOrderEventRepository extends JpaRepository<Restaurant
             "FROM restaurant_order_events " +
             "WHERE restaurant_id = :restaurantId " +
             "AND event_timestamp >= :startTime AND event_timestamp <= :endTime " +
-            "GROUP BY DATE(event_timestamp) " +
+            "GROUP BY DATE(business_ts(event_timestamp)) " +
             "ORDER BY day", nativeQuery = true)
     List<Object[]> getDailyMetrics(
             @Param("restaurantId") Long restaurantId,

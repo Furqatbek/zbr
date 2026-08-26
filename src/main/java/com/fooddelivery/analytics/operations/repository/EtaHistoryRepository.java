@@ -92,7 +92,7 @@ public interface EtaHistoryRepository extends JpaRepository<EtaHistory, Long> {
      * Get ETA error by hour of day.
      * Returns [hour, avgError, avgAbsError, count].
      */
-    @Query(value = "SELECT EXTRACT(HOUR FROM predicted_at) as hour, " +
+    @Query(value = "SELECT EXTRACT(HOUR FROM business_ts(predicted_at)) as hour, " +
             "AVG(eta_error_minutes) as avg_error, " +
             "AVG(eta_error_abs_minutes) as avg_abs_error, " +
             "COUNT(*) as count " +
@@ -100,7 +100,7 @@ public interface EtaHistoryRepository extends JpaRepository<EtaHistory, Long> {
             "WHERE was_completed = true " +
             "AND eta_error_minutes IS NOT NULL " +
             "AND predicted_at >= :startTime AND predicted_at <= :endTime " +
-            "GROUP BY EXTRACT(HOUR FROM predicted_at) " +
+            "GROUP BY EXTRACT(HOUR FROM business_ts(predicted_at)) " +
             "ORDER BY hour", nativeQuery = true)
     List<Object[]> getErrorByHour(
             @Param("startTime") LocalDateTime startTime,
@@ -110,7 +110,7 @@ public interface EtaHistoryRepository extends JpaRepository<EtaHistory, Long> {
      * Get ETA error by day of week.
      * Returns [dayOfWeek, avgError, avgAbsError, count].
      */
-    @Query(value = "SELECT EXTRACT(DOW FROM predicted_at) as dow, " +
+    @Query(value = "SELECT EXTRACT(DOW FROM business_ts(predicted_at)) as dow, " +
             "AVG(eta_error_minutes) as avg_error, " +
             "AVG(eta_error_abs_minutes) as avg_abs_error, " +
             "COUNT(*) as count " +
@@ -118,7 +118,7 @@ public interface EtaHistoryRepository extends JpaRepository<EtaHistory, Long> {
             "WHERE was_completed = true " +
             "AND eta_error_minutes IS NOT NULL " +
             "AND predicted_at >= :startTime AND predicted_at <= :endTime " +
-            "GROUP BY EXTRACT(DOW FROM predicted_at) " +
+            "GROUP BY EXTRACT(DOW FROM business_ts(predicted_at)) " +
             "ORDER BY dow", nativeQuery = true)
     List<Object[]> getErrorByDayOfWeek(
             @Param("startTime") LocalDateTime startTime,
@@ -161,7 +161,7 @@ public interface EtaHistoryRepository extends JpaRepository<EtaHistory, Long> {
      * Get daily ETA metrics.
      * Returns [date, totalDeliveries, avgError, avgAbsError, within5Min, late, early].
      */
-    @Query(value = "SELECT DATE(predicted_at) as day, " +
+    @Query(value = "SELECT DATE(business_ts(predicted_at)) as day, " +
             "COUNT(*) as total, " +
             "AVG(eta_error_minutes) as avg_error, " +
             "AVG(eta_error_abs_minutes) as avg_abs_error, " +
@@ -172,7 +172,7 @@ public interface EtaHistoryRepository extends JpaRepository<EtaHistory, Long> {
             "WHERE was_completed = true " +
             "AND eta_error_minutes IS NOT NULL " +
             "AND predicted_at >= :startTime AND predicted_at <= :endTime " +
-            "GROUP BY DATE(predicted_at) " +
+            "GROUP BY DATE(business_ts(predicted_at)) " +
             "ORDER BY day", nativeQuery = true)
     List<Object[]> getDailyMetrics(
             @Param("startTime") LocalDateTime startTime,

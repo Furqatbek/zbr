@@ -142,13 +142,13 @@ public interface SupportTicketRepository extends JpaRepository<SupportTicket, Lo
     /**
      * Get daily ticket trend.
      */
-    @Query(value = "SELECT DATE(created_at), " +
+    @Query(value = "SELECT DATE(business_ts(created_at)), " +
            "COUNT(*), " +
            "SUM(CASE WHEN resolved_at IS NOT NULL THEN 1 ELSE 0 END), " +
            "SUM(CASE WHEN status = 'CLOSED' THEN 1 ELSE 0 END), " +
            "AVG(CASE WHEN resolved_at IS NOT NULL THEN EXTRACT(EPOCH FROM (resolved_at - created_at)) / 3600 ELSE NULL END) " +
            "FROM support_tickets WHERE created_at BETWEEN :start AND :end " +
-           "GROUP BY DATE(created_at) ORDER BY DATE(created_at)", nativeQuery = true)
+           "GROUP BY DATE(business_ts(created_at)) ORDER BY DATE(business_ts(created_at))", nativeQuery = true)
     List<Object[]> getDailyTicketTrend(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
 
     /**

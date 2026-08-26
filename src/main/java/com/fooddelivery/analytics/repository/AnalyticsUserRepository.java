@@ -43,10 +43,10 @@ public interface AnalyticsUserRepository extends JpaRepository<User, Long> {
      * Get daily registration counts for a date range.
      * Returns [date, count].
      */
-    @Query(value = "SELECT DATE(created_at) as reg_date, COUNT(*) as count " +
+    @Query(value = "SELECT DATE(business_ts(created_at)) as reg_date, COUNT(*) as count " +
             "FROM users " +
             "WHERE created_at >= :startDate AND created_at < :endDate " +
-            "GROUP BY DATE(created_at) " +
+            "GROUP BY DATE(business_ts(created_at)) " +
             "ORDER BY reg_date", nativeQuery = true)
     List<Object[]> getDailyRegistrationsBetween(
             @Param("startDate") LocalDateTime startDate,

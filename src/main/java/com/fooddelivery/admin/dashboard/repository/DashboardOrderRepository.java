@@ -422,12 +422,15 @@ public interface DashboardOrderRepository extends JpaRepository<Order, Long> {
     /**
      * Get daily revenue.
      */
-    @Query("SELECT DATE(o.createdAt), COALESCE(SUM(o.total), 0), COUNT(o), " +
-            "COALESCE(SUM(o.deliveryFee), 0), COALESCE(SUM(o.discount), 0) " +
-            "FROM Order o WHERE o.status NOT IN ('CANCELLED', 'REFUNDED') " +
-            "AND o.createdAt BETWEEN :startDate AND :endDate " +
-            "GROUP BY DATE(o.createdAt) " +
-            "ORDER BY DATE(o.createdAt)")
+    // Native, not JPQL: JPQL cannot call business_ts(), and grouping this on the
+    // UTC calendar put orders placed before 05:00 local into the previous day.
+    @Query(value = "SELECT DATE(business_ts(created_at)), COALESCE(SUM(total), 0), COUNT(*), " +
+            "COALESCE(SUM(delivery_fee), 0), COALESCE(SUM(discount), 0) " +
+            "FROM orders WHERE status NOT IN ('CANCELLED', 'REFUNDED') " +
+            "AND created_at BETWEEN :startDate AND :endDate " +
+            "GROUP BY DATE(business_ts(created_at)) " +
+            "ORDER BY DATE(business_ts(created_at))",
+            nativeQuery = true)
     List<Object[]> getDailyRevenue(@Param("startDate") LocalDateTime startDate,
                                    @Param("endDate") LocalDateTime endDate);
 

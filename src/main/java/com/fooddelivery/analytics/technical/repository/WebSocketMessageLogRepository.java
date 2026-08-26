@@ -84,12 +84,12 @@ public interface WebSocketMessageLogRepository extends JpaRepository<WebSocketMe
     /**
      * Get hourly message distribution.
      */
-    @Query(value = "SELECT EXTRACT(HOUR FROM published_at) as hour, COUNT(*), " +
+    @Query(value = "SELECT EXTRACT(HOUR FROM business_ts(published_at)) as hour, COUNT(*), " +
            "SUM(CASE WHEN is_delivered = true THEN 1 ELSE 0 END), " +
            "AVG(CASE WHEN is_delivered = true AND delivered_at IS NOT NULL " +
            "THEN EXTRACT(EPOCH FROM (delivered_at - published_at)) * 1000 ELSE NULL END) " +
            "FROM websocket_message_logs WHERE published_at BETWEEN :start AND :end " +
-           "GROUP BY EXTRACT(HOUR FROM published_at) ORDER BY hour", nativeQuery = true)
+           "GROUP BY EXTRACT(HOUR FROM business_ts(published_at)) ORDER BY hour", nativeQuery = true)
     List<Object[]> getHourlyDistribution(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
 
     /**

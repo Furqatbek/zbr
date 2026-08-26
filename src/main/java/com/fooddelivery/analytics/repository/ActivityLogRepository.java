@@ -144,11 +144,11 @@ public interface ActivityLogRepository extends JpaRepository<ActivityLog, Long> 
      * Get event count distribution by hour for a specific date.
      * Returns array of [hour, count].
      */
-    @Query(value = "SELECT EXTRACT(HOUR FROM created_at) as hour, COUNT(*) as count " +
+    @Query(value = "SELECT EXTRACT(HOUR FROM business_ts(created_at)) as hour, COUNT(*) as count " +
             "FROM activity_logs " +
             "WHERE event_type = :eventType " +
             "AND created_at >= :startDate AND created_at < :endDate " +
-            "GROUP BY EXTRACT(HOUR FROM created_at) " +
+            "GROUP BY EXTRACT(HOUR FROM business_ts(created_at)) " +
             "ORDER BY hour", nativeQuery = true)
     List<Object[]> getEventDistributionByHour(
             @Param("eventType") String eventType,

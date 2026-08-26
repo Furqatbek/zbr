@@ -73,7 +73,7 @@ public interface CourierOrderEventRepository extends JpaRepository<CourierOrderE
      * Get daily event counts for a courier.
      * Returns [date, offered, accepted, rejected, cancelled].
      */
-    @Query(value = "SELECT DATE(event_timestamp) as day, " +
+    @Query(value = "SELECT DATE(business_ts(event_timestamp)) as day, " +
             "COUNT(CASE WHEN event_type = 'OFFERED' THEN 1 END) as offered, " +
             "COUNT(CASE WHEN event_type = 'ACCEPTED' THEN 1 END) as accepted, " +
             "COUNT(CASE WHEN event_type = 'REJECTED' THEN 1 END) as rejected, " +
@@ -81,7 +81,7 @@ public interface CourierOrderEventRepository extends JpaRepository<CourierOrderE
             "FROM courier_order_events " +
             "WHERE courier_id = :courierId " +
             "AND event_timestamp >= :startTime AND event_timestamp <= :endTime " +
-            "GROUP BY DATE(event_timestamp) " +
+            "GROUP BY DATE(business_ts(event_timestamp)) " +
             "ORDER BY day", nativeQuery = true)
     List<Object[]> getDailyEventCounts(
             @Param("courierId") Long courierId,

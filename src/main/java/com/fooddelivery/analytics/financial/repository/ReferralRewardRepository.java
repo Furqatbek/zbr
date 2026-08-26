@@ -62,11 +62,11 @@ public interface ReferralRewardRepository extends JpaRepository<ReferralReward, 
     /**
      * Get daily referral reward trend.
      */
-    @Query(value = "SELECT DATE(awarded_at) as date, " +
+    @Query(value = "SELECT DATE(business_ts(awarded_at)) as date, " +
                    "SUM(reward_amount), COUNT(*), COUNT(DISTINCT referrer_id) " +
                    "FROM referral_rewards " +
                    "WHERE awarded_at BETWEEN :startDate AND :endDate " +
-                   "GROUP BY DATE(awarded_at) " +
+                   "GROUP BY DATE(business_ts(awarded_at)) " +
                    "ORDER BY date", nativeQuery = true)
     List<Object[]> getDailyReferralTrend(@Param("startDate") LocalDateTime startDate,
                                          @Param("endDate") LocalDateTime endDate);

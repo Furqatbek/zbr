@@ -67,13 +67,13 @@ public interface CourierPaymentRepository extends JpaRepository<CourierPayment, 
     /**
      * Get daily courier payment trend.
      */
-    @Query(value = "SELECT DATE(payment_date) as date, " +
+    @Query(value = "SELECT DATE(business_ts(payment_date)) as date, " +
                    "SUM(total_payment), SUM(base_payment), " +
                    "SUM(distance_bonus + peak_bonus), SUM(tip_amount), " +
                    "COUNT(DISTINCT courier_id), COUNT(*) " +
                    "FROM courier_payments " +
                    "WHERE payment_date BETWEEN :startDate AND :endDate " +
-                   "GROUP BY DATE(payment_date) " +
+                   "GROUP BY DATE(business_ts(payment_date)) " +
                    "ORDER BY date", nativeQuery = true)
     List<Object[]> getDailyCourierPaymentTrend(@Param("startDate") LocalDateTime startDate,
                                                @Param("endDate") LocalDateTime endDate);

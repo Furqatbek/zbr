@@ -60,11 +60,11 @@ public interface RestaurantPayoutRepository extends JpaRepository<RestaurantPayo
     /**
      * Get daily payout trend.
      */
-    @Query(value = "SELECT DATE(period_start) as date, " +
+    @Query(value = "SELECT DATE(business_ts(period_start)) as date, " +
                    "SUM(gross_amount), SUM(net_payout), COUNT(DISTINCT restaurant_id) " +
                    "FROM restaurant_payouts " +
                    "WHERE period_start >= :startDate AND period_end <= :endDate " +
-                   "GROUP BY DATE(period_start) " +
+                   "GROUP BY DATE(business_ts(period_start)) " +
                    "ORDER BY date", nativeQuery = true)
     List<Object[]> getDailyPayoutTrend(@Param("startDate") LocalDate startDate,
                                        @Param("endDate") LocalDate endDate);

@@ -68,11 +68,11 @@ public interface PromotionUsageRepository extends JpaRepository<PromotionUsage, 
     /**
      * Get daily promotion trend.
      */
-    @Query(value = "SELECT DATE(used_at) as date, " +
+    @Query(value = "SELECT DATE(business_ts(used_at)) as date, " +
                    "SUM(discount_amount), SUM(platform_cost), SUM(restaurant_cost), COUNT(*) " +
                    "FROM promotion_usages " +
                    "WHERE used_at BETWEEN :startDate AND :endDate " +
-                   "GROUP BY DATE(used_at) " +
+                   "GROUP BY DATE(business_ts(used_at)) " +
                    "ORDER BY date", nativeQuery = true)
     List<Object[]> getDailyPromotionTrend(@Param("startDate") LocalDateTime startDate,
                                           @Param("endDate") LocalDateTime endDate);

@@ -234,10 +234,10 @@ public interface DashboardSupportRepository extends JpaRepository<SupportTicket,
     /**
      * Ticket count by hour.
      */
-    @Query(value = "SELECT EXTRACT(HOUR FROM created_at), COUNT(*) FROM support_tickets " +
+    @Query(value = "SELECT EXTRACT(HOUR FROM business_ts(created_at)), COUNT(*) FROM support_tickets " +
             "WHERE created_at BETWEEN :startDate AND :endDate " +
-            "GROUP BY EXTRACT(HOUR FROM created_at) " +
-            "ORDER BY EXTRACT(HOUR FROM created_at)",
+            "GROUP BY EXTRACT(HOUR FROM business_ts(created_at)) " +
+            "ORDER BY EXTRACT(HOUR FROM business_ts(created_at))",
             nativeQuery = true)
     List<Object[]> ticketCountByHour(@Param("startDate") LocalDateTime startDate,
                                       @Param("endDate") LocalDateTime endDate);

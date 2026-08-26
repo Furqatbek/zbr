@@ -40,11 +40,11 @@ public interface GiftCardUsageRepository extends JpaRepository<GiftCardUsage, Lo
     /**
      * Get daily gift card usage trend.
      */
-    @Query(value = "SELECT DATE(used_at) as date, " +
+    @Query(value = "SELECT DATE(business_ts(used_at)) as date, " +
                    "SUM(redeemed_amount), COUNT(*), COUNT(DISTINCT gift_card_id) " +
                    "FROM gift_card_usages " +
                    "WHERE used_at BETWEEN :startDate AND :endDate " +
-                   "GROUP BY DATE(used_at) " +
+                   "GROUP BY DATE(business_ts(used_at)) " +
                    "ORDER BY date", nativeQuery = true)
     List<Object[]> getDailyGiftCardTrend(@Param("startDate") LocalDateTime startDate,
                                          @Param("endDate") LocalDateTime endDate);

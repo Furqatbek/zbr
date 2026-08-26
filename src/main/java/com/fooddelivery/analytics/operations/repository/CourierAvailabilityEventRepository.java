@@ -47,12 +47,12 @@ public interface CourierAvailabilityEventRepository extends JpaRepository<Courie
      * Get availability by hour for a courier.
      * Returns [hour, availableMinutes].
      */
-    @Query(value = "SELECT EXTRACT(HOUR FROM status_changed_at) as hour, " +
+    @Query(value = "SELECT EXTRACT(HOUR FROM business_ts(status_changed_at)) as hour, " +
             "COALESCE(SUM(CASE WHEN previous_status = 'AVAILABLE' THEN previous_status_duration_minutes ELSE 0 END), 0) as available_minutes " +
             "FROM courier_availability_events " +
             "WHERE courier_id = :courierId " +
             "AND status_changed_at >= :startTime AND status_changed_at <= :endTime " +
-            "GROUP BY EXTRACT(HOUR FROM status_changed_at) " +
+            "GROUP BY EXTRACT(HOUR FROM business_ts(status_changed_at)) " +
             "ORDER BY hour", nativeQuery = true)
     List<Object[]> getAvailabilityByHour(
             @Param("courierId") Long courierId,
@@ -63,7 +63,7 @@ public interface CourierAvailabilityEventRepository extends JpaRepository<Courie
      * Get daily active time for a courier.
      * Returns [date, activeMinutes, availableMinutes].
      */
-    @Query(value = "SELECT DATE(status_changed_at) as day, " +
+    @Query(value = "SELECT DATE(business_ts(status_changed_at)) as day, " +
             "COALESCE(SUM(CASE WHEN previous_status IN ('AVAILABLE', 'BUSY', 'RETURNING') " +
             "  THEN previous_status_duration_minutes ELSE 0 END), 0) as active_minutes, " +
             "COALESCE(SUM(CASE WHEN previous_status = 'AVAILABLE' " +
@@ -71,7 +71,7 @@ public interface CourierAvailabilityEventRepository extends JpaRepository<Courie
             "FROM courier_availability_events " +
             "WHERE courier_id = :courierId " +
             "AND status_changed_at >= :startTime AND status_changed_at <= :endTime " +
-            "GROUP BY DATE(status_changed_at) " +
+            "GROUP BY DATE(business_ts(status_changed_at)) " +
             "ORDER BY day", nativeQuery = true)
     List<Object[]> getDailyAvailability(
             @Param("courierId") Long courierId,
@@ -92,12 +92,12 @@ public interface CourierAvailabilityEventRepository extends JpaRepository<Courie
      * Get average active hours per day across all couriers.
      */
     @Query(value = "SELECT AVG(daily_active_hours) FROM (" +
-            "  SELECT courier_id, DATE(status_changed_at) as day, " +
+            "  SELECT courier_id, DATE(business_ts(status_changed_at)) as day, " +
             "         SUM(CASE WHEN previous_status IN ('AVAILABLE', 'BUSY', 'RETURNING') " +
             "             THEN previous_status_duration_minutes ELSE 0 END) / 60.0 as daily_active_hours " +
             "  FROM courier_availability_events " +
             "  WHERE status_changed_at >= :startTime AND status_changed_at <= :endTime " +
-            "  GROUP BY courier_id, DATE(status_changed_at)" +
+            "  GROUP BY courier_id, DATE(business_ts(status_changed_at))" +
             ") as daily_hours", nativeQuery = true)
     Double getAverageActiveHoursPerDay(
             @Param("startTime") LocalDateTime startTime,

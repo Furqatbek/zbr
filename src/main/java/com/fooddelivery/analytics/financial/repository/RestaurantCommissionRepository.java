@@ -76,10 +76,10 @@ public interface RestaurantCommissionRepository extends JpaRepository<Restaurant
     /**
      * Get daily commission trend.
      */
-    @Query(value = "SELECT DATE(earned_at) as date, SUM(commission_amount), COUNT(*), AVG(commission_amount) " +
+    @Query(value = "SELECT DATE(business_ts(earned_at)) as date, SUM(commission_amount), COUNT(*), AVG(commission_amount) " +
                    "FROM restaurant_commissions " +
                    "WHERE earned_at BETWEEN :startDate AND :endDate " +
-                   "GROUP BY DATE(earned_at) " +
+                   "GROUP BY DATE(business_ts(earned_at)) " +
                    "ORDER BY date", nativeQuery = true)
     List<Object[]> getDailyCommissionTrend(@Param("startDate") LocalDateTime startDate,
                                            @Param("endDate") LocalDateTime endDate);

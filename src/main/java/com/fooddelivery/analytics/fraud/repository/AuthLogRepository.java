@@ -210,11 +210,11 @@ public interface AuthLogRepository extends JpaRepository<AuthLog, Long> {
     /**
      * Get hourly failed login distribution.
      */
-    @Query(value = "SELECT EXTRACT(HOUR FROM created_at), COUNT(*) FROM auth_logs " +
+    @Query(value = "SELECT EXTRACT(HOUR FROM business_ts(created_at)), COUNT(*) FROM auth_logs " +
             "WHERE auth_type = 'LOGIN' AND status = 'FAILED' " +
             "AND created_at BETWEEN :start AND :end " +
-            "GROUP BY EXTRACT(HOUR FROM created_at) " +
-            "ORDER BY EXTRACT(HOUR FROM created_at)", nativeQuery = true)
+            "GROUP BY EXTRACT(HOUR FROM business_ts(created_at)) " +
+            "ORDER BY EXTRACT(HOUR FROM business_ts(created_at))", nativeQuery = true)
     List<Object[]> getHourlyFailedLogins(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
 
     // ==================== Failure Reason Breakdown ====================

@@ -67,13 +67,13 @@ public interface RestaurantOnlineStatusRepository extends JpaRepository<Restaura
      * Get daily offline metrics for a restaurant.
      * Returns [date, offlineMinutes, offlineCount].
      */
-    @Query(value = "SELECT DATE(status_changed_at) as day, " +
+    @Query(value = "SELECT DATE(business_ts(status_changed_at)) as day, " +
             "COALESCE(SUM(CASE WHEN is_online = true THEN previous_status_duration_minutes ELSE 0 END), 0) as offline_minutes, " +
             "COUNT(CASE WHEN is_online = false THEN 1 END) as offline_count " +
             "FROM restaurant_online_status " +
             "WHERE restaurant_id = :restaurantId " +
             "AND status_changed_at >= :startTime AND status_changed_at <= :endTime " +
-            "GROUP BY DATE(status_changed_at) " +
+            "GROUP BY DATE(business_ts(status_changed_at)) " +
             "ORDER BY day", nativeQuery = true)
     List<Object[]> getDailyOfflineMetrics(
             @Param("restaurantId") Long restaurantId,

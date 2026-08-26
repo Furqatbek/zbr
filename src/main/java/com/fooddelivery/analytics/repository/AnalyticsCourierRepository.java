@@ -90,12 +90,12 @@ public interface AnalyticsCourierRepository extends JpaRepository<Courier, Long>
      * Get courier activity by hour distribution.
      * Returns [hour, deliveryCount].
      */
-    @Query(value = "SELECT EXTRACT(HOUR FROM o.delivered_at) as hour, COUNT(*) as count " +
+    @Query(value = "SELECT EXTRACT(HOUR FROM business_ts(o.delivered_at)) as hour, COUNT(*) as count " +
             "FROM orders o " +
             "WHERE o.courier_id IS NOT NULL " +
             "AND o.status IN ('DELIVERED', 'COMPLETED') " +
             "AND o.delivered_at >= :since " +
-            "GROUP BY EXTRACT(HOUR FROM o.delivered_at) " +
+            "GROUP BY EXTRACT(HOUR FROM business_ts(o.delivered_at)) " +
             "ORDER BY hour", nativeQuery = true)
     List<Object[]> getCourierActivityByHour(@Param("since") LocalDateTime since);
 

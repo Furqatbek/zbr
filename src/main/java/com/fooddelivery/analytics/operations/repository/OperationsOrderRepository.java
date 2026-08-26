@@ -148,13 +148,13 @@ public interface OperationsOrderRepository extends JpaRepository<Order, Long> {
      * Get success rate by hour of day.
      * Returns [hour, total, successful, successRate].
      */
-    @Query(value = "SELECT EXTRACT(HOUR FROM created_at) as hour, " +
+    @Query(value = "SELECT EXTRACT(HOUR FROM business_ts(created_at)) as hour, " +
             "COUNT(*) as total, " +
             "COUNT(CASE WHEN status IN ('DELIVERED', 'COMPLETED') THEN 1 END) as successful, " +
             "COUNT(CASE WHEN status IN ('DELIVERED', 'COMPLETED') THEN 1 END) * 100.0 / COUNT(*) as rate " +
             "FROM orders " +
             "WHERE created_at >= :startTime AND created_at <= :endTime " +
-            "GROUP BY EXTRACT(HOUR FROM created_at) " +
+            "GROUP BY EXTRACT(HOUR FROM business_ts(created_at)) " +
             "ORDER BY hour", nativeQuery = true)
     List<Object[]> getSuccessRateByHour(
             @Param("startTime") LocalDateTime startTime,
@@ -164,13 +164,13 @@ public interface OperationsOrderRepository extends JpaRepository<Order, Long> {
      * Get success rate by day of week.
      * Returns [dayOfWeek, total, successful, successRate].
      */
-    @Query(value = "SELECT EXTRACT(DOW FROM created_at) as dow, " +
+    @Query(value = "SELECT EXTRACT(DOW FROM business_ts(created_at)) as dow, " +
             "COUNT(*) as total, " +
             "COUNT(CASE WHEN status IN ('DELIVERED', 'COMPLETED') THEN 1 END) as successful, " +
             "COUNT(CASE WHEN status IN ('DELIVERED', 'COMPLETED') THEN 1 END) * 100.0 / COUNT(*) as rate " +
             "FROM orders " +
             "WHERE created_at >= :startTime AND created_at <= :endTime " +
-            "GROUP BY EXTRACT(DOW FROM created_at) " +
+            "GROUP BY EXTRACT(DOW FROM business_ts(created_at)) " +
             "ORDER BY dow", nativeQuery = true)
     List<Object[]> getSuccessRateByDayOfWeek(
             @Param("startTime") LocalDateTime startTime,
@@ -197,7 +197,7 @@ public interface OperationsOrderRepository extends JpaRepository<Order, Long> {
      * Get daily success metrics.
      * Returns [date, total, successful, cancelled, majorDelays].
      */
-    @Query(value = "SELECT DATE(created_at) as day, " +
+    @Query(value = "SELECT DATE(business_ts(created_at)) as day, " +
             "COUNT(*) as total, " +
             "COUNT(CASE WHEN status IN ('DELIVERED', 'COMPLETED') THEN 1 END) as successful, " +
             "COUNT(CASE WHEN status = 'CANCELLED' THEN 1 END) as cancelled, " +
@@ -207,7 +207,7 @@ public interface OperationsOrderRepository extends JpaRepository<Order, Long> {
             "  AND EXTRACT(EPOCH FROM (delivered_at - estimated_delivery_time)) / 60 > 15 THEN 1 END) as major_delays " +
             "FROM orders " +
             "WHERE created_at >= :startTime AND created_at <= :endTime " +
-            "GROUP BY DATE(created_at) " +
+            "GROUP BY DATE(business_ts(created_at)) " +
             "ORDER BY day", nativeQuery = true)
     List<Object[]> getDailySuccessMetrics(
             @Param("startTime") LocalDateTime startTime,

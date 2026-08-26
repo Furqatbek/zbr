@@ -30,11 +30,11 @@ public interface CourierLocationEventRepository extends JpaRepository<CourierLoc
      * Get location update counts per hour for a courier.
      * Returns [hour, count].
      */
-    @Query(value = "SELECT EXTRACT(HOUR FROM recorded_at) as hour, COUNT(*) as count " +
+    @Query(value = "SELECT EXTRACT(HOUR FROM business_ts(recorded_at)) as hour, COUNT(*) as count " +
             "FROM courier_location_events " +
             "WHERE courier_id = :courierId " +
             "AND recorded_at >= :startTime AND recorded_at <= :endTime " +
-            "GROUP BY EXTRACT(HOUR FROM recorded_at) " +
+            "GROUP BY EXTRACT(HOUR FROM business_ts(recorded_at)) " +
             "ORDER BY hour", nativeQuery = true)
     List<Object[]> getLocationUpdatesPerHour(
             @Param("courierId") Long courierId,
@@ -45,12 +45,12 @@ public interface CourierLocationEventRepository extends JpaRepository<CourierLoc
      * Get average location updates per hour for all couriers.
      */
     @Query(value = "SELECT AVG(hourly_count) FROM (" +
-            "  SELECT courier_id, DATE(recorded_at) as day, " +
-            "         EXTRACT(HOUR FROM recorded_at) as hour, " +
+            "  SELECT courier_id, DATE(business_ts(recorded_at)) as day, " +
+            "         EXTRACT(HOUR FROM business_ts(recorded_at)) as hour, " +
             "         COUNT(*) as hourly_count " +
             "  FROM courier_location_events " +
             "  WHERE recorded_at >= :startTime AND recorded_at <= :endTime " +
-            "  GROUP BY courier_id, DATE(recorded_at), EXTRACT(HOUR FROM recorded_at)" +
+            "  GROUP BY courier_id, DATE(business_ts(recorded_at)), EXTRACT(HOUR FROM business_ts(recorded_at))" +
             ") as hourly_counts", nativeQuery = true)
     Double getAverageLocationUpdatesPerHour(
             @Param("startTime") LocalDateTime startTime,
@@ -75,11 +75,11 @@ public interface CourierLocationEventRepository extends JpaRepository<CourierLoc
      * Get daily location update counts for a courier.
      * Returns [date, count].
      */
-    @Query(value = "SELECT DATE(recorded_at) as day, COUNT(*) as count " +
+    @Query(value = "SELECT DATE(business_ts(recorded_at)) as day, COUNT(*) as count " +
             "FROM courier_location_events " +
             "WHERE courier_id = :courierId " +
             "AND recorded_at >= :startTime AND recorded_at <= :endTime " +
-            "GROUP BY DATE(recorded_at) " +
+            "GROUP BY DATE(business_ts(recorded_at)) " +
             "ORDER BY day", nativeQuery = true)
     List<Object[]> getDailyLocationUpdates(
             @Param("courierId") Long courierId,

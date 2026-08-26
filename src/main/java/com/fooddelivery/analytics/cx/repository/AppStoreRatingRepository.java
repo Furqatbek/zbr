@@ -74,13 +74,13 @@ public interface AppStoreRatingRepository extends JpaRepository<AppStoreRating, 
     /**
      * Get weekly rating trend.
      */
-    @Query(value = "SELECT EXTRACT(YEAR FROM created_at), EXTRACT(WEEK FROM created_at), " +
+    @Query(value = "SELECT EXTRACT(YEAR FROM business_ts(created_at)), EXTRACT(WEEK FROM business_ts(created_at)), " +
            "AVG(score), COUNT(*), " +
            "AVG(CASE WHEN platform = 'IOS' THEN score ELSE NULL END), " +
            "AVG(CASE WHEN platform = 'ANDROID' THEN score ELSE NULL END) " +
            "FROM rating_app_store WHERE created_at BETWEEN :start AND :end " +
-           "GROUP BY EXTRACT(YEAR FROM created_at), EXTRACT(WEEK FROM created_at) " +
-           "ORDER BY EXTRACT(YEAR FROM created_at), EXTRACT(WEEK FROM created_at)", nativeQuery = true)
+           "GROUP BY EXTRACT(YEAR FROM business_ts(created_at)), EXTRACT(WEEK FROM business_ts(created_at)) " +
+           "ORDER BY EXTRACT(YEAR FROM business_ts(created_at)), EXTRACT(WEEK FROM business_ts(created_at))", nativeQuery = true)
     List<Object[]> getWeeklyRatingTrend(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
 
     /**

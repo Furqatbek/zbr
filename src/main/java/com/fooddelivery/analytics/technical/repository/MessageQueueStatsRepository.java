@@ -100,9 +100,9 @@ public interface MessageQueueStatsRepository extends JpaRepository<MessageQueueS
     /**
      * Get hourly queue depth average.
      */
-    @Query(value = "SELECT EXTRACT(HOUR FROM recorded_at) as hour, AVG(queue_depth) " +
+    @Query(value = "SELECT EXTRACT(HOUR FROM business_ts(recorded_at)) as hour, AVG(queue_depth) " +
            "FROM message_queue_stats WHERE recorded_at BETWEEN :start AND :end " +
-           "GROUP BY EXTRACT(HOUR FROM recorded_at) ORDER BY hour", nativeQuery = true)
+           "GROUP BY EXTRACT(HOUR FROM business_ts(recorded_at)) ORDER BY hour", nativeQuery = true)
     List<Object[]> getHourlyQueueDepthAverage(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
 
     /**

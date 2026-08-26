@@ -84,10 +84,10 @@ public interface AnalyticsOrderRepository extends JpaRepository<Order, Long> {
      * Get orders per hour distribution for a date range.
      * Returns [hour, count] pairs.
      */
-    @Query(value = "SELECT EXTRACT(HOUR FROM created_at) as hour, COUNT(*) as count " +
+    @Query(value = "SELECT EXTRACT(HOUR FROM business_ts(created_at)) as hour, COUNT(*) as count " +
             "FROM orders " +
             "WHERE created_at >= :startDate AND created_at < :endDate " +
-            "GROUP BY EXTRACT(HOUR FROM created_at) " +
+            "GROUP BY EXTRACT(HOUR FROM business_ts(created_at)) " +
             "ORDER BY hour", nativeQuery = true)
     List<Object[]> getOrdersPerHourBetween(
             @Param("startDate") LocalDateTime startDate,
@@ -97,13 +97,13 @@ public interface AnalyticsOrderRepository extends JpaRepository<Order, Long> {
      * Get daily order counts for a date range.
      * Returns [date, totalCount, completedCount, cancelledCount].
      */
-    @Query(value = "SELECT DATE(created_at) as order_date, " +
+    @Query(value = "SELECT DATE(business_ts(created_at)) as order_date, " +
             "COUNT(*) as total_count, " +
             "COUNT(CASE WHEN status IN ('DELIVERED', 'COMPLETED') THEN 1 END) as completed_count, " +
             "COUNT(CASE WHEN status = 'CANCELLED' THEN 1 END) as cancelled_count " +
             "FROM orders " +
             "WHERE created_at >= :startDate AND created_at < :endDate " +
-            "GROUP BY DATE(created_at) " +
+            "GROUP BY DATE(business_ts(created_at)) " +
             "ORDER BY order_date", nativeQuery = true)
     List<Object[]> getDailyOrderCountsBetween(
             @Param("startDate") LocalDateTime startDate,
@@ -175,14 +175,14 @@ public interface AnalyticsOrderRepository extends JpaRepository<Order, Long> {
      * Get daily AOV trend.
      * Returns [date, aov, revenue, orderCount].
      */
-    @Query(value = "SELECT DATE(created_at) as order_date, " +
+    @Query(value = "SELECT DATE(business_ts(created_at)) as order_date, " +
             "AVG(total) as aov, " +
             "SUM(total) as revenue, " +
             "COUNT(*) as order_count " +
             "FROM orders " +
             "WHERE status IN ('DELIVERED', 'COMPLETED') " +
             "AND created_at >= :startDate AND created_at < :endDate " +
-            "GROUP BY DATE(created_at) " +
+            "GROUP BY DATE(business_ts(created_at)) " +
             "ORDER BY order_date", nativeQuery = true)
     List<Object[]> getDailyAovTrendBetween(
             @Param("startDate") LocalDateTime startDate,

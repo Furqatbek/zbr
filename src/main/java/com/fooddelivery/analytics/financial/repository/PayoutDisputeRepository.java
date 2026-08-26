@@ -67,10 +67,10 @@ public interface PayoutDisputeRepository extends JpaRepository<PayoutDispute, Lo
     /**
      * Get daily dispute trend.
      */
-    @Query(value = "SELECT DATE(created_at) as date, COUNT(*), SUM(disputed_amount) " +
+    @Query(value = "SELECT DATE(business_ts(created_at)) as date, COUNT(*), SUM(disputed_amount) " +
                    "FROM payout_disputes " +
                    "WHERE created_at BETWEEN :startDate AND :endDate " +
-                   "GROUP BY DATE(created_at) " +
+                   "GROUP BY DATE(business_ts(created_at)) " +
                    "ORDER BY date", nativeQuery = true)
     List<Object[]> getDailyDisputeTrend(@Param("startDate") LocalDateTime startDate,
                                         @Param("endDate") LocalDateTime endDate);

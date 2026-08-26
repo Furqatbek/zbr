@@ -130,12 +130,12 @@ public interface PaymentAttemptRepository extends JpaRepository<PaymentAttempt, 
      * Get hourly failure counts for spike detection.
      * Returns: hour, failedCount, totalCount
      */
-    @Query(value = "SELECT EXTRACT(HOUR FROM created_at), " +
+    @Query(value = "SELECT EXTRACT(HOUR FROM business_ts(created_at)), " +
             "SUM(CASE WHEN status IN ('FAILED', 'DECLINED') THEN 1 ELSE 0 END), " +
             "COUNT(*) " +
             "FROM payment_attempts WHERE created_at BETWEEN :start AND :end " +
-            "GROUP BY EXTRACT(HOUR FROM created_at) " +
-            "ORDER BY EXTRACT(HOUR FROM created_at)", nativeQuery = true)
+            "GROUP BY EXTRACT(HOUR FROM business_ts(created_at)) " +
+            "ORDER BY EXTRACT(HOUR FROM business_ts(created_at))", nativeQuery = true)
     List<Object[]> getHourlyFailureCounts(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
 
     /**

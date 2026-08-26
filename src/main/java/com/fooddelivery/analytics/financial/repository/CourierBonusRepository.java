@@ -59,11 +59,11 @@ public interface CourierBonusRepository extends JpaRepository<CourierBonus, Long
     /**
      * Get daily bonus trend.
      */
-    @Query(value = "SELECT DATE(bonus_date) as date, SUM(bonus_amount), COUNT(*), " +
+    @Query(value = "SELECT DATE(business_ts(bonus_date)) as date, SUM(bonus_amount), COUNT(*), " +
                    "COUNT(DISTINCT courier_id) " +
                    "FROM courier_bonuses " +
                    "WHERE bonus_date BETWEEN :startDate AND :endDate " +
-                   "GROUP BY DATE(bonus_date) " +
+                   "GROUP BY DATE(business_ts(bonus_date)) " +
                    "ORDER BY date", nativeQuery = true)
     List<Object[]> getDailyBonusTrend(@Param("startDate") LocalDateTime startDate,
                                       @Param("endDate") LocalDateTime endDate);
