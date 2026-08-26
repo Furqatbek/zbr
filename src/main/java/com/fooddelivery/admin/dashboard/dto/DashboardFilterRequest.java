@@ -1,5 +1,6 @@
 package com.fooddelivery.admin.dashboard.dto;
 
+import com.fooddelivery.common.time.BusinessTime;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fooddelivery.common.util.FlexibleLocalDateTimeDeserializer;
 import lombok.AllArgsConstructor;
@@ -69,7 +70,7 @@ public class DashboardFilterRequest {
     public static DashboardFilterRequest today() {
         LocalDateTime now = LocalDateTime.now();
         return DashboardFilterRequest.builder()
-                .startDate(now.toLocalDate().atStartOfDay())
+                .startDate(BusinessTime.startOfToday())
                 .endDate(now)
                 .page(0)
                 .size(50)
@@ -103,9 +104,9 @@ public class DashboardFilterRequest {
             return startDate;
         }
         if (date != null) {
-            return date.atStartOfDay();
+            return BusinessTime.startOfDay(date);
         }
-        return LocalDateTime.now().toLocalDate().atStartOfDay();
+        return BusinessTime.startOfToday();
     }
 
     /**
@@ -116,7 +117,7 @@ public class DashboardFilterRequest {
             return endDate;
         }
         if (date != null) {
-            return date.plusDays(1).atStartOfDay();
+            return BusinessTime.endOfDayExclusive(date);
         }
         return LocalDateTime.now();
     }

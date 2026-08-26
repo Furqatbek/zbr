@@ -1,5 +1,6 @@
 package com.fooddelivery.analytics.operations.dto;
 
+import com.fooddelivery.common.time.BusinessTime;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PastOrPresent;
@@ -35,14 +36,14 @@ public class DateRangeRequest {
      * Get start datetime (start of day).
      */
     public LocalDateTime getStartDateTime() {
-        return startDate != null ? startDate.atStartOfDay() : null;
+        return startDate != null ? BusinessTime.startOfDay(startDate) : null;
     }
 
     /**
      * Get end datetime (end of day).
      */
     public LocalDateTime getEndDateTime() {
-        return endDate != null ? endDate.atTime(LocalTime.MAX) : null;
+        return endDate != null ? BusinessTime.endOfDayInclusive(endDate) : null;
     }
 
     /**
@@ -69,7 +70,7 @@ public class DateRangeRequest {
      * Create a date range for the last N days.
      */
     public static DateRangeRequest lastNDays(int days) {
-        LocalDate end = LocalDate.now();
+        LocalDate end = BusinessTime.today();
         LocalDate start = end.minusDays(days - 1);
         return DateRangeRequest.builder()
                 .startDate(start)
@@ -81,7 +82,7 @@ public class DateRangeRequest {
      * Create a date range for today.
      */
     public static DateRangeRequest today() {
-        LocalDate today = LocalDate.now();
+        LocalDate today = BusinessTime.today();
         return DateRangeRequest.builder()
                 .startDate(today)
                 .endDate(today)
@@ -92,7 +93,7 @@ public class DateRangeRequest {
      * Create a date range for this week.
      */
     public static DateRangeRequest thisWeek() {
-        LocalDate today = LocalDate.now();
+        LocalDate today = BusinessTime.today();
         LocalDate startOfWeek = today.with(java.time.DayOfWeek.MONDAY);
         return DateRangeRequest.builder()
                 .startDate(startOfWeek)
@@ -104,7 +105,7 @@ public class DateRangeRequest {
      * Create a date range for this month.
      */
     public static DateRangeRequest thisMonth() {
-        LocalDate today = LocalDate.now();
+        LocalDate today = BusinessTime.today();
         LocalDate startOfMonth = today.withDayOfMonth(1);
         return DateRangeRequest.builder()
                 .startDate(startOfMonth)

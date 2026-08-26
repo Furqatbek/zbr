@@ -1,5 +1,6 @@
 package com.fooddelivery.analytics.fraud.util;
 
+import com.fooddelivery.common.time.BusinessTime;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -20,50 +21,46 @@ public final class FraudDateUtils {
      * Get the start of the current day.
      */
     public static LocalDateTime getStartOfToday() {
-        return LocalDate.now().atStartOfDay();
+        return BusinessTime.startOfToday();
     }
 
     /**
      * Get the end of the current day.
      */
     public static LocalDateTime getEndOfToday() {
-        return LocalDate.now().atTime(LocalTime.MAX);
+        return BusinessTime.endOfDayInclusive(BusinessTime.today());
     }
 
     /**
      * Get the start of the current week (Monday).
      */
     public static LocalDateTime getStartOfCurrentWeek() {
-        return LocalDate.now()
-                .with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
-                .atStartOfDay();
+        return BusinessTime.startOfDay(BusinessTime.today()
+                .with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY)));
     }
 
     /**
      * Get the end of the current week (Sunday).
      */
     public static LocalDateTime getEndOfCurrentWeek() {
-        return LocalDate.now()
-                .with(TemporalAdjusters.nextOrSame(DayOfWeek.SUNDAY))
-                .atTime(LocalTime.MAX);
+        return BusinessTime.endOfDayInclusive(BusinessTime.today()
+                .with(TemporalAdjusters.nextOrSame(DayOfWeek.SUNDAY)));
     }
 
     /**
      * Get the start of the current month.
      */
     public static LocalDateTime getStartOfCurrentMonth() {
-        return LocalDate.now()
-                .with(TemporalAdjusters.firstDayOfMonth())
-                .atStartOfDay();
+        return BusinessTime.startOfDay(BusinessTime.today()
+                .with(TemporalAdjusters.firstDayOfMonth()));
     }
 
     /**
      * Get the end of the current month.
      */
     public static LocalDateTime getEndOfCurrentMonth() {
-        return LocalDate.now()
-                .with(TemporalAdjusters.lastDayOfMonth())
-                .atTime(LocalTime.MAX);
+        return BusinessTime.endOfDayInclusive(BusinessTime.today()
+                .with(TemporalAdjusters.lastDayOfMonth()));
     }
 
     /**

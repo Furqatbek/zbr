@@ -1,5 +1,6 @@
 package com.fooddelivery.admin.dashboard.collector;
 
+import com.fooddelivery.common.time.BusinessTime;
 import com.fooddelivery.admin.dashboard.dto.*;
 import com.fooddelivery.admin.dashboard.repository.DashboardOrderRepository;
 import com.fooddelivery.order.entity.Order;
@@ -214,7 +215,7 @@ public class OrdersCollector {
                 .collect(Collectors.toList());
 
         // Calculate totals for different periods
-        LocalDateTime todayStart = LocalDateTime.now().toLocalDate().atStartOfDay();
+        LocalDateTime todayStart = BusinessTime.startOfToday();
         LocalDateTime weekStart = todayStart.minusDays(7);
         LocalDateTime monthStart = todayStart.minusDays(30);
 
@@ -453,7 +454,7 @@ public class OrdersCollector {
                 .collect(Collectors.toList());
 
         // Calculate time-based breakdowns
-        LocalDateTime todayStart = LocalDateTime.now().toLocalDate().atStartOfDay();
+        LocalDateTime todayStart = BusinessTime.startOfToday();
         LocalDateTime weekStart = todayStart.minusDays(7);
         LocalDateTime monthStart = todayStart.minusDays(30);
 

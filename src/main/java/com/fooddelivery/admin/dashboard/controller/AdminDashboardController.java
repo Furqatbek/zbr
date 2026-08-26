@@ -1,5 +1,6 @@
 package com.fooddelivery.admin.dashboard.controller;
 
+import com.fooddelivery.common.time.BusinessTime;
 import com.fooddelivery.admin.dashboard.dto.*;
 import com.fooddelivery.admin.dashboard.service.AdminDashboardService;
 import com.fooddelivery.admin.dashboard.util.DashboardConstants;
@@ -56,8 +57,8 @@ public class AdminDashboardController {
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
 
         LocalDateTime start = startDate != null
-                ? startDate.atStartOfDay()
-                : LocalDate.now().atStartOfDay();
+                ? BusinessTime.startOfDay(startDate)
+                : BusinessTime.startOfToday();
         LocalDateTime end = endDate != null
                 ? endDate.atTime(LocalTime.MAX)
                 : LocalDateTime.now();
@@ -103,7 +104,7 @@ public class AdminDashboardController {
             @RequestParam(defaultValue = "50") Integer pageSize) {
 
         DashboardFilterRequest filter = DashboardFilterRequest.builder()
-                .startDate(date != null ? date.atStartOfDay() : LocalDate.now().atStartOfDay())
+                .startDate(date != null ? BusinessTime.startOfDay(date) : BusinessTime.startOfToday())
                 .endDate(date != null ? date.atTime(LocalTime.MAX) : LocalDateTime.now())
                 .page(page)
                 .pageSize(pageSize)
@@ -146,7 +147,7 @@ public class AdminDashboardController {
             @RequestParam(defaultValue = "50") Integer pageSize) {
 
         DashboardFilterRequest filter = DashboardFilterRequest.builder()
-                .startDate(LocalDate.now().atStartOfDay())
+                .startDate(BusinessTime.startOfToday())
                 .endDate(LocalDateTime.now())
                 .page(page)
                 .pageSize(pageSize)
@@ -223,7 +224,7 @@ public class AdminDashboardController {
             @RequestParam(defaultValue = "50") Integer pageSize) {
 
         DashboardFilterRequest filter = DashboardFilterRequest.builder()
-                .startDate(date != null ? date.atStartOfDay() : LocalDate.now().atStartOfDay())
+                .startDate(date != null ? BusinessTime.startOfDay(date) : BusinessTime.startOfToday())
                 .endDate(date != null ? date.atTime(LocalTime.MAX) : LocalDateTime.now())
                 .page(page)
                 .pageSize(pageSize)
@@ -266,7 +267,7 @@ public class AdminDashboardController {
             @RequestParam(defaultValue = "50") Integer pageSize) {
 
         DashboardFilterRequest filter = DashboardFilterRequest.builder()
-                .startDate(date != null ? date.atStartOfDay() : LocalDate.now().atStartOfDay())
+                .startDate(date != null ? BusinessTime.startOfDay(date) : BusinessTime.startOfToday())
                 .endDate(date != null ? date.atTime(LocalTime.MAX) : LocalDateTime.now())
                 .page(page)
                 .pageSize(pageSize)
@@ -308,7 +309,7 @@ public class AdminDashboardController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
 
         DashboardFilterRequest filter = DashboardFilterRequest.builder()
-                .startDate(startDate != null ? startDate.atStartOfDay() : LocalDate.now().atStartOfDay())
+                .startDate(startDate != null ? BusinessTime.startOfDay(startDate) : BusinessTime.startOfToday())
                 .endDate(endDate != null ? endDate.atTime(LocalTime.MAX) : LocalDateTime.now())
                 .build();
 
@@ -350,7 +351,7 @@ public class AdminDashboardController {
             @RequestParam(defaultValue = "50") Integer pageSize) {
 
         DashboardFilterRequest filter = DashboardFilterRequest.builder()
-                .startDate(startDate != null ? startDate.atStartOfDay() : LocalDate.now().atStartOfDay())
+                .startDate(startDate != null ? BusinessTime.startOfDay(startDate) : BusinessTime.startOfToday())
                 .endDate(endDate != null ? endDate.atTime(LocalTime.MAX) : LocalDateTime.now())
                 .page(page)
                 .pageSize(pageSize)
@@ -397,7 +398,7 @@ public class AdminDashboardController {
     private DashboardFilterRequest ensureDefaults(DashboardFilterRequest filter) {
         if (filter == null) {
             return DashboardFilterRequest.builder()
-                    .startDate(LocalDate.now().atStartOfDay())
+                    .startDate(BusinessTime.startOfToday())
                     .endDate(LocalDateTime.now())
                     .page(DashboardConstants.DEFAULT_PAGE)
                     .pageSize(DashboardConstants.DEFAULT_PAGE_SIZE)
@@ -405,7 +406,7 @@ public class AdminDashboardController {
         }
 
         if (filter.getStartDate() == null) {
-            filter.setStartDate(LocalDate.now().atStartOfDay());
+            filter.setStartDate(BusinessTime.startOfToday());
         }
         if (filter.getEndDate() == null) {
             filter.setEndDate(LocalDateTime.now());
