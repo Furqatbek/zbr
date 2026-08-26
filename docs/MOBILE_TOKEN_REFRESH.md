@@ -196,9 +196,14 @@ This is the app where the reconnect ceiling hurts most.
 The bug is invisible for the first hour, so testing needs the clock forced:
 
 1. Log in, note the time.
-2. Wait for the access token to expire (`expiresIn` seconds — 1 hour). Or ask the
-   backend team to drop `JWT_ACCESS_EXPIRATION` to `60000` (1 minute) on staging,
-   which makes the whole cycle testable in a couple of minutes.
+2. Use **staging**, where access tokens already expire after 60 seconds so the
+   whole cycle is testable in two minutes:
+   ```
+   API        https://staging.zbrr.uz/api/v1
+   WebSocket  wss://staging.zbrr.uz/ws
+   Login      +998900000000 (or ...01, ...02), OTP code 123456, no SMS arrives
+   ```
+   On production the same test takes an hour.
 3. Call any authenticated endpoint, e.g. `GET /api/v1/auth/me`.
 4. Expect: one 401, one silent refresh, request succeeds. The user sees nothing.
 5. Background the app for a few minutes, foreground it, confirm the socket

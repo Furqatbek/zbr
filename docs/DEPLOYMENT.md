@@ -242,6 +242,9 @@ idempotent, so a brief mid-deploy retry from a client is safe.
 | `Ports are not available: ... bind: An attempt was made to access a socket in a way forbidden by its access permissions` (Windows) | Either something already holds the port (`netstat -ano \| findstr :5432` — a locally installed PostgreSQL is the usual culprit) or Hyper-V/WSL has **reserved** the range without using it (`netsh interface ipv4 show excludedportrange protocol=tcp`). For a reservation, `net stop winnat && net start winnat` in an **admin** shell releases it. Either way the quick fix is to move the host side: `DB_HOST_PORT=5433` in `.env`. Containers are unaffected — they reach each other on 5432 over the compose network. |
 | App won't start, no obvious cause | `docker compose logs app` — the deepest `Caused by:` names the real failure. |
 
+A staging stack at `https://staging.zbrr.uz`, sharing this nginx but nothing
+else → [STAGING.md](STAGING.md).
+
 Onboarding the first vendor, courier and order → [GO_LIVE.md](GO_LIVE.md).
 
 Day-2 operations (backups, alerts, incident response) →

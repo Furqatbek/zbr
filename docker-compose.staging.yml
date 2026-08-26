@@ -1,0 +1,157 @@
+# Staging stack — runs alongside production on the same host.
+#
+#   docker compose -f docker-compose.staging.yml --env-file .env.staging up -d
+#
+# STANDALONE, deliberately not an override of docker-compose.yml. Compose merges
+# overrides, so an override would drag in nginx, certbot, Prometheus, Grafana and
+# the backup job, and a stray production default would be one missing key away.
+# A separate file means staging inherits nothing it was not given.
+#
+# Isolation:
+#   - project name "zbr-staging" -> its own volumes, network and container names
+#   - its own database, Redis and RabbitMQ; NOTHING is shared with production
+#   - no published ports except loopback, for psql/debugging
+#
+# TLS is production's nginx. This stack joins the shared zbr-edge network and
+# nginx routes staging.zbrr.uz to it (docker/nginx/conf.d/staging.conf), so there
+# is one certificate, one port 443, and no URL with a port number in it.
+#
+# Sizing: ~1.3 GB on top of production's ~4.2 GB. Fine on 8 GB, too tight on 4 GB
+# — on a small box run staging only while it is needed and `down` it after.
+name: zbr-staging
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: zbr-staging-app
+    mem_limit: 900m
+    ports:
+      # Loopback only. nginx reaches this over zbr-edge by container name.
+      - "127.0.0.1:${STAGING_APP_HOST_PORT:-8090}:8080"
+    environment:
+      # "docker" WITHOUT "prod": Swagger stays on and error responses keep their
+      # messages, which is what makes this useful to the app teams. It also means
+      # the seeded demo accounts remain usable here.
+      - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE:-docker}
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/fooddelivery
+      - SPRING_DATASOURCE_USERNAME=postgres
+      - SPRING_DATASOURCE_PASSWORD=${DB_PASSWORD:?set DB_PASSWORD in .env.staging}
+      - SPRING_DATA_REDIS_HOST=redis
+      - SPRING_DATA_REDIS_PORT=6379
+      - SPRING_RABBITMQ_HOST=rabbitmq
+      - SPRING_RABBITMQ_PORT=5672
+      - SPRING_RABBITMQ_USERNAME=${RABBITMQ_USER:?set RABBITMQ_USER in .env.staging}
+      - SPRING_RABBITMQ_PASSWORD=${RABBITMQ_PASSWORD:?set RABBITMQ_PASSWORD in .env.staging}
+      # MUST differ from production's. A shared secret would make staging tokens
+      # valid against production.
+      - JWT_SECRET=${JWT_SECRET:?set a DIFFERENT JWT_SECRET from production}
+      # Short on purpose: this is what lets the app teams exercise token refresh
+      # in two minutes instead of an hour.
+      - JWT_ACCESS_EXPIRATION=${JWT_ACCESS_EXPIRATION:-60000}
+      - JWT_REFRESH_EXPIRATION=${JWT_REFRESH_EXPIRATION:-604800000}
+      - IMAGE_STORAGE_PATH=/app/images
+      - IMAGE_BASE_URL=${IMAGE_BASE_URL:-https://staging.zbrr.uz/api/v1/images}
+      - CORS_ORIGINS=${CORS_ORIGINS:-*}
+      # Push off: staging must never reach a real device. A test order here
+      # waking a real courier's phone at 2am is the failure mode.
+      - FIREBASE_ENABLED=false
+      - APNS_ENABLED=false
+      # SMS off, review numbers on: no real SMS is sent and no Eskiz credit is
+      # spent, and any listed number logs in with the fixed code.
+      - SMS_ENABLED=${SMS_ENABLED:-false}
+      - OTP_REVIEW_NUMBERS=${OTP_REVIEW_NUMBERS:-+998900000000,+998900000001,+998900000002}
+      - OTP_REVIEW_CODE=${OTP_REVIEW_CODE:-123456}
+      - APP_TIMEZONE=${APP_TIMEZONE:-Asia/Tashkent}
+      - APP_CURRENCY=${APP_CURRENCY:-UZS}
+    volumes:
+      - staging-images:/app/images
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - staging
+      - zbr-edge
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: zbr-staging-postgres
+    mem_limit: 384m
+    ports:
+      - "127.0.0.1:${STAGING_DB_HOST_PORT:-5442}:5432"
+    environment:
+      - POSTGRES_DB=fooddelivery
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=${DB_PASSWORD:?set DB_PASSWORD in .env.staging}
+    volumes:
+      - staging-postgres:/var/lib/postgresql/data
+    networks:
+      - staging
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d fooddelivery"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: zbr-staging-redis
+    mem_limit: 128m
+    command: redis-server --maxmemory 96mb --maxmemory-policy allkeys-lru
+    volumes:
+      - staging-redis:/data
+    networks:
+      - staging
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  rabbitmq:
+    image: rabbitmq:3.12-management-alpine
+    container_name: zbr-staging-rabbitmq
+    mem_limit: 384m
+    ports:
+      - "127.0.0.1:${STAGING_RABBITMQ_UI_HOST_PORT:-15682}:15672"
+    environment:
+      - RABBITMQ_DEFAULT_USER=${RABBITMQ_USER:?set RABBITMQ_USER in .env.staging}
+      - RABBITMQ_DEFAULT_PASS=${RABBITMQ_PASSWORD:?set RABBITMQ_PASSWORD in .env.staging}
+    volumes:
+      - staging-rabbitmq:/var/lib/rabbitmq
+    networks:
+      - staging
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+
+networks:
+  staging:
+    driver: bridge
+  # Created by the production stack. Staging therefore requires production to be
+  # up, which is already true: nginx is production's.
+  zbr-edge:
+    external: true
+
+volumes:
+  staging-postgres:
+  staging-redis:
+  staging-rabbitmq:
+  staging-images:

@@ -1,0 +1,81 @@
+# staging.zbrr.uz — the staging stack, behind the SAME nginx as production.
+#
+# One TLS terminator and one port 443 for both environments, so staging has a
+# normal https:// URL with no port number. Mobile release builds and some
+# corporate networks handle a non-standard port badly, which is why staging does
+# not run its own nginx.
+#
+# The upstream lives in a different compose project; nginx reaches it over the
+# shared zbr-edge network by container name. If this file is present while the
+# staging stack is down, nginx still starts — the name is resolved lazily per
+# request via the Docker DNS resolver below — and requests return 502 until it
+# comes back.
+
+server {
+    listen 443 ssl;
+    listen [::]:443 ssl;
+    http2 on;
+    server_name staging.zbrr.uz;
+
+    # Its own certificate, separate from the production one, so reissuing or
+    # losing staging can never disturb zbrr.uz.
+    ssl_certificate     /etc/letsencrypt/live/staging.zbrr.uz/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/staging.zbrr.uz/privkey.pem;
+    ssl_protocols       TLSv1.2 TLSv1.3;
+    ssl_ciphers         HIGH:!aNULL:!MD5;
+    ssl_session_cache   shared:SSL:10m;
+
+    # Keep staging out of search results. It serves real-looking data.
+    add_header X-Robots-Tag "noindex, nofollow" always;
+    add_header X-Content-Type-Options "nosniff" always;
+
+    # Deliberately NO Strict-Transport-Security. HSTS on a subdomain of zbrr.uz
+    # is cached by browsers and would outlive the staging environment itself.
+
+    client_max_body_size 12m;
+
+    access_log /var/log/nginx/staging.access.log;
+    error_log  /var/log/nginx/staging.error.log;
+
+    # Docker's embedded DNS. Required because the staging container may not exist
+    # when nginx starts: without a resolver, nginx fails to load this file when
+    # staging is down, taking PRODUCTION down with it.
+    resolver 127.0.0.11 valid=10s ipv6=off;
+
+    location ~ ^/(ws|ws-native|ws-sockjs) {
+        set $staging_upstream zbr-staging-app;
+        proxy_pass http://$staging_upstream:8080;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade    $http_upgrade;
+        proxy_set_header Connection "upgrade";
+
+        proxy_set_header Host              $host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $remote_addr;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        proxy_read_timeout 1h;
+        proxy_send_timeout 1h;
+        proxy_buffering    off;
+    }
+
+    location /actuator/ {
+        deny all;
+    }
+
+    location / {
+        set $staging_upstream zbr-staging-app;
+        proxy_pass http://$staging_upstream:8080;
+        proxy_http_version 1.1;
+
+        proxy_set_header Host              $host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        # $remote_addr, not $proxy_add_x_forwarded_for — see zbrr.conf for why
+        # appending lets a caller choose its own rate-limit bucket.
+        proxy_set_header X-Forwarded-For   $remote_addr;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        proxy_connect_timeout 10s;
+        proxy_read_timeout    60s;
+    }
+}

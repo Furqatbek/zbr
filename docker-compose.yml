@@ -106,6 +106,7 @@ services:
       - app
     networks:
       - food-delivery-network
+      - zbr-edge
     restart: unless-stopped
     # A renewed certificate is a NEW file behind the same path; nginx keeps
     # serving the one it loaded at startup until told otherwise. Reloading every
@@ -376,6 +377,13 @@ services:
 
 networks:
   food-delivery-network:
+    driver: bridge
+  # Shared with the staging stack so ONE nginx terminates TLS for both. Defined
+  # here (not external) so production still starts on its own; the staging
+  # compose file joins it as external and therefore requires production to be up
+  # — which is true regardless, since nginx belongs to production.
+  zbr-edge:
+    name: zbr-edge
     driver: bridge
 
 volumes:
