@@ -203,9 +203,10 @@ public class PersistentNotificationServiceImpl implements PersistentNotification
 
     @Override
     @Transactional(readOnly = true)
-    public NotificationResponseDto getNotificationById(Long id) {
+    public NotificationResponseDto getNotificationById(Long id, Long callerId, boolean isAdmin) {
         Notification notification = notificationRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Notification not found with ID: " + id));
+        assertOwner(notification, callerId, isAdmin);
         return notificationMapper.toResponseDto(notification);
     }
 
@@ -242,11 +243,12 @@ public class PersistentNotificationServiceImpl implements PersistentNotification
 
     @Override
     @CacheEvict(value = NotificationConstants.CACHE_UNREAD_COUNT, key = "#result.userId")
-    public NotificationResponseDto markAsRead(Long id) {
+    public NotificationResponseDto markAsRead(Long id, Long callerId, boolean isAdmin) {
         log.debug("Marking notification {} as read", id);
 
         Notification notification = notificationRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Notification not found with ID: " + id));
+        assertOwner(notification, callerId, isAdmin);
 
         if (notification.getReadAt() == null) {
             notification.setReadAt(LocalDateTime.now());
@@ -258,9 +260,13 @@ public class PersistentNotificationServiceImpl implements PersistentNotification
     }
 
     @Override
-    public int markAsReadByIds(List<Long> ids) {
-        log.debug("Marking {} notifications as read", ids.size());
-        return notificationRepository.markAsReadByIds(ids, LocalDateTime.now());
+    public int markAsReadByIds(List<Long> ids, Long callerId, boolean isAdmin) {
+        List<Long> target = ownedOrAll(ids, callerId, isAdmin);
+        if (target.isEmpty()) {
+            return 0;
+        }
+        log.debug("Marking {} notifications as read", target.size());
+        return notificationRepository.markAsReadByIds(target, LocalDateTime.now());
     }
 
     @Override
@@ -297,11 +303,12 @@ public class PersistentNotificationServiceImpl implements PersistentNotification
     }
 
     @Override
-    public NotificationResponseDto dismissNotification(Long id) {
+    public NotificationResponseDto dismissNotification(Long id, Long callerId, boolean isAdmin) {
         log.debug("Dismissing notification {}", id);
 
         Notification notification = notificationRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Notification not found with ID: " + id));
+        assertOwner(notification, callerId, isAdmin);
 
         notification.dismiss();
         notification = notificationRepository.save(notification);
@@ -311,18 +318,21 @@ public class PersistentNotificationServiceImpl implements PersistentNotification
     }
 
     @Override
-    public int performBulkAction(NotificationBulkActionDto bulkAction) {
-        log.debug("Performing bulk action {} on {} notifications",
-                bulkAction.getAction(), bulkAction.getNotificationIds().size());
+    public int performBulkAction(NotificationBulkActionDto bulkAction, Long callerId, boolean isAdmin) {
+        List<Long> ids = ownedOrAll(bulkAction.getNotificationIds(), callerId, isAdmin);
+        if (ids.isEmpty()) {
+            return 0;
+        }
+        log.debug("Performing bulk action {} on {} notifications", bulkAction.getAction(), ids.size());
 
         LocalDateTime now = LocalDateTime.now();
 
         return switch (bulkAction.getAction()) {
-            case MARK_READ -> notificationRepository.markAsReadByIds(bulkAction.getNotificationIds(), now);
-            case DISMISS -> notificationRepository.dismissByIds(bulkAction.getNotificationIds(), now);
+            case MARK_READ -> notificationRepository.markAsReadByIds(ids, now);
+            case DISMISS -> notificationRepository.dismissByIds(ids, now);
             case DELETE -> {
-                notificationRepository.deleteAllById(bulkAction.getNotificationIds());
-                yield bulkAction.getNotificationIds().size();
+                notificationRepository.deleteAllById(ids);
+                yield ids.size();
             }
             case MARK_UNREAD -> {
                 // Mark as unread by setting readAt to null - need custom query
@@ -1095,5 +1105,51 @@ public class PersistentNotificationServiceImpl implements PersistentNotification
             }
         }
         return breakdown;
+    }
+
+    /**
+     * Refuse access to a notification the caller does not own.
+     *
+     * <p>These endpoints are reachable by any authenticated user and identify
+     * the notification by id alone; the owner is on the entity, so the check
+     * cannot live in @PreAuthorize like it does on the /user/{userId}/* routes.
+     *
+     * <p>Reports 404, not 403: ids are sequential, and a 403 would confirm that
+     * a given notification exists and belongs to somebody else.
+     */
+    private void assertOwner(Notification notification, Long callerId, boolean isAdmin) {
+        if (isAdmin) {
+            return;
+        }
+        if (callerId == null || !callerId.equals(notification.getUserId())) {
+            log.warn("SECURITY: user {} attempted to access notification {} owned by user {}",
+                    callerId, notification.getId(), notification.getUserId());
+            throw new EntityNotFoundException("Notification not found with ID: " + notification.getId());
+        }
+    }
+
+    /**
+     * Narrow a caller-supplied id list to what that user owns.
+     *
+     * <p>Batch endpoints accept arbitrary ids in the request body. Silently
+     * dropping ids the caller does not own is deliberate: the alternative is
+     * failing the whole batch, which tells the caller which ids exist.
+     */
+    private List<Long> ownedOrAll(List<Long> ids, Long callerId, boolean isAdmin) {
+        if (ids == null || ids.isEmpty()) {
+            return List.of();
+        }
+        if (isAdmin) {
+            return ids;
+        }
+        if (callerId == null) {
+            return List.of();
+        }
+        List<Long> owned = notificationRepository.findOwnedIds(ids, callerId);
+        if (owned.size() != ids.size()) {
+            log.warn("SECURITY: user {} submitted {} notification id(s), {} owned",
+                    callerId, ids.size(), owned.size());
+        }
+        return owned;
     }
 }

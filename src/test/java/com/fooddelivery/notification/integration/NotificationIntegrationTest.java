@@ -115,7 +115,7 @@ class NotificationIntegrationTest {
             NotificationResponseDto created = notificationService.createNotification(createDto);
 
             // Act
-            NotificationResponseDto result = notificationService.getNotificationById(created.getId());
+            NotificationResponseDto result = notificationService.getNotificationById(created.getId(), null, true);
 
             // Assert
             assertThat(result).isNotNull();
@@ -173,7 +173,7 @@ class NotificationIntegrationTest {
             NotificationResponseDto created = notificationService.createNotification(createDto);
 
             // Act
-            NotificationResponseDto result = notificationService.markAsRead(created.getId());
+            NotificationResponseDto result = notificationService.markAsRead(created.getId(), null, true);
 
             // Assert
             assertThat(result).isNotNull();
@@ -196,7 +196,7 @@ class NotificationIntegrationTest {
             NotificationResponseDto created = notificationService.createNotification(createDto);
 
             // Act
-            NotificationResponseDto result = notificationService.dismissNotification(created.getId());
+            NotificationResponseDto result = notificationService.dismissNotification(created.getId(), null, true);
 
             // Assert
             assertThat(result).isNotNull();
@@ -250,7 +250,7 @@ class NotificationIntegrationTest {
             }
 
             // Act
-            int count = notificationService.markAsReadByIds(ids);
+            int count = notificationService.markAsReadByIds(ids, null, true);
 
             // Assert
             assertThat(count).isEqualTo(3);
@@ -312,7 +312,7 @@ class NotificationIntegrationTest {
                     .build();
 
             // Act
-            int count = notificationService.performBulkAction(bulkAction);
+            int count = notificationService.performBulkAction(bulkAction, null, true);
 
             // Assert
             assertThat(count).isEqualTo(3);
@@ -340,7 +340,7 @@ class NotificationIntegrationTest {
                     .build();
             NotificationListDto list = notificationService.getNotifications(filter);
             if (!list.getNotifications().isEmpty()) {
-                notificationService.markAsRead(list.getNotifications().get(0).getId());
+                notificationService.markAsRead(list.getNotifications().get(0).getId(), null, true);
             }
 
             // Act
@@ -370,7 +370,7 @@ class NotificationIntegrationTest {
                     .build();
             NotificationListDto list = notificationService.getNotifications(filter);
             for (NotificationResponseDto n : list.getNotifications()) {
-                notificationService.markAsRead(n.getId());
+                notificationService.markAsRead(n.getId(), null, true);
             }
 
             // Act
@@ -551,7 +551,7 @@ class NotificationIntegrationTest {
                     .notificationType(NotificationType.ORDER_CREATED)
                     .build();
             NotificationResponseDto created = notificationService.createNotification(createDto);
-            notificationService.dismissNotification(created.getId());
+            notificationService.dismissNotification(created.getId(), null, true);
 
             // Act - Cleanup notifications dismissed more than 0 days ago (all dismissed)
             int count = notificationService.cleanupDismissed(0);
@@ -601,7 +601,7 @@ class NotificationIntegrationTest {
                         .build();
                 NotificationResponseDto created = notificationService.createNotification(createDto);
                 if (i < 2) {
-                    notificationService.markAsRead(created.getId());
+                    notificationService.markAsRead(created.getId(), null, true);
                 }
             }
 

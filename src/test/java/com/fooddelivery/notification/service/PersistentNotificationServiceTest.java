@@ -118,7 +118,7 @@ class PersistentNotificationServiceTest {
             when(notificationMapper.toResponseDto(testNotification)).thenReturn(testResponseDto);
 
             // Act
-            NotificationResponseDto result = notificationService.getNotificationById(1L);
+            NotificationResponseDto result = notificationService.getNotificationById(1L, null, true);
 
             // Assert
             assertThat(result).isNotNull();
@@ -133,7 +133,7 @@ class PersistentNotificationServiceTest {
             when(notificationRepository.findById(999L)).thenReturn(Optional.empty());
 
             // Act & Assert
-            assertThatThrownBy(() -> notificationService.getNotificationById(999L))
+            assertThatThrownBy(() -> notificationService.getNotificationById(999L, null, true))
                     .isInstanceOf(EntityNotFoundException.class)
                     .hasMessageContaining("Notification not found");
 
@@ -215,7 +215,7 @@ class PersistentNotificationServiceTest {
             when(notificationMapper.toResponseDto(any(Notification.class))).thenReturn(testResponseDto);
 
             // Act
-            NotificationResponseDto result = notificationService.markAsRead(1L);
+            NotificationResponseDto result = notificationService.markAsRead(1L, null, true);
 
             // Assert
             assertThat(result).isNotNull();
@@ -233,7 +233,7 @@ class PersistentNotificationServiceTest {
             when(notificationMapper.toResponseDto(any(Notification.class))).thenReturn(testResponseDto);
 
             // Act
-            NotificationResponseDto result = notificationService.markAsRead(1L);
+            NotificationResponseDto result = notificationService.markAsRead(1L, null, true);
 
             // Assert
             assertThat(result).isNotNull();
@@ -253,7 +253,7 @@ class PersistentNotificationServiceTest {
             when(notificationRepository.markAsReadByIds(anyList(), any(LocalDateTime.class))).thenReturn(3);
 
             // Act
-            int result = notificationService.markAsReadByIds(ids);
+            int result = notificationService.markAsReadByIds(ids, null, true);
 
             // Assert
             assertThat(result).isEqualTo(3);
@@ -339,7 +339,7 @@ class PersistentNotificationServiceTest {
             when(notificationMapper.toResponseDto(any(Notification.class))).thenReturn(testResponseDto);
 
             // Act
-            NotificationResponseDto result = notificationService.dismissNotification(1L);
+            NotificationResponseDto result = notificationService.dismissNotification(1L, null, true);
 
             // Assert
             assertThat(result).isNotNull();
@@ -363,7 +363,7 @@ class PersistentNotificationServiceTest {
             when(notificationRepository.markAsReadByIds(anyList(), any(LocalDateTime.class))).thenReturn(3);
 
             // Act
-            int result = notificationService.performBulkAction(bulkAction);
+            int result = notificationService.performBulkAction(bulkAction, null, true);
 
             // Assert
             assertThat(result).isEqualTo(3);
@@ -381,7 +381,7 @@ class PersistentNotificationServiceTest {
             when(notificationRepository.dismissByIds(anyList(), any(LocalDateTime.class))).thenReturn(2);
 
             // Act
-            int result = notificationService.performBulkAction(bulkAction);
+            int result = notificationService.performBulkAction(bulkAction, null, true);
 
             // Assert
             assertThat(result).isEqualTo(2);
@@ -397,7 +397,7 @@ class PersistentNotificationServiceTest {
                     .build();
 
             // Act
-            int result = notificationService.performBulkAction(bulkAction);
+            int result = notificationService.performBulkAction(bulkAction, null, true);
 
             // Assert
             assertThat(result).isEqualTo(4);

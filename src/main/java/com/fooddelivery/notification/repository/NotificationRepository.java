@@ -136,6 +136,17 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
     int markAsReadByIds(@Param("ids") List<Long> ids, @Param("readAt") LocalDateTime readAt);
 
     /**
+     * Narrow a caller-supplied id list to the ones that user actually owns.
+     *
+     * <p>The batch endpoints take arbitrary ids from the request body. Acting on
+     * them directly lets any authenticated caller mark read, dismiss or DELETE
+     * another user's notifications, so every batch operation filters through
+     * this first.
+     */
+    @Query("SELECT n.id FROM Notification n WHERE n.id IN :ids AND n.userId = :userId")
+    List<Long> findOwnedIds(@Param("ids") List<Long> ids, @Param("userId") Long userId);
+
+    /**
      * Dismiss notification.
      */
     @Modifying

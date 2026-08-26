@@ -23,7 +23,7 @@ public interface PersistentNotificationService {
     /**
      * Get notification by ID.
      */
-    NotificationResponseDto getNotificationById(Long id);
+    NotificationResponseDto getNotificationById(Long id, Long callerId, boolean isAdmin);
 
     /**
      * Get notifications with filters and pagination.
@@ -33,12 +33,12 @@ public interface PersistentNotificationService {
     /**
      * Mark notification as read.
      */
-    NotificationResponseDto markAsRead(Long id);
+    NotificationResponseDto markAsRead(Long id, Long callerId, boolean isAdmin);
 
     /**
      * Mark multiple notifications as read.
      */
-    int markAsReadByIds(List<Long> ids);
+    int markAsReadByIds(List<Long> ids, Long callerId, boolean isAdmin);
 
     /**
      * Mark all notifications as read for a user.
@@ -63,12 +63,12 @@ public interface PersistentNotificationService {
     /**
      * Dismiss notification (soft delete).
      */
-    NotificationResponseDto dismissNotification(Long id);
+    NotificationResponseDto dismissNotification(Long id, Long callerId, boolean isAdmin);
 
     /**
      * Perform bulk action on notifications.
      */
-    int performBulkAction(NotificationBulkActionDto bulkAction);
+    int performBulkAction(NotificationBulkActionDto bulkAction, Long callerId, boolean isAdmin);
 
     // ===== User-Specific Operations =====
 

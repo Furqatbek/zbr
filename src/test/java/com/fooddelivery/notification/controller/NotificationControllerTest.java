@@ -93,7 +93,7 @@ class NotificationControllerTest {
         @DisplayName("Should get notification by ID")
         void shouldGetNotificationById() throws Exception {
             // Arrange
-            when(notificationService.getNotificationById(1L)).thenReturn(testResponse);
+            when(notificationService.getNotificationById(eq(1L), any(), anyBoolean())).thenReturn(testResponse);
 
             // Act & Assert
             mockMvc.perform(get("/api/v1/notifications/1"))
@@ -284,7 +284,7 @@ class NotificationControllerTest {
             // Arrange
             NotificationResponseDto readResponse = createTestResponse();
 
-            when(notificationService.markAsRead(1L)).thenReturn(readResponse);
+            when(notificationService.markAsRead(eq(1L), any(), anyBoolean())).thenReturn(readResponse);
 
             // Act & Assert
             mockMvc.perform(patch("/api/v1/notifications/1/read"))
@@ -341,7 +341,7 @@ class NotificationControllerTest {
         void shouldMarkBatchAsRead() throws Exception {
             // Arrange
             List<Long> ids = List.of(1L, 2L, 3L);
-            when(notificationService.markAsReadByIds(ids)).thenReturn(3);
+            when(notificationService.markAsReadByIds(eq(ids), any(), anyBoolean())).thenReturn(3);
 
             // Act & Assert
             mockMvc.perform(patch("/api/v1/notifications/read-batch")
@@ -363,7 +363,7 @@ class NotificationControllerTest {
         @DisplayName("Should dismiss notification")
         void shouldDismissNotification() throws Exception {
             // Arrange
-            when(notificationService.dismissNotification(1L)).thenReturn(testResponse);
+            when(notificationService.dismissNotification(eq(1L), any(), anyBoolean())).thenReturn(testResponse);
 
             // Act & Assert
             mockMvc.perform(patch("/api/v1/notifications/1/dismiss"))
@@ -387,7 +387,7 @@ class NotificationControllerTest {
                     .action(NotificationBulkActionDto.BulkAction.MARK_READ)
                     .build();
 
-            when(notificationService.performBulkAction(any(NotificationBulkActionDto.class))).thenReturn(3);
+            when(notificationService.performBulkAction(any(NotificationBulkActionDto.class), any(), anyBoolean())).thenReturn(3);
 
             // Act & Assert
             mockMvc.perform(post("/api/v1/notifications/bulk-action")
@@ -409,7 +409,7 @@ class NotificationControllerTest {
                     .action(NotificationBulkActionDto.BulkAction.DISMISS)
                     .build();
 
-            when(notificationService.performBulkAction(any(NotificationBulkActionDto.class))).thenReturn(2);
+            when(notificationService.performBulkAction(any(NotificationBulkActionDto.class), any(), anyBoolean())).thenReturn(2);
 
             // Act & Assert
             mockMvc.perform(post("/api/v1/notifications/bulk-action")

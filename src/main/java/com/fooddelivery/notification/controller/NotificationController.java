@@ -74,9 +74,11 @@ public class NotificationController {
             @ApiResponse(responseCode = "404", description = "Notification not found")
     })
     public ResponseEntity<NotificationResponseDto> getNotificationById(
+            @AuthenticationPrincipal UserDetails userDetails,
             @PathVariable Long id) {
         log.debug("Getting notification by ID: {}", id);
-        NotificationResponseDto response = notificationService.getNotificationById(id);
+        NotificationResponseDto response = notificationService.getNotificationById(
+                id, extractUserId(userDetails), isAdmin(userDetails));
         return ResponseEntity.ok(response);
     }
 
@@ -293,9 +295,12 @@ public class NotificationController {
             @ApiResponse(responseCode = "200", description = "Notification marked as read"),
             @ApiResponse(responseCode = "404", description = "Notification not found")
     })
-    public ResponseEntity<NotificationResponseDto> markAsRead(@PathVariable Long id) {
+    public ResponseEntity<NotificationResponseDto> markAsRead(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @PathVariable Long id) {
         log.debug("Marking notification {} as read", id);
-        NotificationResponseDto response = notificationService.markAsRead(id);
+        NotificationResponseDto response = notificationService.markAsRead(
+                id, extractUserId(userDetails), isAdmin(userDetails));
         return ResponseEntity.ok(response);
     }
 
@@ -332,10 +337,12 @@ public class NotificationController {
     @Operation(summary = "Mark batch as read",
             description = "Mark multiple notifications as read by IDs")
     public ResponseEntity<Map<String, Object>> markBatchAsRead(
+            @AuthenticationPrincipal UserDetails userDetails,
             @RequestBody List<Long> notificationIds) {
 
         log.debug("Marking {} notifications as read", notificationIds.size());
-        int count = notificationService.markAsReadByIds(notificationIds);
+        int count = notificationService.markAsReadByIds(
+                notificationIds, extractUserId(userDetails), isAdmin(userDetails));
 
         return ResponseEntity.ok(Map.of(
                 "status", "success",
@@ -350,9 +357,12 @@ public class NotificationController {
     @PreAuthorize("isAuthenticated()")
     @Operation(summary = "Dismiss notification",
             description = "Dismiss (soft delete) a notification")
-    public ResponseEntity<NotificationResponseDto> dismissNotification(@PathVariable Long id) {
+    public ResponseEntity<NotificationResponseDto> dismissNotification(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @PathVariable Long id) {
         log.debug("Dismissing notification {}", id);
-        NotificationResponseDto response = notificationService.dismissNotification(id);
+        NotificationResponseDto response = notificationService.dismissNotification(
+                id, extractUserId(userDetails), isAdmin(userDetails));
         return ResponseEntity.ok(response);
     }
 
@@ -364,12 +374,14 @@ public class NotificationController {
     @Operation(summary = "Bulk action",
             description = "Perform bulk actions (mark read, dismiss, delete) on multiple notifications")
     public ResponseEntity<Map<String, Object>> performBulkAction(
+            @AuthenticationPrincipal UserDetails userDetails,
             @Valid @RequestBody NotificationBulkActionDto bulkAction) {
 
         log.info("Performing bulk action {} on {} notifications",
                 bulkAction.getAction(), bulkAction.getNotificationIds().size());
 
-        int count = notificationService.performBulkAction(bulkAction);
+        int count = notificationService.performBulkAction(
+                bulkAction, extractUserId(userDetails), isAdmin(userDetails));
 
         return ResponseEntity.ok(Map.of(
                 "status", "success",
@@ -475,7 +487,27 @@ public class NotificationController {
     /**
      * Extract user ID from UserDetails.
      */
+    /**
+     * ADMIN and PLATFORM may act on any user's notifications; everyone else is
+     * confined to their own. Mirrors the rule the /user/{userId}/* routes
+     * express in @PreAuthorize, which these id-addressed routes cannot use
+     * because the owner lives on the entity rather than in the path.
+     */
+    private boolean isAdmin(UserDetails userDetails) {
+        if (userDetails == null) {
+            return false;
+        }
+        return userDetails.getAuthorities().stream()
+                .anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority())
+                        || "ROLE_PLATFORM".equals(a.getAuthority()));
+    }
+
     private Long extractUserId(UserDetails userDetails) {
+        if (userDetails == null) {
+            // No principal resolved. Callers treat null as "owns nothing", which
+            // fails closed; previously this line dereferenced null and threw.
+            return null;
+        }
         if (userDetails instanceof com.fooddelivery.auth.security.UserPrincipal principal) {
             return principal.getId();
         }
