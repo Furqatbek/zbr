@@ -183,6 +183,25 @@ grep FIREBASE_CREDENTIALS_BASE64 .env | cut -d= -f2- | base64 -d | head -c 80
 
 Expect `{"type":"service_account","project_id":...`.
 
+### NoClassDefFoundError: JacksonFactory
+
+If startup logs:
+
+```
+PUSH DEGRADED: ... Cause: java.lang.NoClassDefFoundError:
+com/google/api/client/json/jackson2/JacksonFactory
+```
+
+the credential is fine — the class is missing from the classpath.
+firebase-admin 9.2.0's `FirebaseOptions` constructor references
+`JacksonFactory`, which lives in `com.google.http-client:google-http-client-jackson2`
+and is declared explicitly in `pom.xml` for this reason. Rebuild the image
+(`docker compose up -d --build app`); an env-only restart will not pick up a
+dependency change.
+
+Do not "fix" this by moving to `google-http-client` 2.x — `JacksonFactory` was
+deprecated in 1.40 and removed in 2.0, which brings the failure straight back.
+
 APNs cannot stop the boot at all — its client only stores configuration at
 startup and parses the `.p8` lazily when sending, and `send()` never throws.
 A bad APNs key surfaces as failed sends in the logs, not as a failed startup.

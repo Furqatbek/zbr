@@ -181,6 +181,25 @@
             </exclusions>
         </dependency>
 
+        <!--
+            Explicit, because firebase-admin 9.2.0's FirebaseOptions constructor
+            references com.google.api.client.json.jackson2.JacksonFactory and the
+            artifact providing it was not reaching the runtime classpath — most
+            likely dropped along with the google-api-client-appengine exclusion
+            above. The symptom is a NoClassDefFoundError at Firebase init, which
+            is an Error rather than an Exception and so used to take the whole
+            application down (see FirebaseConfig's catch(Throwable)).
+
+            Do NOT move this to google-http-client 2.x: JacksonFactory was
+            deprecated in 1.40 and REMOVED in 2.0, which reintroduces exactly
+            this failure.
+        -->
+        <dependency>
+            <groupId>com.google.http-client</groupId>
+            <artifactId>google-http-client-jackson2</artifactId>
+            <version>1.43.3</version>
+        </dependency>
+
         <!-- Test Dependencies -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
