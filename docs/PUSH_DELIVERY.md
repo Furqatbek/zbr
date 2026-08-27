@@ -159,3 +159,30 @@ notification pipeline currently addresses a **user**, not an originating device,
 so suppressing it requires threading an "actor" through the event → notification
 path. Say the word and it can be added; today the client dedupes by `orderId`
 alongside the WebSocket event, so the practical impact is a redundant buzz.
+
+## If credentials are wrong
+
+Firebase initialisation is **non-fatal**. A malformed `FIREBASE_CREDENTIALS_BASE64`
+disables Android push for that run and the application starts normally — push is
+one feature, and refusing to boot would take ordering, dispatch and payments down
+with it.
+
+Look for this on startup:
+
+```
+PUSH DEGRADED: Firebase failed to initialise, Android push is DISABLED for this run.
+```
+
+The usual cause is pasting `google-services.json` (the client file that ships
+inside the Android app) instead of the **service-account** key. Check before
+restarting:
+
+```bash
+grep FIREBASE_CREDENTIALS_BASE64 .env | cut -d= -f2- | base64 -d | head -c 80
+```
+
+Expect `{"type":"service_account","project_id":...`.
+
+APNs cannot stop the boot at all — its client only stores configuration at
+startup and parses the `.p8` lazily when sending, and `send()` never throws.
+A bad APNs key surfaces as failed sends in the logs, not as a failed startup.

@@ -44,22 +44,41 @@ public class FirebaseConfig {
     @Value("${app.firebase.credentials-base64:}")
     private String credentialsBase64;
 
+    /**
+     * Initialise Firebase, or carry on without it.
+     *
+     * <p>Deliberately does NOT rethrow. Push is one feature; refusing to start
+     * takes down ordering, payments and dispatch as well. A malformed credential
+     * should cost notifications, not the platform.
+     *
+     * <p>Catches Exception rather than IOException because the likeliest failure
+     * is a truncated or mis-pasted base64 blob, and
+     * {@code Base64.getDecoder().decode} throws IllegalArgumentException — which
+     * an IOException-only catch let through, straight out of @PostConstruct and
+     * into a failed application context.
+     */
     @PostConstruct
     public void initialize() {
-        if (FirebaseApp.getApps().isEmpty()) {
-            try {
-                InputStream serviceAccount = getCredentialsStream();
+        if (!FirebaseApp.getApps().isEmpty()) {
+            return;
+        }
+        try {
+            InputStream serviceAccount = getCredentialsStream();
 
-                FirebaseOptions options = FirebaseOptions.builder()
-                        .setCredentials(GoogleCredentials.fromStream(serviceAccount))
-                        .build();
+            FirebaseOptions options = FirebaseOptions.builder()
+                    .setCredentials(GoogleCredentials.fromStream(serviceAccount))
+                    .build();
 
-                FirebaseApp.initializeApp(options);
-                log.info("Firebase initialized successfully");
-            } catch (IOException e) {
-                log.error("Failed to initialize Firebase: {}", e.getMessage());
-                throw new RuntimeException("Failed to initialize Firebase", e);
-            }
+            FirebaseApp.initializeApp(options);
+            log.info("Firebase initialized successfully");
+        } catch (Exception e) {
+            log.error("PUSH DEGRADED: Firebase failed to initialise, Android push is DISABLED "
+                    + "for this run. The application continues without it. Cause: {}: {}",
+                    e.getClass().getSimpleName(), e.getMessage());
+            log.error("Check FIREBASE_CREDENTIALS_BASE64 — it must be the base64 of the "
+                    + "service-account JSON (starts {\"type\":\"service_account\"), NOT "
+                    + "google-services.json. Verify with: "
+                    + "grep FIREBASE_CREDENTIALS_BASE64 .env | cut -d= -f2- | base64 -d | head -c 80");
         }
     }
 
@@ -87,8 +106,24 @@ public class FirebaseConfig {
         return new FileInputStream(credentialsFile);
     }
 
+    /**
+     * The messaging client, or null when Firebase did not initialise.
+     *
+     * <p>{@code FirebaseMessaging.getInstance()} throws IllegalStateException
+     * with no FirebaseApp, so without this guard a failed initialise would still
+     * break the context here — one step later than before, but just as fatal.
+     *
+     * <p>Returning null is deliberate and is handled: PushNotificationConsumer
+     * injects this with {@code @Autowired(required = false)} and logs instead of
+     * sending when it is absent. iOS is unaffected either way — APNs has its own
+     * transport and never touches Firebase.
+     */
     @Bean
     public FirebaseMessaging firebaseMessaging() {
+        if (FirebaseApp.getApps().isEmpty()) {
+            log.warn("PUSH DEGRADED: no FirebaseMessaging bean — Android push will be logged, not sent.");
+            return null;
+        }
         return FirebaseMessaging.getInstance();
     }
 }
