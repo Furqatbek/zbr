@@ -92,9 +92,14 @@ docker compose -f docker-compose.staging.yml --env-file .env.staging up -d --bui
 
 echo "==> Waiting for staging to become healthy"
 for _ in $(seq 1 40); do
+  # Any HTTP answer proves nginx reached the app. 401 is the CORRECT response
+  # here: /api/v1/restaurants is the collection endpoint and is not in
+  # SecurityConfig's PUBLIC_ENDPOINTS (the Ant pattern /api/v1/restaurants/*
+  # matches /restaurants/5, not the list). Checking for 200 made this loop time
+  # out on a perfectly healthy stack. 502/504/000 mean the app is not up yet.
   code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 5 \
          "https://$DOMAIN/api/v1/restaurants" || true)
-  if [ "$code" = "200" ]; then
+  if [ "$code" = "200" ] || [ "$code" = "401" ] || [ "$code" = "403" ]; then
     echo
     echo "Staging is live at https://$DOMAIN"
     echo "  API:       https://$DOMAIN/api/v1/..."

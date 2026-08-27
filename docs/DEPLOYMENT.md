@@ -133,7 +133,10 @@ docker compose down && docker volume rm zbr_certbot-conf
 
 ```bash
 curl -s https://zbrr.uz/actuator/health   # blocked by nginx — expected
-curl -sI https://zbrr.uz/api/v1/restaurants | head -1   # 200
+# 401 is the CORRECT answer: the restaurant LIST requires auth (the public
+# pattern /api/v1/restaurants/* covers /restaurants/5, not the collection).
+# Any HTTP status proves nginx reached the app; 502 means it did not.
+curl -sI https://zbrr.uz/api/v1/restaurants | head -1   # 401
 ```
 
 ### How issuance and renewal actually work

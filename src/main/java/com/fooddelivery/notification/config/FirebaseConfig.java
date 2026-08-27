@@ -71,10 +71,18 @@ public class FirebaseConfig {
 
             FirebaseApp.initializeApp(options);
             log.info("Firebase initialized successfully");
-        } catch (Exception e) {
+        } catch (Throwable t) {
+            // Throwable, not Exception. Observed in production: with a VALID
+            // service-account key, FirebaseOptions.Builder.build() threw
+            // something a catch(Exception) did not hold — an Error such as
+            // NoClassDefFoundError from a missing transitive dependency is not
+            // an Exception, and took the whole application down exactly as the
+            // rethrow used to. Catching Throwable is normally wrong; here the
+            // block initialises ONE optional feature, and nothing it can throw
+            // is a reason to stop serving orders. The cause is logged in full.
             log.error("PUSH DEGRADED: Firebase failed to initialise, Android push is DISABLED "
                     + "for this run. The application continues without it. Cause: {}: {}",
-                    e.getClass().getSimpleName(), e.getMessage());
+                    t.getClass().getName(), t.getMessage(), t);
             log.error("Check FIREBASE_CREDENTIALS_BASE64 — it must be the base64 of the "
                     + "service-account JSON (starts {\"type\":\"service_account\"), NOT "
                     + "google-services.json. Verify with: "
