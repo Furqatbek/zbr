@@ -58,6 +58,18 @@ after the certificate exists, and reverts it if `nginx -t` fails.
 A *reload* with a broken config is safe — nginx keeps the old one. A *restart* is
 not. That asymmetry is the whole reason for the `.disabled` suffix.
 
+## A note on `00-tuning.conf`
+
+`server_names_hash_bucket_size 64` lives in `docker/nginx/conf.d/00-tuning.conf`.
+nginx sizes its server-name hash from the longest `server_name`, and Alpine's
+default bucket of 32 bytes fits `zbrr.uz` and `www.zbrr.uz` but not
+`staging.zbrr.uz` — at which point it refuses to load the ENTIRE configuration,
+not just the offending block. Adding a longer hostname later will need the same
+treatment.
+
+It is an `http`-level directive, so it cannot go inside a `server` block. It
+works in `conf.d` because nginx includes those files from inside `http`.
+
 ## Daily use
 
 ```bash
