@@ -116,6 +116,40 @@ Login      any of the OTP_REVIEW_NUMBERS, code 123456, no SMS arrives
 point of the environment: if an app has not implemented refresh, it will break
 within a minute, which is exactly the bug we are trying to surface.
 
+### Cautions — read before pointing an app at this
+
+**1. Never ship a build that points at staging.** Put the base URL behind a
+build config (`.env.production` / `.env.staging`, an Xcode scheme, a Gradle
+flavour) — never a hardcoded constant someone edits by hand and forgets. A
+release build on staging takes real customers' orders into a throwaway database,
+and a store submission reviewed against staging gets reviewed against demo data
+with push disabled.
+
+**2. Switching environments MUST clear stored tokens.** Staging and production
+sign with different `JWT_SECRET`s, so a token minted on one is rejected by the
+other. If your dev build has an environment toggle, flipping it while a session
+is stored produces a stream of 401s that look exactly like a refresh bug and are
+not one. Clear both tokens on switch.
+
+**3. Push notifications do not work here, by design.** `FIREBASE_ENABLED` and
+`APNS_ENABLED` are hardcoded `false` so a staging test order can never wake a
+real courier's phone at 2am. Registering a device token succeeds and nothing is
+ever delivered. Push has to be verified against production with a test account —
+do not spend a day debugging FCM against staging.
+
+**4. The data is disposable and deliberately fake.** `down -v` wipes it, and the
+seeded demo accounts and the Pizza Palace restaurant are present here because the
+`prod` profile is off. Do not build test fixtures you care about, and do not
+assume a restaurant or order id means the same thing on production.
+
+**5. Swagger exists here and NOT in production.** Fine to explore against, but
+anything that depends on `/swagger-ui.html` or `/v3/api-docs` being reachable
+will fail on production, where the `prod` profile disables both.
+
+**6. SMS never arrives.** Login only works for the numbers in
+`OTP_REVIEW_NUMBERS`, with code `123456`. A real phone number will accept the
+request and no message will ever come.
+
 ## Certificates
 
 Staging gets its own certificate, separate from production's, so reissuing or

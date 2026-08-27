@@ -12,6 +12,7 @@ and Swagger (`/swagger-ui.html` on stage).
 | Change | Who | What to do |
 |--------|-----|------------|
 | **Token refresh is not implemented in any app** — caused a live outage | **All** | Access tokens expire; without refresh every session dies within the hour and WebSockets stop reconnecting. → [MOBILE_TOKEN_REFRESH.md](MOBILE_TOKEN_REFRESH.md) |
+| **Staging is available** at `https://staging.zbrr.uz` | All | Build against it instead of production. Push is OFF there and tokens expire in 60s, both on purpose — read the cautions first. → [STAGING.md](STAGING.md#cautions--read-before-pointing-an-app-at-this) |
 | **Production base URL is the bare apex** `https://zbrr.uz/api/v1` | All | WebSockets: `wss://zbrr.uz/ws`. Do **not** use `www.` — see below. |
 | `POST /api/v1/orders/{id}/pay/confirm` is now PLATFORM/ADMIN-only | Customer | Remove any client call to `/pay/confirm`. Payment confirmation is server-side (cash is confirmed when the courier completes delivery). |
 | Legacy courier endpoints `POST /api/v1/couriers/{courierId}/accept/{orderId}` and `/complete/{orderId}` were **removed** (IDOR) | Courier | Use the `/me` equivalents: `POST /me/orders/{orderId}/accept`, `PUT .../pickup`, `PUT .../transit`, `POST .../complete`. |
