@@ -96,7 +96,7 @@ These are configured deliberately, not by accident:
 
 | Setting | Staging | Why |
 |---|---|---|
-| `SPRING_PROFILES_ACTIVE` | `docker` (no `prod`) | Swagger on, real error messages, seeded demo accounts usable |
+| `SPRING_PROFILES_ACTIVE` | `docker` (no `prod`) | Swagger on, real error messages |
 | `JWT_ACCESS_EXPIRATION` | **60000 (60s)** | Exercises token refresh in two minutes instead of an hour → [MOBILE_TOKEN_REFRESH.md](MOBILE_TOKEN_REFRESH.md) |
 | `SMS_ENABLED` | `false` | Spends no Eskiz credit, never texts a real person |
 | `OTP_REVIEW_NUMBERS` | 3 test numbers | Log in with code `123456`, no SMS |
@@ -138,9 +138,27 @@ ever delivered. Push has to be verified against production with a test account �
 do not spend a day debugging FCM against staging.
 
 **4. The data is disposable and deliberately fake.** `down -v` wipes it, and the
-seeded demo accounts and the Pizza Palace restaurant are present here because the
-`prod` profile is off. Do not build test fixtures you care about, and do not
-assume a restaurant or order id means the same thing on production.
+V2 demo data (Pizza Palace and friends) is present. Do not build test fixtures
+you care about, and do not assume a restaurant or order id means the same thing
+on production.
+
+**7. The seeded logins do NOT work here either.** SeedAccountGuard is
+`@Profile("!test & !dev")`, and staging runs `docker` — so
+`admin@fooddelivery.com` / `password` is suspended on staging exactly as it is on
+production. To get an admin on staging, set a password hash the same way as the
+production bootstrap:
+
+```bash
+HASH=$(htpasswd -bnBC 12 "" 'your-staging-password' | tr -d ':\n')
+docker compose -f docker-compose.staging.yml exec -T postgres \
+  psql -U postgres -d fooddelivery -v h="$HASH" <<'SQL'
+UPDATE users SET password_hash = :'h', status = 'ACTIVE'
+ WHERE email = 'admin@fooddelivery.com';
+SQL
+```
+
+The OTP review numbers give you CONSUMER accounts, not an admin — they are a
+different thing.
 
 **5. Swagger exists here and NOT in production.** Fine to explore against, but
 anything that depends on `/swagger-ui.html` or `/v3/api-docs` being reachable
