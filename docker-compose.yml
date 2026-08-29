@@ -66,6 +66,14 @@ services:
       - SMS_ESKIZ_PASSWORD=${SMS_ESKIZ_PASSWORD:-${SMS_PASSWORD:-}}
       - SMS_ESKIZ_FROM=${SMS_ESKIZ_FROM:-${SMS_FROM:-4546}}
       - SMS_ESKIZ_CALLBACK_URL=${SMS_ESKIZ_CALLBACK_URL:-${SMS_CALLBACK_URL:-}}
+      # Runtime log-level override for debugging, e.g. put
+      #   LOGGING_LEVEL_COM_FOODDELIVERY_AUTH=DEBUG
+      # in .env and `docker compose up -d app`. Needed because the actuator
+      # loggers endpoint is deliberately not exposed, and because a variable in
+      # .env alone never reaches the container — compose only passes what is
+      # listed here.
+      # At DEBUG this logs a line per unauthenticated request; turn it off after.
+      - LOGGING_LEVEL_COM_FOODDELIVERY_AUTH=${LOGGING_LEVEL_COM_FOODDELIVERY_AUTH:-INFO}
     volumes:
       - images-data:/app/images
       - ./data/images:/app/images
