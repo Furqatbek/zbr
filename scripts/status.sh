@@ -66,7 +66,7 @@ printf '  delivery base fee    %s\n' "$(psql_prod "SELECT CASE WHEN setting_valu
 
 hr "ERRORS (last hour)"
 printf '  production  %s\n' "$($PROD logs app --since 1h 2>/dev/null | grep -c '"level":"ERROR"')"
-printf '  staging     %s\n' "$($STAG logs app --since 1h 2>/dev/null | grep -c '"level":"ERROR"')"
+printf '  staging     %s\n' "$($STAG logs staging-app --since 1h 2>/dev/null | grep -c '"level":"ERROR"')"
 
 hr "CERTIFICATES"
 $PROD exec -T certbot certbot certificates 2>/dev/null \

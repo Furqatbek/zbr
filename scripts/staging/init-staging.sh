@@ -112,5 +112,5 @@ for _ in $(seq 1 40); do
 done
 
 echo "!! Staging did not answer in time. It may still be starting:" >&2
-echo "     docker compose -f docker-compose.staging.yml logs -f app" >&2
+echo "     docker compose -f docker-compose.staging.yml logs -f staging-app" >&2
 exit 1

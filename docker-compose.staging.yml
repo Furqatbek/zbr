@@ -21,7 +21,12 @@
 name: zbr-staging
 
 services:
-  app:
+  # NOT named "app". Compose gives every service a network alias equal to its
+  # service name on every network it joins, so a service called "app" here would
+  # claim the alias "app" on the SHARED zbr-edge network — where production's
+  # nginx resolves "app" for its own upstream. Production traffic then reaches
+  # the staging container and its database. That happened.
+  staging-app:
     build:
       context: .
       dockerfile: Dockerfile

@@ -78,10 +78,10 @@ docker compose -f docker-compose.staging.yml --env-file .env.staging up -d
 docker compose -f docker-compose.staging.yml down
 
 # deploy the current branch to staging
-git pull && docker compose -f docker-compose.staging.yml --env-file .env.staging up -d --build app
+git pull && docker compose -f docker-compose.staging.yml --env-file .env.staging up -d --build staging-app
 
 # logs
-docker compose -f docker-compose.staging.yml logs -f app
+docker compose -f docker-compose.staging.yml logs -f staging-app
 
 # reset staging data completely (production is untouched)
 docker compose -f docker-compose.staging.yml down -v
