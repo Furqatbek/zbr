@@ -133,10 +133,12 @@ docker compose down && docker volume rm zbr_certbot-conf
 
 ```bash
 curl -s https://zbrr.uz/actuator/health   # blocked by nginx — expected
-# 401 is the CORRECT answer: the restaurant LIST requires auth (the public
-# pattern /api/v1/restaurants/* covers /restaurants/5, not the collection).
-# Any HTTP status proves nginx reached the app; 502 means it did not.
-curl -sI https://zbrr.uz/api/v1/restaurants | head -1   # 401
+curl -s -o /dev/null -w '%{http_code}\n' https://zbrr.uz/api/v1/restaurants   # 200
+
+# Use GET, not `curl -I`. SecurityConfig permits GET /api/v1/restaurants/**,
+# and a HEAD request does NOT match an HttpMethod.GET matcher — it falls through
+# to anyRequest().authenticated() and returns 401, which looks like a broken
+# deployment and is not.
 ```
 
 ### How issuance and renewal actually work

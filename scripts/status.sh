@@ -23,8 +23,10 @@ $STAG ps --format '  staging  {{.Name}}  {{.Status}}' 2>/dev/null | sed 's/zbr-s
 
 hr "REACHABILITY"
 for host in zbrr.uz staging.zbrr.uz; do
-  # Any HTTP status proves nginx reached the app. 401 is correct here — the
-  # restaurant collection endpoint requires auth. 502/000 means it did not.
+  # GET, not HEAD: SecurityConfig permits GET /api/v1/restaurants/**, and a
+  # HEAD request does not match an HttpMethod.GET matcher, so `curl -I` returns
+  # a misleading 401. 200 is expected; 401/403 still prove the app answered.
+  # 502/000 means nginx could not reach it.
   code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 5 "https://$host/api/v1/restaurants" || echo 000)
   case "$code" in
     200|401|403) verdict="reachable" ;;
