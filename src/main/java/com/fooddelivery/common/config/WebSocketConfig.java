@@ -1,6 +1,8 @@
 package com.fooddelivery.common.config;
 
 import com.fooddelivery.auth.security.JwtService;
+import com.fooddelivery.auth.security.UserPrincipal;
+import com.fooddelivery.auth.service.LastSeenService;
 import io.jsonwebtoken.ExpiredJwtException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -42,6 +44,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     private final UserDetailsService userDetailsService;
     // Lazy provider avoids an init cycle (authorizer -> OrderService -> messaging infra).
     private final ObjectProvider<WebSocketDestinationAuthorizer> subscriptionAuthorizer;
+    private final LastSeenService lastSeenService;
 
     @Override
     public void configureMessageBroker(MessageBrokerRegistry config) {
@@ -108,6 +111,14 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
                                     accessor.setUser(authentication);
 
                                     log.debug("WebSocket connection authenticated for user: {}", username);
+
+                                    // A socket connect is the strongest signal
+                                    // the app is open, and it does not pass
+                                    // through JwtAuthenticationFilter (/ws is
+                                    // skipped there), so record it here too.
+                                    if (userDetails instanceof UserPrincipal p) {
+                                        lastSeenService.touch(p.getId());
+                                    }
                                 } else {
                                     log.warn("WebSocket authentication failed: Token validation failed for user {}. " +
                                             "Please refresh your access token using /api/v1/auth/refresh endpoint.", username);

@@ -86,13 +86,31 @@ public class ConsumerAddressService {
         ConsumerAddress address = addressRepository.findByIdAndUserId(addressId, userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Address", "id", addressId));
 
-        address.setLabel(request.getLabel());
-        address.setFullAddress(request.getFullAddress());
-        address.setLatitude(request.getLatitude());
-        address.setLongitude(request.getLongitude());
-        address.setApartmentNumber(request.getApartmentNumber());
-        address.setEntrance(request.getEntrance());
-        address.setInstructions(request.getInstructions());
+        // Null means "not supplied", not "clear it" — matching updateProfile.
+        // Assigning unconditionally wiped apartmentNumber, entrance and
+        // instructions whenever a client sent a partial body, which is what a
+        // mobile edit form typically sends. To clear a field, send "".
+        if (request.getLabel() != null) {
+            address.setLabel(request.getLabel());
+        }
+        if (request.getFullAddress() != null) {
+            address.setFullAddress(request.getFullAddress());
+        }
+        if (request.getLatitude() != null) {
+            address.setLatitude(request.getLatitude());
+        }
+        if (request.getLongitude() != null) {
+            address.setLongitude(request.getLongitude());
+        }
+        if (request.getApartmentNumber() != null) {
+            address.setApartmentNumber(request.getApartmentNumber());
+        }
+        if (request.getEntrance() != null) {
+            address.setEntrance(request.getEntrance());
+        }
+        if (request.getInstructions() != null) {
+            address.setInstructions(request.getInstructions());
+        }
 
         address = addressRepository.save(address);
         log.info("Address updated for user {}: {}", userId, addressId);

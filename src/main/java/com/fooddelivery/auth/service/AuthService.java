@@ -55,6 +55,7 @@ public class AuthService {
     private final AuthenticationManager authenticationManager;
     private final NotificationService notificationService;
     private final ReferralService referralService;
+    private final LastSeenService lastSeenService;
 
     /**
      * Register a new user.
@@ -235,6 +236,12 @@ public class AuthService {
 
         // Generate new access token
         String newAccessToken = jwtService.generateAccessToken(userPrincipal);
+
+        // /auth/refresh carries no access token and is skipped by
+        // JwtAuthenticationFilter, so without this an app that sits idle long
+        // enough to refresh would look less recently active than one that does
+        // not.
+        lastSeenService.touch(user.getId());
 
         log.info("Token refreshed for user: {}", user.getEmail());
 

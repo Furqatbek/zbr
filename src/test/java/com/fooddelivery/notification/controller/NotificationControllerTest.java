@@ -4,7 +4,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.fooddelivery.notification.dto.*;
 import com.fooddelivery.notification.model.*;
+import com.fooddelivery.auth.entity.Role;
+import com.fooddelivery.auth.entity.User;
+import com.fooddelivery.auth.security.UserPrincipal;
 import com.fooddelivery.notification.service.PersistentNotificationService;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -14,6 +18,9 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.MediaType;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.web.method.annotation.AuthenticationPrincipalArgumentResolver;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
@@ -44,13 +51,39 @@ class NotificationControllerTest {
     private NotificationResponseDto testResponse;
     private NotificationListDto testListResponse;
 
+    /** The signed-in consumer these tests act as. */
+    private static final Long CALLER_ID = 1L;
+
     @BeforeEach
     void setUp() {
-        mockMvc = MockMvcBuilders.standaloneSetup(notificationController).build();
+        // The controller reads the caller from @AuthenticationPrincipal to decide
+        // whether it owns the notification. standaloneSetup registers no Spring
+        // Security argument resolvers, so without this the parameter falls
+        // through to @ModelAttribute binding and every request 500s on
+        // "No primary or single unique constructor found for interface UserDetails".
+        mockMvc = MockMvcBuilders.standaloneSetup(notificationController)
+                .setCustomArgumentResolvers(new AuthenticationPrincipalArgumentResolver())
+                .build();
+
+        User caller = User.builder()
+                .id(CALLER_ID)
+                .email("consumer@example.com")
+                .role(Role.CONSUMER)
+                .build();
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken(
+                        UserPrincipal.create(caller), null,
+                        UserPrincipal.create(caller).getAuthorities()));
+
         objectMapper = new ObjectMapper();
         objectMapper.registerModule(new JavaTimeModule());
         testResponse = createTestResponse();
         testListResponse = createTestListResponse();
+    }
+
+    @AfterEach
+    void tearDown() {
+        SecurityContextHolder.clearContext();
     }
 
     @Nested
@@ -101,7 +134,7 @@ class NotificationControllerTest {
                     .andExpect(jsonPath("$.id").value(1))
                     .andExpect(jsonPath("$.title").value("Test Notification"));
 
-            verify(notificationService).getNotificationById(1L);
+            verify(notificationService).getNotificationById(1L, CALLER_ID, false);
         }
     }
 
@@ -291,7 +324,7 @@ class NotificationControllerTest {
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.id").value(1));
 
-            verify(notificationService).markAsRead(1L);
+            verify(notificationService).markAsRead(1L, CALLER_ID, false);
         }
     }
 
@@ -351,7 +384,7 @@ class NotificationControllerTest {
                     .andExpect(jsonPath("$.status").value("success"))
                     .andExpect(jsonPath("$.markedCount").value(3));
 
-            verify(notificationService).markAsReadByIds(ids);
+            verify(notificationService).markAsReadByIds(ids, CALLER_ID, false);
         }
     }
 
@@ -370,7 +403,7 @@ class NotificationControllerTest {
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.id").value(1));
 
-            verify(notificationService).dismissNotification(1L);
+            verify(notificationService).dismissNotification(1L, CALLER_ID, false);
         }
     }
 
@@ -397,7 +430,7 @@ class NotificationControllerTest {
                     .andExpect(jsonPath("$.status").value("success"))
                     .andExpect(jsonPath("$.affectedCount").value(3));
 
-            verify(notificationService).performBulkAction(any(NotificationBulkActionDto.class));
+            verify(notificationService).performBulkAction(any(NotificationBulkActionDto.class), eq(CALLER_ID), eq(false));
         }
 
         @Test

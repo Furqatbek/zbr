@@ -1,5 +1,6 @@
 package com.fooddelivery.auth.security;
 
+import com.fooddelivery.auth.service.LastSeenService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -28,6 +29,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
     private final UserDetailsService userDetailsService;
+    private final LastSeenService lastSeenService;
 
     private static final String AUTHORIZATION_HEADER = "Authorization";
     private static final String BEARER_PREFIX = "Bearer ";
@@ -79,6 +81,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
                         SecurityContextHolder.getContext().setAuthentication(authentication);
                         log.debug("Authenticated user: {} with roles: {}", userEmail, userDetails.getAuthorities());
+
+                        // Last-online. Here rather than in an interceptor so it
+                        // counts exactly what it claims to: a request that
+                        // actually authenticated. Internally throttled, so this
+                        // is not a write per request.
+                        if (userDetails instanceof UserPrincipal p) {
+                            lastSeenService.touch(p.getId());
+                        }
                     } else {
                         log.debug("Token validation failed for user: {}, isValid: {}, isAccessToken: {}",
                                 userEmail, jwtService.isTokenValid(jwt, userDetails), jwtService.isAccessToken(jwt));

@@ -17,6 +17,13 @@ import lombok.NoArgsConstructor;
 public class UpdateProfileRequest {
 
     @Size(max = 50, message = "First name must be less than 50 characters")
+    /**
+     * Convenience alternative to firstName/lastName, split on the first space.
+     * completeRegistration already accepts fullName, and clients reasonably
+     * expect the same field here; sending only firstName/lastName still works.
+     */
+    private String fullName;
+
     private String firstName;
 
     @Size(max = 50, message = "Last name must be less than 50 characters")

@@ -57,6 +57,20 @@ public interface UserRepository extends JpaRepository<User, Long> {
     @Query("UPDATE User u SET u.lastLoginAt = :lastLoginAt, u.failedLoginAttempts = 0 WHERE u.id = :id")
     int updateLastLogin(@Param("id") Long id, @Param("lastLoginAt") LocalDateTime lastLoginAt);
 
+    /**
+     * Touch last-online without loading or versioning the row.
+     *
+     * <p>A bulk UPDATE, not {@code save()}, on purpose: this runs on ordinary
+     * authenticated traffic, and an entity save would bump the @Version column,
+     * turning every concurrent profile edit into an OptimisticLockException.
+     * The guard also keeps it monotonic, so an out-of-order write (a request
+     * that queued behind a later one) cannot move the timestamp backwards.
+     */
+    @Modifying
+    @Query("UPDATE User u SET u.lastSeenAt = :seenAt "
+            + "WHERE u.id = :id AND (u.lastSeenAt IS NULL OR u.lastSeenAt < :seenAt)")
+    int updateLastSeenAt(@Param("id") Long id, @Param("seenAt") LocalDateTime seenAt);
+
     @Query("SELECT u FROM User u WHERE u.lockedUntil IS NOT NULL AND u.lockedUntil < :now")
     List<User> findExpiredLocks(@Param("now") LocalDateTime now);
 

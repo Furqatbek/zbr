@@ -82,6 +82,19 @@ public class User {
     @Column(name = "last_login_at")
     private LocalDateTime lastLoginAt;
 
+    /**
+     * Last authenticated activity of any kind — a REST call with a valid access
+     * token, a STOMP CONNECT, or a token refresh. Distinct from lastLoginAt,
+     * which only moves when credentials are exchanged for a token and so goes
+     * stale for a user who never logs out.
+     *
+     * <p>Written through {@code UserRepository.updateLastSeenAt}, never through
+     * {@code save()}: the latter would bump {@link #version} and race with real
+     * writes on every request. Do not add it to a builder-based update path.
+     */
+    @Column(name = "last_seen_at")
+    private LocalDateTime lastSeenAt;
+
     @Column(name = "failed_login_attempts")
     @Builder.Default
     private Integer failedLoginAttempts = 0;

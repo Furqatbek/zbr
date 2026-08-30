@@ -57,8 +57,12 @@ public class UserDto {
     @Schema(description = "Phone verified flag", example = "false")
     private Boolean phoneVerified;
 
-    @Schema(description = "Last login timestamp")
+    @Schema(description = "Last login timestamp — moves only when credentials are exchanged for a token")
     private LocalDateTime lastLoginAt;
+
+    @Schema(description = "Last authenticated activity of any kind (request, socket connect or token refresh), UTC. "
+            + "Null until the account has been active at least once.")
+    private LocalDateTime lastSeenAt;
 
     @Schema(description = "Account creation timestamp")
     private LocalDateTime createdAt;
@@ -71,4 +75,22 @@ public class UserDto {
 
     @Schema(description = "User longitude")
     private Double longitude;
+
+    // ---- Consumer profile extras -------------------------------------------
+    // Populated only by the consumer profile endpoints (GET/PUT
+    // /consumers/profile). They are absent from auth responses, which must not
+    // pay for the extra queries on every login. Being absent rather than null
+    // is a consequence of default-property-inclusion: non_null.
+
+    @Schema(description = "Alias of profileImageUrl, for clients that expect avatarUrl")
+    private String avatarUrl;
+
+    @Schema(description = "Alias of createdAt, for clients that expect memberSince")
+    private LocalDateTime memberSince;
+
+    @Schema(description = "The consumer's default saved address, if one is set")
+    private ConsumerAddressDto defaultAddress;
+
+    @Schema(description = "Lifetime order count for this consumer", example = "12")
+    private Long totalOrders;
 }

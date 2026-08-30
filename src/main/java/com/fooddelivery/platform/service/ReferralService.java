@@ -31,6 +31,15 @@ import java.util.List;
 public class ReferralService {
 
     private final ReferralRepository referralRepository;
+
+    /**
+     * Absolute, shareable base URL. The link is pasted into messengers, so it
+     * must be absolute and on the canonical apex — a relative path is unusable
+     * and www. only 308-redirects. Was hardcoded to app.fooddelivery.com, a
+     * domain this platform does not own, so every invite link was dead.
+     */
+    @org.springframework.beans.factory.annotation.Value("${app.public-url:https://zbrr.uz}")
+    private String publicBaseUrl;
     private final UserService userService;
 
     @Value("${app.referral.reward-amount:10.00}")
@@ -209,12 +218,17 @@ public class ReferralService {
     /**
      * Get referral info for the mobile app (code + stats in one call).
      */
-    @Transactional(readOnly = true)
+    // NOT readOnly: this now creates a code on first read, and a read-only
+    // transaction would reject the insert.
+    @Transactional
     public MyReferralInfoDto getMyReferralInfo(Long userId) {
-        // Find active referral code
+        // Generate on first read rather than returning nothing. A null code is
+        // dropped from the response entirely by Jackson's non_null inclusion, so
+        // the client saw a payload with no referralCode field at all and could
+        // not tell "you have no code yet" from "the field does not exist".
         String referralCode = referralRepository.findActiveReferralByUser(userId, LocalDateTime.now())
                 .map(Referral::getCode)
-                .orElse(null);
+                .orElseGet(() -> generateReferralCode(userId).getCode());
 
         long totalReferrals = referralRepository.countCompletedByReferrer(userId);
         BigDecimal earnedCredits = referralRepository.sumRewardsByReferrer(userId);
@@ -223,7 +237,7 @@ public class ReferralService {
 
         return MyReferralInfoDto.builder()
                 .referralCode(referralCode)
-                .referralLink(referralCode != null ? "https://app.fooddelivery.com/r/" + referralCode : "")
+                .referralLink(publicBaseUrl + "/invite/" + referralCode)
                 .totalReferrals(totalReferrals)
                 .earnedCredits(earnedCredits != null ? earnedCredits : BigDecimal.ZERO)
                 .pendingCredits(pendingCredits)

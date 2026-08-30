@@ -11,6 +11,7 @@ import com.fooddelivery.auth.repository.UserRepository;
 import com.fooddelivery.auth.security.JwtService;
 import com.fooddelivery.common.exception.BusinessException;
 import com.fooddelivery.common.exception.ResourceNotFoundException;
+import com.fooddelivery.order.repository.OrderRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -32,6 +33,8 @@ public class PhoneAuthService {
     private final UserRepository userRepository;
     private final RefreshTokenRepository refreshTokenRepository;
     private final JwtService jwtService;
+    private final ConsumerAddressService addressService;
+    private final OrderRepository orderRepository;
 
     /**
      * Initiate phone login/signup by sending OTP.
@@ -229,6 +232,16 @@ public class PhoneAuthService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
 
+        // fullName first, so an explicit firstName/lastName in the same request
+        // still wins. Jackson ignores unknown properties, so a client sending
+        // only fullName previously updated NOTHING and still got 200 — the
+        // update looked successful and silently discarded the name.
+        if (request.getFullName() != null && !request.getFullName().isBlank()) {
+            String[] parts = request.getFullName().trim().split("\\s+", 2);
+            user.setFirstName(parts[0]);
+            user.setLastName(parts.length > 1 ? parts[1] : "");
+        }
+
         // Update fields if provided
         if (request.getFirstName() != null) {
             user.setFirstName(request.getFirstName());
@@ -260,7 +273,11 @@ public class PhoneAuthService {
         user = userRepository.save(user);
         log.info("Profile updated for user: {}", userId);
 
-        return mapToUserDto(user);
+        // Return the SAME shape as GET /consumers/profile. Returning a thinner
+        // object made a successful update look like a partial one — clients that
+        // replaced their cached profile with the response lost the address and
+        // order count until the next full fetch.
+        return mapToConsumerProfile(user);
     }
 
     /**
@@ -270,7 +287,7 @@ public class PhoneAuthService {
     public UserDto getProfile(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
-        return mapToUserDto(user);
+        return mapToConsumerProfile(user);
     }
 
     private void saveRefreshToken(User user, String token) {
@@ -320,7 +337,26 @@ public class PhoneAuthService {
                 .latitude(user.getLatitude())
                 .longitude(user.getLongitude())
                 .createdAt(user.getCreatedAt())
+                .lastLoginAt(user.getLastLoginAt())
+                .lastSeenAt(user.getLastSeenAt())
                 .build();
+    }
+
+    /**
+     * The full consumer profile: everything in {@link #mapToUserDto} plus the
+     * default address and lifetime order count.
+     *
+     * <p>Separate from mapToUserDto because it costs two extra queries. Login
+     * and OTP verification return the lean shape — they are on the hot path and
+     * the client fetches the profile straight afterwards anyway.
+     */
+    private UserDto mapToConsumerProfile(User user) {
+        UserDto dto = mapToUserDto(user);
+        dto.setAvatarUrl(user.getProfileImageUrl());
+        dto.setMemberSince(user.getCreatedAt());
+        dto.setDefaultAddress(addressService.getDefaultAddress(user.getId()));
+        dto.setTotalOrders(orderRepository.countByConsumerId(user.getId()));
+        return dto;
     }
 
     /**

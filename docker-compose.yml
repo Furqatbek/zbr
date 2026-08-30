@@ -54,6 +54,8 @@ services:
       - APNS_TEAM_ID=${APNS_TEAM_ID:-}
       - APNS_TOPIC=${APNS_TOPIC:-com.zbr.owner}
       - APNS_PRODUCTION=${APNS_PRODUCTION:-false}
+      # Absolute base for shareable links (referral invites). Apex, not www.
+      - APP_PUBLIC_URL=${APP_PUBLIC_URL:-https://zbrr.uz}
       # App-store review test number (see docs/GO_LIVE.md). Clear after review.
       - OTP_REVIEW_NUMBERS=${OTP_REVIEW_NUMBERS:-}
       - OTP_REVIEW_CODE=${OTP_REVIEW_CODE:-}

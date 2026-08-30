@@ -50,6 +50,10 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     @Query("SELECT COUNT(o) FROM Order o WHERE o.courier.id = :courierId")
     long countByCourierId(@Param("courierId") Long courierId);
 
+    /** Lifetime order count for a consumer, including cancelled orders. */
+    @Query("SELECT COUNT(o) FROM Order o WHERE o.consumer.id = :consumerId")
+    long countByConsumerId(@Param("consumerId") Long consumerId);
+
     @Query("SELECT o FROM Order o WHERE o.consumer.id = :consumerId AND o.status = :status")
     Page<Order> findByConsumerIdAndStatus(
             @Param("consumerId") Long consumerId,

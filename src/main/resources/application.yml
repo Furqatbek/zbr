@@ -153,6 +153,17 @@ app:
   # Changing this does not convert existing rows; it only labels new ones.
   currency: ${APP_CURRENCY:UZS}
 
+  # Absolute public base URL, used to build shareable links (referral invites).
+  # Must be the canonical apex — these are pasted into messengers, where a
+  # relative path is unusable and www. only redirects.
+  public-url: ${APP_PUBLIC_URL:https://zbrr.uz}
+
+  last-seen:
+    # How stale users.last_seen_at is allowed to get, in seconds. Without a
+    # throttle this would be one UPDATE per authenticated request; at 60s the
+    # value is accurate to a minute, which is finer than anyone reads it.
+    throttle-seconds: ${LAST_SEEN_THROTTLE_SECONDS:60}
+
   # Business timezone — used ONLY for wall-clock decisions like peak-hour
   # windows. Storage stays UTC (the JVM is pinned to it in
   # FoodDeliveryApplication, as is the JDBC connection), so this never changes

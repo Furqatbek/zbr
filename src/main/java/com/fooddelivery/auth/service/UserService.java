@@ -366,6 +366,7 @@ public class UserService {
                 .emailVerified(user.getEmailVerified())
                 .phoneVerified(user.getPhoneVerified())
                 .lastLoginAt(user.getLastLoginAt())
+                .lastSeenAt(user.getLastSeenAt())
                 .createdAt(user.getCreatedAt())
                 .build();
     }
