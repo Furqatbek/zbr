@@ -224,9 +224,17 @@ hard to trace:
 ## Updating
 
 ```bash
-git pull
-docker compose up -d --build app     # new migrations apply on boot
+./scripts/deploy.sh --pull
 ```
+
+Builds, restarts, waits for the app to answer, reloads nginx and verifies
+`https://zbrr.uz`. New migrations apply on boot.
+
+**Do not use a bare `docker compose up -d --build app`.** Recreating the
+container changes its address on the compose network, and nginx caches the
+upstream address from startup — the site then 502s while the app logs a
+perfectly healthy boot. The reload at the end of the script is what prevents
+that; see the comment at the top of `docker/nginx/conf.d/zbrr.conf`.
 
 Shutdown is graceful (in-flight requests drain, 30s), and order creation is
 idempotent, so a brief mid-deploy retry from a client is safe.

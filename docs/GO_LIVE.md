@@ -347,7 +347,7 @@ are environment-specific: a dev-build token sent to the production host returns
 **7c. Apply and verify**
 
 ```bash
-docker compose up -d app
+./scripts/deploy.sh
 docker compose logs -f app | grep -iE "firebase|apns"    # init errors show here
 ```
 
@@ -426,7 +426,7 @@ confirm it is active (and later confirm it is gone).
 
 ```bash
 # remove both lines from .env, then
-docker compose up -d app
+./scripts/deploy.sh
 ```
 
 This is a deliberate auth bypass for one number — it should not outlive the
