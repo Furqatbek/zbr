@@ -40,8 +40,33 @@ public interface UserRepository extends JpaRepository<User, Long> {
     @Query("SELECT u FROM User u JOIN u.roles r WHERE r = :role AND u.status = :status")
     Page<User> findByRoleAndStatus(@Param("role") Role role, @Param("status") UserStatus status, Pageable pageable);
 
-    @Query("SELECT u FROM User u WHERE u.email LIKE %:search% OR u.firstName LIKE %:search% OR u.lastName LIKE %:search%")
-    Page<User> searchUsers(@Param("search") String search, Pageable pageable);
+    /**
+     * Admin user search.
+     *
+     * <p>Case-insensitive, and matches the full name as well as its halves —
+     * the previous version compared with a bare LIKE against firstName and
+     * lastName separately, so "asad" missed "Asad" and "Asad Karimov" matched
+     * nobody at all. Both made the admin panel's owner picker look empty when
+     * the user was right there.
+     *
+     * <p>{@code phoneTerm} is the caller's query reduced to digits, so a pasted
+     * "+998 90 123 45 67" matches the stored "998901234567". It is a separate
+     * parameter rather than a second use of {@code search} because stripping
+     * the punctuation out of a NAME would corrupt it. See
+     * {@code UserService.phoneTerm} for when the reduction applies — a query
+     * containing letters is passed through whole, so it contributes nothing
+     * here rather than matching every phone.
+     */
+    @Query("SELECT u FROM User u WHERE "
+            + "LOWER(u.email) LIKE LOWER(CONCAT('%', :search, '%')) "
+            + "OR LOWER(u.firstName) LIKE LOWER(CONCAT('%', :search, '%')) "
+            + "OR LOWER(u.lastName) LIKE LOWER(CONCAT('%', :search, '%')) "
+            + "OR LOWER(CONCAT(COALESCE(u.firstName, ''), ' ', COALESCE(u.lastName, ''))) "
+            + "   LIKE LOWER(CONCAT('%', :search, '%')) "
+            + "OR u.phone LIKE CONCAT('%', :phoneTerm, '%')")
+    Page<User> searchUsers(@Param("search") String search,
+                           @Param("phoneTerm") String phoneTerm,
+                           Pageable pageable);
 
     @Query("SELECT COUNT(u) FROM User u WHERE u.createdAt >= :since")
     long countNewUsersSince(@Param("since") LocalDateTime since);

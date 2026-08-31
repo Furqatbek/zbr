@@ -84,21 +84,19 @@ bite you.
 > GET /users/search?q=<query>           — everyone, by name or email
 > ```
 >
-> **Two real limitations of `/users/search` you must design around:**
+> `/users/search` is case-insensitive and matches **email, first name, last
+> name, the full name, and phone number**. So all of these find Asad Karimov:
+> `asad`, `KARIMOV`, `Asad Karimov`, `asad@example.com`, `+998 90 123 45 67`,
+> `998901234567`, `901234`.
 >
-> 1. **It does not search phone numbers.** The query matches email, first name
->    and last name only. Operators will try to paste a phone number and get
->    nothing. Either label the field "Search by name or email" explicitly, or
->    detect a numeric-looking query and show "phone search is not supported —
->    search by name or email".
-> 2. **It is case-sensitive.** `asad` will not match `Asad`. Do not silently
->    lowercase the query — that makes it worse. Show a "no results" state that
->    mentions the search is case-sensitive, and consider trying both the raw
->    query and a capitalised variant.
+> Phone numbers are matched on digits alone, so whatever punctuation the
+> operator pastes is irrelevant. A query containing letters is never treated as
+> a phone number, so searching an email with a digit in it does not drag in
+> unrelated phone matches.
 >
-> Both are backend limitations. Do not paper over them with client-side
-> filtering of a full user list — that breaks as soon as there are more users
-> than one page.
+> Label the field "Search by name, email or phone". Do not filter results
+> client-side — the endpoint is paginated and client filtering breaks past the
+> first page.
 >
 > Default the picker to `GET /users/role/RESTAURANT_OWNER` (the common case is
 > moving a restaurant between existing owners) with search as the escape hatch

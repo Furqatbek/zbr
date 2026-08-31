@@ -236,14 +236,39 @@ public class UserService {
     }
 
     /**
-     * Search users.
+     * Search users by name, email or phone. Case-insensitive.
      */
     @Transactional(readOnly = true)
     public PagedResponse<UserDto> searchUsers(String query, Pageable pageable) {
-        Page<User> users = userRepository.searchUsers(query, pageable);
+        Page<User> users = userRepository.searchUsers(query, phoneTerm(query), pageable);
         return PagedResponse.from(users, users.getContent().stream()
                 .map(this::mapToDto)
                 .toList());
+    }
+
+    /**
+     * The query reduced to digits, so "+998 90 123 45 67" finds the stored
+     * "998901234567". Operators paste phone numbers in whatever shape they were
+     * given them, and every one of those shapes used to return nothing.
+     *
+     * <p>Only a query with NO letters is reduced. "user1@example.com" would
+     * otherwise strip down to "1" and match nearly every phone on the platform,
+     * burying the one exact email match the operator was looking for. A query
+     * containing letters is passed through untouched, where it cannot match a
+     * phone number and so contributes nothing to the result.
+     *
+     * <p>Passing the query through rather than "" matters: "" would turn the
+     * phone clause into LIKE '%%' and return every user who has a phone.
+     */
+    private String phoneTerm(String query) {
+        if (query == null) {
+            return null;
+        }
+        if (query.matches(".*\\p{L}.*")) {
+            return query;
+        }
+        String digits = query.replaceAll("[^0-9]", "");
+        return digits.isEmpty() ? query : digits;
     }
 
     /**
