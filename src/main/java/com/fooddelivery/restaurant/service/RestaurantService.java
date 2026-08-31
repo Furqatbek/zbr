@@ -18,6 +18,7 @@ import com.fooddelivery.restaurant.repository.RestaurantRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -98,7 +99,17 @@ public class RestaurantService {
      * Update restaurant.
      */
     @Transactional
-    @CacheEvict(value = "restaurants", key = "#id")
+    @Caching(evict = {
+            @CacheEvict(value = "restaurants", key = "#id"),
+            // The SAME restaurant is cached under two keys. Evicting only #id
+            // left GET /restaurants/slug/{slug} serving the pre-update row for
+            // the rest of the 5-minute TTL — most visibly, a restaurant the
+            // owner had just closed still showed as open. The slug is assigned
+            // once at creation and never regenerated, so #result.slug is the
+            // key the entry actually lives under.
+            @CacheEvict(value = "restaurants", key = "'slug:' + #result.slug",
+                        condition = "#result != null")
+    })
     @Auditable(action = "UPDATE_RESTAURANT", entityType = "Restaurant")
     public RestaurantDto updateRestaurant(Long id, CreateRestaurantRequest request) {
         Restaurant restaurant = getRestaurantEntityById(id);
@@ -178,7 +189,17 @@ public class RestaurantService {
      * Partial update — only non-null fields are updated.
      */
     @Transactional
-    @CacheEvict(value = "restaurants", key = "#id")
+    @Caching(evict = {
+            @CacheEvict(value = "restaurants", key = "#id"),
+            // The SAME restaurant is cached under two keys. Evicting only #id
+            // left GET /restaurants/slug/{slug} serving the pre-update row for
+            // the rest of the 5-minute TTL — most visibly, a restaurant the
+            // owner had just closed still showed as open. The slug is assigned
+            // once at creation and never regenerated, so #result.slug is the
+            // key the entry actually lives under.
+            @CacheEvict(value = "restaurants", key = "'slug:' + #result.slug",
+                        condition = "#result != null")
+    })
     public RestaurantDto updateRestaurantPartial(Long id, UpdateRestaurantRequest request) {
         Restaurant restaurant = getRestaurantEntityById(id);
 
@@ -214,7 +235,17 @@ public class RestaurantService {
      * Upload and update restaurant image (logo or cover).
      */
     @Transactional
-    @CacheEvict(value = "restaurants", key = "#id")
+    @Caching(evict = {
+            @CacheEvict(value = "restaurants", key = "#id"),
+            // The SAME restaurant is cached under two keys. Evicting only #id
+            // left GET /restaurants/slug/{slug} serving the pre-update row for
+            // the rest of the 5-minute TTL — most visibly, a restaurant the
+            // owner had just closed still showed as open. The slug is assigned
+            // once at creation and never regenerated, so #result.slug is the
+            // key the entry actually lives under.
+            @CacheEvict(value = "restaurants", key = "'slug:' + #result.slug",
+                        condition = "#result != null")
+    })
     public RestaurantDto updateRestaurantImage(Long id, MultipartFile file, String imageType) {
         Restaurant restaurant = getRestaurantEntityById(id);
 
@@ -237,7 +268,17 @@ public class RestaurantService {
      * Update restaurant status.
      */
     @Transactional
-    @CacheEvict(value = "restaurants", key = "#id")
+    @Caching(evict = {
+            @CacheEvict(value = "restaurants", key = "#id"),
+            // The SAME restaurant is cached under two keys. Evicting only #id
+            // left GET /restaurants/slug/{slug} serving the pre-update row for
+            // the rest of the 5-minute TTL — most visibly, a restaurant the
+            // owner had just closed still showed as open. The slug is assigned
+            // once at creation and never regenerated, so #result.slug is the
+            // key the entry actually lives under.
+            @CacheEvict(value = "restaurants", key = "'slug:' + #result.slug",
+                        condition = "#result != null")
+    })
     @Auditable(action = "UPDATE_RESTAURANT_STATUS", entityType = "Restaurant")
     public RestaurantDto updateStatus(Long id, RestaurantStatus status) {
         Restaurant restaurant = getRestaurantEntityById(id);
@@ -256,7 +297,17 @@ public class RestaurantService {
      * Toggle restaurant open/closed status.
      */
     @Transactional
-    @CacheEvict(value = "restaurants", key = "#id")
+    @Caching(evict = {
+            @CacheEvict(value = "restaurants", key = "#id"),
+            // The SAME restaurant is cached under two keys. Evicting only #id
+            // left GET /restaurants/slug/{slug} serving the pre-update row for
+            // the rest of the 5-minute TTL — most visibly, a restaurant the
+            // owner had just closed still showed as open. The slug is assigned
+            // once at creation and never regenerated, so #result.slug is the
+            // key the entry actually lives under.
+            @CacheEvict(value = "restaurants", key = "'slug:' + #result.slug",
+                        condition = "#result != null")
+    })
     public RestaurantDto toggleOpenStatus(Long id, Boolean isOpen) {
         Restaurant restaurant = getRestaurantEntityById(id);
 
@@ -289,12 +340,11 @@ public class RestaurantService {
      * @return the restaurant, with {@code ownerId} updated
      */
     @Transactional
-    // allEntries, not key = "#restaurantId": this cache also holds a
-    // 'slug:<slug>' entry for the same restaurant, and evicting the id key
-    // alone would leave GET /restaurants/slug/{slug} reporting the previous
-    // owner for the rest of the 5-minute TTL. A transfer happens once per
-    // onboarding, so flushing the whole restaurant cache costs nothing.
-    @CacheEvict(value = "restaurants", allEntries = true)
+    @Caching(evict = {
+            @CacheEvict(value = "restaurants", key = "#restaurantId"),
+            @CacheEvict(value = "restaurants", key = "'slug:' + #result.slug",
+                        condition = "#result != null")
+    })
     @Auditable(action = "TRANSFER_RESTAURANT_OWNERSHIP", entityType = "Restaurant")
     public RestaurantDto transferOwnership(Long restaurantId, Long newOwnerId) {
         Restaurant restaurant = getRestaurantEntityById(restaurantId);
