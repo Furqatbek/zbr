@@ -1,6 +1,8 @@
 package com.fooddelivery.restaurant.service;
 
+import com.fooddelivery.auth.entity.Role;
 import com.fooddelivery.auth.entity.User;
+import com.fooddelivery.auth.entity.UserStatus;
 import com.fooddelivery.auth.service.UserService;
 import com.fooddelivery.common.annotation.Auditable;
 import com.fooddelivery.common.dto.PagedResponse;
@@ -265,6 +267,70 @@ public class RestaurantService {
         restaurant.setIsOpen(isOpen);
         restaurant = restaurantRepository.save(restaurant);
         log.info("Restaurant {} is now {}", restaurant.getName(), isOpen ? "open" : "closed");
+
+        return restaurantMapper.toDto(restaurant);
+    }
+
+    /**
+     * Move a restaurant to a different owner.
+     *
+     * <p>Before this existed, {@code owner_id} was written exactly once — from
+     * whoever called {@code POST /restaurants} — and could only be changed with
+     * a hand-written UPDATE against production, which also silently skipped the
+     * cache eviction below.
+     *
+     * <p>Ownership is exclusive: there is no co-ownership and no handover
+     * period, so this removes the previous owner's access completely and at
+     * once. The previous owner KEEPS the RESTAURANT_OWNER role — they may still
+     * own other restaurants, and revoking it here would break them. Strip it
+     * separately via {@code DELETE /users/{id}/roles/RESTAURANT_OWNER} if they
+     * are leaving the platform entirely.
+     *
+     * @return the restaurant, with {@code ownerId} updated
+     */
+    @Transactional
+    // allEntries, not key = "#restaurantId": this cache also holds a
+    // 'slug:<slug>' entry for the same restaurant, and evicting the id key
+    // alone would leave GET /restaurants/slug/{slug} reporting the previous
+    // owner for the rest of the 5-minute TTL. A transfer happens once per
+    // onboarding, so flushing the whole restaurant cache costs nothing.
+    @CacheEvict(value = "restaurants", allEntries = true)
+    @Auditable(action = "TRANSFER_RESTAURANT_OWNERSHIP", entityType = "Restaurant")
+    public RestaurantDto transferOwnership(Long restaurantId, Long newOwnerId) {
+        Restaurant restaurant = getRestaurantEntityById(restaurantId);
+        Long previousOwnerId = restaurant.getOwner().getId();
+
+        // Idempotent: an admin retrying after a timeout should not get an error
+        // for a transfer that already succeeded.
+        if (previousOwnerId.equals(newOwnerId)) {
+            log.info("Restaurant {} is already owned by user {} — nothing to do",
+                    restaurantId, newOwnerId);
+            return restaurantMapper.toDto(restaurant);
+        }
+
+        User newOwner = userService.getUserEntityById(newOwnerId);
+
+        // A restaurant handed to a suspended or deleted account is unreachable
+        // by its owner and unrecoverable without another transfer. Refuse
+        // rather than let an admin strand a live business.
+        if (newOwner.getStatus() != UserStatus.ACTIVE) {
+            throw new BusinessException("Cannot transfer to a " + newOwner.getStatus()
+                    + " account. Activate the user first.");
+        }
+
+        // The role is what lets them reach the owner endpoints at all. Granting
+        // it here is the difference between a transfer that works and one that
+        // leaves the new owner with 403 on everything.
+        if (!newOwner.hasRole(Role.RESTAURANT_OWNER)) {
+            newOwner.addRole(Role.RESTAURANT_OWNER);
+            log.info("Granted RESTAURANT_OWNER to user {} as part of the transfer", newOwnerId);
+        }
+
+        restaurant.setOwner(newOwner);
+        restaurant = restaurantRepository.save(restaurant);
+
+        log.info("Restaurant {} ('{}') transferred from user {} to user {}",
+                restaurantId, restaurant.getName(), previousOwnerId, newOwnerId);
 
         return restaurantMapper.toDto(restaurant);
     }

@@ -12,6 +12,7 @@ import com.fooddelivery.restaurant.dto.CreateRestaurantRequest;
 import com.fooddelivery.restaurant.dto.UpdateRestaurantRequest;
 import com.fooddelivery.restaurant.dto.RestaurantDto;
 import com.fooddelivery.restaurant.dto.RestaurantFinancialReportDto;
+import com.fooddelivery.restaurant.dto.TransferOwnershipRequest;
 import com.fooddelivery.restaurant.entity.RestaurantStatus;
 import com.fooddelivery.restaurant.service.RestaurantService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -218,6 +219,25 @@ public class RestaurantController {
 
         RestaurantDto restaurant = restaurantService.updateStatus(id, status);
         return ResponseEntity.ok(ApiResponse.success("Restaurant status updated", restaurant));
+    }
+
+    // ADMIN/PLATFORM only, deliberately. An owner must not be able to hand a
+    // restaurant to someone else — that is a commercial decision, and letting
+    // the current owner make it turns a compromised owner account into a way to
+    // move the business out of reach. Transfers go through the platform.
+    @PatchMapping("/{id}/owner")
+    @PreAuthorize("hasAnyRole('PLATFORM', 'ADMIN')")
+    @SecurityRequirement(name = "bearerAuth")
+    @Operation(summary = "Transfer restaurant ownership",
+               description = "Move a restaurant to a different owner. Grants the new owner the "
+                       + "RESTAURANT_OWNER role if they lack it, and revokes the previous owner's "
+                       + "access immediately. Admin/platform only.")
+    public ResponseEntity<ApiResponse<RestaurantDto>> transferOwnership(
+            @PathVariable Long id,
+            @Valid @RequestBody TransferOwnershipRequest request) {
+
+        RestaurantDto restaurant = restaurantService.transferOwnership(id, request.getNewOwnerId());
+        return ResponseEntity.ok(ApiResponse.success("Ownership transferred", restaurant));
     }
 
     @PatchMapping("/{id}/toggle-open")
