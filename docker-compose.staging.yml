@@ -37,8 +37,12 @@ services:
       - "127.0.0.1:${STAGING_APP_HOST_PORT:-8090}:8080"
     environment:
       # "docker" WITHOUT "prod": Swagger stays on and error responses keep their
-      # messages, which is what makes this useful to the app teams. It also means
-      # the seeded demo accounts remain usable here.
+      # messages, which is what makes this useful to the app teams.
+      #
+      # It does NOT mean the seeded demo accounts work here. SeedAccountGuard is
+      # @Profile("!test & !dev"), so it runs under "docker" too and suspends any
+      # account still holding the committed seed password. Log in with the
+      # OTP_REVIEW_NUMBERS below instead.
       - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE:-docker}
       - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/fooddelivery
       - SPRING_DATASOURCE_USERNAME=postgres
