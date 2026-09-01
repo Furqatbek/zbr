@@ -88,9 +88,15 @@ LOCAL_PORT="$(resolve_port)"
 
 if $PULL; then
   branch="$(git rev-parse --abbrev-ref HEAD)"
-  if [ -n "$(git status --porcelain)" ]; then
-    fail "Working tree is dirty. Commit, stash or drop the changes before --pull."
-    git status --short >&2
+  # --untracked-files=no is essential, not a shortcut. init-staging.sh CREATES
+  # docker/nginx/conf.d/staging.conf on the server by design, so counting
+  # untracked files made every deploy on a host with staging fail — and
+  # `git stash` does not remove untracked files, so the advice this printed did
+  # not work either. A pull cannot silently clobber an untracked file; git
+  # refuses and says so.
+  if [ -n "$(git status --porcelain --untracked-files=no)" ]; then
+    fail "Tracked files have local edits. Commit, stash or drop them before --pull."
+    git status --short --untracked-files=no >&2
     exit 1
   fi
   say "Pulling origin/$branch"

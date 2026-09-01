@@ -73,3 +73,8 @@ upload/
 uploads/
 data/
 images/
+
+# Generated on the server by scripts/staging/init-staging.sh from
+# staging.conf.disabled, once the certificate exists. Enabling it in git would
+# make nginx refuse to start on any host without that certificate.
+docker/nginx/conf.d/staging.conf
