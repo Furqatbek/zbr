@@ -293,6 +293,11 @@ app:
   # Push Notification settings
   push:
     enabled: ${PUSH_ENABLED:true}
+    # RabbitMQ consumers for the push queue, "min-max". Was effectively 1, which
+    # serialised every push for all three apps behind whichever message was in
+    # flight. Only this queue is widened — see the comment on the @RabbitListener
+    # in PushNotificationConsumer for why the shared container factory is not.
+    consumer-concurrency: ${PUSH_CONSUMER_CONCURRENCY:3-10}
     android:
       # Must match the notification channel the Android app creates at start-up.
       # If the app bumps the channel (e.g. orders_v3), bump this together.

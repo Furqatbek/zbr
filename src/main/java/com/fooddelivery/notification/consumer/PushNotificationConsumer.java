@@ -46,12 +46,24 @@ public class PushNotificationConsumer {
     /**
      * Process push notification requests from the queue.
      */
+    // concurrency is set HERE rather than on the container factory on purpose.
+    // That factory is shared by eleven listeners, including
+    // order.status.changed and courier.location, where a second consumer would
+    // let two updates for the same order be applied out of order. Push has no
+    // such ordering requirement — each message is independent — so it is the
+    // one queue that can safely be widened.
+    //
+    // The default was a single consumer, which serialised every push for all
+    // three apps: one message with a slow or unreachable device (APNs allows
+    // 10s per device) held up every other user's notification behind it.
     @RabbitListener(
             queues = RabbitMQConfig.NOTIFICATION_PUSH_QUEUE,
             id = "pushNotificationListener",
-            containerFactory = "rabbitListenerContainerFactory"
+            containerFactory = "rabbitListenerContainerFactory",
+            concurrency = "${app.push.consumer-concurrency:3-10}"
     )
     public void handlePushNotification(NotificationRequest request) {
+        long receivedAt = System.currentTimeMillis();
         log.info("Consuming push notification from queue: userId={}, subject={}",
                 request.getUserId(), request.getSubject());
 
@@ -75,8 +87,11 @@ public class PushNotificationConsumer {
             }
 
             sendToMultipleDevices(request, deviceTokens);
-            log.info("Push notification sent to {} devices for user {}",
-                    deviceTokens.size(), request.getUserId());
+            // "handed off", not "sent": the per-provider result is logged by
+            // each provider. This line only means the consumer got that far.
+            log.info("Push handed off to {} device(s) for user {} in {}ms",
+                    deviceTokens.size(), request.getUserId(),
+                    System.currentTimeMillis() - receivedAt);
 
         } catch (Exception e) {
             log.error("Failed to send push notification to user {}: {}",
@@ -133,6 +148,7 @@ public class PushNotificationConsumer {
             return;
         }
 
+        long startedAt = System.currentTimeMillis();
         try {
             // Build the notification
             Notification notification = Notification.builder()
@@ -183,8 +199,14 @@ public class PushNotificationConsumer {
                 handleFailedTokens(tokens, response.getResponses());
             }
 
-            log.debug("FCM response: {} success, {} failures",
-                    response.getSuccessCount(), response.getFailureCount());
+            // INFO, not DEBUG: this is the only line that says whether Google
+            // ACCEPTED the message. Without it the log claims a push was "sent"
+            // even when FCM rejected every token, which makes a delivery
+            // complaint impossible to triage — the backend looks healthy either
+            // way. One line per push is affordable.
+            log.info("FCM accepted {} of {} token(s) in {}ms",
+                    response.getSuccessCount(), tokens.size(),
+                    System.currentTimeMillis() - startedAt);
 
         } catch (FirebaseMessagingException e) {
             log.error("Firebase messaging error: {}", e.getMessage(), e);
