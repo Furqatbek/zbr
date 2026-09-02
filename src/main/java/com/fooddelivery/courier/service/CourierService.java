@@ -822,6 +822,7 @@ public class CourierService {
                 .restaurantId(order.getRestaurant().getId())
                 .restaurantName(order.getRestaurant().getName())
                 .restaurantAddress(order.getRestaurant().getFullAddress())
+                .restaurantPhone(order.getRestaurant().getPhone())
                 .restaurantLat(order.getRestaurant().getLatitude())
                 .restaurantLng(order.getRestaurant().getLongitude())
                 .deliveryAddress(order.getDeliveryAddress())

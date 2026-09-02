@@ -24,6 +24,14 @@ public class CourierOrderDto {
     private Long restaurantId;
     private String restaurantName;
     private String restaurantAddress;
+    /**
+     * The restaurant's own number, not the customer's. A courier who arrives
+     * before the food is ready needs to reach the kitchen, and the pickup call
+     * refuses with "Order is not ready for pickup yet" until then — without
+     * this field the app could only offer the customer's number, which is no
+     * help at all.
+     */
+    private String restaurantPhone;
     private BigDecimal restaurantLat;
     private BigDecimal restaurantLng;
 

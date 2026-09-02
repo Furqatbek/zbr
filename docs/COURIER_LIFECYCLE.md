@@ -94,6 +94,10 @@ On `complete` the backend settles the order: cash payment is confirmed (card
 orders are left alone), platform commission is recorded, and the courier's
 earnings go up by `deliveryFee + tipAmount`.
 
+Each order in these lists carries both `restaurantPhone` and `customerPhone`,
+plus `restaurantLat/Lng` and `deliveryLat/Lng`. `restaurantPhone` was added for
+the not-ready-yet case above; it is the kitchen, not the customer.
+
 ### D. Everything else
 
 ```
@@ -225,8 +229,10 @@ Paste everything below the line.
 >   "this order was just taken", drop it from the list, refresh. No error dialog.
 > - **`Order is not ready for pickup yet. Wait for the restaurant to prepare
 >   it.`** — the courier arrived before the food is ready. Keep them on the order
->   screen with the restaurant's phone number visible and let them retry; do not
->   send them back to the list.
+>   screen and let them retry; do not send them back to the list. Show
+>   `restaurantPhone` from the order payload as a tap-to-call — that is the
+>   kitchen's number, distinct from `customerPhone`, and it is the one that is
+>   useful here.
 > - **`Courier is not available to accept orders`** — they went offline, were
 >   suspended, or are at their concurrent-order limit. Check `GET /couriers/me`
 >   and show which of those it is.
@@ -256,8 +262,14 @@ Paste everything below the line.
 > ```
 > POST /device-tokens
 > { "token": "<fcm token>", "platform": "ANDROID", "deviceId": "...",
->   "deviceName": "Redmi Note 12", "appId": "uz.zbr.courier", "appVersion": "1.0.3" }
+>   "deviceName": "Redmi Note 12", "appId": "app.zbr.courier", "appVersion": "1.0.3" }
 > ```
+>
+> `appId` must be your **real** bundle/application id. The backend does not use
+> it to decide who receives a push, but on iOS it becomes the `apns-topic`
+> header, and APNs rejects a push whose topic is not the app's own bundle id.
+> Send the true value even while you are Android-only, so iOS works the day it
+> ships.
 >
 > **This endpoint does NOT use the standard response envelope** — it returns
 > `{ success, message, tokenId }` at the top level. Do not unwrap `.data`.

@@ -28,7 +28,7 @@ places integrations actually break.
 >   "success": true,
 >   "message": "Profile retrieved",
 >   "data": { },
->   "timestamp": "2026-08-31T09:42:19.821"
+>   "timestamp": "2026-08-31T09:42:19Z"
 > }
 > ```
 >
@@ -61,18 +61,21 @@ places integrations actually break.
 >
 > ### Timestamps
 >
-> All timestamps are UTC, ISO-8601, with **no timezone suffix**
-> (`2026-08-31T09:42:19.821`). They are UTC despite looking naive. Parse them as
-> UTC explicitly — do NOT let the runtime interpret them as local time, or every
-> displayed time will be off by 5 hours for users in Tashkent (UTC+5).
+> All timestamps are UTC ISO-8601 **with a trailing `Z`, and no fractional
+> seconds**: `2026-09-01T13:06:32Z`. Pinned by a test
+> (`JacksonTimestampFormatTest`), so it will not drift.
 >
-> ```ts
-> // Correct
-> const parsed = new Date(raw.endsWith('Z') ? raw : raw + 'Z');
-> ```
+> `new Date(raw)` is therefore correct on its own — the `Z` makes it
+> unambiguous. Do not append one, and do not strip one.
 >
-> Display in `Asia/Tashkent`. The business day runs on Tashkent wall-clock, so a
-> midnight-to-5am order belongs to the day the customer thinks it does.
+> Two consequences worth stating:
+>
+> - **Second precision only.** Milliseconds are truncated, not rounded. Never
+>   use these values to order two events that can happen within the same second;
+>   use the server's ordering (list endpoints are already sorted) instead.
+> - **Display in `Asia/Tashkent`.** The business day runs on Tashkent
+>   wall-clock, so a midnight-to-5am order belongs to the day the customer
+>   thinks it does.
 >
 > ### Money
 >
@@ -185,9 +188,9 @@ places integrations actually break.
 >     "email": "asad@example.com",
 >     "avatarUrl": "https://zbrr.uz/uploads/profiles/42/abc.jpg",
 >     "profileImageUrl": "https://zbrr.uz/uploads/profiles/42/abc.jpg",
->     "memberSince": "2026-03-14T08:11:02.400",
->     "createdAt": "2026-03-14T08:11:02.400",
->     "lastSeenAt": "2026-08-31T09:41:55.117",
+>     "memberSince": "2026-03-14T08:11:02Z",
+>     "createdAt": "2026-03-14T08:11:02Z",
+>     "lastSeenAt": "2026-08-31T09:41:55Z",
 >     "totalOrders": 12,
 >     "defaultAddress": { "id": 7, "label": "Home", "fullAddress": "Amir Temur 1", "isDefault": true },
 >     "role": "CONSUMER", "status": "ACTIVE",
@@ -481,7 +484,7 @@ places integrations actually break.
 >     "acceptsDelivery": true, "acceptsTakeaway": true, "acceptsDineIn": false,
 >     "averageRating": 4.6, "totalRatings": 128, "totalOrders": 1902,
 >     "logoUrl": "...", "coverImageUrl": "...",
->     "createdAt": "2026-03-14T08:11:02.400"
+>     "createdAt": "2026-03-14T08:11:02Z"
 > } }
 > ```
 >
