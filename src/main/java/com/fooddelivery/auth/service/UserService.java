@@ -24,6 +24,7 @@ import com.fooddelivery.common.dto.PagedResponse;
 import com.fooddelivery.common.exception.BusinessException;
 import com.fooddelivery.common.exception.DuplicateResourceException;
 import com.fooddelivery.common.exception.ResourceNotFoundException;
+import com.fooddelivery.common.util.PhoneNumbers;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
@@ -101,12 +102,14 @@ public class UserService {
             user.setLastName(request.getLastName());
         }
         if (request.getPhone() != null) {
-            // Check if phone is already taken
-            if (!request.getPhone().equals(user.getPhone()) &&
-                    userRepository.existsByPhone(request.getPhone())) {
+            // Normalised first: storing the raw value here would let a user edit
+            // their way into a phone that collides with another account's under
+            // the canonical form, which the duplicate check below cannot see.
+            String phone = PhoneNumbers.normalize(request.getPhone());
+            if (!phone.equals(user.getPhone()) && userRepository.existsByPhone(phone)) {
                 throw new DuplicateResourceException("User", "phone", request.getPhone());
             }
-            user.setPhone(request.getPhone());
+            user.setPhone(phone);
             user.setPhoneVerified(false);
         }
         if (request.getProfileImageUrl() != null) {

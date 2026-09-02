@@ -21,6 +21,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.ArgumentCaptor;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
@@ -31,6 +32,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.Optional;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
@@ -101,10 +103,16 @@ class AuthServiceTest {
         }
 
         @Test
-        @DisplayName("rejects a duplicate phone")
+        @DisplayName("rejects a duplicate phone typed in a different shape")
         void rejectsDuplicatePhone() {
+            // THE bug this guards: the stored account holds the canonical
+            // "998900000000", the client sends "+998900000000". Comparing raw
+            // strings found nothing and happily created a second account for
+            // the same person — who then logged in by OTP and landed on the
+            // other one, with none of their orders. The lookup must use the
+            // canonical form.
             when(userRepository.existsByEmail("new@example.com")).thenReturn(false);
-            when(userRepository.existsByPhone("+998900000000")).thenReturn(true);
+            when(userRepository.existsByPhone("998900000000")).thenReturn(true);
 
             RegisterRequest request = RegisterRequest.builder()
                     .email("new@example.com")
@@ -113,6 +121,29 @@ class AuthServiceTest {
 
             assertThatThrownBy(() -> authService.register(request, null))
                     .isInstanceOf(DuplicateResourceException.class);
+        }
+
+        @Test
+        @DisplayName("stores the phone in canonical form, whatever was sent")
+        void storesCanonicalPhone() {
+            when(userRepository.existsByEmail("new@example.com")).thenReturn(false);
+            when(userRepository.existsByPhone(anyString())).thenReturn(false);
+            when(passwordEncoder.encode(anyString())).thenReturn("hashed");
+            when(userRepository.save(any(User.class))).thenAnswer(i -> {
+                User u = i.getArgument(0);
+                u.setId(1L);
+                return u;
+            });
+
+            authService.register(RegisterRequest.builder()
+                    .email("new@example.com")
+                    .password("Passw0rd!")
+                    .phone("+998 90 000 00 00")
+                    .build(), null);
+
+            ArgumentCaptor<User> saved = ArgumentCaptor.forClass(User.class);
+            verify(userRepository).save(saved.capture());
+            assertThat(saved.getValue().getPhone()).isEqualTo("998900000000");
         }
     }
 

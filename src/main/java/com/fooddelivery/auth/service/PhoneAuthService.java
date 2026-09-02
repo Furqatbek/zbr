@@ -11,6 +11,7 @@ import com.fooddelivery.auth.repository.UserRepository;
 import com.fooddelivery.auth.security.JwtService;
 import com.fooddelivery.common.exception.BusinessException;
 import com.fooddelivery.common.exception.ResourceNotFoundException;
+import com.fooddelivery.common.util.PhoneNumbers;
 import com.fooddelivery.order.repository.OrderRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -360,26 +361,11 @@ public class PhoneAuthService {
     }
 
     /**
-     * Normalize phone number.
+     * Normalize phone number. Delegates so every write path agrees — see
+     * PhoneNumbers for why that matters.
      */
     private String normalizePhone(String phone) {
-        if (phone == null) {
-            return null;
-        }
-
-        String digits = phone.replaceAll("[^0-9+]", "");
-
-        if (digits.startsWith("+998")) {
-            return digits.substring(1);
-        } else if (digits.startsWith("998")) {
-            return digits;
-        } else if (digits.startsWith("8") && digits.length() == 10) {
-            return "998" + digits.substring(1);
-        } else if (digits.length() == 9 && !digits.startsWith("+")) {
-            return "998" + digits;
-        }
-
-        return digits.startsWith("+") ? digits.substring(1) : digits;
+        return PhoneNumbers.normalize(phone);
     }
 
     /**

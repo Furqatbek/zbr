@@ -9,6 +9,7 @@ import com.fooddelivery.auth.security.JwtService;
 import com.fooddelivery.auth.security.UserPrincipal;
 import com.fooddelivery.common.annotation.Auditable;
 import com.fooddelivery.common.exception.BusinessException;
+import com.fooddelivery.common.util.PhoneNumbers;
 import com.fooddelivery.common.exception.DuplicateResourceException;
 import com.fooddelivery.common.exception.ResourceNotFoundException;
 import com.fooddelivery.notification.service.NotificationService;
@@ -70,7 +71,14 @@ public class AuthService {
             throw new DuplicateResourceException("User", "email", request.getEmail());
         }
 
-        if (request.getPhone() != null && userRepository.existsByPhone(request.getPhone())) {
+        // Normalise BEFORE the duplicate check, not after. This endpoint used to
+        // store whatever the client sent, so registering "+998901234567" created
+        // a second account alongside the OTP-created "998901234567" — the
+        // existsByPhone comparison is on raw strings, and the UNIQUE constraint
+        // cannot see that the two are the same number. The victim then logs in
+        // by OTP and lands on an account with none of their orders.
+        String phone = PhoneNumbers.normalize(request.getPhone());
+        if (phone != null && userRepository.existsByPhone(phone)) {
             throw new DuplicateResourceException("User", "phone", request.getPhone());
         }
 
@@ -91,7 +99,7 @@ public class AuthService {
         User user = User.builder()
                 .email(request.getEmail())
                 .passwordHash(passwordEncoder.encode(request.getPassword()))
-                .phone(request.getPhone())
+                .phone(phone)
                 .firstName(request.getFirstName())
                 .lastName(request.getLastName())
                 .roles(roles)
@@ -138,8 +146,14 @@ public class AuthService {
     public AuthResponse login(LoginRequest request, HttpServletRequest httpRequest) {
         log.info("Login attempt for: {}", request.getEmailOrPhone());
 
-        // Find user by email or phone
-        User user = userRepository.findByEmailOrPhone(request.getEmailOrPhone(), request.getEmailOrPhone())
+        // Find user by email or phone. The phone side is normalised so someone
+        // who types "+998 90 123 45 67" matches the stored "998901234567" —
+        // passing the raw input for both meant login-by-phone only worked if
+        // the user happened to type the exact stored form. An email normalises
+        // to "" (no digits), which matches nobody, so the email side is
+        // unaffected.
+        String identifier = request.getEmailOrPhone();
+        User user = userRepository.findByEmailOrPhone(identifier, PhoneNumbers.normalize(identifier))
                 .orElseThrow(() -> new BadCredentialsException("Invalid credentials"));
 
         // Check if account is locked

@@ -4,6 +4,7 @@ import com.fooddelivery.auth.entity.OtpCode;
 import com.fooddelivery.auth.repository.OtpCodeRepository;
 import com.fooddelivery.common.exception.BusinessException;
 import com.fooddelivery.sms.service.SmsNotificationService;
+import com.fooddelivery.common.util.PhoneNumbers;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -229,28 +230,11 @@ public class OtpService {
     }
 
     /**
-     * Normalize phone number.
+     * Normalize phone number. Delegates so every write path agrees — see
+     * PhoneNumbers for why that matters.
      */
     private String normalizePhone(String phone) {
-        if (phone == null) {
-            return null;
-        }
-
-        // Remove all non-digit characters except leading +
-        String digits = phone.replaceAll("[^0-9+]", "");
-
-        // Handle Uzbekistan numbers
-        if (digits.startsWith("+998")) {
-            return digits.substring(1); // Remove +
-        } else if (digits.startsWith("998")) {
-            return digits;
-        } else if (digits.startsWith("8") && digits.length() == 10) {
-            return "998" + digits.substring(1);
-        } else if (digits.length() == 9 && !digits.startsWith("+")) {
-            return "998" + digits;
-        }
-
-        return digits.startsWith("+") ? digits.substring(1) : digits;
+        return PhoneNumbers.normalize(phone);
     }
 
     /**
