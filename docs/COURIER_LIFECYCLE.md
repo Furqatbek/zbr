@@ -145,34 +145,92 @@ Paste everything below the line.
 > response envelope, token refresh, timestamps, error handling. This document
 > only covers the courier lifecycle.
 >
-> ## The bug to fix first
+> ## The one thing to change
 >
-> Signing a courier up with OTP alone creates a plain **consumer**. Becoming a
-> courier takes a second call, and until recently that call returned 403 to
-> everyone because of a backend authorization bug — so if you already
-> implemented it and saw 403, the code was right and the backend was not. That
-> is fixed; re-test before changing anything.
+> **Your signup flow is missing an API call.** Everything else in this document
+> describes an app that has already made it.
 >
-> There is no "sign up as a courier" endpoint and there will not be one. A
-> courier is a consumer account **plus** a courier profile, created by a second
-> call:
+> There is no "sign up as a courier" endpoint, and there will not be one. OTP
+> signup is shared by all three apps — the backend cannot tell which app a code
+> came from, so it creates a plain **consumer** every time. A courier is that
+> consumer account **plus** a courier profile, and the profile is created by a
+> second call your app must make:
 >
 > ```
-> POST /couriers/register          requires ROLE_CONSUMER
+> POST /api/v1/couriers/register
+> Authorization: Bearer <the token you just got from verify-otp>
+>
 > { "vehicleType": "MOTORCYCLE" }
 > ```
 >
-> Make this call immediately after a successful OTP signup, as part of the same
-> onboarding screen flow. If it fails, the user is NOT a courier — do not let
-> them into the main app; show the error and a retry.
+> ### Does your app have this bug?
 >
-> `vehicleType` is required: `WALKING` | `BICYCLE` | `E_BIKE` | `MOTORCYCLE` |
-> `CAR`. Optional: `vehicleNumber`, `licenseNumber`, `preferredRadiusKm`
-> (defaults 5). Collect vehicle type in onboarding — you cannot skip it.
+> Sign up a fresh phone number, then call `GET /api/v1/couriers/me` with that
+> token.
 >
-> You do **not** need to refresh the token afterwards. The backend re-reads
-> roles from the database on every request, so `ROLE_COURIER` applies on the
-> next call.
+> - **403** → the call above is missing. The user is a customer, not a courier.
+>   This is the bug.
+> - **200** → your app already registers correctly.
+>
+> ### The sequence, in full
+>
+> ```ts
+> // 1. OTP — identical to the customer app
+> await api.post('/auth/phone/request-otp', { phone });
+>
+> const { data } = await api.post('/auth/phone/verify-otp', { phone, code });
+> //   ...or /auth/phone/complete-registration for a new user, with the SAME
+> //   code plus fullName. Do NOT request a second OTP.
+> await saveTokens(data.accessToken, data.refreshToken);
+>
+> // 2. THE MISSING CALL. Without it the account is an ordinary customer.
+> await api.post('/couriers/register', {
+>   vehicleType,          // required — collected in onboarding
+>   vehicleNumber,        // optional
+>   licenseNumber,        // optional
+>   preferredRadiusKm: 5, // optional
+> });
+> ```
+>
+> Make it part of the same onboarding flow, not a later screen. If it fails, the
+> user is **not** a courier — do not let them into the app; show the error and a
+> retry. Landing a half-registered user on the order list is how this went
+> unnoticed for weeks.
+>
+> `vehicleType` is required and must be one of `WALKING`, `BICYCLE`, `E_BIKE`,
+> `MOTORCYCLE`, `CAR`. There is no default; collect it before you call.
+>
+> You do **not** need to refresh the token afterwards. The backend re-reads roles
+> from the database on every request, so `ROLE_COURIER` applies on the next call.
+>
+> ### What the response means
+>
+> | Status | Meaning | Do |
+> |---|---|---|
+> | `201` | Profile created, `PENDING_APPROVAL` | Go to the waiting-for-approval screen |
+> | `400` `Courier already exists...` | Already registered | Treat as success, continue |
+> | `403` | Token is not a consumer's — e.g. an admin token | Re-authenticate by phone OTP |
+> | `401` | Token missing or expired | Refresh, retry once |
+>
+> ### Which screen to show
+>
+> After login, `GET /couriers/me` decides everything. Drive onboarding from the
+> backend's state, never from a local "did I register?" flag — reinstalls and
+> second devices make local flags lie.
+>
+> | `GET /couriers/me` | State | Screen |
+> |---|---|---|
+> | `403` | No courier profile | Onboarding — collect vehicle, call `/couriers/register` |
+> | `200`, `verified: false`, `PENDING_APPROVAL` | Awaiting admin | Waiting for approval |
+> | `200`, `verified: false`, `SUSPENDED` | Rejected | Contact support — no retry |
+> | `200`, `verified: true` | Ready | The app proper |
+>
+> ### Historical note
+>
+> Until early September this call returned 403 to everyone, because of a backend
+> authorization bug (the URL rule required the very role that registering
+> grants). If you implemented it, saw 403, and removed it — the code was right
+> and the backend was not. It is fixed. Put the call back and re-test.
 >
 > ## The approval gate — build a real screen for this
 >
@@ -343,14 +401,22 @@ Paste everything below the line.
 >
 > ## Definition of done
 >
-> - A brand-new courier can install the app, sign up, and appear under
->   `GET /couriers/pending` for an admin — verified end to end against staging.
-> - Before approval they see the waiting screen, not an error.
-> - After approval they can go online, see orders, and complete one full
->   delivery through all four transitions.
-> - Losing an accept race, and arriving before food is ready, both show sensible
->   messages and leave the app usable.
-> - Push arrives on a physical Android device with the app backgrounded.
+> Prove each one; do not infer it from the UI looking right.
+>
+> 1. A brand-new phone number signs up in the app and then
+>    `GET /couriers/me` returns **200**, not 403. This is the acceptance test for
+>    the whole change — if it still 403s, nothing else here matters.
+> 2. That courier appears in `GET /couriers/pending` for an admin.
+> 3. Before approval the app shows the waiting screen, not an error toast.
+> 4. After the admin approves, the courier goes online and sees the order list.
+> 5. One full delivery through all four transitions.
+> 6. Losing an accept race, and arriving before the food is ready, both show
+>    sensible messages and leave the app usable.
+> 7. Push arrives on a physical Android device with the app backgrounded.
+>
+> Ask the backend team to confirm from the server side — they can see whether
+> `POST /couriers/register` was received at all, which settles any disagreement
+> about whether the app sent it.
 >
 > Test against **`https://staging.zbrr.uz/api/v1`**, not production. Staging
 > sends no SMS: log in with `+998900000000` and OTP code `123456`. Access tokens
