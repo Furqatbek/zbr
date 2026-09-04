@@ -43,6 +43,12 @@ POST /api/v1/couriers/register        requires ROLE_CONSUMER
 Only `vehicleType` is required — `WALKING`, `BICYCLE`, `E_BIKE`, `MOTORCYCLE`,
 `CAR`. The profile lands in `PENDING_APPROVAL` with `verified = false`.
 
+**The caller must be a phone-OTP consumer.** `hasRole('CONSUMER')` is enforced
+at the method level, so an ADMIN or PLATFORM token gets 403 here — an operator
+cannot register a courier on someone's behalf, and there is currently no
+admin-side endpoint that does. The only route in is the courier signing
+themselves up from the app.
+
 **Step 4 is a human decision.** An admin calls
 `POST /couriers/{courierId}/verify`, which sets `verified = true` and moves the
 status to `OFFLINE` — ready to work, not yet online. `POST /couriers/{id}/reject`
@@ -105,9 +111,15 @@ the not-ready-yet case above; it is the kitchen, not the customer.
 
 ### D. Everything else
 
+**Every endpoint below requires `ROLE_COURIER`**, which only step 3 grants. A
+consumer calling any of them gets 403 — correctly. In particular there is no
+"add a vehicle" endpoint to call before registering: `PUT /couriers/me` EDITS an
+existing courier profile and cannot create one. Vehicle details go INSIDE the
+registration call.
+
 ```
 GET /couriers/me                       profile: status, vehicle, rating, verified
-PUT /couriers/me                       vehicle details only
+PUT /couriers/me                       vehicle details only — courier must exist
 GET /users/me                          name, phone, avatar — a DIFFERENT endpoint
 GET /couriers/me/orders/active         in-flight orders
 GET /couriers/me/orders/history        paged
@@ -318,6 +330,12 @@ Paste everything below the line.
 > The profile screen reads both — fetch in parallel and merge. `PUT
 > /couriers/me` accepts only `vehicleType`, `vehicleNumber`, `licenseNumber`,
 > `preferredRadiusKm`, `maxConcurrentOrders`; it will not change their name.
+>
+> `PUT /couriers/me` requires `ROLE_COURIER`, so it only works AFTER
+> registration. It edits a courier profile, it cannot create one — there is no
+> separate "add vehicle" step. If onboarding collects the vehicle on its own
+> screen, hold the value and send it in the `POST /couriers/register` body; a
+> 403 here means the profile does not exist yet.
 >
 > Note `GET /couriers/me` returns both `id` (courier profile id) and `userId`.
 > The WebSocket location topic and all admin endpoints use `id`; `/users/me` is
