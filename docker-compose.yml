@@ -53,6 +53,14 @@ services:
       - APNS_KEY_ID=${APNS_KEY_ID:-}
       - APNS_TEAM_ID=${APNS_TEAM_ID:-}
       - APNS_TOPIC=${APNS_TOPIC:-com.zbr.owner}
+      # Route push to the right app. A courier is the SAME user row as a
+      # consumer, so without these a courier alert also lands on that person's
+      # customer app. Left EMPTY until the real bundle ids are known: a wrong
+      # value here silently stops push for a whole app. Tokens registered
+      # without an appId keep receiving regardless.
+      - PUSH_APP_ID_CONSUMER=${PUSH_APP_ID_CONSUMER:-}
+      - PUSH_APP_ID_COURIER=${PUSH_APP_ID_COURIER:-}
+      - PUSH_APP_ID_RESTAURANT=${PUSH_APP_ID_RESTAURANT:-}
       - APNS_PRODUCTION=${APNS_PRODUCTION:-false}
       # Absolute base for shareable links (referral invites). Apex, not www.
       - APP_PUBLIC_URL=${APP_PUBLIC_URL:-https://zbrr.uz}

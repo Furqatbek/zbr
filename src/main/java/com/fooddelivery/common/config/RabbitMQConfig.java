@@ -1,6 +1,7 @@
 package com.fooddelivery.common.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.springframework.amqp.core.*;
@@ -61,6 +62,12 @@ public class RabbitMQConfig {
         ObjectMapper objectMapper = new ObjectMapper();
         objectMapper.registerModule(new JavaTimeModule());
         objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+        // A hand-built ObjectMapper does NOT inherit spring.jackson.*, so this
+        // would otherwise fail closed on any field the consumer does not know.
+        // Adding a field to a queued DTO would then send every in-flight
+        // message to the DLQ during a deploy — the queue is the one place
+        // where producer and consumer can be different versions at once.
+        objectMapper.disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
 
         Jackson2JsonMessageConverter converter = new Jackson2JsonMessageConverter(objectMapper);
 

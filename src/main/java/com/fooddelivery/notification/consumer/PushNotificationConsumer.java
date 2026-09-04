@@ -9,6 +9,7 @@ import com.fooddelivery.notification.service.ExpoPushService;
 import com.google.firebase.messaging.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import com.fooddelivery.notification.service.PushAppIdResolver;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -29,6 +30,7 @@ import java.util.stream.Collectors;
 public class PushNotificationConsumer {
 
     private final UserDeviceTokenRepository deviceTokenRepository;
+    private final PushAppIdResolver appIdResolver;
     private final ExpoPushService expoPushService;
     private final ApnsPushService apnsPushService;
 
@@ -83,6 +85,18 @@ public class PushNotificationConsumer {
 
             if (deviceTokens.isEmpty()) {
                 log.debug("No active device tokens found for user {}", request.getUserId());
+                return;
+            }
+
+            // One person is one user row across all three apps, so a courier
+            // alert would otherwise also land on that same person's customer
+            // app. Fails open — see PushAppIdResolver — so an unconfigured role
+            // or a token without an appId still receives.
+            int before = deviceTokens.size();
+            deviceTokens = appIdResolver.filter(deviceTokens, request.getTargetRole());
+            if (deviceTokens.isEmpty()) {
+                log.info("Push for user {} dropped: none of their {} device(s) belong to the {} app",
+                        request.getUserId(), before, request.getTargetRole());
                 return;
             }
 

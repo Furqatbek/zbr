@@ -136,6 +136,7 @@ public class PersistentNotificationServiceImpl implements PersistentNotification
                 .referenceId(savedNotification.getId().toString())
                 .referenceType("notification")
                 .templateData(createDto.getMetadata())
+                .targetRole(createDto.getRole() != null ? createDto.getRole().name() : null)
                 .build();
 
         rabbitTemplate.convertAndSend(

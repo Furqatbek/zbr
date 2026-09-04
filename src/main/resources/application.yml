@@ -298,6 +298,18 @@ app:
     # flight. Only this queue is widened — see the comment on the @RabbitListener
     # in PushNotificationConsumer for why the shared container factory is not.
     consumer-concurrency: ${PUSH_CONSUMER_CONCURRENCY:3-10}
+    # Which app each audience's push belongs on. A courier is the SAME user row
+    # as a consumer, so without this a courier alert also reaches that person's
+    # customer app.
+    #
+    # EMPTY BY DEFAULT ON PURPOSE. A wrong bundle id here silently stops push
+    # for a whole app, which is worse than the duplicate delivery it prevents;
+    # filtering only switches on for a role once its real id is supplied. Tokens
+    # registered without an appId keep receiving either way.
+    app-ids:
+      consumer: ${PUSH_APP_ID_CONSUMER:}
+      courier: ${PUSH_APP_ID_COURIER:}
+      restaurant: ${PUSH_APP_ID_RESTAURANT:}
     android:
       # Must match the notification channel the Android app creates at start-up.
       # If the app bumps the channel (e.g. orders_v3), bump this together.

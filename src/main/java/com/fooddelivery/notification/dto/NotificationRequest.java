@@ -31,4 +31,13 @@ public class NotificationRequest implements Serializable {
     private Integer priority; // 1-10
     private String referenceId;
     private String referenceType;
+
+    /**
+     * NotificationRole this was aimed at, used to pick which of the recipient's
+     * apps to push to. One person is one user row across all three apps, so
+     * without this a courier alert also lands on their customer app. Null means
+     * "no preference" and every device receives, which is what messages already
+     * in the queue at deploy time will carry.
+     */
+    private String targetRole;
 }
