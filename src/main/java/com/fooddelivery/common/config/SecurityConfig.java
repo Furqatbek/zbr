@@ -117,6 +117,20 @@ public class SecurityConfig {
                             .hasAnyRole("RESTAURANT_OWNER", "RESTAURANT_STAFF", "COURIER", "PLATFORM", "ADMIN")
 
                         // Courier endpoints
+                        //
+                        // Registration MUST come before the blanket rule below, and must not
+                        // demand ROLE_COURIER: this is the endpoint that GRANTS that role. The
+                        // blanket rule alone made becoming a courier impossible — you needed the
+                        // role to call the only thing that gives it — and because URL rules are
+                        // evaluated before @PreAuthorize, the controller's hasRole('CONSUMER')
+                        // never even ran. That is why the platform had courier users and zero
+                        // courier profiles. Ownership is still enforced at the method level.
+                        .requestMatchers(HttpMethod.POST, "/api/v1/couriers/register").authenticated()
+                        // Restaurants pick a courier for an order, so they must reach this one.
+                        // The method-level rule already lists RESTAURANT_OWNER; without the URL
+                        // rule agreeing, they were rejected before it was consulted.
+                        .requestMatchers(HttpMethod.GET, "/api/v1/couriers/available")
+                            .hasAnyRole("RESTAURANT_OWNER", "PLATFORM", "ADMIN")
                         .requestMatchers("/api/v1/couriers/**").hasAnyRole("COURIER", "PLATFORM", "ADMIN")
 
                         // Consumer profile endpoints

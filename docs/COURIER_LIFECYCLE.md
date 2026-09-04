@@ -25,9 +25,14 @@ memory. Where a call fails for a non-obvious reason, that reason is named.
     (admin)                               courier can now work
 ```
 
-**Step 3 is the one that is currently missing in the app**, which is why the
-platform has users but no couriers. OTP signup alone produces a plain consumer —
-the backend cannot tell which app the OTP came from.
+**Step 3 is a separate call the app must make.** OTP signup alone produces a
+plain consumer — the backend cannot tell which app the OTP came from.
+
+Until `245e687` this step was impossible: the URL rule
+`/api/v1/couriers/**` required `ROLE_COURIER`, and `/couriers/register` is the
+endpoint that GRANTS that role, so it answered 403 to exactly the users meant to
+call it. That was a backend bug, not an app one, and it is why the platform had
+courier users and no courier profiles.
 
 ```
 POST /api/v1/couriers/register        requires ROLE_CONSUMER
@@ -130,10 +135,11 @@ Paste everything below the line.
 >
 > ## The bug to fix first
 >
-> Right now the app signs a courier up with OTP and stops. That creates a plain
-> **consumer**. The platform currently has zero courier profiles as a result —
-> people who think they registered as couriers are ordinary customers to the
-> backend.
+> Signing a courier up with OTP alone creates a plain **consumer**. Becoming a
+> courier takes a second call, and until recently that call returned 403 to
+> everyone because of a backend authorization bug — so if you already
+> implemented it and saw 403, the code was right and the backend was not. That
+> is fixed; re-test before changing anything.
 >
 > There is no "sign up as a courier" endpoint and there will not be one. A
 > courier is a consumer account **plus** a courier profile, created by a second
