@@ -6,6 +6,7 @@ import com.fooddelivery.notification.repository.UserDeviceTokenRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
@@ -111,6 +112,35 @@ public class DeviceTokenService {
             log.info("No active device token deactivated for user {}", userId);
         } else {
             log.info("Deactivated device token for user {}", userId);
+        }
+    }
+
+    /**
+     * Retire a token the push provider has rejected as dead.
+     *
+     * <p>REQUIRES_NEW because every caller is a push sender running OUTSIDE any
+     * transaction. The repository call is @Modifying, so it threw
+     * "Executing an update/delete query" every single time and was swallowed by
+     * the senders' catch-all — meaning rejected tokens were never actually
+     * retired, and every later push retried the same dead token and failed
+     * again. A new transaction also keeps this independent: pruning is cleanup,
+     * and it must not roll back or be rolled back by whatever the caller is
+     * doing.
+     *
+     * <p>Unscoped by design — the provider identifies the token, and there is no
+     * user in context. For a user-initiated removal use
+     * {@link #deactivateToken(Long, String)}.
+     */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void deactivateRejectedToken(String deviceToken, String reason) {
+        try {
+            int updated = deviceTokenRepository.deactivateRejectedToken(deviceToken);
+            if (updated > 0) {
+                log.info("Retired device token rejected by the provider: {}", reason);
+            }
+        } catch (Exception e) {
+            // Never let cleanup break the send that discovered the dead token.
+            log.warn("Could not retire rejected device token ({}): {}", reason, e.getMessage());
         }
     }
 

@@ -2,7 +2,6 @@ package com.fooddelivery.notification.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fooddelivery.notification.entity.UserDeviceToken;
-import com.fooddelivery.notification.repository.UserDeviceTokenRepository;
 import io.jsonwebtoken.Jwts;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -53,7 +52,7 @@ public class ApnsPushService {
     /** Apple accepts a provider token for 1h; refresh well before that. */
     private static final Duration TOKEN_TTL = Duration.ofMinutes(45);
 
-    private final UserDeviceTokenRepository deviceTokenRepository;
+    private final DeviceTokenService deviceTokenService;
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final HttpClient httpClient;
 
@@ -69,7 +68,7 @@ public class ApnsPushService {
     private volatile Instant cachedJwtIssuedAt;
 
     public ApnsPushService(
-            UserDeviceTokenRepository deviceTokenRepository,
+            DeviceTokenService deviceTokenService,
             @Value("${app.apns.enabled:false}") boolean enabled,
             @Value("${app.apns.key-file:}") String keyFile,
             @Value("${app.apns.key-base64:}") String keyBase64,
@@ -77,7 +76,7 @@ public class ApnsPushService {
             @Value("${app.apns.team-id:}") String teamId,
             @Value("${app.apns.topic:}") String topic,
             @Value("${app.apns.production:false}") boolean production) {
-        this.deviceTokenRepository = deviceTokenRepository;
+        this.deviceTokenService = deviceTokenService;
         this.enabled = enabled;
         this.keyFile = keyFile;
         this.keyBase64 = keyBase64;
@@ -168,13 +167,11 @@ public class ApnsPushService {
                 log.debug("APNs push delivered");
             } else if (status == 410) {
                 // Device no longer registered — prune it.
-                deviceTokenRepository.deactivateRejectedToken(deviceToken);
-                log.info("Deactivated unregistered APNs token (410)");
+                deviceTokenService.deactivateRejectedToken(deviceToken, "APNs 410 Unregistered");
             } else if (status == 400 && response.body() != null && response.body().contains("BadDeviceToken")) {
                 // Wrong environment (sandbox token sent to prod, or vice versa) or malformed.
-                deviceTokenRepository.deactivateRejectedToken(deviceToken);
-                log.warn("Deactivated APNs token: BadDeviceToken (check sandbox vs production). body={}",
-                        response.body());
+                deviceTokenService.deactivateRejectedToken(deviceToken,
+                        "APNs BadDeviceToken — check sandbox vs production");
             } else {
                 log.warn("APNs push failed: status={} body={}", status, response.body());
             }

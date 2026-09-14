@@ -9,6 +9,7 @@ import com.fooddelivery.notification.service.ExpoPushService;
 import com.google.firebase.messaging.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import com.fooddelivery.notification.service.DeviceTokenService;
 import com.fooddelivery.notification.service.PushAppIdResolver;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,6 +31,7 @@ import java.util.stream.Collectors;
 public class PushNotificationConsumer {
 
     private final UserDeviceTokenRepository deviceTokenRepository;
+    private final DeviceTokenService deviceTokenService;
     private final PushAppIdResolver appIdResolver;
     private final ExpoPushService expoPushService;
     private final ApnsPushService apnsPushService;
@@ -293,7 +295,7 @@ public class PushNotificationConsumer {
                     if (errorCode == MessagingErrorCode.INVALID_ARGUMENT ||
                             errorCode == MessagingErrorCode.UNREGISTERED) {
                         log.info("Deactivating invalid FCM token: {}", token.substring(0, Math.min(20, token.length())));
-                        deviceTokenRepository.deactivateRejectedToken(token);
+                        deviceTokenService.deactivateRejectedToken(token, "FCM rejected the token");
                     } else {
                         log.warn("FCM error for token: {} - {}",
                                 token.substring(0, Math.min(20, token.length())),

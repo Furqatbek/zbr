@@ -1,7 +1,6 @@
 package com.fooddelivery.notification.service;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fooddelivery.notification.repository.UserDeviceTokenRepository;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -33,18 +32,18 @@ public class ExpoPushService {
 
     private static final int BATCH_SIZE = 100; // Expo accepts up to 100 messages per request
 
-    private final UserDeviceTokenRepository deviceTokenRepository;
+    private final DeviceTokenService deviceTokenService;
     private final RestTemplate restTemplate;
     private final boolean enabled;
     private final String expoUrl;
     private final String accessToken;
 
     public ExpoPushService(
-            UserDeviceTokenRepository deviceTokenRepository,
+            DeviceTokenService deviceTokenService,
             @Value("${app.expo.push.enabled:true}") boolean enabled,
             @Value("${app.expo.push.url:https://exp.host/--/api/v2/push/send}") String expoUrl,
             @Value("${app.expo.push.access-token:}") String accessToken) {
-        this.deviceTokenRepository = deviceTokenRepository;
+        this.deviceTokenService = deviceTokenService;
         this.enabled = enabled;
         this.expoUrl = expoUrl;
         this.accessToken = accessToken;
@@ -119,7 +118,7 @@ public class ExpoPushService {
             if (!"ok".equalsIgnoreCase(ticket.getStatus())) {
                 String error = ticket.getDetails() != null ? ticket.getDetails().getError() : null;
                 if ("DeviceNotRegistered".equals(error)) {
-                    deviceTokenRepository.deactivateRejectedToken(tokens.get(i));
+                    deviceTokenService.deactivateRejectedToken(tokens.get(i), "Expo DeviceNotRegistered");
                     log.info("Deactivated unregistered Expo token");
                 } else {
                     log.warn("Expo push error: status={} message={} error={}",
