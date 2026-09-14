@@ -66,7 +66,14 @@ public enum OrderStatus {
     private static final Set<OrderStatus> CREATED_TRANSITIONS = EnumSet.of(ACCEPTED, PREPARING, CANCELLED);
     private static final Set<OrderStatus> ACCEPTED_TRANSITIONS = EnumSet.of(PREPARING, READY, COURIER_ASSIGNED, CANCELLED);
     private static final Set<OrderStatus> PREPARING_TRANSITIONS = EnumSet.of(READY, COURIER_ASSIGNED, CANCELLED);
-    private static final Set<OrderStatus> READY_TRANSITIONS = EnumSet.of(COURIER_ASSIGNED, DELIVERED, COMPLETED, CANCELLED);
+    // PICKED_UP is here for the same reason READY is in COURIER_ASSIGNED_TRANSITIONS
+    // below: a courier is normally assigned while the food is still cooking, so
+    // the restaurant marking it ready moves COURIER_ASSIGNED -> READY. Without
+    // this the order then had nowhere to go — the courier standing in the shop
+    // was told "cannot be picked up in current status: READY". Allowing
+    // COURIER_ASSIGNED -> READY without allowing READY -> PICKED_UP moved the
+    // deadlock one step later rather than removing it.
+    private static final Set<OrderStatus> READY_TRANSITIONS = EnumSet.of(COURIER_ASSIGNED, PICKED_UP, DELIVERED, COMPLETED, CANCELLED);
     // A courier may accept before the kitchen finishes (COURIER_ASSIGNED with readyAt == null).
     // The restaurant must still be able to advance the order to PREPARING/READY, otherwise the
     // order deadlocks (courier can't pick up until readyAt is set). Hence PREPARING and READY here.

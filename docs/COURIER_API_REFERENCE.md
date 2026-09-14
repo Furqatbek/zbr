@@ -307,8 +307,15 @@ All four take no body. Each returns the updated `CourierOrderDto`.
 
 ### `PUT /couriers/me/orders/{orderId}/pickup` → `PICKED_UP`
 
+Works from **`COURIER_ASSIGNED` or `READY`**. Both are normal: a courier is
+usually dispatched while the food is still cooking, so the restaurant marking it
+ready moves the order `COURIER_ASSIGNED → READY` before the courier arrives. Do
+not gate the pickup button on `COURIER_ASSIGNED` alone.
+
 `400` `Order is not ready for pickup yet. Wait for the restaurant to prepare
-it.` when `readyAt` is still null. Keep the courier on the order screen with
+it.` when `readyAt` is still null — the kitchen decides, not the status label.
+
+Calling it twice is a no-op, so retry freely after a timeout. Keep the courier on the order screen with
 `restaurantPhone` as a tap-to-call; do not send them back to the list.
 
 ### `PUT /couriers/me/orders/{orderId}/transit` → `IN_TRANSIT`

@@ -661,13 +661,36 @@ public class CourierService {
             throw new BusinessException("This order is not assigned to you");
         }
 
-        if (order.getStatus() != OrderStatus.COURIER_ASSIGNED && order.getStatus() != OrderStatus.PICKED_UP) {
+        // READY belongs here. Order status is ONE field written by two actors:
+        // the kitchen moves it ACCEPTED -> PREPARING -> READY, and the courier
+        // moves it COURIER_ASSIGNED -> PICKED_UP -> IN_TRANSIT. When a courier
+        // is assigned first and the restaurant finishes cooking second — the
+        // normal case, since couriers are dispatched while the food cooks —
+        // READY overwrites COURIER_ASSIGNED, and rejecting it stranded the
+        // courier standing in the shop holding the order.
+        //
+        // getActiveOrders already treats READY as an active courier state, so
+        // the rest of the system expects this and only the guard disagreed.
+        if (order.getStatus() != OrderStatus.COURIER_ASSIGNED
+                && order.getStatus() != OrderStatus.READY
+                && order.getStatus() != OrderStatus.PICKED_UP) {
             throw new BusinessException("Order cannot be picked up in current status: " + order.getStatus());
         }
 
-        // Don't allow pickup if restaurant hasn't marked the order as ready
-        if (order.getReadyAt() == null && order.getStatus() == OrderStatus.COURIER_ASSIGNED) {
+        // The real precondition is the kitchen, not the label: readyAt is set
+        // when the restaurant marks the food ready, whichever status the order
+        // happens to be carrying. Skipped when already PICKED_UP so a retry
+        // after a flaky response stays idempotent.
+        if (order.getStatus() != OrderStatus.PICKED_UP && order.getReadyAt() == null) {
             throw new BusinessException("Order is not ready for pickup yet. Wait for the restaurant to prepare it.");
+        }
+
+        // Already collected. Return instead of calling updateStatus, which
+        // rejects PICKED_UP -> PICKED_UP and would surface a retry after a
+        // flaky response as a 500.
+        if (order.getStatus() == OrderStatus.PICKED_UP) {
+            log.info("Order {} was already picked up by courier {}", orderId, courierId);
+            return toOrderDto(order);
         }
 
         OrderStatus previousStatus = order.getStatus();
