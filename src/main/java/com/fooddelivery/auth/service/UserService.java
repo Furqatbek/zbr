@@ -175,6 +175,24 @@ public class UserService {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User", "id", id));
 
+        // A role is not a profile. Granting COURIER to an account with no
+        // couriers row produces a "phantom courier": it passes every
+        // authorization check, is listed as a courier by GET /users, and 404s on
+        // every /couriers/me endpoint because it owns nothing. There is no
+        // admin endpoint that creates the profile, so granting this by hand is
+        // always wrong — the courier registers from their own app, and that
+        // call grants the role itself.
+        //
+        // Re-granting to someone who already has a profile is allowed: that is
+        // a repair, not a phantom.
+        if (role == Role.COURIER && !courierRepository.existsByUserId(id)) {
+            throw new BusinessException(
+                    "User " + id + " has no courier profile, so granting COURIER would create an "
+                            + "account that passes authorization but cannot use any courier endpoint. "
+                            + "The courier must register from the courier app "
+                            + "(POST /api/v1/couriers/register), which grants this role itself.");
+        }
+
         user.addRole(role);
         user = userRepository.save(user);
 
