@@ -170,8 +170,18 @@ and it is what the WebSocket location topic and every admin endpoint use.
             "verified": true, "currentOrderCount": 1 } }
 ```
 
-**This is the source of truth for onboarding state.** `403` means no courier
-profile exists — send the user to registration, not to an error screen.
+**This is the source of truth for onboarding state.** Two different statuses
+both mean "no courier profile yet", and you must treat them identically:
+
+| | Meaning |
+|---|---|
+| `403` | The account has no COURIER role — it never registered. |
+| `404` `No courier profile exists for this account…` | It HAS the role but no profile. Happens when an admin granted the role by hand; the role does not create a profile. |
+
+Send the user to registration in **both** cases, not to an error screen. Every
+other `/couriers/me/*` endpoint returns the same 404 for the same reason, so a
+courier who can log in but 404s on status and vehicle edits has no profile —
+check `GET /couriers/me` before looking anywhere else.
 
 ### `PUT /couriers/me`
 

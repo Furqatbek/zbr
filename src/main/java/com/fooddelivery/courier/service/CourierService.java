@@ -100,8 +100,17 @@ public class CourierService {
      */
     @Transactional(readOnly = true)
     public CourierDto getCourierByUserId(Long userId) {
+        // A user can hold ROLE_COURIER without having a courier profile — an
+        // admin granting the role by hand does exactly that, and then every
+        // /couriers/me endpoint answers 404 while the account looks like a
+        // courier everywhere else. "Courier not found with userId: '11'" sent an
+        // app team hunting for a row that was never theirs, so say what is
+        // actually wrong and what fixes it.
         Courier courier = courierRepository.findByUserId(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("Courier", "userId", userId));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "No courier profile exists for this account (user " + userId + "). "
+                                + "Register one with POST /api/v1/couriers/register. "
+                                + "Note that being granted the COURIER role does not create a profile."));
         return toDto(courier);
     }
 
