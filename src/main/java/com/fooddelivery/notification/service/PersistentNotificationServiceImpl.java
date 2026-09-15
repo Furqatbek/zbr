@@ -536,8 +536,8 @@ public class PersistentNotificationServiceImpl implements PersistentNotification
             NotificationCreateDto adminNotification = NotificationCreateDto.builder()
                     .userId(null) // Broadcast to all admins
                     .role(NotificationRole.ADMIN)
-                    .title("Restaurant Missing Owner")
-                    .message(String.format("Restaurant '%s' (ID: %d) has no owner assigned. Order #%s may not be processed.",
+                    .title("У ресторана нет владельца")
+                    .message(String.format("У ресторана «%s» (ID: %d) не назначен владелец. Заказ #%s может остаться необработанным.",
                             request.getRestaurantName(), request.getRestaurantId(), request.getOrderNumber()))
                     .category(NotificationCategory.SYSTEM)
                     .notificationType(NotificationType.UNUSUAL_ACTIVITY)
@@ -806,8 +806,8 @@ public class PersistentNotificationServiceImpl implements PersistentNotification
         NotificationCreateDto createDto = NotificationCreateDto.builder()
                 .userId(userId)
                 .role(role)
-                .title("Payout Received")
-                .message(String.format("Your payout of %s has been deposited to your account.", amount))
+                .title("Выплата получена")
+                .message(String.format("Выплата %s зачислена на ваш счёт.", amount))
                 .category(NotificationCategory.FINANCE)
                 .notificationType(NotificationType.PAYOUT_COMPLETED)
                 .priority(NotificationPriority.NORMAL)
@@ -825,8 +825,8 @@ public class PersistentNotificationServiceImpl implements PersistentNotification
         NotificationCreateDto createDto = NotificationCreateDto.builder()
                 .userId(userId)
                 .role(NotificationRole.CONSUMER)
-                .title("Support Ticket Created")
-                .message(String.format("Your support ticket '%s' has been created. We'll respond shortly.", subject))
+                .title("Обращение создано")
+                .message(String.format("Ваше обращение «%s» создано. Мы скоро ответим.", subject))
                 .category(NotificationCategory.SUPPORT)
                 .notificationType(NotificationType.SUPPORT_TICKET_CREATED)
                 .priority(NotificationPriority.NORMAL)
@@ -844,7 +844,7 @@ public class PersistentNotificationServiceImpl implements PersistentNotification
         NotificationCreateDto createDto = NotificationCreateDto.builder()
                 .userId(userId)
                 .role(NotificationRole.CONSUMER)
-                .title("Support Ticket Updated")
+                .title("Обращение обновлено")
                 .message(updateMessage)
                 .category(NotificationCategory.SUPPORT)
                 .notificationType(NotificationType.SUPPORT_TICKET_UPDATED)
@@ -863,8 +863,8 @@ public class PersistentNotificationServiceImpl implements PersistentNotification
         NotificationCreateDto createDto = NotificationCreateDto.builder()
                 .userId(userId)
                 .role(NotificationRole.CONSUMER)
-                .title("Support Ticket Resolved")
-                .message("Your support ticket has been resolved. Thank you for your patience.")
+                .title("Обращение решено")
+                .message("Ваше обращение решено. Спасибо за ожидание.")
                 .category(NotificationCategory.SUPPORT)
                 .notificationType(NotificationType.SUPPORT_TICKET_RESOLVED)
                 .priority(NotificationPriority.NORMAL)
@@ -888,8 +888,8 @@ public class PersistentNotificationServiceImpl implements PersistentNotification
         NotificationCreateDto consumerNotification = NotificationCreateDto.builder()
                 .userId(consumerId)
                 .role(NotificationRole.CONSUMER)
-                .title("Issue Reported for Your Order")
-                .message(String.format("Your courier has reported an issue with order #%s: %s. Our team is looking into it.",
+                .title("Проблема с вашим заказом")
+                .message(String.format("Курьер сообщил о проблеме с заказом #%s: %s. Мы уже разбираемся.",
                         orderNumber, issueType))
                 .category(NotificationCategory.DELIVERY)
                 .notificationType(NotificationType.COURIER_ISSUE_REPORTED)
@@ -907,8 +907,8 @@ public class PersistentNotificationServiceImpl implements PersistentNotification
                 .userId(null)
                 .role(NotificationRole.RESTAURANT)
                 .restaurantId(restaurantId)
-                .title("Delivery Issue Reported")
-                .message(String.format("Courier %s reported an issue for order #%s: %s - %s",
+                .title("Проблема с доставкой")
+                .message(String.format("Курьер %s сообщил о проблеме по заказу #%s: %s — %s",
                         courierName, orderNumber, issueType, description))
                 .category(NotificationCategory.DELIVERY)
                 .notificationType(NotificationType.COURIER_ISSUE_REPORTED)
@@ -925,8 +925,8 @@ public class PersistentNotificationServiceImpl implements PersistentNotification
         NotificationCreateDto adminNotification = NotificationCreateDto.builder()
                 .userId(null)
                 .role(NotificationRole.ADMIN)
-                .title("Courier Issue Reported")
-                .message(String.format("Courier %s reported an issue for order #%s: %s - %s",
+                .title("Курьер сообщил о проблеме")
+                .message(String.format("Курьер %s сообщил о проблеме по заказу #%s: %s — %s",
                         courierName, orderNumber, issueType, description))
                 .category(NotificationCategory.ALERT)
                 .notificationType(NotificationType.COURIER_ISSUE_REPORTED)
@@ -956,7 +956,7 @@ public class PersistentNotificationServiceImpl implements PersistentNotification
                 .role(NotificationRole.CONSUMER)
                 .notificationType(NotificationType.COURIER_REASSIGNED)
                 .category(NotificationCategory.ORDER)
-                .title("Delivery Partner Changed")
+                .title("Курьер изменён")
                 .message(message)
                 .metadata(metadata)
                 .priority(NotificationPriority.HIGH)
@@ -982,8 +982,8 @@ public class PersistentNotificationServiceImpl implements PersistentNotification
                 .role(NotificationRole.COURIER)
                 .notificationType(NotificationType.NEW_DELIVERY_AVAILABLE)
                 .category(NotificationCategory.DELIVERY)
-                .title("New Delivery Available")
-                .message("Order #" + order.getExternalOrderNo() + " from " + order.getRestaurant().getName() + " needs a courier")
+                .title("Новый заказ на доставку")
+                .message("Заказу #" + order.getExternalOrderNo() + " из «" + order.getRestaurant().getName() + "» нужен курьер")
                 .metadata(metadata)
                 .priority(NotificationPriority.HIGH)
                 .actionUrl(NotificationConstants.ACTION_ORDER_DETAIL.replace("{orderId}", order.getId().toString()))
@@ -1021,8 +1021,11 @@ public class PersistentNotificationServiceImpl implements PersistentNotification
             case RESTAURANT -> NotificationMessageBuilder.buildRestaurantMessage(request);
             case COURIER -> NotificationMessageBuilder.buildCourierMessage(request);
             case ADMIN -> NotificationMessageBuilder.buildAdminMessage(request);
-            default -> Map.of("title", request.getEventType().getDisplayName(),
-                    "message", "Order update for #" + request.getOrderId());
+            // NOT getDisplayName(): that is an English machine label exposed
+            // through the API, and showing it to a user would surface a raw
+            // enum name in a push.
+            default -> Map.of("title", "Обновление заказа",
+                    "message", "Есть обновление по заказу #" + request.getOrderId());
         };
 
         Map<String, Object> metadata = new HashMap<>();

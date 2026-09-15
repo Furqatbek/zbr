@@ -11,12 +11,21 @@ import java.util.Locale;
 import java.util.Map;
 
 /**
- * Builder for notification messages based on event types.
+ * Every notification title and body the platform sends, in Russian.
+ *
+ * <p>These strings are read by customers, restaurant staff and couriers in
+ * Uzbekistan, so they are the product's voice and not developer-facing text.
+ * {@code NotificationType.getDisplayName()} is deliberately NOT used here for
+ * fallbacks: it is an English machine label exposed through the API and the
+ * notification reference endpoint, and leaking it into a push would show a
+ * customer a raw enum name.
+ *
+ * <p>Not localised per user: the platform serves one market and has no language
+ * preference on the account. If that changes, these switches are the seam —
+ * take a locale, and resolve through a message bundle keyed by NotificationType.
  */
 @UtilityClass
 public class NotificationMessageBuilder {
-
-    private static final NumberFormat CURRENCY_FORMAT = NumberFormat.getCurrencyInstance(Locale.US);
 
     /**
      * Build customer notification for order event.
@@ -27,75 +36,75 @@ public class NotificationMessageBuilder {
 
         switch (request.getEventType()) {
             case ORDER_CREATED -> {
-                result.put("title", "Order Placed Successfully");
-                result.put("message", String.format("Your order %s has been placed. We'll notify you when the restaurant confirms.", orderRef));
+                result.put("title", "Заказ оформлен");
+                result.put("message", String.format("Ваш заказ %s оформлен. Мы сообщим, когда ресторан его подтвердит.", orderRef));
             }
             case ORDER_CONFIRMED -> {
-                result.put("title", "Order Confirmed");
-                result.put("message", String.format("Great news! Your order %s has been confirmed by %s.", orderRef, request.getRestaurantName()));
+                result.put("title", "Заказ подтверждён");
+                result.put("message", String.format("Ресторан «%s» подтвердил ваш заказ %s.", request.getRestaurantName(), orderRef));
             }
             case ORDER_ACCEPTED -> {
-                result.put("title", "Restaurant Accepted Your Order");
-                result.put("message", String.format("%s has accepted your order %s and will start preparing it soon.", request.getRestaurantName(), orderRef));
+                result.put("title", "Ресторан принял заказ");
+                result.put("message", String.format("«%s» принял ваш заказ %s и скоро начнёт готовить.", request.getRestaurantName(), orderRef));
             }
             case ORDER_REJECTED -> {
-                result.put("title", "Order Could Not Be Fulfilled");
-                result.put("message", String.format("Unfortunately, %s couldn't fulfill your order %s. Reason: %s",
+                result.put("title", "Заказ не может быть выполнен");
+                result.put("message", String.format("К сожалению, «%s» не может выполнить ваш заказ %s. Причина: %s",
                         request.getRestaurantName(), orderRef, request.getRejectionReason()));
             }
             case ORDER_PREPARING -> {
-                result.put("title", "Your Order is Being Prepared");
-                result.put("message", String.format("%s is now preparing your order %s.", request.getRestaurantName(), orderRef));
+                result.put("title", "Заказ готовится");
+                result.put("message", String.format("«%s» готовит ваш заказ %s.", request.getRestaurantName(), orderRef));
             }
             case ORDER_READY -> {
-                result.put("title", "Order Ready for Pickup");
-                result.put("message", String.format("Your order %s is ready and waiting for a courier.", orderRef));
+                result.put("title", "Заказ готов");
+                result.put("message", String.format("Ваш заказ %s готов и ждёт курьера.", orderRef));
             }
             case COURIER_ASSIGNED -> {
-                result.put("title", "Courier Assigned");
-                result.put("message", String.format("%s is on the way to pick up your order %s.", request.getCourierName(), orderRef));
+                result.put("title", "Курьер назначен");
+                result.put("message", String.format("%s едет за вашим заказом %s.", request.getCourierName(), orderRef));
             }
             case ORDER_PICKED_UP -> {
-                result.put("title", "Order Picked Up");
-                result.put("message", String.format("Your order %s has been picked up by %s and is on the way!", orderRef, request.getCourierName()));
+                result.put("title", "Курьер забрал заказ");
+                result.put("message", String.format("Курьер %s забрал ваш заказ %s и уже в пути!", request.getCourierName(), orderRef));
             }
             case ORDER_IN_TRANSIT -> {
                 String eta = request.getEstimatedDeliveryMinutes() != null
-                        ? String.format(" ETA: %d minutes.", request.getEstimatedDeliveryMinutes())
+                        ? String.format(" Примерное время в пути: %d мин.", request.getEstimatedDeliveryMinutes())
                         : "";
-                result.put("title", "Order On Its Way");
-                result.put("message", String.format("Your order %s is on its way to you.%s", orderRef, eta));
+                result.put("title", "Заказ в пути");
+                result.put("message", String.format("Ваш заказ %s едет к вам.%s", orderRef, eta));
             }
             case ORDER_ARRIVING -> {
-                result.put("title", "Almost There!");
-                result.put("message", String.format("%s is almost at your location with order %s.", request.getCourierName(), orderRef));
+                result.put("title", "Курьер почти на месте");
+                result.put("message", String.format("%s почти у вас с заказом %s.", request.getCourierName(), orderRef));
             }
             case ORDER_DELIVERED -> {
-                result.put("title", "Order Delivered");
-                result.put("message", String.format("Your order %s has been delivered. Enjoy your meal!", orderRef));
+                result.put("title", "Заказ доставлен");
+                result.put("message", String.format("Ваш заказ %s доставлен. Приятного аппетита!", orderRef));
             }
             case ORDER_CANCELLED -> {
-                result.put("title", "Order Cancelled");
-                result.put("message", String.format("Your order %s has been cancelled. %s", orderRef,
-                        request.getCancellationReason() != null ? "Reason: " + request.getCancellationReason() : ""));
+                result.put("title", "Заказ отменён");
+                result.put("message", String.format("Ваш заказ %s отменён.%s", orderRef,
+                        request.getCancellationReason() != null ? " Причина: " + request.getCancellationReason() : ""));
             }
             case PAYMENT_RECEIVED -> {
-                result.put("title", "Payment Successful");
-                result.put("message", String.format("Payment of %s for order %s received successfully.",
+                result.put("title", "Оплата прошла");
+                result.put("message", String.format("Оплата %s за заказ %s получена.",
                         formatCurrency(request.getOrderTotal()), orderRef));
             }
             case PAYMENT_FAILED -> {
-                result.put("title", "Payment Failed");
-                result.put("message", String.format("Payment for order %s failed. Please try again or use a different payment method.", orderRef));
+                result.put("title", "Оплата не прошла");
+                result.put("message", String.format("Не удалось оплатить заказ %s. Попробуйте ещё раз или выберите другой способ оплаты.", orderRef));
             }
             case PAYMENT_REFUNDED -> {
-                result.put("title", "Refund Processed");
-                result.put("message", String.format("A refund of %s for order %s has been processed.",
+                result.put("title", "Возврат оформлен");
+                result.put("message", String.format("Возврат %s за заказ %s выполнен.",
                         formatCurrency(request.getOrderTotal()), orderRef));
             }
             default -> {
-                result.put("title", request.getEventType().getDisplayName());
-                result.put("message", String.format("Update for order %s.", orderRef));
+                result.put("title", "Обновление заказа");
+                result.put("message", String.format("Есть обновление по заказу %s.", orderRef));
             }
         }
 
@@ -111,44 +120,44 @@ public class NotificationMessageBuilder {
 
         switch (request.getEventType()) {
             case NEW_ORDER_RECEIVED, ORDER_CREATED -> {
-                result.put("title", "New Order Received!");
-                result.put("message", String.format("New order %s from %s. Total: %s. Please confirm.",
+                result.put("title", "Новый заказ!");
+                result.put("message", String.format("Новый заказ %s от %s. Сумма: %s. Подтвердите заказ.",
                         orderRef, request.getCustomerName(), formatCurrency(request.getOrderTotal())));
             }
             case ORDER_ACCEPTED -> {
-                result.put("title", "Order Accepted");
-                result.put("message", String.format("You've accepted order %s. Please start preparation.", orderRef));
+                result.put("title", "Заказ принят");
+                result.put("message", String.format("Вы приняли заказ %s. Начните приготовление.", orderRef));
             }
             case COURIER_ASSIGNED -> {
-                result.put("title", "Courier Assigned");
-                result.put("message", String.format("Courier %s has been assigned to order %s.", request.getCourierName(), orderRef));
+                result.put("title", "Курьер назначен");
+                result.put("message", String.format("Курьер %s назначен на заказ %s.", request.getCourierName(), orderRef));
             }
             case COURIER_ARRIVED_RESTAURANT -> {
-                result.put("title", "Courier Has Arrived");
-                result.put("message", String.format("Courier %s has arrived to pick up order %s.", request.getCourierName(), orderRef));
+                result.put("title", "Курьер прибыл");
+                result.put("message", String.format("Курьер %s прибыл за заказом %s.", request.getCourierName(), orderRef));
             }
             case ORDER_PICKED_UP -> {
-                result.put("title", "Order Picked Up");
-                result.put("message", String.format("Order %s has been picked up by courier.", orderRef));
+                result.put("title", "Заказ забран");
+                result.put("message", String.format("Курьер забрал заказ %s.", orderRef));
             }
             case ORDER_DELIVERED -> {
-                result.put("title", "Order Delivered");
-                result.put("message", String.format("Order %s has been successfully delivered to the customer.", orderRef));
+                result.put("title", "Заказ доставлен");
+                result.put("message", String.format("Заказ %s доставлен клиенту.", orderRef));
             }
             case ORDER_CANCELLED -> {
-                result.put("title", "Order Cancelled");
-                result.put("message", String.format("Order %s has been cancelled by %s. %s",
+                result.put("title", "Заказ отменён");
+                result.put("message", String.format("Заказ %s отменён (%s).%s",
                         orderRef, request.getCancelledBy(),
-                        request.getCancellationReason() != null ? "Reason: " + request.getCancellationReason() : ""));
+                        request.getCancellationReason() != null ? " Причина: " + request.getCancellationReason() : ""));
             }
             case PAYOUT_COMPLETED -> {
-                result.put("title", "Payout Received");
-                result.put("message", String.format("Payout of %s has been deposited to your account.",
+                result.put("title", "Выплата получена");
+                result.put("message", String.format("Выплата %s зачислена на ваш счёт.",
                         formatCurrency(request.getOrderTotal())));
             }
             default -> {
-                result.put("title", request.getEventType().getDisplayName());
-                result.put("message", String.format("Update for order %s.", orderRef));
+                result.put("title", "Обновление заказа");
+                result.put("message", String.format("Есть обновление по заказу %s.", orderRef));
             }
         }
 
@@ -164,39 +173,39 @@ public class NotificationMessageBuilder {
 
         switch (request.getEventType()) {
             case NEW_DELIVERY_AVAILABLE, COURIER_ASSIGNED -> {
-                result.put("title", "New Delivery Assignment");
-                result.put("message", String.format("New delivery from %s. Order %s. Pick up and deliver to customer.",
+                result.put("title", "Новый заказ на доставку");
+                result.put("message", String.format("Новая доставка из «%s». Заказ %s. Заберите и доставьте клиенту.",
                         request.getRestaurantName(), orderRef));
             }
             case ORDER_READY -> {
-                result.put("title", "Order Ready for Pickup");
-                result.put("message", String.format("Order %s is ready at %s. Head there now!", orderRef, request.getRestaurantName()));
+                result.put("title", "Заказ готов к выдаче");
+                result.put("message", String.format("Заказ %s готов в «%s». Выезжайте!", orderRef, request.getRestaurantName()));
             }
             case ORDER_PICKED_UP -> {
-                result.put("title", "Pickup Confirmed");
-                result.put("message", String.format("Order %s pickup confirmed. Proceed to delivery.", orderRef));
+                result.put("title", "Получение подтверждено");
+                result.put("message", String.format("Вы забрали заказ %s. Везите его клиенту.", orderRef));
             }
             case ORDER_DELIVERED -> {
-                result.put("title", "Delivery Completed");
-                result.put("message", String.format("Order %s delivered successfully. Great job!", orderRef));
+                result.put("title", "Доставка завершена");
+                result.put("message", String.format("Заказ %s успешно доставлен. Отличная работа!", orderRef));
             }
             case COURIER_REASSIGNED -> {
-                result.put("title", "Delivery Reassigned");
-                result.put("message", String.format("Order %s has been reassigned to another courier.", orderRef));
+                result.put("title", "Доставка переназначена");
+                result.put("message", String.format("Заказ %s передан другому курьеру.", orderRef));
             }
             case ORDER_CANCELLED -> {
-                result.put("title", "Delivery Cancelled");
-                result.put("message", String.format("Order %s has been cancelled. %s", orderRef,
-                        request.getCancellationReason() != null ? "Reason: " + request.getCancellationReason() : ""));
+                result.put("title", "Доставка отменена");
+                result.put("message", String.format("Заказ %s отменён.%s", orderRef,
+                        request.getCancellationReason() != null ? " Причина: " + request.getCancellationReason() : ""));
             }
             case PAYOUT_COMPLETED -> {
-                result.put("title", "Earnings Deposited");
-                result.put("message", String.format("Your earnings of %s have been deposited.",
+                result.put("title", "Выплата зачислена");
+                result.put("message", String.format("Ваш заработок %s зачислен.",
                         formatCurrency(request.getOrderTotal())));
             }
             default -> {
-                result.put("title", request.getEventType().getDisplayName());
-                result.put("message", String.format("Update for delivery %s.", orderRef));
+                result.put("title", "Обновление доставки");
+                result.put("message", String.format("Есть обновление по доставке %s.", orderRef));
             }
         }
 
@@ -212,28 +221,28 @@ public class NotificationMessageBuilder {
 
         switch (request.getEventType()) {
             case ORDER_CANCELLED -> {
-                result.put("title", "Order Cancellation Alert");
-                result.put("message", String.format("Order %s cancelled by %s. Restaurant: %s, Customer: %s. Reason: %s",
+                result.put("title", "Отмена заказа");
+                result.put("message", String.format("Заказ %s отменён (%s). Ресторан: %s, клиент: %s. Причина: %s",
                         orderRef, request.getCancelledBy(), request.getRestaurantName(), request.getCustomerName(),
-                        request.getCancellationReason() != null ? request.getCancellationReason() : "Not specified"));
+                        request.getCancellationReason() != null ? request.getCancellationReason() : "не указана"));
             }
             case ORDER_REJECTED -> {
-                result.put("title", "Order Rejection Alert");
-                result.put("message", String.format("Order %s rejected by %s. Reason: %s",
+                result.put("title", "Отклонение заказа");
+                result.put("message", String.format("Заказ %s отклонён рестораном «%s». Причина: %s",
                         orderRef, request.getRestaurantName(), request.getRejectionReason()));
             }
             case PAYMENT_FAILED -> {
-                result.put("title", "Payment Failure Alert");
-                result.put("message", String.format("Payment failed for order %s. Amount: %s",
+                result.put("title", "Сбой оплаты");
+                result.put("message", String.format("Не прошла оплата заказа %s. Сумма: %s",
                         orderRef, formatCurrency(request.getOrderTotal())));
             }
             case FRAUD_ALERT -> {
-                result.put("title", "Fraud Alert");
-                result.put("message", String.format("Potential fraud detected for order %s.", orderRef));
+                result.put("title", "Подозрение на мошенничество");
+                result.put("message", String.format("По заказу %s обнаружена подозрительная активность.", orderRef));
             }
             default -> {
-                result.put("title", "System Alert: " + request.getEventType().getDisplayName());
-                result.put("message", String.format("Event occurred for order %s.", orderRef));
+                result.put("title", "Системное уведомление");
+                result.put("message", String.format("Событие по заказу %s.", orderRef));
             }
         }
 
@@ -267,10 +276,23 @@ public class NotificationMessageBuilder {
         return null;
     }
 
+    /**
+     * Money, as a customer in Tashkent reads it: "15 000 сум".
+     *
+     * <p>This used to be a US currency formatter, so every amount in every
+     * notification was rendered as dollars — "$15,000.00" for fifteen thousand
+     * som, off by a factor of twelve thousand and in the wrong currency. Amounts
+     * are stored as plain decimals where 15000 means 15 000 som, and som has no
+     * minor unit in practice, so fractions are dropped rather than shown.
+     *
+     * <p>Built per call on purpose. NumberFormat is NOT thread-safe, and the
+     * push consumer now runs 3-10 concurrent threads through here; a shared
+     * instance would interleave and corrupt amounts under load. Formatting a
+     * number is far cheaper than the push it accompanies.
+     */
     private static String formatCurrency(BigDecimal amount) {
-        if (amount == null) {
-            return "$0.00";
-        }
-        return CURRENCY_FORMAT.format(amount);
+        NumberFormat format = NumberFormat.getNumberInstance(Locale.forLanguageTag("ru"));
+        format.setMaximumFractionDigits(0);
+        return format.format(amount != null ? amount : BigDecimal.ZERO) + " сум";
     }
 }
