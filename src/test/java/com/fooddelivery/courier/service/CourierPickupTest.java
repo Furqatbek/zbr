@@ -64,6 +64,7 @@ class CourierPickupTest {
     @Mock private SimpMessagingTemplate messagingTemplate;
     @Mock private PersistentNotificationService notificationService;
     @Mock private CommissionService commissionService;
+    @Mock private com.fooddelivery.order.service.OrderRealtimeBroadcaster realtimeBroadcaster;
 
     @InjectMocks
     private CourierService courierService;
@@ -87,6 +88,19 @@ class CourierPickupTest {
         when(orderRepository.findById(ORDER_ID)).thenReturn(Optional.of(order));
         when(orderRepository.save(any(Order.class))).thenAnswer(i -> i.getArgument(0));
         return order;
+    }
+
+    @Test
+    @DisplayName("the customer's live feed is updated — the gap that made deliveries go silent")
+    void broadcastsToTheCustomer() {
+        Order order = order(OrderStatus.READY, LocalDateTime.now());
+
+        courierService.confirmPickup(COURIER_ID, ORDER_ID);
+
+        // Courier-driven transitions published the RabbitMQ event and broadcast
+        // nothing, so a customer watching /topic/orders/{id} saw the order go
+        // quiet for the whole delivery.
+        org.mockito.Mockito.verify(realtimeBroadcaster).broadcastStatusChange(order);
     }
 
     @Test

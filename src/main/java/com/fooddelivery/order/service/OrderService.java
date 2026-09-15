@@ -63,6 +63,7 @@ public class OrderService {
     private final DeliveryFeeCalculationService deliveryFeeCalculationService;
     private final CommissionService commissionService;
     private final PaymentService paymentService;
+    private final OrderRealtimeBroadcaster realtimeBroadcaster;
 
     @Value("${app.order.auto-cancel-unpaid-minutes:30}")
     private int autoCancelMinutes;
@@ -596,21 +597,9 @@ public class OrderService {
 
     private void notifyOrderStatusChange(Order order) {
         try {
-            OrderDto dto = orderMapper.toDto(order);
-            // Notify order-specific channel
-            messagingTemplate.convertAndSend("/topic/orders/" + order.getId(), dto);
-            // Notify consumer
-            messagingTemplate.convertAndSendToUser(
-                    order.getConsumer().getEmail(),
-                    "/queue/orders",
-                    dto
-            );
-
-            // Notify restaurant about status change (cancellations, courier assigned, etc.)
-            messagingTemplate.convertAndSend(
-                    "/topic/restaurants/" + order.getRestaurant().getId() + "/orders",
-                    dto
-            );
+            // Shared with CourierService so the restaurant-driven and
+            // courier-driven halves of the lifecycle cannot drift apart again.
+            realtimeBroadcaster.broadcastStatusChange(order);
 
             // If order is READY and is a delivery order, notify available couriers
             if (order.getStatus() == OrderStatus.READY &&

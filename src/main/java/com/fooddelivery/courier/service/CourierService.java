@@ -56,6 +56,7 @@ public class CourierService {
     private final SimpMessagingTemplate messagingTemplate;
     private final PersistentNotificationService notificationService;
     private final CommissionService commissionService;
+    private final com.fooddelivery.order.service.OrderRealtimeBroadcaster realtimeBroadcaster;
 
     /**
      * Register as a courier.
@@ -940,6 +941,13 @@ public class CourierService {
     }
 
     private void publishOrderStatusChangedEvent(Order order, OrderStatus previousStatus, String reason) {
+        // Live update first. Every courier-driven transition — assigned, picked
+        // up, in transit, delivered — used to publish only the RabbitMQ event,
+        // so a customer watching /topic/orders/{id} saw updates while the food
+        // cooked and then nothing for the whole delivery. Doing it here means
+        // any future transition that publishes the event also broadcasts.
+        realtimeBroadcaster.broadcastStatusChange(order);
+
         OrderStatusChangedEvent event = new OrderStatusChangedEvent(
                 order.getId(),
                 order.getExternalOrderNo(),
