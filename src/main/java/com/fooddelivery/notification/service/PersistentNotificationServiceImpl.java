@@ -137,6 +137,14 @@ public class PersistentNotificationServiceImpl implements PersistentNotification
                 .referenceType("notification")
                 .templateData(createDto.getMetadata())
                 .targetRole(createDto.getRole() != null ? createDto.getRole().name() : null)
+                // data.type and data.orderId — what the apps actually switch and
+                // deep-link on. Neither was ever set: type stayed the literal
+                // "notification", and the order id was absent because
+                // referenceId carries the NOTIFICATION id. The vendor app
+                // ignores unrecognised types, so it discarded every push.
+                .templateId(com.fooddelivery.notification.util.PushEventType.forRole(
+                        createDto.getRole(), createDto.getNotificationType()))
+                .orderId(createDto.getOrderId())
                 .build();
 
         rabbitTemplate.convertAndSend(

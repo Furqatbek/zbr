@@ -33,6 +33,13 @@ public class NotificationRequest implements Serializable {
     private String referenceType;
 
     /**
+     * The order this push is about, surfaced to clients as data.orderId so the
+     * app can fetch and deep-link. referenceId/referenceType cannot serve this:
+     * they carry the NOTIFICATION id, so the order id never reached a device.
+     */
+    private Long orderId;
+
+    /**
      * NotificationRole this was aimed at, used to pick which of the recipient's
      * apps to push to. One person is one user row across all three apps, so
      * without this a courier alert also lands on their customer app. Null means

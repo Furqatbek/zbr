@@ -52,6 +52,9 @@ public class ApnsPushService {
     /** Apple accepts a provider token for 1h; refresh well before that. */
     private static final Duration TOKEN_TTL = Duration.ofMinutes(45);
 
+    /** How long an order alert stays worth delivering. */
+    private static final long ALERT_TTL_SECONDS = 120;
+
     private final DeviceTokenService deviceTokenService;
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final HttpClient httpClient;
@@ -133,6 +136,10 @@ public class ApnsPushService {
         aps.put("badge", 1);
         // Breaks through Focus / Do Not Disturb for time-critical order alerts.
         aps.put("interruption-level", "time-sensitive");
+        // Wakes a BACKGROUNDED app so it can run before the user taps — the
+        // vendor app needs this to start its alarm and refresh the order list
+        // rather than merely drawing a tray entry.
+        aps.put("content-available", 1);
 
         Map<String, Object> root = new HashMap<>();
         root.put("aps", aps);
@@ -154,6 +161,12 @@ public class ApnsPushService {
                     .header("authorization", "bearer " + providerToken())
                     .header("apns-push-type", "alert")
                     .header("apns-priority", "10")
+                    // An order alert is worthless once stale. Let APNs drop it
+                    // rather than wake a phone ten minutes later about an order
+                    // someone else has already cooked. Absolute unix seconds; 0
+                    // would mean "try once, never retry", which is worse.
+                    .header("apns-expiration",
+                            Long.toString(java.time.Instant.now().getEpochSecond() + ALERT_TTL_SECONDS))
                     .header("apns-topic", apnsTopic)
                     .header("content-type", "application/json")
                     .timeout(Duration.ofSeconds(10))

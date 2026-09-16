@@ -145,6 +145,24 @@ public class DeviceTokenService {
     }
 
     /**
+     * Retire the token for one physical device, identified the way registration
+     * identifies it.
+     *
+     * <p>Scoped to the user on purpose: deviceId is client-supplied, so an
+     * unscoped delete would let any caller retire a stranger's device.
+     */
+    public void deactivateByDeviceId(Long userId, String deviceId) {
+        int updated = deviceTokenRepository.deactivateByDeviceId(userId, deviceId);
+        if (updated == 0) {
+            // Already inactive, or not this user's. Same answer either way —
+            // do not confirm existence to a caller probing device ids.
+            log.info("No active device token deactivated for user {}", userId);
+        } else {
+            log.info("Deactivated device token for user {} device {}", userId, deviceId);
+        }
+    }
+
+    /**
      * Deactivate all tokens for a user (e.g., logout from all devices).
      */
     public void deactivateAllTokens(Long userId) {

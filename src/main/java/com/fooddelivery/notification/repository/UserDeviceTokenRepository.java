@@ -68,6 +68,11 @@ public interface UserDeviceTokenRepository extends JpaRepository<UserDeviceToken
      * caller can switch off push for an account that is not theirs.
      */
     @Modifying
+    @Query("UPDATE UserDeviceToken t SET t.active = false "
+            + "WHERE t.userId = :userId AND t.deviceId = :deviceId")
+    int deactivateByDeviceId(@Param("userId") Long userId, @Param("deviceId") String deviceId);
+
+    @Modifying
     @Query("UPDATE UserDeviceToken t SET t.active = false WHERE t.deviceToken = :token")
     int deactivateRejectedToken(@Param("token") String deviceToken);
 

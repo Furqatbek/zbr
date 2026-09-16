@@ -68,12 +68,27 @@ public class DeviceTokenController {
     })
     public ResponseEntity<Map<String, Object>> removeToken(
             @AuthenticationPrincipal UserPrincipal currentUser,
-            @RequestBody Map<String, String> request) {
-        String deviceToken = request.get("deviceToken");
+            @RequestParam(required = false) String deviceId,
+            @RequestBody(required = false) Map<String, String> request) {
+
+        // Two ways in, because the apps disagreed with the endpoint and the
+        // endpoint was the odd one out. ?deviceId= is the better identifier: the
+        // OS rotates push tokens, so a logout that names the token can miss the
+        // row it meant to retire and leave the device receiving push. Register
+        // already upserts on deviceId for the same reason.
+        if (deviceId != null && !deviceId.isBlank()) {
+            deviceTokenService.deactivateByDeviceId(currentUser.getId(), deviceId);
+            return ResponseEntity.ok(Map.of(
+                    "success", true,
+                    "message", "Device token removed successfully"
+            ));
+        }
+
+        String deviceToken = request != null ? request.get("deviceToken") : null;
         if (deviceToken == null || deviceToken.isBlank()) {
             return ResponseEntity.badRequest().body(Map.of(
                     "success", false,
-                    "message", "Device token is required"
+                    "message", "Provide ?deviceId= or a body with deviceToken"
             ));
         }
 

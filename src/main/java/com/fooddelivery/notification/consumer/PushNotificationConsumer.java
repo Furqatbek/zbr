@@ -32,6 +32,9 @@ public class PushNotificationConsumer {
 
     private final UserDeviceTokenRepository deviceTokenRepository;
     private final DeviceTokenService deviceTokenService;
+    /** How long an order alert stays worth delivering. */
+    private static final long ALERT_TTL_SECONDS = 120;
+
     private final PushAppIdResolver appIdResolver;
     private final ExpoPushService expoPushService;
     private final ApnsPushService apnsPushService;
@@ -177,6 +180,10 @@ public class PushNotificationConsumer {
             // the app creates at start-up; sound omits the file extension.
             AndroidConfig androidConfig = AndroidConfig.builder()
                     .setPriority(AndroidConfig.Priority.HIGH)
+                    // Same reasoning as the APNs expiration: an order alert is
+                    // worthless once stale, so let FCM drop it rather than
+                    // deliver it long after someone else has cooked the order.
+                    .setTtl(java.time.Duration.ofSeconds(ALERT_TTL_SECONDS).toMillis())
                     .setNotification(AndroidNotification.builder()
                             .setChannelId(androidChannelId)
                             .setSound(androidSound)
@@ -258,9 +265,12 @@ public class PushNotificationConsumer {
         }
 
         // The apps deep-link on data.orderId and switch UI on data.type, so both
-        // must be present. orderId MUST be a bare numeric string — the clients
-        // validate it before navigating and drop anything else.
-        if ("ORDER".equalsIgnoreCase(request.getReferenceType()) && request.getReferenceId() != null) {
+        // must be present. A bare numeric string — the clients validate it
+        // before navigating and drop anything else.
+        if (request.getOrderId() != null) {
+            dataBuilder.put("orderId", request.getOrderId().toString());
+        } else if ("ORDER".equalsIgnoreCase(request.getReferenceType()) && request.getReferenceId() != null) {
+            // Older senders that put the order id in referenceId.
             String orderId = request.getReferenceId().trim();
             if (orderId.matches("\\d+")) {
                 dataBuilder.put("orderId", orderId);
@@ -268,10 +278,11 @@ public class PushNotificationConsumer {
                 log.warn("Not setting data.orderId — reference id '{}' is not numeric", orderId);
             }
         }
-        // A caller-supplied notification type (e.g. NEW_ORDER_RECEIVED) wins over
-        // the generic default; templateData may already have set it above.
-        if (request.getTemplateId() != null && !request.getTemplateId().isBlank()
-                && "notification".equals(dataBuilder.get("type"))) {
+
+        // Overwrite, not fill-if-absent. The previous version only replaced the
+        // literal "notification" placeholder, so a templateData entry called
+        // "type" — or any future default — silently won.
+        if (request.getTemplateId() != null && !request.getTemplateId().isBlank()) {
             dataBuilder.put("type", request.getTemplateId());
         }
 
