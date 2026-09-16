@@ -165,6 +165,12 @@ public class PersistentNotificationServiceImpl implements PersistentNotification
             // System-wide broadcast to all active users
             deviceTokens = deviceTokenRepository.findAllActiveTokens();
             log.info("Broadcasting push notification to ALL users ({} devices)", deviceTokens.size());
+        } else if (role == NotificationRole.COURIER) {
+            // Only couriers who are online and approved. The app suppresses an
+            // offer for an offline courier anyway, so pushing to them is noise
+            // on someone's battery while they are off shift.
+            deviceTokens = deviceTokenRepository.findActiveTokensForAvailableCouriers();
+            log.info("Broadcasting push to {} available courier device(s)", deviceTokens.size());
         } else {
             // Broadcast to specific role
             List<Role> authRoles = mapNotificationRoleToAuthRoles(role);
@@ -977,17 +983,47 @@ public class PersistentNotificationServiceImpl implements PersistentNotification
     public void notifyAvailableCouriers(Order order) {
         log.info("Broadcasting order {} availability to couriers", order.getId());
 
+        // The whole offer card, in the payload. The courier app renders the
+        // restaurant, the money and the destination straight from this; when the
+        // payload is too thin it falls back to GET /couriers/me/available-orders,
+        // which costs one extra request PER COURIER on a broadcast. Every value
+        // is stringified downstream because FCM data is Map<String,String>.
+        //
+        // No expiresAt: the app would drive a countdown from it, and the backend
+        // has no offer expiry to honour — an invented deadline would show
+        // "expired" on an order still sitting there for the taking.
         Map<String, Object> metadata = new HashMap<>();
         metadata.put("orderId", order.getId());
+        metadata.put("externalOrderNo", order.getExternalOrderNo());
+        // Kept alongside the new name: older app builds read orderNumber.
         metadata.put("orderNumber", order.getExternalOrderNo());
-        metadata.put("restaurantName", order.getRestaurant().getName());
-        metadata.put("deliveryAddress", order.getDeliveryAddress());
-        metadata.put("total", order.getTotal());
         metadata.put("isReassignment", order.getReassignmentCount() > 0);
+
+        if (order.getRestaurant() != null) {
+            metadata.put("restaurantId", order.getRestaurant().getId());
+            metadata.put("restaurantName", order.getRestaurant().getName());
+            metadata.put("restaurantAddress", order.getRestaurant().getFullAddress());
+            metadata.put("restaurantPhone", order.getRestaurant().getPhone());
+            putIfPresent(metadata, "restaurantLat", order.getRestaurant().getLatitude());
+            putIfPresent(metadata, "restaurantLng", order.getRestaurant().getLongitude());
+        }
+
+        metadata.put("deliveryAddress", order.getDeliveryAddress());
+        putIfPresent(metadata, "deliveryLat", order.getDeliveryLatitude());
+        putIfPresent(metadata, "deliveryLng", order.getDeliveryLongitude());
+
+        // The pay. A courier being asked to accept a job cannot judge it
+        // without these.
+        putIfPresent(metadata, "deliveryFee", order.getDeliveryFee());
+        putIfPresent(metadata, "tipAmount", order.getTipAmount());
+        putIfPresent(metadata, "total", order.getTotal());
+        metadata.put("itemCount", order.getItems() != null ? order.getItems().size() : 0);
+        putIfPresent(metadata, "createdAt", order.getCreatedAt());
 
         // Create broadcast notification for all couriers
         NotificationCreateDto notification = NotificationCreateDto.builder()
                 .role(NotificationRole.COURIER)
+                .orderId(order.getId())
                 .notificationType(NotificationType.NEW_DELIVERY_AVAILABLE)
                 .category(NotificationCategory.DELIVERY)
                 .title("Новый заказ на доставку")
@@ -1022,6 +1058,13 @@ public class PersistentNotificationServiceImpl implements PersistentNotification
     }
 
     // ===== Helper Methods =====
+
+    /** Omit rather than emit the string "null" into a push payload. */
+    private static void putIfPresent(Map<String, Object> metadata, String key, Object value) {
+        if (value != null) {
+            metadata.put(key, value);
+        }
+    }
 
     private void createOrderNotification(OrderNotificationRequest request, Long userId, NotificationRole role) {
         Map<String, String> messageContent = switch (role) {

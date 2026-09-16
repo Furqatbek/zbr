@@ -108,10 +108,34 @@ public interface UserDeviceTokenRepository extends JpaRepository<UserDeviceToken
      * Find all active device tokens for users with any of the specified roles.
      * Used for broadcast push notifications to multiple roles.
      */
-    @Query("SELECT t FROM UserDeviceToken t " +
+    // A user's roles live in TWO places: the singular User.role column and the
+    // user_roles collection. Matching only the column meant every broadcast
+    // reached nobody, because the paths that grant COURIER and RESTAURANT_OWNER
+    // add to the COLLECTION and leave the column at its CONSUMER default. The
+    // LEFT JOIN plus OR covers both; DISTINCT because the join multiplies rows
+    // for a user holding several roles.
+    @Query("SELECT DISTINCT t FROM UserDeviceToken t " +
            "JOIN User u ON t.userId = u.id " +
-           "WHERE u.role IN :roles AND t.active = true AND u.status = 'ACTIVE'")
+           "LEFT JOIN u.roles r " +
+           "WHERE t.active = true AND u.status = 'ACTIVE' " +
+           "AND (u.role IN :roles OR r IN :roles)")
     List<UserDeviceToken> findActiveTokensByUserRoles(@Param("roles") Collection<Role> roles);
+
+    /**
+     * Devices of couriers who can actually take the job right now.
+     *
+     * <p>Broadcasting a delivery offer to every courier wakes people who are
+     * off shift for work they cannot accept, and their app suppresses the offer
+     * anyway — so the push is pure noise and pure battery. Verified because an
+     * unapproved courier cannot see orders at all.
+     */
+    @Query("SELECT DISTINCT t FROM UserDeviceToken t " +
+           "JOIN Courier c ON c.user.id = t.userId " +
+           "JOIN User u ON u.id = t.userId " +
+           "WHERE t.active = true AND u.status = 'ACTIVE' " +
+           "AND c.verified = true " +
+           "AND c.status = com.fooddelivery.courier.entity.CourierStatus.AVAILABLE")
+    List<UserDeviceToken> findActiveTokensForAvailableCouriers();
 
     /**
      * Find all active device tokens for all active users.
