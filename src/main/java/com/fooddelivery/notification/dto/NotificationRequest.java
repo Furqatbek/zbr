@@ -39,6 +39,9 @@ public class NotificationRequest implements Serializable {
      */
     private Long orderId;
 
+    /** NotificationCategory name — clients switch screens on ORDER*. */
+    private String category;
+
     /**
      * NotificationRole this was aimed at, used to pick which of the recipient's
      * apps to push to. One person is one user row across all three apps, so

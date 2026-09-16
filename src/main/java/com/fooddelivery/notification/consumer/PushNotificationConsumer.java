@@ -10,7 +10,7 @@ import com.google.firebase.messaging.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import com.fooddelivery.notification.service.DeviceTokenService;
-import com.fooddelivery.notification.service.PushAppIdResolver;
+import com.fooddelivery.notification.service.PushTargeting;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -35,7 +35,8 @@ public class PushNotificationConsumer {
     /** How long an order alert stays worth delivering. */
     private static final long ALERT_TTL_SECONDS = 120;
 
-    private final PushAppIdResolver appIdResolver;
+    private final PushTargeting pushTargeting;
+    private final com.fooddelivery.notification.repository.NotificationRepository notificationRepository;
     private final ExpoPushService expoPushService;
     private final ApnsPushService apnsPushService;
 
@@ -95,17 +96,17 @@ public class PushNotificationConsumer {
 
             // One person is one user row across all three apps, so a courier
             // alert would otherwise also land on that same person's customer
-            // app. Fails open — see PushAppIdResolver — so an unconfigured role
+            // app. Fails open — see PushTargeting — so an unconfigured role
             // or a token without an appId still receives.
             int before = deviceTokens.size();
-            deviceTokens = appIdResolver.filter(deviceTokens, request.getTargetRole());
+            deviceTokens = pushTargeting.filter(deviceTokens, request.getTargetRole());
             if (deviceTokens.isEmpty()) {
                 log.info("Push for user {} dropped: none of their {} device(s) belong to the {} app",
                         request.getUserId(), before, request.getTargetRole());
                 return;
             }
 
-            sendToMultipleDevices(request, deviceTokens);
+            sendToMultipleDevices(request, deviceTokens, unreadBadge(request.getUserId()));
             // "handed off", not "sent": the per-provider result is logged by
             // each provider. This line only means the consumer got that far.
             log.info("Push handed off to {} device(s) for user {} in {}ms",
@@ -124,7 +125,30 @@ public class PushNotificationConsumer {
      * iOS -> APNs (HTTP/2 + .p8), Android/unknown raw tokens -> FCM, and any
      * ExponentPushToken[...] -> the Expo Push API (apps still on Expo tokens).
      */
-    private void sendToMultipleDevices(NotificationRequest request, List<UserDeviceToken> devices) {
+    /**
+     * The number to show on the app icon: the recipient's current unread count.
+     *
+     * <p>Was hardcoded to 1, so a customer with six unread notifications saw a
+     * badge of 1 and the icon lied until they opened the app. One indexed count
+     * per push is cheap next to the push itself.
+     *
+     * <p>Null on failure rather than a guess — a wrong badge is worse than none,
+     * and this must never fail the notification it decorates.
+     */
+    private Integer unreadBadge(Long userId) {
+        if (userId == null) {
+            return null;
+        }
+        try {
+            Long unread = notificationRepository.countUnreadByUserId(userId);
+            return unread != null ? Math.toIntExact(Math.min(unread, Integer.MAX_VALUE)) : null;
+        } catch (Exception e) {
+            log.debug("Could not read unread count for user {}: {}", userId, e.getMessage());
+            return null;
+        }
+    }
+
+    private void sendToMultipleDevices(NotificationRequest request, List<UserDeviceToken> devices, Integer badge) {
         Map<String, String> data = buildDataPayload(request);
 
         // Expo tokens are identified by format regardless of the registered platform.
@@ -150,17 +174,17 @@ public class PushNotificationConsumer {
             expoPushService.send(request.getSubject(), request.getBody(), data, expoTokens);
         }
         if (!apnsDevices.isEmpty()) {
-            apnsPushService.send(request.getSubject(), request.getBody(), data, apnsDevices);
+            apnsPushService.send(request.getSubject(), request.getBody(), data, apnsDevices, badge);
         }
         if (!fcmTokens.isEmpty()) {
-            sendFcm(request, fcmTokens, data);
+            sendFcm(request, fcmTokens, data, badge);
         }
     }
 
     /**
      * Send to raw FCM/APNs registration tokens via Firebase.
      */
-    private void sendFcm(NotificationRequest request, List<String> tokens, Map<String, String> data) {
+    private void sendFcm(NotificationRequest request, List<String> tokens, Map<String, String> data, Integer badge) {
         if (firebaseMessaging == null) {
             log.warn("Firebase not configured, logging {} FCM push notification(s) instead", tokens.size());
             logPushNotification(request, tokens);
@@ -185,13 +209,18 @@ public class PushNotificationConsumer {
                     // deliver it long after someone else has cooked the order.
                     .setTtl(java.time.Duration.ofSeconds(ALERT_TTL_SECONDS).toMillis())
                     .setNotification(AndroidNotification.builder()
-                            .setChannelId(androidChannelId)
+                            // Per audience: the customer app creates "orders"
+                            // while vendor and courier create "orders_v2", and
+                            // Android DISCARDS a notification for a channel the
+                            // app never created — silently.
+                            .setChannelId(pushTargeting.channelIdFor(request.getTargetRole(), androidChannelId))
                             .setSound(androidSound)
                             .setPriority(AndroidNotification.Priority.MAX)
                             .setVisibility(AndroidNotification.Visibility.PUBLIC)
                             .setDefaultVibrateTimings(false)
                             .setVibrateTimingsInMillis(new long[]{0L, 400L, 200L, 400L})
                             .setClickAction("OPEN_NOTIFICATION")
+                            .setNotificationCount(badge)
                             .build())
                     .build();
 
@@ -202,7 +231,7 @@ public class PushNotificationConsumer {
                     .putHeader("apns-priority", "10")
                     .setAps(Aps.builder()
                             .setSound("new_order.wav")
-                            .setBadge(1)
+                            .setBadge(badge)
                             .build())
                     .build();
 
@@ -284,6 +313,22 @@ public class PushNotificationConsumer {
         // "type" — or any future default — silently won.
         if (request.getTemplateId() != null && !request.getTemplateId().isBlank()) {
             dataBuilder.put("type", request.getTemplateId());
+            // Same value under the name the customer app reads. Two keys rather
+            // than one rename because the vendor and courier apps are shipped
+            // against "type" — renaming would break them to fix this.
+            dataBuilder.put("notificationType", request.getTemplateId());
+        }
+
+        // Category: the customer app refreshes its order screens on anything
+        // starting with ORDER.
+        if (request.getCategory() != null && !request.getCategory().isBlank()) {
+            dataBuilder.put("category", request.getCategory());
+        }
+
+        // The in-app notification row, for deep-linking to the notifications
+        // screen when there is no order to open.
+        if ("notification".equals(request.getReferenceType()) && request.getReferenceId() != null) {
+            dataBuilder.put("notificationId", request.getReferenceId());
         }
 
         return dataBuilder;

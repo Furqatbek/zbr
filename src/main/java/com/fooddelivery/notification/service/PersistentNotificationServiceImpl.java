@@ -145,6 +145,7 @@ public class PersistentNotificationServiceImpl implements PersistentNotification
                 .templateId(com.fooddelivery.notification.util.PushEventType.forRole(
                         createDto.getRole(), createDto.getNotificationType()))
                 .orderId(createDto.getOrderId())
+                .category(createDto.getCategory() != null ? createDto.getCategory().name() : null)
                 .build();
 
         rabbitTemplate.convertAndSend(
@@ -1086,6 +1087,11 @@ public class PersistentNotificationServiceImpl implements PersistentNotification
         metadata.put("orderNumber", request.getOrderNumber());
         metadata.put("restaurantName", request.getRestaurantName());
         metadata.put("courierName", request.getCourierName());
+        // Reaches the client as data.cancellationReason. Without it a cancelled
+        // order simply disappears from the customer's list with no explanation.
+        if (request.getCancellationReason() != null) {
+            metadata.put("cancellationReason", request.getCancellationReason());
+        }
 
         NotificationCreateDto createDto = NotificationCreateDto.builder()
                 .userId(userId)

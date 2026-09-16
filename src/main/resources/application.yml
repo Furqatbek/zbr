@@ -310,6 +310,15 @@ app:
       consumer: ${PUSH_APP_ID_CONSUMER:}
       courier: ${PUSH_APP_ID_COURIER:}
       restaurant: ${PUSH_APP_ID_RESTAURANT:}
+    # Android notification channel per audience. The three apps do NOT agree:
+    # the customer app creates "orders", vendor and courier create "orders_v2".
+    # Android DISCARDS a notification addressed to a channel the app never
+    # created — silently, with nothing in any log — so one shared id means one
+    # app receives nothing. Unset falls back to android.channel-id below.
+    channel-ids:
+      consumer: ${PUSH_CHANNEL_ID_CONSUMER:orders}
+      courier: ${PUSH_CHANNEL_ID_COURIER:orders_v2}
+      restaurant: ${PUSH_CHANNEL_ID_RESTAURANT:orders_v2}
     android:
       # Must match the notification channel the Android app creates at start-up.
       # If the app bumps the channel (e.g. orders_v3), bump this together.

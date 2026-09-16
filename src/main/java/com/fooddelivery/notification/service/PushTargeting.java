@@ -54,10 +54,26 @@ import java.util.Map;
 @Getter
 @Setter
 @Slf4j
-public class PushAppIdResolver {
+public class PushTargeting {
 
     /** Role name (lower-case) to the app id that serves it. Empty = no filtering. */
     private Map<String, String> appIds = new HashMap<>();
+
+    /**
+     * Role name (lower-case) to the Android notification channel that audience's
+     * app creates.
+     *
+     * <p>The three apps do NOT agree on one: the customer app creates
+     * {@code orders} while the vendor and courier apps create {@code orders_v2}.
+     * Android routes strictly by channel id and a notification addressed to a
+     * channel the app never created is DISCARDED — no error, no delivery,
+     * nothing in any log. Sending one id to all three therefore means one of
+     * them silently receives nothing.
+     *
+     * <p>Unset for a role falls back to {@code app.push.android.channel-id}, so
+     * behaviour is unchanged until an operator says otherwise.
+     */
+    private Map<String, String> channelIds = new HashMap<>();
 
     /**
      * The app id notifications for this role belong to, or null when the role
@@ -80,6 +96,23 @@ public class PushAppIdResolver {
             appId = appIds.get("customer".equals(key) ? "consumer" : "customer");
         }
         return (appId == null || appId.isBlank()) ? null : appId;
+    }
+
+    /**
+     * The Android channel for this audience, or {@code fallback} when the role
+     * has none configured.
+     */
+    public String channelIdFor(String role, String fallback) {
+        if (role == null || channelIds.isEmpty()) {
+            return fallback;
+        }
+        String key = role.toLowerCase(Locale.ROOT);
+        String channel = channelIds.get(key);
+        // CUSTOMER is the deprecated spelling of CONSUMER; both reach the same app.
+        if (channel == null && ("customer".equals(key) || "consumer".equals(key))) {
+            channel = channelIds.get("customer".equals(key) ? "consumer" : "customer");
+        }
+        return (channel == null || channel.isBlank()) ? fallback : channel;
     }
 
     /**

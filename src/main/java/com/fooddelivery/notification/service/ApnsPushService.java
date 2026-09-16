@@ -103,14 +103,15 @@ public class ApnsPushService {
      *
      * @param data extra top-level keys (e.g. {@code type}, {@code orderId})
      */
-    public void send(String title, String body, Map<String, String> data, List<UserDeviceToken> deviceTokens) {
+    public void send(String title, String body, Map<String, String> data,
+                     List<UserDeviceToken> deviceTokens, Integer badge) {
         if (!enabled) {
             log.warn("APNs disabled; skipping {} iOS token(s). Set app.apns.* to enable.", deviceTokens.size());
             return;
         }
         String payload;
         try {
-            payload = buildPayload(title, body, data);
+            payload = buildPayload(title, body, data, badge);
         } catch (Exception e) {
             log.error("APNs payload build failed: {}", e.getMessage());
             return;
@@ -125,7 +126,8 @@ public class ApnsPushService {
         }
     }
 
-    private String buildPayload(String title, String body, Map<String, String> data) throws IOException {
+    private String buildPayload(String title, String body, Map<String, String> data, Integer badge)
+            throws IOException {
         Map<String, Object> alert = new HashMap<>();
         alert.put("title", title);
         alert.put("body", body);
@@ -133,7 +135,11 @@ public class ApnsPushService {
         Map<String, Object> aps = new HashMap<>();
         aps.put("alert", alert);
         aps.put("sound", "new_order.wav");
-        aps.put("badge", 1);
+        // The recipient's real unread count. Omitted when unknown: APNs leaves
+        // the existing badge alone, which beats overwriting it with a guess.
+        if (badge != null) {
+            aps.put("badge", badge);
+        }
         // Breaks through Focus / Do Not Disturb for time-critical order alerts.
         aps.put("interruption-level", "time-sensitive");
         // Wakes a BACKGROUNDED app so it can run before the user taps — the

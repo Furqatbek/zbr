@@ -18,17 +18,17 @@ import static org.assertj.core.api.Assertions.assertThat;
  * an annoyance, while filtering one out silently stops push for a whole
  * audience and looks exactly like a broken app. Everything here fails open.
  */
-@DisplayName("PushAppIdResolver")
-class PushAppIdResolverTest {
+@DisplayName("PushTargeting")
+class PushTargetingTest {
 
     private static final String CUSTOMER_APP = "app.zbr.customer";
     private static final String COURIER_APP = "app.zbr.courier";
 
-    private PushAppIdResolver resolver;
+    private PushTargeting resolver;
 
     @BeforeEach
     void setUp() {
-        resolver = new PushAppIdResolver();
+        resolver = new PushTargeting();
         resolver.setAppIds(Map.of(
                 "consumer", CUSTOMER_APP,
                 "courier", COURIER_APP));
@@ -71,6 +71,47 @@ class PushAppIdResolverTest {
     }
 
     @Nested
+    @DisplayName("android channel")
+    class Channel {
+
+        @Test
+        @DisplayName("each audience gets the channel its own app created")
+        void perAudience() {
+            // Android DISCARDS a notification for a channel the app never
+            // created, silently. One shared id means one app gets nothing.
+            PushTargeting t = new PushTargeting();
+            t.setChannelIds(java.util.Map.of(
+                    "consumer", "orders",
+                    "courier", "orders_v2",
+                    "restaurant", "orders_v2"));
+
+            assertThat(t.channelIdFor("CONSUMER", "fallback")).isEqualTo("orders");
+            assertThat(t.channelIdFor("COURIER", "fallback")).isEqualTo("orders_v2");
+            assertThat(t.channelIdFor("RESTAURANT", "fallback")).isEqualTo("orders_v2");
+        }
+
+        @Test
+        @DisplayName("CUSTOMER resolves to the consumer app's channel")
+        void deprecatedSpelling() {
+            PushTargeting t = new PushTargeting();
+            t.setChannelIds(java.util.Map.of("consumer", "orders"));
+
+            assertThat(t.channelIdFor("CUSTOMER", "fallback")).isEqualTo("orders");
+        }
+
+        @Test
+        @DisplayName("an unconfigured or unknown role keeps the global default")
+        void fallsBack() {
+            PushTargeting t = new PushTargeting();
+            assertThat(t.channelIdFor("CONSUMER", "orders_v2")).isEqualTo("orders_v2");
+
+            t.setChannelIds(java.util.Map.of("consumer", "orders"));
+            assertThat(t.channelIdFor("ADMIN", "orders_v2")).isEqualTo("orders_v2");
+            assertThat(t.channelIdFor(null, "orders_v2")).isEqualTo("orders_v2");
+        }
+    }
+
+    @Nested
     @DisplayName("fails open")
     class FailsOpen {
 
@@ -108,7 +149,7 @@ class PushAppIdResolverTest {
             // The shipped default. This whole feature is inert until an operator
             // supplies real bundle ids, because a wrong id here is worse than
             // the duplicate delivery it prevents.
-            PushAppIdResolver unconfigured = new PushAppIdResolver();
+            PushTargeting unconfigured = new PushTargeting();
             List<UserDeviceToken> devices = List.of(device(CUSTOMER_APP), device(COURIER_APP));
 
             assertThat(unconfigured.filter(devices, "COURIER")).isEqualTo(devices);
