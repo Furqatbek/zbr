@@ -91,8 +91,19 @@ services:
       # At DEBUG this logs a line per unauthenticated request; turn it off after.
       - LOGGING_LEVEL_COM_FOODDELIVERY_AUTH=${LOGGING_LEVEL_COM_FOODDELIVERY_AUTH:-INFO}
     volumes:
+      # ONE mount, and it must be the named volume. Two mounts used to target
+      # this path (a bind mount ./data/images shadowed the volume), and a bind
+      # mount whose host directory does not exist is created root-owned by the
+      # daemon — while this container runs as appuser. Every upload then failed
+      # with "could not create category directory" because mkdir under a
+      # root-owned root is denied. A named volume, by contrast, inherits its
+      # ownership from /app/images in the image, which the Dockerfile creates
+      # and chowns to appuser.
+      #
+      # A volume that already exists is NOT re-initialised from the image, so a
+      # host that ran the old two-mount config still has a root-owned volume;
+      # scripts/deploy.sh repairs it before starting the app.
       - images-data:/app/images
-      - ./data/images:/app/images
       # Push credentials (.p8 / firebase JSON) if you supply them as files.
       # Gitignored; the dir may be empty when using APNS_KEY_BASE64 instead.
       - ./secrets:/run/secrets:ro

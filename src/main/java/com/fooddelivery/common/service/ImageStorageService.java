@@ -41,6 +41,14 @@ public class ImageStorageService {
 
     private static final long MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
+    /**
+     * Shown verbatim to the vendor when the server, not their file, is at
+     * fault. Deliberately says nothing about paths or permissions: it is not
+     * their problem to act on, and they are not the audience for it.
+     */
+    private static final String UPLOAD_UNAVAILABLE =
+            "Загрузка изображений временно недоступна. Попробуйте позже.";
+
     @Value("${app.storage.images.path:/app/images}")
     private String storagePath;
 
@@ -51,13 +59,53 @@ public class ImageStorageService {
 
     @PostConstruct
     public void init() {
-        this.rootLocation = Paths.get(storagePath);
+        // toAbsolutePath() BEFORE anything else: a relative path would resolve
+        // against the process working directory, which is not the same when
+        // running from an IDE, from a service unit and from the container.
+        this.rootLocation = Paths.get(storagePath).toAbsolutePath().normalize();
         try {
             Files.createDirectories(rootLocation);
-            log.info("Image storage initialized at: {}", rootLocation.toAbsolutePath());
         } catch (IOException e) {
-            throw new RuntimeException("Could not initialize image storage location", e);
+            logUnwritable(e);
+            return;
         }
+
+        // createDirectories on a directory that ALREADY exists is a no-op that
+        // needs no write permission — which is exactly the case when a volume
+        // is mounted over the path. Startup therefore looked healthy for weeks
+        // while every upload failed. Probe with a real write instead.
+        //
+        // Only a diagnostic: uploads are not gated on the result, so ownership
+        // repaired without a restart takes effect immediately.
+        if (probeWrite()) {
+            log.info("Image storage initialized at: {}", rootLocation);
+        }
+    }
+
+    private boolean probeWrite() {
+        Path probe = rootLocation.resolve(".write-probe-" + UUID.randomUUID());
+        try {
+            Files.createFile(probe);
+            return true;
+        } catch (IOException e) {
+            logUnwritable(e);
+            return false;
+        } finally {
+            try {
+                Files.deleteIfExists(probe);
+            } catch (IOException ignored) {
+                // A leftover probe file is harmless; it is not served, because
+                // it has no image extension and lives outside every category.
+            }
+        }
+    }
+
+    private void logUnwritable(IOException cause) {
+        log.error("IMAGE STORAGE IS NOT WRITABLE: {} ({}). Every image upload will fail until this "
+                        + "is fixed. The mount at this path is most likely owned by root while the "
+                        + "application runs as a non-root user — see scripts/deploy.sh "
+                        + "(fix_image_volume_ownership).",
+                rootLocation, cause.toString());
     }
 
     /**
@@ -79,7 +127,13 @@ public class ImageStorageService {
         try {
             Files.createDirectories(categoryPath);
         } catch (IOException e) {
-            throw new BusinessException("Could not create category directory: " + category);
+            // The clients show `message` verbatim to a restaurant owner, so the
+            // filesystem detail goes to the log — it means nothing to them, and
+            // it leaks server paths. The cause was previously dropped entirely,
+            // which is why this took a vendor bug report to find.
+            log.error("Could not create image category directory {} — check ownership of the "
+                    + "storage root {}", categoryPath, rootLocation, e);
+            throw new BusinessException(UPLOAD_UNAVAILABLE);
         }
 
         Path destinationFile = categoryPath.resolve(uniqueFilename).normalize().toAbsolutePath();
@@ -88,7 +142,8 @@ public class ImageStorageService {
             Files.copy(inputStream, destinationFile, StandardCopyOption.REPLACE_EXISTING);
             log.info("Stored image: {} -> {}", originalFilename, destinationFile);
         } catch (IOException e) {
-            throw new BusinessException("Failed to store image: " + e.getMessage());
+            log.error("Failed to write image to {}", destinationFile, e);
+            throw new BusinessException(UPLOAD_UNAVAILABLE);
         }
 
         String relativePath = category + "/" + uniqueFilename;

@@ -118,6 +118,31 @@ IMAGE_TAG="$(docker inspect -f '{{.Config.Image}}' "$CONTAINER" 2>/dev/null || t
 say "Building"
 "${COMPOSE[@]}" build "$SERVICE"
 
+# --- Repair the images volume ----------------------------------------------
+# A named volume is initialised from the image ONLY the first time it is
+# created. Hosts that ran the earlier config — where a root-owned bind mount
+# shadowed this volume — still have a root-owned directory, and the fixed
+# Dockerfile does nothing for them: every upload keeps failing with
+# "could not create category directory".
+#
+# One chown, as root, in a throwaway container on the same volume. Idempotent
+# and a no-op once the ownership is already right, so it stays in the normal
+# deploy path rather than being a one-off someone has to remember.
+# --no-deps so this does not drag Postgres/Redis/RabbitMQ up just to chown.
+fix_image_volume_ownership() {
+  say "Checking the image storage volume"
+  if "${COMPOSE[@]}" run --rm --no-deps --user root --entrypoint sh "$SERVICE" \
+       -c 'mkdir -p /app/images && chown -R 10001:10001 /app/images' >/dev/null 2>&1; then
+    echo "     /app/images is owned by the application user"
+  else
+    fail "Could not repair /app/images ownership — image uploads may fail."
+    echo "     Run by hand:" >&2
+    echo "     ${COMPOSE[*]} run --rm --no-deps --user root --entrypoint sh $SERVICE \\" >&2
+    echo "       -c 'chown -R 10001:10001 /app/images'" >&2
+  fi
+}
+fix_image_volume_ownership
+
 say "Restarting $SERVICE"
 "${COMPOSE[@]}" up -d "$SERVICE"
 

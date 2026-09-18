@@ -87,6 +87,14 @@ public class SecurityConfig {
 
                 // Configure authorization rules
                 .authorizeHttpRequests(auth -> auth
+                        // Self-service account deletion lives under /auth/**, which is
+                        // otherwise public. Rules are evaluated in order, so this must
+                        // come BEFORE the permitAll below: without it the request reaches
+                        // the controller unauthenticated and @PreAuthorize answers 403,
+                        // where the apps — and Apple's reviewer — expect a 401 they can
+                        // tell apart from "you are not allowed to delete this".
+                        .requestMatchers(HttpMethod.DELETE, "/api/v1/auth/account").authenticated()
+
                         // Public endpoints
                         .requestMatchers(PUBLIC_ENDPOINTS).permitAll()
 

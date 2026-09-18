@@ -28,14 +28,23 @@ FROM eclipse-temurin:17-jre-alpine
 
 WORKDIR /app
 
-# Create non-root user for security
-RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+# Create non-root user for security.
+# The uid/gid are PINNED: `adduser -S` otherwise picks whatever is free, which
+# differs between base-image versions, and the number is what a host-side
+# `chown` on the images volume has to name. 10001 is above every system uid.
+RUN addgroup -g 10001 -S appgroup && adduser -u 10001 -S appuser -G appgroup
 
 # Copy layers separately — bottom layers change less often, Docker caches them
 COPY --from=build /app/target/extracted/dependencies/ ./
 COPY --from=build /app/target/extracted/spring-boot-loader/ ./
 COPY --from=build /app/target/extracted/snapshot-dependencies/ ./
 COPY --from=build /app/target/extracted/application/ ./
+
+# The upload root must exist IN THE IMAGE, owned by appuser. Docker copies a
+# fresh named volume's ownership and permissions from the directory it covers,
+# so creating it here is what makes images-data writable without any host-side
+# step. Without this the volume is created root-owned and every upload fails.
+RUN mkdir -p /app/images
 
 # Set ownership
 RUN chown -R appuser:appgroup /app

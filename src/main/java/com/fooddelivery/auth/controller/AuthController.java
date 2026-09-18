@@ -114,6 +114,45 @@ public class AuthController {
         return ResponseEntity.ok(ApiResponse.success(user));
     }
 
+    /**
+     * The same deletion as {@code DELETE /api/v1/users/me}, at the path the
+     * mobile apps call. It is not a redundant endpoint by choice: App Store
+     * Guideline 5.1.1(v) requires in-app account deletion, the shipped clients
+     * were built against this path, and a client release cycle is a worse thing
+     * to spend than four lines here. Both paths delegate to the one
+     * implementation, so they can never diverge.
+     */
+    @DeleteMapping("/account")
+    @PreAuthorize("isAuthenticated()")
+    @SecurityRequirement(name = "bearerAuth")
+    @Operation(summary = "Delete own account",
+            description = "Permanently deletes the authenticated caller's account and erases their "
+                    + "personal data. Sessions are revoked, push tokens removed, and any restaurant "
+                    + "they own is closed so no further orders are routed to it. Immediate and "
+                    + "irreversible. Alias of DELETE /api/v1/users/me.")
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Account deleted"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Not authenticated")
+    })
+    public ResponseEntity<ApiResponse<Void>> deleteOwnAccount(
+            @AuthenticationPrincipal UserPrincipal currentUser,
+            // required = false, and no @Valid: the apps send no body when the
+            // user leaves the reason blank, and a deletion must not 400 over an
+            // optional free-text field.
+            @RequestBody(required = false) DeleteAccountRequest request) {
+
+        String reason = request != null ? request.getReason() : null;
+        if (reason != null && !reason.isBlank()) {
+            // Logged, not stored: keeping it would mean retaining text written
+            // by someone who just asked to be erased.
+            log.info("Account deletion for user {} — reason given ({} chars)",
+                    currentUser.getId(), reason.length());
+        }
+
+        userService.deleteAccount(currentUser.getId());
+        return ResponseEntity.ok(ApiResponse.success("Account deleted"));
+    }
+
     @PostMapping("/password-reset")
     @Operation(summary = "Request password reset", description = "Send password reset email to user")
     @ApiResponses(value = {
