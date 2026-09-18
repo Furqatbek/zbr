@@ -1,6 +1,7 @@
 package com.fooddelivery.common.service;
 
 import com.fooddelivery.common.exception.BusinessException;
+import com.fooddelivery.common.exception.ResourceNotFoundException;
 import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -173,9 +174,13 @@ public class ImageStorageService {
 
             if (resource.exists() && resource.isReadable()) {
                 return resource;
-            } else {
-                throw new BusinessException("Image not found: " + relativePath);
             }
+            // 404, not 400: the URL is well formed, the file is simply not
+            // there. It also makes a missing image greppable and tells it apart
+            // from a rejected path — an <Image> tag renders nothing either way,
+            // so the log is the only place this is ever visible.
+            log.warn("Image not found on disk: {} (resolved to {})", relativePath, file);
+            throw new ResourceNotFoundException("Image not found: " + relativePath);
         } catch (MalformedURLException e) {
             throw new BusinessException("Invalid image path: " + relativePath);
         }

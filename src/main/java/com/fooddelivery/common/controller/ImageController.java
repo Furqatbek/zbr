@@ -56,16 +56,28 @@ public class ImageController {
         return ResponseEntity.ok(ApiResponse.success("Menu item image uploaded successfully", imageInfo));
     }
 
-    @GetMapping("/{category}/{filename:.+}")
-    @Operation(summary = "Get image", description = "Retrieve an image by category and filename")
-    public ResponseEntity<Resource> getImage(
-            @PathVariable String category,
-            @PathVariable String filename) {
+    // {*path} captures EVERY remaining segment. The old mapping was
+    // /{category}/{filename:.+}, which is exactly two segments: menu items
+    // ("menu-items/<uuid>.png") fitted and were served, while restaurant images
+    // ("restaurants/7/logo/<uuid>.png") are four and simply did not match the
+    // mapping — the upload succeeded, the URL was stored on the restaurant, and
+    // every request for it 404'd. A regex path variable cannot span "/" under
+    // Spring's PathPatternParser, so widening the regex would not have helped.
+    //
+    // Containment is unaffected: loadImage refuses anything that resolves
+    // outside the storage root, which is where traversal has always been
+    // stopped — the mapping was never what made this safe.
+    @GetMapping("/{*path}")
+    @Operation(summary = "Get image", description = "Retrieve an image by its stored relative path")
+    public ResponseEntity<Resource> getImage(@PathVariable String path) {
 
-        String relativePath = category + "/" + filename;
+        // {*path} yields the captured remainder WITH its leading slash, which
+        // would resolve as an absolute path against the root.
+        String relativePath = path.startsWith("/") ? path.substring(1) : path;
+
         Resource resource = imageStorageService.loadImage(relativePath);
 
-        String contentType = determineContentType(filename);
+        String contentType = determineContentType(relativePath);
 
         return ResponseEntity.ok()
                 .contentType(MediaType.parseMediaType(contentType))
@@ -79,14 +91,14 @@ public class ImageController {
     // Vendors never need it: MenuService deletes the old file itself when a
     // menu-item image is replaced or the item removed, behind the ownership
     // check that endpoint already enforces.
-    @DeleteMapping("/{category}/{filename:.+}")
+    @DeleteMapping("/{*path}")
     @PreAuthorize("hasAnyRole('ADMIN', 'PLATFORM')")
-    @Operation(summary = "Delete image", description = "Delete an image by category and filename")
-    public ResponseEntity<ApiResponse<Void>> deleteImage(
-            @PathVariable String category,
-            @PathVariable String filename) {
+    @Operation(summary = "Delete image", description = "Delete an image by its stored relative path")
+    public ResponseEntity<ApiResponse<Void>> deleteImage(@PathVariable String path) {
 
-        String relativePath = category + "/" + filename;
+        // Same two-segment limit as the GET above, so restaurant images could
+        // not be deleted either.
+        String relativePath = path.startsWith("/") ? path.substring(1) : path;
         boolean deleted = imageStorageService.deleteImage(relativePath);
 
         if (deleted) {
@@ -96,8 +108,16 @@ public class ImageController {
         }
     }
 
-    private String determineContentType(String filename) {
-        String extension = filename.substring(filename.lastIndexOf(".") + 1).toLowerCase();
+    private String determineContentType(String relativePath) {
+        // The extension has to come from the LAST segment: the path is now
+        // nested, and a directory name containing a dot would otherwise decide
+        // the content type.
+        String filename = relativePath.substring(relativePath.lastIndexOf('/') + 1);
+        int dot = filename.lastIndexOf('.');
+        if (dot < 0) {
+            return "image/jpeg";
+        }
+        String extension = filename.substring(dot + 1).toLowerCase();
         return switch (extension) {
             case "png" -> "image/png";
             case "gif" -> "image/gif";
