@@ -98,6 +98,9 @@ public class RestosMenuImportService {
         for (RestosCategory extCategory : menu) {
             try {
                 MenuCategory category = upsertCategory(restaurant, extCategory, overwrite, result, snapshot);
+                if (category == null) {
+                    continue;
+                }
 
                 if (extCategory.getProducts() == null) {
                     // A category with a null product list is not the same as one
@@ -124,6 +127,7 @@ public class RestosMenuImportService {
         }
 
         retireVanished(restaurant, snapshot, overwrite, result);
+        warnAboutUnkeyedItems(restaurant, result);
 
         restaurant.setExternalSystemUrl(baseUrl);
         restaurant.setLastMenuSyncAt(LocalDateTime.now());
@@ -149,6 +153,9 @@ public class RestosMenuImportService {
         for (RestosCategory extCategory : categories) {
             try {
                 MenuCategory category = upsertCategory(restaurant, extCategory, overwrite, result, snapshot);
+                if (category == null) {
+                    continue;
+                }
 
                 List<RestosProduct> products = menuClient.fetchProductsByCategory(
                         baseUrl, extCategory.getId(), apiKey);
@@ -173,6 +180,7 @@ public class RestosMenuImportService {
         }
 
         retireVanished(restaurant, snapshot, overwrite, result);
+        warnAboutUnkeyedItems(restaurant, result);
 
         restaurant.setExternalSystemUrl(baseUrl);
         restaurant.setLastMenuSyncAt(LocalDateTime.now());
@@ -187,6 +195,20 @@ public class RestosMenuImportService {
      * menu query. An item that comes back upstream is reactivated by the normal
      * upsert.
      */
+    /**
+     * Report items left stranded by the unkeyed-product collision this import
+     * used to have. They cannot be matched upstream any more, so no sync will
+     * ever update or retire them; saying so is all we can do from here.
+     */
+    private void warnAboutUnkeyedItems(Restaurant restaurant, MenuImportResult result) {
+        long stranded = menuItemRepository.countUnkeyedExternalItems(restaurant.getId(), EXTERNAL_SOURCE);
+        if (stranded > 0) {
+            result.getWarnings().add(stranded + " item(s) are marked as coming from Restos but carry no "
+                    + "Restos id, so they cannot be synced. They were created before unkeyed products "
+                    + "were refused, and may be merged copies of several dishes. Check them by hand.");
+        }
+    }
+
     private void retireVanished(Restaurant restaurant, Snapshot snapshot,
                                 boolean overwrite, MenuImportResult result) {
         // An import (overwriteExisting = false) deliberately leaves existing
@@ -325,12 +347,22 @@ public class RestosMenuImportService {
     private MenuCategory upsertCategory(Restaurant restaurant, RestosCategory ext,
                                          boolean overwrite, MenuImportResult result, Snapshot snapshot) {
         if (ext.getId() == null) {
-            // Nothing to key this category by, so it can be neither matched on a
-            // later sync nor told apart from one that was deleted.
+            // Not importable, and importing it anyway is actively destructive.
+            // A null id is not a miss in the lookup below — Spring Data turns it
+            // into "external_id IS NULL", which matches the FIRST unkeyed row in
+            // this restaurant. So every category arriving without an id landed
+            // on that one row and overwrote it, silently collapsing distinct
+            // categories into one that changed identity on every sync.
+            //
+            // Nothing can fix that here: without a stable key there is no way to
+            // tell two unkeyed categories apart, or to recognise either of them
+            // next time. Refusing the row is the only honest option.
+            result.getWarnings().add("Skipped category '" + ext.getName()
+                    + "' — Restos sent no id for it, so it cannot be kept in step with your system.");
             snapshot.incomplete("category '" + ext.getName() + "' has no external id");
-        } else {
-            snapshot.categoryIds.add(ext.getId());
+            return null;
         }
+        snapshot.categoryIds.add(ext.getId());
 
         Optional<MenuCategory> existingOpt = categoryRepository
                 .findByRestaurantIdAndExternalSourceAndExternalId(restaurant.getId(), EXTERNAL_SOURCE, ext.getId());
@@ -368,7 +400,16 @@ public class RestosMenuImportService {
     private void upsertProduct(MenuCategory category, RestosProduct ext,
                                 boolean overwrite, MenuImportResult result, Snapshot snapshot) {
         if (ext.getId() == null) {
+            // Same collision as in upsertCategory, one level down: the lookup
+            // becomes "external_id IS NULL" and matches the first unkeyed item
+            // in this category, so every product without an id overwrote the
+            // same row. Two different dishes became one, and which one it was
+            // depended on the order Restos happened to send them in.
+            result.getWarnings().add("Skipped product '" + ext.getName()
+                    + "' — Restos sent no id for it, so it cannot be kept in step with your system.");
+            result.setProductsSkipped(result.getProductsSkipped() + 1);
             snapshot.incomplete("product '" + ext.getName() + "' has no external id");
+            return;
         }
 
         if ("ARCHIVED".equalsIgnoreCase(ext.getStatus())) {
@@ -384,9 +425,7 @@ public class RestosMenuImportService {
         // the dish is still on their menu, it just arrived with a field missing.
         // Retiring a live dish over a blank price field would be a data glitch
         // taking food off sale.
-        if (ext.getId() != null) {
-            snapshot.productIds.add(ext.getId());
-        }
+        snapshot.productIds.add(ext.getId());
 
         if (ext.getPrice() == null) {
             result.getWarnings().add("Skipped product '" + ext.getName() + "' — no price");

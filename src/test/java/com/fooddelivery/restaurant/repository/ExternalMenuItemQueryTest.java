@@ -153,6 +153,39 @@ class ExternalMenuItemQueryTest {
     }
 
     @Test
+    @DisplayName("looking up a null external id matches an unkeyed row rather than missing")
+    void nullExternalIdLookupMatches() {
+        // The fact the import fix rests on, and the opposite of the intuition
+        // that "null matches nothing because NULL != NULL in SQL". Spring Data
+        // renders a null parameter on a derived query as IS NULL, so an unkeyed
+        // product does not fall through to the create branch — it lands on the
+        // first unkeyed row in the category and overwrites it.
+        //
+        // That is why the import now refuses products without an id instead of
+        // trying to store them. If this ever starts returning empty, the
+        // reasoning in RestosMenuImportService needs revisiting.
+        MenuItem unkeyed = item("Imported without an id", null, SOURCE, true);
+        em.flush();
+
+        assertThat(menuItemRepository
+                .findByCategoryIdAndExternalSourceAndExternalId(category.getId(), SOURCE, null))
+                .contains(unkeyed);
+    }
+
+    @Test
+    @DisplayName("stranded unkeyed rows are counted so a sync can report them")
+    void unkeyedRowsCounted() {
+        item("Stranded", null, SOURCE, true);
+        item("Also stranded", null, SOURCE, true);
+        item("Fine", 500L, SOURCE, true);
+        item("Retired stranded", null, SOURCE, false);
+        item("The restaurant's own", null, null, true);
+        em.flush();
+
+        assertThat(menuItemRepository.countUnkeyedExternalItems(restaurant.getId(), SOURCE)).isEqualTo(2);
+    }
+
+    @Test
     @DisplayName("a list of candidates is empty rather than null when nothing matches")
     void emptyWhenNothingImported() {
         item("House special", null, null, true);

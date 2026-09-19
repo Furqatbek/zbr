@@ -251,6 +251,93 @@ class RestosMenuDeletionTest {
     }
 
     @Nested
+    @DisplayName("products Restos sent without an id")
+    class Unkeyed {
+
+        /**
+         * A null id is not a lookup miss. Spring Data renders it as
+         * {@code external_id IS NULL}, which matches the first unkeyed row in
+         * the category — so before the fix every id-less product overwrote the
+         * same row, and two dishes became one whose identity depended on the
+         * order Restos happened to send them in.
+         */
+        private MenuItem theOneUnkeyedRow() {
+            MenuItem collided = MenuItem.builder().id(77L).name("First one imported")
+                    .price(new BigDecimal("1000")).externalSource(SOURCE).active(true).build();
+            when(menuItemRepository.findByCategoryIdAndExternalSourceAndExternalId(any(), anyString(), any()))
+                    .thenReturn(Optional.of(collided));
+            return collided;
+        }
+
+        @Test
+        @DisplayName("is skipped rather than written over an unrelated dish")
+        void unkeyedProductSkipped() {
+            MenuItem collided = theOneUnkeyedRow();
+
+            RestosProduct unkeyed = product(null, "Soup of the day");
+            MenuImportResult result = sync(List.of(category(1L, "Main", unkeyed)));
+
+            // Before the fix this row took the incoming product's name.
+            assertThat(collided.getName()).isEqualTo("First one imported");
+            assertThat(result.getProductsSkipped()).isEqualTo(1);
+            assertThat(result.getWarnings()).anyMatch(w -> w.contains("Soup of the day")
+                    && w.contains("no id"));
+        }
+
+        @Test
+        @DisplayName("two of them do not collapse into one row")
+        void twoUnkeyedProductsDoNotMerge() {
+            MenuItem collided = theOneUnkeyedRow();
+
+            sync(List.of(category(1L, "Main", product(null, "Soup"), product(null, "Salad"))));
+
+            // The original bug in one line: both landed on the same row, so the
+            // second silently replaced the first.
+            assertThat(collided.getName()).isEqualTo("First one imported");
+        }
+
+        @Test
+        @DisplayName("a category without an id is skipped, and its products with it")
+        void unkeyedCategorySkipped() {
+            RestosCategory unkeyed = RestosCategory.builder().id(null).name("Specials")
+                    .products(new ArrayList<>(List.of(product(500L, "Plov")))).build();
+
+            MenuImportResult result = sync(List.of(unkeyed));
+
+            assertThat(result.getCategoriesCreated()).isZero();
+            assertThat(result.getProductsCreated()).isZero();
+            assertThat(result.getWarnings()).anyMatch(w -> w.contains("Specials") && w.contains("no id"));
+        }
+
+        @Test
+        @DisplayName("an unkeyed product stops the sync from retiring anything")
+        void unkeyedProductBlocksDeletion() {
+            MenuItem live = liveItem(10L, 500L, "Plov");
+            when(menuItemRepository.findActiveExternalItems(1L, SOURCE)).thenReturn(List.of(live));
+
+            // We could not import it, so we do not know what it was — and an
+            // item we failed to recognise is not evidence that anything was
+            // deleted upstream.
+            MenuImportResult result = sync(List.of(category(1L, "Main", product(null, "Mystery dish"))));
+
+            assertThat(live.getActive()).isTrue();
+            assertThat(result.getProductsDeactivated()).isZero();
+        }
+
+        @Test
+        @DisplayName("rows already stranded by the old behaviour are reported")
+        void strandedRowsReported() {
+            when(menuItemRepository.countUnkeyedExternalItems(1L, SOURCE)).thenReturn(3L);
+
+            MenuImportResult result = sync(List.of(category(1L, "Main", product(500L, "Plov"))));
+
+            // No sync can match or retire these any more, so the only useful
+            // thing left is to say they exist.
+            assertThat(result.getWarnings()).anyMatch(w -> w.contains("3 item(s)") && w.contains("by hand"));
+        }
+    }
+
+    @Nested
     @DisplayName("categories")
     class Categories {
 

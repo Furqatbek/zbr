@@ -87,4 +87,23 @@ public interface MenuItemRepository extends JpaRepository<MenuItem, Long> {
             "AND mi.active = true")
     List<MenuItem> findActiveExternalItems(@Param("restaurantId") Long restaurantId,
                                            @Param("externalSource") String externalSource);
+
+    /**
+     * Live items stamped with an external system but carrying no id from it.
+     *
+     * <p>These are wreckage from before unkeyed products were refused: a null
+     * external id made the upsert lookup match on {@code IS NULL}, so every
+     * unkeyed product landed on the same row. They can no longer be matched to
+     * anything upstream, so a sync can neither update nor retire them — they
+     * just sit there. Counted so a sync can say so rather than leave them
+     * invisible.
+     */
+    @Query("SELECT COUNT(mi) FROM MenuItem mi " +
+            "JOIN mi.category mc " +
+            "WHERE mc.restaurant.id = :restaurantId " +
+            "AND mi.externalSource = :externalSource " +
+            "AND mi.externalId IS NULL " +
+            "AND mi.active = true")
+    long countUnkeyedExternalItems(@Param("restaurantId") Long restaurantId,
+                                   @Param("externalSource") String externalSource);
 }
