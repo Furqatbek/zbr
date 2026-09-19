@@ -70,4 +70,21 @@ public interface MenuItemRepository extends JpaRepository<MenuItem, Long> {
     Integer findMaxSortOrderByCategoryId(@Param("categoryId") Long categoryId);
 
     boolean existsByCategoryIdAndName(Long categoryId, String name);
+
+    /**
+     * Every live item in this restaurant that came from an external system, for
+     * reconciling against a fresh snapshot of that system's menu.
+     *
+     * <p>{@code externalId IS NOT NULL} is what protects items the restaurant
+     * created by hand: they carry no external id, were never in the upstream
+     * menu, and must never be retired by a sync that does not know about them.
+     */
+    @Query("SELECT mi FROM MenuItem mi " +
+            "JOIN mi.category mc " +
+            "WHERE mc.restaurant.id = :restaurantId " +
+            "AND mi.externalSource = :externalSource " +
+            "AND mi.externalId IS NOT NULL " +
+            "AND mi.active = true")
+    List<MenuItem> findActiveExternalItems(@Param("restaurantId") Long restaurantId,
+                                           @Param("externalSource") String externalSource);
 }

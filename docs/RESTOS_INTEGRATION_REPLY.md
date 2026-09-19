@@ -118,14 +118,33 @@ our import is already an upsert keyed on `(restaurant, source, your product id)`
 behind a unique index, so re-running it is idempotent by construction. We record
 `last_menu_sync_at` per restaurant.
 
-One gap we should name rather than let you assume otherwise: **our import
-currently only creates and updates — it has no deletion path.** An item you
-delete in Restos stays live and orderable on our side indefinitely. That is
-exactly the drift a full re-sync is meant to catch, and today it would not catch
-it. We are fixing that as part of this work; it needs us to treat "present in
-Restos" as authoritative and deactivate what is missing, which in turn needs the
-re-sync to be a guaranteed-complete snapshot rather than a partial page. Worth
-confirming your full-menu endpoint gives us that.
+Until recently our import only created and updated, so an item you deleted in
+Restos stayed live and orderable on our side indefinitely — exactly the drift
+your re-sync is meant to catch. **That is now fixed**: a sync treats your
+snapshot as authoritative and deactivates what is no longer in it.
+
+Three things about how we did it are worth you knowing, because they affect what
+you can expect to happen:
+
+- **Deactivation is soft.** Past orders reference these items, so we never hard
+  delete. An item you restore upstream comes back on the next sync.
+- **We only retire what came from you.** Items a restaurant added in our own
+  panel carry no Restos id and are never touched by a sync.
+- **We will not act on a partial snapshot.** If any part of the fetch fails, the
+  sync updates what it got and deactivates nothing — we cannot tell an item you
+  deleted from one your response happened not to include. Separately, a sync
+  that would retire an implausible share of a restaurant's menu at once reports
+  what it would have done and changes nothing, on the assumption that a menu
+  collapsing from two hundred dishes to three is an outage rather than a
+  decision.
+
+A product you mark `ARCHIVED` is treated as retired rather than ignored, which
+is what we assume you intend — tell us if not.
+
+The one thing we need from you: **confirmation that your full-menu endpoint
+returns a complete snapshot** rather than a page or a partial view. Our safety
+rules mean a truncated response is harmless — nothing gets deleted — but it also
+means reconciliation quietly stops working, so it is worth being sure.
 
 Cadence: we'd suggest a nightly full re-sync plus incremental updates as they
 happen. Happy to go more frequent if your side is comfortable with it.

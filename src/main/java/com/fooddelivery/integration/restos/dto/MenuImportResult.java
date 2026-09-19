@@ -24,6 +24,15 @@ public class MenuImportResult {
     private int productsCreated;
     private int productsUpdated;
     private int productsSkipped;
+
+    /**
+     * Items and categories that were live here but absent from the upstream
+     * snapshot, and have been deactivated. Zero on an import
+     * ({@code overwriteExisting = false}), which never retires anything.
+     */
+    private int productsDeactivated;
+    private int categoriesDeactivated;
+
     private LocalDateTime syncedAt;
 
     @Builder.Default

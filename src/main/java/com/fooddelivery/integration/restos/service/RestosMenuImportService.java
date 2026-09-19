@@ -26,6 +26,31 @@ public class RestosMenuImportService {
 
     private static final String EXTERNAL_SOURCE = "RESTOS";
 
+    /**
+     * What the upstream snapshot actually contained, and whether it can be
+     * trusted to be the whole menu.
+     *
+     * <p>The second part carries the weight. Deactivating "everything we did not
+     * see" is only sound if not seeing something means it is gone — and a
+     * category whose product fetch threw, or a product we could not key, means
+     * we did not see items that are perfectly alive. One such failure makes the
+     * whole snapshot unusable for deletion, because we cannot tell which of the
+     * unseen items were missing on purpose.
+     */
+    private static final class Snapshot {
+        private final Set<Long> categoryIds = new HashSet<>();
+        private final Set<Long> productIds = new HashSet<>();
+        private boolean complete = true;
+        private String incompleteReason;
+
+        void incomplete(String reason) {
+            if (complete) {
+                complete = false;
+                incompleteReason = reason;
+            }
+        }
+    }
+
     private final RestosMenuClient menuClient;
     private final RestaurantService restaurantService;
     private final MenuCategoryRepository categoryRepository;
@@ -68,31 +93,46 @@ public class RestosMenuImportService {
             return result;
         }
 
+        Snapshot snapshot = new Snapshot();
+
         for (RestosCategory extCategory : menu) {
             try {
-                MenuCategory category = upsertCategory(restaurant, extCategory, overwrite, result);
+                MenuCategory category = upsertCategory(restaurant, extCategory, overwrite, result, snapshot);
 
-                if (extCategory.getProducts() != null) {
-                    for (RestosProduct extProduct : extCategory.getProducts()) {
-                        try {
-                            upsertProduct(category, extProduct, overwrite, result);
-                        } catch (Exception e) {
-                            result.getErrors().add("Failed to import product '" + extProduct.getName() + "': " + e.getMessage());
-                            result.setProductsSkipped(result.getProductsSkipped() + 1);
-                        }
+                if (extCategory.getProducts() == null) {
+                    // A category with a null product list is not the same as one
+                    // with no products: the full-menu payload should nest them,
+                    // so this is missing data, and treating its items as deleted
+                    // would empty the category.
+                    snapshot.incomplete("category '" + extCategory.getName() + "' returned no product list");
+                    continue;
+                }
+
+                for (RestosProduct extProduct : extCategory.getProducts()) {
+                    try {
+                        upsertProduct(category, extProduct, overwrite, result, snapshot);
+                    } catch (Exception e) {
+                        result.getErrors().add("Failed to import product '" + extProduct.getName() + "': " + e.getMessage());
+                        result.setProductsSkipped(result.getProductsSkipped() + 1);
+                        snapshot.incomplete("product '" + extProduct.getName() + "' failed to import");
                     }
                 }
             } catch (Exception e) {
                 result.getErrors().add("Failed to import category '" + extCategory.getName() + "': " + e.getMessage());
+                snapshot.incomplete("category '" + extCategory.getName() + "' failed to import");
             }
         }
+
+        retireVanished(restaurant, snapshot, overwrite, result);
 
         restaurant.setExternalSystemUrl(baseUrl);
         restaurant.setLastMenuSyncAt(LocalDateTime.now());
 
-        log.info("Menu import completed for restaurant {}: {} categories created, {} updated, {} products created, {} updated, {} skipped",
+        log.info("Menu import completed for restaurant {}: {} categories created, {} updated, {} deactivated, "
+                        + "{} products created, {} updated, {} skipped, {} deactivated",
                 restaurantId, result.getCategoriesCreated(), result.getCategoriesUpdated(),
-                result.getProductsCreated(), result.getProductsUpdated(), result.getProductsSkipped());
+                result.getCategoriesDeactivated(), result.getProductsCreated(), result.getProductsUpdated(),
+                result.getProductsSkipped(), result.getProductsDeactivated());
 
         return result;
     }
@@ -104,30 +144,161 @@ public class RestosMenuImportService {
                                                    Long externalRestaurantId, String apiKey,
                                                    boolean overwrite, MenuImportResult result) {
         List<RestosCategory> categories = menuClient.fetchCategories(baseUrl, externalRestaurantId, apiKey);
+        Snapshot snapshot = new Snapshot();
 
         for (RestosCategory extCategory : categories) {
             try {
-                MenuCategory category = upsertCategory(restaurant, extCategory, overwrite, result);
+                MenuCategory category = upsertCategory(restaurant, extCategory, overwrite, result, snapshot);
 
                 List<RestosProduct> products = menuClient.fetchProductsByCategory(
                         baseUrl, extCategory.getId(), apiKey);
 
                 for (RestosProduct extProduct : products) {
                     try {
-                        upsertProduct(category, extProduct, overwrite, result);
+                        upsertProduct(category, extProduct, overwrite, result, snapshot);
                     } catch (Exception e) {
                         result.getErrors().add("Failed to import product '" + extProduct.getName() + "': " + e.getMessage());
                         result.setProductsSkipped(result.getProductsSkipped() + 1);
+                        snapshot.incomplete("product '" + extProduct.getName() + "' failed to import");
                     }
                 }
             } catch (Exception e) {
+                // This path is more failure-prone than the nested one: it makes
+                // one HTTP call per category, so a single flaky response hides a
+                // whole category's products. All the more reason a failure here
+                // must stop the deactivation pass.
                 result.getErrors().add("Failed to import category '" + extCategory.getName() + "': " + e.getMessage());
+                snapshot.incomplete("category '" + extCategory.getName() + "' failed to import");
             }
         }
+
+        retireVanished(restaurant, snapshot, overwrite, result);
 
         restaurant.setExternalSystemUrl(baseUrl);
         restaurant.setLastMenuSyncAt(LocalDateTime.now());
         return result;
+    }
+
+    /**
+     * Deactivate what the upstream menu no longer has.
+     *
+     * <p>Soft, never a delete: past orders reference these rows, and
+     * {@code active = false} is what already removes an item from every public
+     * menu query. An item that comes back upstream is reactivated by the normal
+     * upsert.
+     */
+    private void retireVanished(Restaurant restaurant, Snapshot snapshot,
+                                boolean overwrite, MenuImportResult result) {
+        // An import (overwriteExisting = false) deliberately leaves existing
+        // products untouched, so it has no business retiring them either.
+        // Deactivation belongs to a sync.
+        if (!overwrite) {
+            return;
+        }
+
+        if (!snapshot.complete) {
+            result.getWarnings().add("Nothing was deactivated: the snapshot was incomplete ("
+                    + snapshot.incompleteReason + "). Items missing from a partial snapshot are not "
+                    + "necessarily deleted upstream.");
+            return;
+        }
+
+        retireVanishedProducts(restaurant, snapshot, result);
+        retireVanishedCategories(restaurant, snapshot, result);
+    }
+
+    private void retireVanishedProducts(Restaurant restaurant, Snapshot snapshot, MenuImportResult result) {
+        List<MenuItem> live = menuItemRepository.findActiveExternalItems(restaurant.getId(), EXTERNAL_SOURCE);
+        List<MenuItem> vanished = live.stream()
+                .filter(item -> !snapshot.productIds.contains(item.getExternalId()))
+                .toList();
+
+        if (vanished.isEmpty()) {
+            return;
+        }
+        if (exceedsDeactivationLimit(vanished.size(), live.size())) {
+            String message = String.format(
+                    "Refused to deactivate %d of %d Restos products (over the %.0f%% limit). "
+                            + "This usually means Restos returned a partial menu rather than that the "
+                            + "dishes were removed. Nothing was changed.",
+                    vanished.size(), live.size(), restosProperties.getMaxDeactivationRatio() * 100);
+            result.getWarnings().add(message);
+            log.warn("Restaurant {}: {}", restaurant.getId(), message);
+            return;
+        }
+
+        for (MenuItem item : vanished) {
+            item.setActive(false);
+            // Also out of stock: active=false hides it from the menu, but an
+            // order already in a basket, or any path that reaches the item
+            // directly, should see it as unavailable rather than buyable.
+            item.setInStock(false);
+            menuItemRepository.save(item);
+            log.info("Deactivated menu item {} ('{}') — no longer in the Restos menu",
+                    item.getId(), item.getName());
+        }
+        result.setProductsDeactivated(vanished.size());
+    }
+
+    private void retireVanishedCategories(Restaurant restaurant, Snapshot snapshot, MenuImportResult result) {
+        List<MenuCategory> live = categoryRepository
+                .findByRestaurantIdAndExternalSource(restaurant.getId(), EXTERNAL_SOURCE).stream()
+                .filter(c -> Boolean.TRUE.equals(c.getActive()) && c.getExternalId() != null)
+                .toList();
+
+        List<MenuCategory> vanished = live.stream()
+                .filter(category -> !snapshot.categoryIds.contains(category.getExternalId()))
+                .toList();
+
+        if (vanished.isEmpty()) {
+            return;
+        }
+        if (exceedsDeactivationLimit(vanished.size(), live.size())) {
+            String message = String.format(
+                    "Refused to deactivate %d of %d Restos categories (over the %.0f%% limit). "
+                            + "Nothing was changed.",
+                    vanished.size(), live.size(), restosProperties.getMaxDeactivationRatio() * 100);
+            result.getWarnings().add(message);
+            log.warn("Restaurant {}: {}", restaurant.getId(), message);
+            return;
+        }
+
+        int deactivated = 0;
+        for (MenuCategory category : vanished) {
+            // An inactive category hides everything inside it, so a category the
+            // restaurant also filled with their own dishes must stay. Products
+            // were retired just above, so anything still active here was never
+            // Restos's to remove.
+            if (hasItemsWeDoNotOwn(category)) {
+                result.getWarnings().add("Category '" + category.getName() + "' is gone from Restos but "
+                        + "still holds items added here, so it was left active.");
+                continue;
+            }
+            category.setActive(false);
+            categoryRepository.save(category);
+            deactivated++;
+            log.info("Deactivated menu category {} ('{}') — no longer in the Restos menu",
+                    category.getId(), category.getName());
+        }
+        result.setCategoriesDeactivated(deactivated);
+    }
+
+    private boolean hasItemsWeDoNotOwn(MenuCategory category) {
+        return menuItemRepository.findByCategoryIdAndActiveOrderBySortOrderAsc(category.getId(), true).stream()
+                .anyMatch(item -> item.getExternalId() == null
+                        || !EXTERNAL_SOURCE.equals(item.getExternalSource()));
+    }
+
+    /**
+     * Whether retiring this many of that many looks like an upstream outage
+     * rather than a menu change. Below the configured floor it never does — a
+     * small menu dropping a dish must stay possible.
+     */
+    private boolean exceedsDeactivationLimit(int vanished, int live) {
+        if (vanished <= restosProperties.getDeactivationFloor()) {
+            return false;
+        }
+        return vanished > live * restosProperties.getMaxDeactivationRatio();
     }
 
     /**
@@ -152,7 +323,15 @@ public class RestosMenuImportService {
     }
 
     private MenuCategory upsertCategory(Restaurant restaurant, RestosCategory ext,
-                                         boolean overwrite, MenuImportResult result) {
+                                         boolean overwrite, MenuImportResult result, Snapshot snapshot) {
+        if (ext.getId() == null) {
+            // Nothing to key this category by, so it can be neither matched on a
+            // later sync nor told apart from one that was deleted.
+            snapshot.incomplete("category '" + ext.getName() + "' has no external id");
+        } else {
+            snapshot.categoryIds.add(ext.getId());
+        }
+
         Optional<MenuCategory> existingOpt = categoryRepository
                 .findByRestaurantIdAndExternalSourceAndExternalId(restaurant.getId(), EXTERNAL_SOURCE, ext.getId());
 
@@ -187,15 +366,30 @@ public class RestosMenuImportService {
     }
 
     private void upsertProduct(MenuCategory category, RestosProduct ext,
-                                boolean overwrite, MenuImportResult result) {
-        if (ext.getPrice() == null) {
-            result.getWarnings().add("Skipped product '" + ext.getName() + "' — no price");
+                                boolean overwrite, MenuImportResult result, Snapshot snapshot) {
+        if (ext.getId() == null) {
+            snapshot.incomplete("product '" + ext.getName() + "' has no external id");
+        }
+
+        if ("ARCHIVED".equalsIgnoreCase(ext.getStatus())) {
+            // Deliberately NOT recorded as seen. Archived upstream means retired,
+            // so letting it fall through to the deactivation pass is the point —
+            // previously it was skipped here and stayed live with us forever.
+            result.getWarnings().add("Skipped archived product '" + ext.getName() + "'");
             result.setProductsSkipped(result.getProductsSkipped() + 1);
             return;
         }
 
-        if ("ARCHIVED".equalsIgnoreCase(ext.getStatus())) {
-            result.getWarnings().add("Skipped archived product '" + ext.getName() + "'");
+        // Recorded as seen from here on, including the no-price case below:
+        // the dish is still on their menu, it just arrived with a field missing.
+        // Retiring a live dish over a blank price field would be a data glitch
+        // taking food off sale.
+        if (ext.getId() != null) {
+            snapshot.productIds.add(ext.getId());
+        }
+
+        if (ext.getPrice() == null) {
+            result.getWarnings().add("Skipped product '" + ext.getName() + "' — no price");
             result.setProductsSkipped(result.getProductsSkipped() + 1);
             return;
         }
