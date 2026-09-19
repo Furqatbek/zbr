@@ -113,14 +113,12 @@ public class SelfServiceResolutionService {
 
         Order order = getOrderForUser(orderId, userId);
 
-        // Can only cancel before PREPARING status
-        if (!order.getStatus().isCancellable()) {
-            throw new BusinessException("Order cannot be cancelled at this stage");
-        }
-
-        if (order.getStatus() == OrderStatus.PREPARING ||
-            order.getStatus() == OrderStatus.READY ||
-            order.getStatus() == OrderStatus.PICKED_UP) {
+        // The cutoff lives on the status itself now, so this path and
+        // POST /orders/{id}/cancel cannot drift apart. The old code listed the
+        // barred statuses by hand and missed COURIER_ASSIGNED, which let a
+        // customer cancel an order a courier was already on their way to
+        // collect.
+        if (!order.getStatus().isConsumerCancellable()) {
             throw new BusinessException("Order is already being prepared - please contact support");
         }
 
@@ -160,10 +158,9 @@ public class SelfServiceResolutionService {
                 order.getStatus() == OrderStatus.DELIVERED &&
                 !resolutionRepository.existsByOrderIdAndResolutionType(orderId, SelfServiceResolutionType.MISSING_ITEMS));
 
-        // Cancel eligibility
-        eligibility.put("cancel", order.isCancellable() &&
-                order.getStatus() != OrderStatus.PREPARING &&
-                order.getStatus() != OrderStatus.READY);
+        // Cancel eligibility. Must be the SAME rule cancelPrePrep enforces, or
+        // the app offers a cancel button that then fails.
+        eligibility.put("cancel", order.isConsumerCancellable());
 
         return eligibility;
     }

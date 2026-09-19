@@ -236,6 +236,10 @@ public class Order {
         return status.isCancellable();
     }
 
+    public boolean isConsumerCancellable() {
+        return status.isConsumerCancellable();
+    }
+
     public void updateStatus(OrderStatus newStatus) {
         if (!canTransitionTo(newStatus)) {
             throw new IllegalStateException(

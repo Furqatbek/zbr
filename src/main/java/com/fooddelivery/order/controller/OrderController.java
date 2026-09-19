@@ -205,7 +205,9 @@ public class OrderController {
             @Valid @RequestBody CancelOrderRequest request) {
 
         validateAccess(orderId, currentUser);
-        OrderDto order = orderService.cancelOrder(orderId, request, currentUser.getId());
+        OrderDto order = orderService.cancelOrder(orderId, request, currentUser.getId(),
+                hasRole(currentUser, "ROLE_ADMIN", "ROLE_PLATFORM",
+                        "ROLE_RESTAURANT_OWNER", "ROLE_RESTAURANT_STAFF"));
         return ResponseEntity.ok(ApiResponse.success("Order cancelled", order));
     }
 

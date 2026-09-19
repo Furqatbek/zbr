@@ -81,6 +81,10 @@ class OrderServiceTest {
         when(order.getExternalOrderNo()).thenReturn("ORD-TEST-001");
         when(order.getStatus()).thenReturn(status);
         when(order.getPaymentStatus()).thenReturn(paymentStatus);
+        // Delegated to the real enum rather than stubbed per test: the customer
+        // cancellation window is a property of the status, and a mock that
+        // answers false for CREATED would hide the rule instead of testing it.
+        when(order.isConsumerCancellable()).thenReturn(status.isConsumerCancellable());
         Restaurant restaurant = mock(Restaurant.class);
         when(restaurant.getId()).thenReturn(10L);
         User consumer = mock(User.class);
@@ -334,6 +338,91 @@ class OrderServiceTest {
                     .isInstanceOf(InvalidOperationException.class);
             verify(orderRepository, never()).save(any());
             verify(paymentService, never()).refundPayment(anyLong(), any(), anyString());
+        }
+    }
+
+    @Nested
+    @DisplayName("the customer cancellation window")
+    class CancellationWindow {
+
+        private CancelOrderRequest request() {
+            return CancelOrderRequest.builder().reason("Changed my mind").build();
+        }
+
+        /** 20L is the consumer on every mocked order; 99L is somebody else. */
+        private Order cooking() {
+            Order order = mockOrder(OrderStatus.PREPARING, PaymentStatus.CONFIRMED);
+            when(order.isCancellable()).thenReturn(true);
+            when(orderRepository.findByIdWithLock(1L)).thenReturn(Optional.of(order));
+            when(orderRepository.save(order)).thenReturn(order);
+            when(orderMapper.toDto(order)).thenReturn(mock(OrderDto.class));
+            return order;
+        }
+
+        @Test
+        @DisplayName("the customer cannot cancel once the kitchen has started")
+        void customerRefusedWhileCooking() {
+            Order order = cooking();
+
+            assertThatThrownBy(() -> orderService.cancelOrder(1L, request(), 20L, false))
+                    .isInstanceOf(InvalidOperationException.class);
+
+            // The money matters more than the status here: the old behaviour
+            // refunded in full while the restaurant carried on cooking.
+            verify(paymentService, never()).refundPayment(anyLong(), any(), anyString());
+            verify(order, never()).updateStatus(OrderStatus.CANCELLED);
+        }
+
+        @Test
+        @DisplayName("the customer can still cancel before the kitchen starts")
+        void customerAllowedBeforeCooking() {
+            Order order = mockOrder(OrderStatus.ACCEPTED, PaymentStatus.CONFIRMED);
+            when(order.isCancellable()).thenReturn(true);
+            when(orderRepository.findByIdWithLock(1L)).thenReturn(Optional.of(order));
+            when(orderRepository.save(order)).thenReturn(order);
+            when(orderMapper.toDto(order)).thenReturn(mock(OrderDto.class));
+
+            orderService.cancelOrder(1L, request(), 20L, false);
+
+            verify(order).updateStatus(OrderStatus.CANCELLED);
+            verify(paymentService).refundPayment(eq(1L), isNull(), anyString());
+        }
+
+        @Test
+        @DisplayName("the restaurant can cancel a cooking order")
+        void businessAllowedWhileCooking() {
+            // A fire, a spoiled delivery, a venue that has to stop mid-service.
+            // The cutoff protects the restaurant; it must not trap them.
+            Order order = cooking();
+
+            orderService.cancelOrder(1L, request(), 99L, true);
+
+            verify(order).updateStatus(OrderStatus.CANCELLED);
+            verify(paymentService).refundPayment(eq(1L), isNull(), anyString());
+        }
+
+        @Test
+        @DisplayName("staff cancelling their OWN order are still the customer")
+        void staffCancellingOwnOrderIsBound() {
+            // Roles on the account do not decide this — the relationship to
+            // this order does. Otherwise anyone holding a staff role could
+            // cancel their own half-cooked dinner for a full refund.
+            Order order = cooking();
+
+            assertThatThrownBy(() -> orderService.cancelOrder(1L, request(), 20L, true))
+                    .isInstanceOf(InvalidOperationException.class);
+            verify(paymentService, never()).refundPayment(anyLong(), any(), anyString());
+        }
+
+        @Test
+        @DisplayName("the default entry point treats the caller as the customer")
+        void threeArgOverloadIsCustomerFacing() {
+            // Anything that has not said otherwise is a customer. Defaulting the
+            // other way would reopen the window everywhere it is not passed.
+            cooking();
+
+            assertThatThrownBy(() -> orderService.cancelOrder(1L, request(), 20L))
+                    .isInstanceOf(InvalidOperationException.class);
         }
     }
 }

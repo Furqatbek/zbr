@@ -112,10 +112,34 @@ public enum OrderStatus {
     }
 
     /**
-     * Check if order can be cancelled in current status.
+     * Whether the order can be cancelled at all, by anyone.
+     *
+     * <p>This is the RESTAURANT's and the platform's reach, not the customer's —
+     * a kitchen fire, a spoiled delivery or a venue that has to stop mid-service
+     * must still be able to kill an order that is already cooking. For what a
+     * customer may cancel, use {@link #isConsumerCancellable()}.
      */
     public boolean isCancellable() {
         return this == CREATED || this == ACCEPTED || this == PREPARING || this == READY || this == COURIER_ASSIGNED;
+    }
+
+    /**
+     * Whether the CUSTOMER can still cancel, which stops once cooking starts.
+     *
+     * <p>Up to {@link #ACCEPTED} nothing has been made, so changing your mind
+     * costs the restaurant nothing. From {@link #PREPARING} the ingredients are
+     * gone and a cook's time is spent, and a full refund means the restaurant
+     * has bought a meal nobody eats.
+     *
+     * <p>Every status was cancellable by the customer with a full refund right
+     * up to the moment the courier lifted the bag, and nothing told the
+     * restaurant it was happening — the venue silently absorbed it. Restos
+     * enforces this same cutoff on their side, so without it a cancellation
+     * would be refunded here while the kitchen carried on cooking and expecting
+     * to be paid.
+     */
+    public boolean isConsumerCancellable() {
+        return this == CREATED || this == ACCEPTED;
     }
 
     /**

@@ -307,6 +307,19 @@ public class OrderService {
     @Transactional
     @Auditable(action = "CANCEL_ORDER", entityType = "Order")
     public OrderDto cancelOrder(Long orderId, CancelOrderRequest request, Long cancelledBy) {
+        return cancelOrder(orderId, request, cancelledBy, false);
+    }
+
+    /**
+     * Cancel an order.
+     *
+     * @param onBehalfOfBusiness true when the caller acts with the restaurant's
+     *        or the platform's authority rather than as the customer. Only they
+     *        may cancel an order that is already being cooked — see
+     *        {@link OrderStatus#isConsumerCancellable()}.
+     */
+    public OrderDto cancelOrder(Long orderId, CancelOrderRequest request, Long cancelledBy,
+                                boolean onBehalfOfBusiness) {
         Order order = orderRepository.findByIdWithLock(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Order", "id", orderId));
 
@@ -324,6 +337,18 @@ public class OrderService {
                     order.getStatus().name(),
                     "Order cannot be cancelled in current status"
             );
+        }
+
+        // Someone with restaurant or platform authority may cancel a cooking
+        // order; the person who placed it may not. A caller who holds a staff
+        // role but is cancelling their OWN order is a customer here — the test
+        // is their relationship to this order, not the roles on their account.
+        boolean actingAsCustomer = !onBehalfOfBusiness
+                || order.getConsumer().getId().equals(cancelledBy);
+        if (actingAsCustomer && !order.isConsumerCancellable()) {
+            throw new InvalidOperationException(
+                    "Заказ уже готовится, отменить его больше нельзя. "
+                            + "Свяжитесь с поддержкой, если что-то пошло не так.");
         }
 
         OrderStatus previousStatus = order.getStatus();

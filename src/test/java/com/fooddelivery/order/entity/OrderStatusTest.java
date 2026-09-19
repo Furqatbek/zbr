@@ -109,4 +109,44 @@ class OrderStatusTest {
                     .isTrue();
         }
     }
+
+    @Test
+    @DisplayName("The customer's cancellation window closes when cooking starts")
+    void consumerCancellationWindowClosesAtPreparing() {
+        assertThat(OrderStatus.CREATED.isConsumerCancellable()).isTrue();
+        assertThat(OrderStatus.ACCEPTED.isConsumerCancellable()).isTrue();
+
+        // From here the ingredients are used and a cook's time is spent. A full
+        // refund would mean the restaurant bought a meal nobody eats.
+        assertThat(OrderStatus.PREPARING.isConsumerCancellable()).isFalse();
+        assertThat(OrderStatus.READY.isConsumerCancellable()).isFalse();
+        assertThat(OrderStatus.COURIER_ASSIGNED.isConsumerCancellable()).isFalse();
+    }
+
+    @Test
+    @DisplayName("The restaurant's reach is wider than the customer's, never narrower")
+    void businessCanCancelWhereverTheCustomerCan() {
+        // A kitchen fire has to be cancellable at any live status, so the
+        // narrower rule must stay a strict subset of the broader one.
+        for (OrderStatus status : OrderStatus.values()) {
+            if (status.isConsumerCancellable()) {
+                assertThat(status.isCancellable())
+                        .withFailMessage("%s is customer-cancellable but not cancellable at all", status)
+                        .isTrue();
+            }
+        }
+        assertThat(OrderStatus.PREPARING.isCancellable()).isTrue();
+        assertThat(OrderStatus.COURIER_ASSIGNED.isCancellable()).isTrue();
+    }
+
+    @Test
+    @DisplayName("No terminal status is cancellable by anyone")
+    void terminalStatusesNotCancellable() {
+        for (OrderStatus status : OrderStatus.values()) {
+            if (status.isTerminal()) {
+                assertThat(status.isCancellable()).isFalse();
+                assertThat(status.isConsumerCancellable()).isFalse();
+            }
+        }
+    }
 }
