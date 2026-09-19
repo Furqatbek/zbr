@@ -1,10 +1,11 @@
 # Reply to Restos — round five
 
-**Draft for review.** One paragraph is marked DECISION NEEDED and has to be
-settled before sending. It is a disclosure rather than a negotiation, so the
-reply cannot go without it — but what it commits us to is yours to decide.
+**Draft for review.** Nothing here blocks sending. One paragraph is marked
+DECISION NEEDED, but it is now an answer we owe them rather than a condition
+they have set — see below.
 
-Supersedes the round-four draft, which was never sent.
+Answers their rounds three and four together. Supersedes our own round-four
+draft, which was never sent.
 
 ---
 
@@ -23,11 +24,20 @@ We kept the fields you ignore (`name`, `unitPrice`, `lineTotal`, `subtotal`,
 `deliveryFee`). They cost nothing and they make a ticket legible to a human
 reading it.
 
-**One thing to confirm on `expectedTotal`.** We have implemented your mapping as
-written — it carries our `total`. But ours includes delivery, a tip and a tax
-line, none of which appear in the menu you published, so if your check is against
-what your own prices add up to it will never match. Say the word and we will send
-the food-only figure instead; it is one line.
+**`expectedTotal` — you were right, and it is fixed.** We had it as our order
+total, which would have failed every delivery order you ever received from us.
+It is now `subtotal + deliveryFee`, per your formula.
+
+Your paragraph on what the number is *for* is what made it land. We had been
+treating it as a checksum and reaching for whichever of our figures looked
+closest; it is a reconciliation between two companies, and once that is said the
+shape is obvious. We have written that reasoning into the code rather than the
+number, so the next person to touch it inherits the why.
+
+The hint you added deserves saying out loud: you found a failure mode in our
+implementation, fixed your side so it cannot happen quietly, and kept it narrow
+enough not to mislead on a genuinely stale price. We would not have diagnosed
+that from a 409.
 
 ## `paymentMode` — sent, and a warning attached
 
@@ -103,29 +113,35 @@ for a person rather than something to send again.
 
 ## Pricing
 
-> **DECISION NEEDED — the disclosure is not optional; the commitment is.**
-> Resolve internally before sending. The paragraph below is true whatever is
-> decided; the final sentence is what needs an answer.
-
-You asked for the rule in writing rather than a description of behaviour. That
-was right to insist on, because writing it down surfaced something we should
-tell you plainly.
+> **DECISION NEEDED — what the 8% actually is.** Not a blocker for sending; the
+> paragraph below is true either way. But they have asked a fair question and
+> the answer is ours to establish.
 
 **The line price is exactly as you send it.** A price you publish is written to
 the field the customer is billed from, and there is no code path that marks it
-up. Unconditional, and it is what we have built on.
+up. Unconditional, and it is what we have built on. You have confirmed that is
+what you needed, and we will put it in writing as policy once the below is
+settled, because the two sentences should arrive together.
 
-**But our order total is not the sum of those lines.** We add an 8% tax line at
-checkout, above the food and below delivery. A customer ordering a 30 000 dish
-sees 30 000 for the dish and pays 32 400 for the food component.
+**Your question is the right one and we do not yet have the answer.** Which of
+the three the 8% is — a tax we remit, a service fee, or a leftover default — is
+genuinely not established here. It is a hard-coded constant applied to every
+order on the platform and labelled `tax` to the customer. Nobody currently in
+the building chose it.
 
-By the test you set — whether your customer pays more than you published — that
-is the thing you were asking about, and you should hear it from us rather than
-find it in a reconciliation. It is under review here. We will come back with
-either a commitment that the published price is the total price for the food, or
-the precise rule and what the 8% is. You will have the one sentence your
-restaurants will ask you to repeat; we would rather it were a sentence that
-survives being repeated.
+Your argument for why it matters is better than the one we would have made. The
+receipt carries the venue's name, the venue stands next to the claim, and a
+customer doing the arithmetic reaches them before us. That is enough on its own.
+
+We will tell you what it is once we know, and if the answer is "a service fee
+mislabelled for years" then you are right that it is cheaper to fix now than
+after a hundred venues are live.
+
+**On your markup editor** — showing the owner the whole chain, ending with what
+their customer actually pays, is a better answer to the problem than anything we
+proposed, and you built it while we were still deciding what to call the line.
+Thank you. We will tell you the moment the figure settles so the label can stop
+being ours-according-to-you.
 
 ## The two you closed
 

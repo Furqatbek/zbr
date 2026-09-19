@@ -54,12 +54,14 @@ public class OutboundOrder {
     private List<Item> items;
 
     /**
-     * What the customer pays. Their name for our total, per their mapping.
+     * The amount that reconciles between the two companies for this ticket:
+     * the food at their published prices, plus the delivery fee.
      *
-     * <p>They validate it and answer 409 on a mismatch, so if their check is
-     * against their own line prices rather than against what we charge, this
-     * will need to become the food-only figure. Flagged to them; their table
-     * is what is implemented.
+     * <p>NOT what the customer pays — that carries a tax line and a tip they
+     * cannot see — and not the food alone, since the venue is owed the delivery
+     * fee too. It is deliberately the only figure both sides can compute from
+     * the same inputs, their menu, which is what makes a check on it mean
+     * something. They answer 409 when it disagrees.
      */
     private BigDecimal expectedTotal;
 

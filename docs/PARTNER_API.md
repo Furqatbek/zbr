@@ -271,7 +271,7 @@ We treat your `201` and your `200` + `duplicate: true` as the same success.
       "name": "Plov", "unitPrice": 30000, "lineTotal": 60000 }
   ],
   "expectedTotal": 75000,
-  "subtotal": 60000, "deliveryFee": 15000
+  "subtotal": 60000, "deliveryFee": 15000, "tax": 4800
 }
 ```
 
@@ -285,10 +285,13 @@ the customer has paid.
 
 **`paymentMode`** is `PREPAID` or `CASH`, always sent.
 
-**`expectedTotal`** follows your mapping of our `total`. Worth confirming: ours
-carries delivery, tip and tax, so if you validate against what your own prices
-add up to it will never match. Say the word and we will send the food-only
-figure instead.
+**`expectedTotal` is the food at your prices plus the delivery fee** — the
+amount that reconciles between the two companies for this ticket. Not what the
+customer pays (that carries a tax line and any tip, which you cannot see) and
+not the food alone (the venue is owed the delivery fee too). It is deliberately
+the only figure both sides can compute from the same menu, which is what makes
+a check on it mean anything. A discount we fund is not deducted: our promotion
+does not reduce what the venue is owed for food they cooked.
 
 **On `422 UNKNOWN_ITEMS`.** We now check at checkout instead: a basket
 containing an item you do not have is refused before the customer pays, naming

@@ -302,16 +302,55 @@ class PartnerOrderPushServiceTest {
         }
 
         @Test
-        @DisplayName("expectedTotal is what the customer pays, per their mapping")
-        void expectedTotalIsOurTotal() {
-            // Their published mapping is total -> expectedTotal, and their
-            // worked example used our all-in figure. We follow the contract
-            // they wrote and have asked them to confirm the arithmetic, since
-            // ours carries delivery, tip and an 8% tax line that cannot be
-            // reconstructed from the menu they published.
+        @DisplayName("expectedTotal is the food at their prices plus the delivery fee")
+        void expectedTotalReconciles() {
+            // Food 60 000 + delivery 15 000. Their formula exactly, and the
+            // only figure both sides can compute from the same menu.
             Order order = order();
+            order.setDeliveryFee(new BigDecimal("15000"));
+            order.setTax(new BigDecimal("4800"));
+            order.setTipAmount(new BigDecimal("5000"));
 
             assertThat(service.build(order, "55").getExpectedTotal()).isEqualByComparingTo("75000");
+        }
+
+        @Test
+        @DisplayName("our tax and tip are excluded — they cannot see them")
+        void taxAndTipExcluded() {
+            // The first reading of their mapping sent our order total. Every
+            // delivery order would have been refused for a price mismatch while
+            // the prices agreed to the so'm, and re-pulling the menu — their
+            // documented remedy — would have fixed nothing.
+            Order order = order();
+            order.setDeliveryFee(new BigDecimal("15000"));
+            order.setTax(new BigDecimal("4800"));
+            order.setTipAmount(new BigDecimal("5000"));
+            order.setTotal(new BigDecimal("84800"));
+
+            assertThat(service.build(order, "55").getExpectedTotal())
+                    .isNotEqualByComparingTo(order.getTotal())
+                    .isEqualByComparingTo("75000");
+        }
+
+        @Test
+        @DisplayName("a discount we fund does not reduce what the venue is owed")
+        void ourDiscountDoesNotReduceIt() {
+            // A promotion of ours is not the venue's to absorb: they cooked the
+            // food at their price either way.
+            Order order = order();
+            order.setDeliveryFee(new BigDecimal("15000"));
+            order.setDiscount(new BigDecimal("10000"));
+
+            assertThat(service.build(order, "55").getExpectedTotal()).isEqualByComparingTo("75000");
+        }
+
+        @Test
+        @DisplayName("a collection order is just the food")
+        void collectionOrderHasNoDeliveryFee() {
+            Order order = order();
+            order.setDeliveryFee(BigDecimal.ZERO);
+
+            assertThat(service.build(order, "55").getExpectedTotal()).isEqualByComparingTo("60000");
         }
 
         @Test

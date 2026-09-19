@@ -167,10 +167,36 @@ public class PartnerOrderPushService {
                                 .instructions(order.getDeliveryInstructions())
                                 .build())
                 .items(items)
-                .expectedTotal(order.getTotal())
+                .expectedTotal(reconcilableTotal(order))
                 .subtotal(order.getSubtotal())
                 .deliveryFee(order.getDeliveryFee())
                 .build();
+    }
+
+    /**
+     * The figure that has to reconcile between us and the partner for this
+     * ticket: the food at their published prices, plus the delivery fee.
+     *
+     * <p>Not our order total, which was the first reading of their mapping and
+     * was wrong. Ours also carries an 8% tax line and any tip — things only we
+     * know about — so every delivery order would have been refused for a price
+     * mismatch while the prices agreed to the so'm, and their documented remedy
+     * (re-pull the menu) would have fixed nothing because the menu was never
+     * stale. Both sides would have hunted price drift that did not exist.
+     *
+     * <p>Not the food alone either: the venue is owed the delivery fee too.
+     * This is deliberately the only number both sides can compute from the same
+     * inputs — their menu — which is what makes a check on it mean anything.
+     *
+     * <p>A discount we fund is not deducted. A promotion of ours does not
+     * reduce what the venue is owed for the food they cooked.
+     */
+    private java.math.BigDecimal reconcilableTotal(Order order) {
+        java.math.BigDecimal subtotal = order.getSubtotal() != null
+                ? order.getSubtotal() : java.math.BigDecimal.ZERO;
+        java.math.BigDecimal deliveryFee = order.getDeliveryFee() != null
+                ? order.getDeliveryFee() : java.math.BigDecimal.ZERO;
+        return subtotal.add(deliveryFee);
     }
 
     /**
