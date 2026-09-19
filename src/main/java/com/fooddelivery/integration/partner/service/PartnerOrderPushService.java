@@ -178,7 +178,7 @@ public class PartnerOrderPushService {
      * ticket: the food at their published prices, plus the delivery fee.
      *
      * <p>Not our order total, which was the first reading of their mapping and
-     * was wrong. Ours also carries an 8% tax line and any tip — things only we
+     * was wrong. Ours also carries a platform service fee and any tip — only we
      * know about — so every delivery order would have been refused for a price
      * mismatch while the prices agreed to the so'm, and their documented remedy
      * (re-pull the menu) would have fixed nothing because the menu was never

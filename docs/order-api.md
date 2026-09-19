@@ -102,6 +102,7 @@ Create a new order for a restaurant.
     "paymentStatus": "PENDING",
     "items": [...],
     "subtotal": 25.00,
+    "serviceFee": 2.25,
     "tax": 2.25,
     "deliveryFee": 3.99,
     "discount": 2.50,
@@ -158,6 +159,7 @@ Retrieve order details by ID.
       }
     ],
     "subtotal": 25.00,
+    "serviceFee": 2.25,
     "tax": 2.25,
     "deliveryFee": 3.99,
     "discount": 2.50,

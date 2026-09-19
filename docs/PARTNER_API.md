@@ -271,7 +271,7 @@ We treat your `201` and your `200` + `duplicate: true` as the same success.
       "name": "Plov", "unitPrice": 30000, "lineTotal": 60000 }
   ],
   "expectedTotal": 75000,
-  "subtotal": 60000, "deliveryFee": 15000, "tax": 4800
+  "subtotal": 60000, "deliveryFee": 15000, "serviceFee": 4800
 }
 ```
 
@@ -287,7 +287,7 @@ the customer has paid.
 
 **`expectedTotal` is the food at your prices plus the delivery fee** — the
 amount that reconciles between the two companies for this ticket. Not what the
-customer pays (that carries a tax line and any tip, which you cannot see) and
+customer pays (that carries our service fee and any tip, which you cannot see) and
 not the food alone (the venue is owed the delivery fee too). It is deliberately
 the only figure both sides can compute from the same menu, which is what makes
 a check on it mean anything. A discount we fund is not deducted: our promotion

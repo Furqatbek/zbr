@@ -66,7 +66,18 @@ public class OrderDto {
     @Schema(description = "Subtotal (items total)")
     private BigDecimal subtotal;
 
-    @Schema(description = "Tax amount")
+    @Schema(description = "Platform service fee")
+    private BigDecimal serviceFee;
+
+    /**
+     * Deprecated alias for {@link #serviceFee}, carrying the same amount.
+     *
+     * <p>Three shipped mobile apps and the admin panel read {@code tax} today,
+     * and a release cycle is a worse thing to spend than a duplicated field.
+     * It was never a tax — see V47 — so this goes once the clients have moved.
+     */
+    @Deprecated
+    @Schema(description = "Deprecated: same value as serviceFee. Was never a tax; use serviceFee.")
     private BigDecimal tax;
 
     @Schema(description = "Delivery fee")

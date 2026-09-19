@@ -1144,6 +1144,7 @@ Sent on every status change for a specific order. Full `OrderDto`:
   "paymentStatus": "PAID",
   "items": [...],
   "subtotal": 85000,
+  "serviceFee": 6800,
   "tax": 6800,
   "deliveryFee": 15000,
   "discount": 0,

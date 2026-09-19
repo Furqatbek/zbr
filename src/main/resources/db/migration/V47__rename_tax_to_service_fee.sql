@@ -1,0 +1,22 @@
+-- The "tax" line was never a tax.
+--
+-- It arrived with the initial import as a hard-coded 8% — a US sales-tax
+-- default from the scaffolding, alongside dollar-scale examples in the API docs
+-- — and was never changed, configured or read again. Nothing in the platform
+-- computes a liability from it, reports it, or remits it to anyone: outside the
+-- order row itself the only references are the constant that sets it and the
+-- field that shows it to the customer.
+--
+-- It also matches no Uzbek tax. VAT here is 12% and is included in the
+-- displayed retail price rather than added at checkout, and this was charged on
+-- the food alone, leaving the delivery service untaxed.
+--
+-- So it is a platform service fee that has been wearing the wrong label. The
+-- money is real and the venue's name is on the receipt beside it, which is why
+-- the name matters: a customer doing the arithmetic reaches the restaurant
+-- before they reach us.
+--
+-- Renamed rather than zeroed and re-added, so historical orders keep the amount
+-- they were actually charged. Those rows were the same fee under the same
+-- misnomer; nothing about them changes except what the column is called.
+ALTER TABLE orders RENAME COLUMN tax TO service_fee;

@@ -561,6 +561,7 @@ Authorization: Bearer {token}
       }
     ],
     "subtotal": 110000,
+    "serviceFee": 11000,
     "tax": 11000,
     "deliveryFee": 15000,
     "discount": 22000,
@@ -1019,3 +1020,20 @@ CREATED ──► ACCEPTED ──► PREPARING ──► READY ──► COURIER
 |-------------|------|----------|
 | john.doe@example.com | CONSUMER | password |
 | +998901234567 | CONSUMER | OTP: 123456 (test) |
+
+---
+
+## Deprecated: `tax`
+
+Order responses carry `serviceFee` and, for now, a `tax` field holding the same
+amount. `tax` is deprecated and will be removed.
+
+It was never a tax. The figure arrived with the platform's first commit as a
+hard-coded 8% — a US sales-tax default, alongside dollar-scale examples in these
+same docs — and nothing ever computed a liability from it, reported it or
+remitted it to anyone. It is the platform's service fee and is now named and
+configured as one.
+
+**Clients should read `serviceFee`.** Anything displaying this to a customer
+should stop calling it tax: the restaurant's name is on the receipt beside it,
+so the venue is the one a customer asks about it first.

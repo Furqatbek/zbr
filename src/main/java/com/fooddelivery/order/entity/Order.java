@@ -95,9 +95,17 @@ public class Order {
     @Builder.Default
     private BigDecimal subtotal = BigDecimal.ZERO;
 
-    @Column(precision = 10, scale = 2)
+    /**
+     * The platform's service fee on this order, in money rather than a rate.
+     *
+     * <p>Stored as an amount so a historical order keeps what it was actually
+     * charged when the rate changes. Called {@code tax} until it was traced to
+     * a US sales-tax default in the initial import that nothing ever remitted —
+     * see V47.
+     */
+    @Column(name = "service_fee", precision = 10, scale = 2)
     @Builder.Default
-    private BigDecimal tax = BigDecimal.ZERO;
+    private BigDecimal serviceFee = BigDecimal.ZERO;
 
     @Column(name = "delivery_fee", precision = 10, scale = 2)
     @Builder.Default
@@ -234,7 +242,7 @@ public class Order {
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         this.total = subtotal
-                .add(tax != null ? tax : BigDecimal.ZERO)
+                .add(serviceFee != null ? serviceFee : BigDecimal.ZERO)
                 .add(deliveryFee != null ? deliveryFee : BigDecimal.ZERO)
                 .add(tipAmount != null ? tipAmount : BigDecimal.ZERO)
                 .subtract(discount != null ? discount : BigDecimal.ZERO);

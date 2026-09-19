@@ -69,7 +69,37 @@ public class OrderService {
     @Value("${app.order.auto-cancel-unpaid-minutes:30}")
     private int autoCancelMinutes;
 
-    private static final BigDecimal TAX_RATE = new BigDecimal("0.08"); // 8% tax
+    /**
+     * The platform's service fee, as a fraction of the food subtotal.
+     *
+     * <p>Configurable, and defaulting to the 0.08 that has been charged since
+     * the platform's first order — so setting nothing changes nothing. It was
+     * called a tax until it was traced to a US sales-tax default in the initial
+     * import that nothing ever remitted (see V47); 8% of the food, on a
+     * platform in a country whose VAT is 12% and included in the shelf price.
+     *
+     * <p>Set it to 0 to stop charging it. Charged on the food only: the
+     * delivery fee and any tip are not marked up.
+     */
+    @Value("${app.order.service-fee-rate:0.08}")
+    private BigDecimal serviceFeeRate;
+
+    /**
+     * A rate outside [0, 1) is a configuration mistake that would otherwise be
+     * discovered by a customer's bill. Checked at startup rather than at
+     * checkout: the first order of the day is a bad place to find out.
+     */
+    @jakarta.annotation.PostConstruct
+    void validateServiceFeeRate() {
+        if (serviceFeeRate == null
+                || serviceFeeRate.compareTo(BigDecimal.ZERO) < 0
+                || serviceFeeRate.compareTo(BigDecimal.ONE) >= 0) {
+            throw new IllegalStateException("app.order.service-fee-rate must be at least 0 and "
+                    + "below 1 (it is a fraction, not a percentage). Got: " + serviceFeeRate);
+        }
+        log.info("Platform service fee: {}% of the food subtotal",
+                serviceFeeRate.multiply(new BigDecimal("100")).stripTrailingZeros().toPlainString());
+    }
 
     /**
      * Create a new order.
@@ -150,8 +180,9 @@ public class OrderService {
 
         // Calculate totals
         order.calculateTotals();
-        order.setTax(order.getSubtotal().multiply(TAX_RATE).setScale(2, java.math.RoundingMode.HALF_UP));
-        order.calculateTotals(); // Recalculate with tax
+        order.setServiceFee(order.getSubtotal().multiply(serviceFeeRate)
+                .setScale(2, java.math.RoundingMode.HALF_UP));
+        order.calculateTotals(); // Recalculate with the service fee
 
         // Validate minimum order
         if (order.getSubtotal().compareTo(restaurant.getMinimumOrder()) < 0) {

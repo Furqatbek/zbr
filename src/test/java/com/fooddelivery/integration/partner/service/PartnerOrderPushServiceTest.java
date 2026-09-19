@@ -308,14 +308,14 @@ class PartnerOrderPushServiceTest {
             // only figure both sides can compute from the same menu.
             Order order = order();
             order.setDeliveryFee(new BigDecimal("15000"));
-            order.setTax(new BigDecimal("4800"));
+            order.setServiceFee(new BigDecimal("4800"));
             order.setTipAmount(new BigDecimal("5000"));
 
             assertThat(service.build(order, "55").getExpectedTotal()).isEqualByComparingTo("75000");
         }
 
         @Test
-        @DisplayName("our tax and tip are excluded — they cannot see them")
+        @DisplayName("our service fee and tip are excluded — they cannot see them")
         void taxAndTipExcluded() {
             // The first reading of their mapping sent our order total. Every
             // delivery order would have been refused for a price mismatch while
@@ -323,7 +323,7 @@ class PartnerOrderPushServiceTest {
             // documented remedy — would have fixed nothing.
             Order order = order();
             order.setDeliveryFee(new BigDecimal("15000"));
-            order.setTax(new BigDecimal("4800"));
+            order.setServiceFee(new BigDecimal("4800"));
             order.setTipAmount(new BigDecimal("5000"));
             order.setTotal(new BigDecimal("84800"));
 

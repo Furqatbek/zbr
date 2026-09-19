@@ -569,6 +569,7 @@ Authorization: Bearer {token}
       }
     ],
     "subtotal": 90000,
+    "serviceFee": 9000,
     "tax": 9000,
     "deliveryFee": 15000,
     "discount": 0,

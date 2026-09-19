@@ -57,7 +57,7 @@ public class OutboundOrder {
      * The amount that reconciles between the two companies for this ticket:
      * the food at their published prices, plus the delivery fee.
      *
-     * <p>NOT what the customer pays — that carries a tax line and a tip they
+     * <p>NOT what the customer pays — that carries a service fee and a tip they
      * cannot see — and not the food alone, since the venue is owed the delivery
      * fee too. It is deliberately the only figure both sides can compute from
      * the same inputs, their menu, which is what makes a check on it mean

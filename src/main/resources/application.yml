@@ -198,6 +198,17 @@ app:
     api-key: ${PAYMENT_API_KEY:}
 
   order:
+    # The platform's service fee, as a fraction of the food subtotal.
+    #
+    # Was a hard-coded 0.08 labelled "tax" to the customer — a US sales-tax
+    # default that arrived with the initial import and that nothing on the
+    # platform ever computed, reported or remitted. It is a service fee, and it
+    # is now named and configured as one. See V47.
+    #
+    # The default preserves what has always been charged, so an unset value
+    # changes nothing. Set it to 0 to stop charging it. Charged on the food
+    # only — the delivery fee and any tip are not marked up.
+    service-fee-rate: ${ORDER_SERVICE_FEE_RATE:0.08}
     auto-cancel-unpaid-minutes: 30
     max-preparation-minutes: 60
     delivery-radius-km: 10

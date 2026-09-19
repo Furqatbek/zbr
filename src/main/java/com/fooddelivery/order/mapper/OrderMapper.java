@@ -26,6 +26,10 @@ public interface OrderMapper {
     @Mapping(target = "courierId", source = "courier.id")
     @Mapping(target = "courierName", expression = "java(order.getCourier() != null ? order.getCourier().getUser().getFullName() : null)")
     @Mapping(target = "courierPhone", expression = "java(order.getCourier() != null ? order.getCourier().getUser().getPhone() : null)")
+    // Deprecated alias carrying the same amount, so the shipped apps and the
+    // admin panel keep working while they move to serviceFee. It was never a
+    // tax; see V47.
+    @Mapping(target = "tax", source = "serviceFee")
     OrderDto toDto(Order order);
 
     List<OrderDto> toDtoList(List<Order> orders);
