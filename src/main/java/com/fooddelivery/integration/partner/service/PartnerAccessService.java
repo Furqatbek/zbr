@@ -37,6 +37,16 @@ public class PartnerAccessService {
     private final RestaurantService restaurantService;
 
     /**
+     * Whether an order's paymentMode reflects how it will actually be paid.
+     *
+     * <p>False until the apps set it. While it is false, a venue cannot be
+     * switched on for live order push — see grantVenue.
+     */
+    @org.springframework.beans.factory.annotation.Value(
+            "${app.integration.partner.payment-mode-authoritative:false}")
+    private boolean paymentModeAuthoritative;
+
+    /**
      * Resolve the partner's own venue id to one of our restaurants, having
      * confirmed they may do this to it.
      *
@@ -126,6 +136,23 @@ public class PartnerAccessService {
         grant.setExternalVenueId(externalVenueId.trim());
         grant.setCapabilities(capabilities == null ? Set.of() : Set.copyOf(capabilities));
         if (pushOrders != null) {
+            if (pushOrders && !paymentModeAuthoritative) {
+                // Every order currently says PREPAID because the apps do not
+                // set a payment mode yet. To a partner's till that is not
+                // decoration — it prints as a paid order, and a counter hand
+                // gives a bag to a courier who owes nothing.
+                //
+                // Restos asked us not to flip this until the field is real, and
+                // said they cannot detect the change from their side. A promise
+                // someone has to remember is worse than a switch, so it is a
+                // switch: set app.integration.partner.payment-mode-authoritative
+                // once the apps send it.
+                throw new BusinessException("Order push cannot be enabled while paymentMode is a "
+                        + "constant. Every order would be announced as PREPAID, and a cash order "
+                        + "announced as prepaid is food the venue hands over and collects nothing "
+                        + "for. Set app.integration.partner.payment-mode-authoritative once the "
+                        + "apps send it for real.");
+            }
             grant.setPushOrders(pushOrders);
         }
 

@@ -52,6 +52,10 @@ class PartnerAccessServiceTest {
     @BeforeEach
     void setUp() {
         service = new PartnerAccessService(partnerRepository, grantRepository, restaurantService);
+        // The apps do not set a payment mode yet, so live order push is barred.
+        // Individual tests turn it on where that is what they are testing.
+        org.springframework.test.util.ReflectionTestUtils.setField(
+                service, "paymentModeAuthoritative", true);
         Partner partner = Partner.builder().id(7L).code("RESTOS").active(true).build();
         restos = new PartnerPrincipal(partner, 1L);
         restaurant = Restaurant.builder().id(100L).name("Osh Markazi").build();
@@ -176,6 +180,46 @@ class PartnerAccessServiceTest {
         // And orders keep printing where they always did. Switching a kitchen
         // over is its own decision, never a side effect of mapping a venue.
         assertThat(created.isPushOrders()).isFalse();
+    }
+
+    @Test
+    @DisplayName("order push cannot be switched on while every order says PREPAID")
+    void pushRefusedWhilePaymentModeIsAConstant() {
+        // To a partner's till PREPAID is not decoration: the ticket prints as a
+        // paid order and a counter hand gives a bag to a courier who owes
+        // nothing. Restos asked us not to flip this early and said they cannot
+        // detect it from their side, so it is a switch rather than a promise
+        // someone has to remember.
+        org.springframework.test.util.ReflectionTestUtils.setField(
+                service, "paymentModeAuthoritative", false);
+        Partner partner = Partner.builder().id(7L).code("RESTOS").active(true).build();
+        when(partnerRepository.findById(7L)).thenReturn(Optional.of(partner));
+        when(restaurantService.getRestaurantEntityById(100L)).thenReturn(restaurant);
+
+        assertThatThrownBy(() -> service.grantVenue(7L, 100L, "venue-55",
+                Set.of(PartnerCapability.MENU_WRITE), true))
+                .isInstanceOf(com.fooddelivery.common.exception.BusinessException.class)
+                .hasMessageContaining("paymentMode");
+    }
+
+    @Test
+    @DisplayName("menu access is still grantable while order push is barred")
+    void menuAccessUnaffectedByThePaymentModeGate() {
+        // Menu writes and status reports are safe; it is only order push that
+        // carries the risk, and blocking the whole grant would stop staging
+        // getting started at all.
+        org.springframework.test.util.ReflectionTestUtils.setField(
+                service, "paymentModeAuthoritative", false);
+        Partner partner = Partner.builder().id(7L).code("RESTOS").active(true).build();
+        when(partnerRepository.findById(7L)).thenReturn(Optional.of(partner));
+        when(restaurantService.getRestaurantEntityById(100L)).thenReturn(restaurant);
+        when(grantRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+
+        PartnerVenueGrant granted = service.grantVenue(7L, 100L, "venue-55",
+                Set.of(PartnerCapability.MENU_WRITE, PartnerCapability.ORDER_STATUS_WRITE), false);
+
+        assertThat(granted.getCapabilities()).hasSize(2);
+        assertThat(granted.isPushOrders()).isFalse();
     }
 
     @Test

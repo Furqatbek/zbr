@@ -147,6 +147,58 @@ class PartnerStatusReportServiceTest {
                 .thenReturn(new PartnerOrderPushClient.Result.Rejected("409 already DELIVERED"));
 
         assertThat(service.report(5L, 100L, REF, OrderStatus.DELIVERED, null)).isTrue();
+        verify(pushRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("a cancellation they refuse is recorded as food the venue is owed for")
+    void refusedCancellationIsRecorded() {
+        // Their cutoff. Our order is cancelled and the customer refunded either
+        // way; their 422 says the kitchen had already started, so the food
+        // exists and somebody carries its cost. Recorded rather than logged,
+        // because the commercial answer does not exist yet and a log line
+        // cannot be settled against later.
+        when(client.reportStatus(any(), anyString(), any(), anyString(), any(), anyString()))
+                .thenReturn(new PartnerOrderPushClient.Result.Rejected(
+                        "422 CANCELLATION_WINDOW_CLOSED (PREPARING)"));
+
+        assertThat(service.report(5L, 100L, REF, OrderStatus.CANCELLED, "Customer changed mind"))
+                .isTrue();
+
+        verify(pushRepository).save(org.mockito.ArgumentMatchers.argThat(record ->
+                record.getVenueOwedAt() != null
+                        && record.getVenueOwedReason().contains("CANCELLATION_WINDOW_CLOSED")));
+    }
+
+    @Test
+    @DisplayName("a refused cancellation is not counted twice")
+    void refusedCancellationIsNotDoubleCounted() {
+        // A redelivered message must not make the venue look owed for two
+        // meals when they cooked one.
+        when(pushRepository.findByOrderIdAndPartnerId(anyLong(), anyLong()))
+                .thenReturn(Optional.of(PartnerOrderPush.builder()
+                        .orderId(5L).partnerId(7L).externalOrderNo(REF)
+                        .status(PartnerPushStatus.DELIVERED)
+                        .venueOwedAt(java.time.LocalDateTime.now())
+                        .venueOwedReason("422 CANCELLATION_WINDOW_CLOSED")
+                        .build()));
+        when(client.reportStatus(any(), anyString(), any(), anyString(), any(), anyString()))
+                .thenReturn(new PartnerOrderPushClient.Result.Rejected("422 CANCELLATION_WINDOW_CLOSED"));
+
+        service.report(5L, 100L, REF, OrderStatus.CANCELLED, null);
+
+        verify(pushRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("a refused cancellation is never retried")
+    void refusedCancellationIsNotRetried() {
+        // Not an integration fault. Sending it again would only produce the
+        // same refusal, and would bury it.
+        when(client.reportStatus(any(), anyString(), any(), anyString(), any(), anyString()))
+                .thenReturn(new PartnerOrderPushClient.Result.Rejected("422 CANCELLATION_WINDOW_CLOSED"));
+
+        assertThat(service.report(5L, 100L, REF, OrderStatus.CANCELLED, null)).isTrue();
     }
 
     @Test

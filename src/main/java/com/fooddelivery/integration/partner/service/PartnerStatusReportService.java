@@ -58,6 +58,28 @@ public class PartnerStatusReportService {
     private final PartnerOrderPushClient client;
 
     /**
+     * Write down that a venue cooked food for an order we cancelled.
+     *
+     * <p>Its own transaction because the caller is read-only: this is the one
+     * side effect of reporting a status, and it exists so the number at the end
+     * of the week is explainable.
+     */
+    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW)
+    void recordVenueOwed(PartnerOrderPush push, String partnerCode,
+                         String externalOrderNo, String reason) {
+        if (push.getVenueOwedAt() != null) {
+            return;
+        }
+        push.setVenueOwedAt(java.time.LocalDateTime.now());
+        push.setVenueOwedReason(reason);
+        pushRepository.save(push);
+
+        log.warn("VENUE OWED — {} refused the cancellation of order {}: their kitchen had already "
+                        + "started, so the food was made and someone carries the cost. {}",
+                partnerCode, externalOrderNo, reason);
+    }
+
+    /**
      * @return false when the report failed in a way worth retrying.
      */
     @Transactional(readOnly = true)
@@ -95,6 +117,21 @@ public class PartnerStatusReportService {
             return true;
         }
         if (result instanceof PartnerOrderPushClient.Result.Rejected rejected) {
+            if (status == OrderStatus.CANCELLED) {
+                // Their cutoff refused the cancellation because the kitchen had
+                // already started. Our order is cancelled and the customer
+                // refunded either way — we cannot un-cancel it and would not
+                // want to. What their 422 says is that the venue is owed for a
+                // ticket it has already cooked, and that is a fact about money
+                // rather than an integration fault.
+                //
+                // Recorded rather than merely logged, because the commercial
+                // answer does not exist yet and a log line cannot be settled
+                // against later.
+                recordVenueOwed(push.get(), partner.getCode(), externalOrderNo, rejected.reason());
+                return true;
+            }
+
             // Not retried, and not fatal either. The order is already cooked and
             // delivered; what is lost is the venue's view of it closing, which
             // is worth a log and not worth a queue.

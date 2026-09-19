@@ -228,6 +228,12 @@ app:
       environment: ${PARTNER_ENVIRONMENT:production}
       # How stale a key's last-used timestamp may get before it is written again.
       last-used-write-interval-seconds: ${PARTNER_LAST_USED_INTERVAL_SECONDS:300}
+      # Whether an order's paymentMode reflects how it will really be paid.
+      # False while the apps do not set it: every order then says PREPAID, and a
+      # partner's till prints that as a paid order — a counter hand gives a bag
+      # to a courier who owes nothing. Until this is true, a venue cannot be
+      # switched on for live order push. Turn it on the day the apps send it.
+      payment-mode-authoritative: ${PARTNER_PAYMENT_MODE_AUTHORITATIVE:false}
 
   delivery:
     base-fee: ${DELIVERY_BASE_FEE:2.00}

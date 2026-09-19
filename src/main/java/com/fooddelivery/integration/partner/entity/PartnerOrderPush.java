@@ -65,4 +65,19 @@ public class PartnerOrderPush {
 
     @Column(name = "delivered_at")
     private LocalDateTime deliveredAt;
+
+    /**
+     * Set when the partner refused our cancellation because their kitchen had
+     * already started: the food was made and the venue is owed for it.
+     *
+     * <p>Not an error and not a retry. It is the one durable record that this
+     * ticket has a cost somebody carries, written before the commercial
+     * question is settled so the answer can be applied backwards when it
+     * arrives.
+     */
+    @Column(name = "venue_owed_at")
+    private LocalDateTime venueOwedAt;
+
+    @Column(name = "venue_owed_reason", length = 1000)
+    private String venueOwedReason;
 }
