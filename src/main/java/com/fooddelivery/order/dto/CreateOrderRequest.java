@@ -78,4 +78,14 @@ public class CreateOrderRequest {
 
     @Schema(description = "Discount code to apply")
     private String discountCode;
+
+    /**
+     * PREPAID or CASH. Optional, defaulting to PREPAID.
+     *
+     * <p>A venue on an integrated POS is told this and cannot be told nothing,
+     * so a cash order that does not say so is one where the kitchen hands over
+     * food and nobody collects. The apps should send it explicitly rather than
+     * relying on the default.
+     */
+    private com.fooddelivery.order.entity.PaymentMode paymentMode;
 }

@@ -35,6 +35,14 @@ public class RestosProduct {
     private Boolean available;
     private Boolean hasVariants;
 
+    /**
+     * The sizes this product is sold in. Previously not read at all, which is
+     * why every variant-bearing dish arrived here flattened to its base price
+     * with no size for a customer to choose.
+     */
+    @lombok.Builder.Default
+    private java.util.List<RestosVariant> variants = new java.util.ArrayList<>();
+
     // Weight-based items
     private Boolean isSoldByWeight;
     private String weightUnit;

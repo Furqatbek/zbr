@@ -3,6 +3,9 @@ package com.fooddelivery.integration.restos.service;
 import com.fooddelivery.common.exception.BusinessException;
 import com.fooddelivery.integration.restos.client.RestosMenuClient;
 import com.fooddelivery.integration.restos.dto.*;
+import com.fooddelivery.integration.partner.entity.Partner;
+import com.fooddelivery.integration.partner.entity.PartnerVenueGrant;
+import com.fooddelivery.restaurant.entity.ItemVariant;
 import com.fooddelivery.restaurant.entity.MenuCategory;
 import com.fooddelivery.restaurant.entity.MenuItem;
 import com.fooddelivery.restaurant.entity.Restaurant;
@@ -57,6 +60,7 @@ public class RestosMenuImportService {
     private final MenuItemRepository menuItemRepository;
     private final com.fooddelivery.integration.restos.config.RestosProperties restosProperties;
     private final com.fooddelivery.integration.restos.config.UrlSafetyValidator urlSafetyValidator;
+    private final com.fooddelivery.integration.partner.service.PartnerOrderPushService partnerLookup;
 
     /**
      * Import full menu from Restos using endpoint #3 (full menu).
@@ -82,9 +86,9 @@ public class RestosMenuImportService {
 
         List<RestosCategory> menu;
         try {
-            menu = menuClient.fetchFullMenu(baseUrl, externalRestaurantId, apiKey);
+            menu = fetchMenu(restaurant, baseUrl, externalRestaurantId, apiKey, result);
         } catch (Exception e) {
-            log.warn("Full menu endpoint (#3) failed, falling back to separate fetch: {}", e.getMessage());
+            log.warn("Menu endpoint failed, falling back to separate fetch: {}", e.getMessage());
             return importMenuSeparately(restaurant, baseUrl, externalRestaurantId, apiKey, overwrite, result);
         }
 
@@ -139,6 +143,45 @@ public class RestosMenuImportService {
                 result.getProductsSkipped(), result.getProductsDeactivated());
 
         return result;
+    }
+
+    /**
+     * The menu, from the partner endpoint when we have a partner credential and
+     * the public one otherwise.
+     *
+     * <p>The difference is money. The public endpoints are what a diner sees at
+     * the counter; a venue sets a separate markup for our channel to cover
+     * commission, and that markup appears ONLY on the partner endpoint. Every
+     * import before this one therefore priced their dishes at counter prices,
+     * and the venue silently absorbed the difference on each order.
+     *
+     * <p>The public endpoint stays as the fallback rather than being removed:
+     * it is the only thing available for a venue we have no partner credential
+     * for, and a wrong price is recoverable where an empty menu is not. The
+     * warning says which was used, because "which prices are these" turned out
+     * to be a question nobody could answer from the outside.
+     */
+    private List<RestosCategory> fetchMenu(Restaurant restaurant, String baseUrl,
+                                            Long externalRestaurantId, String apiKey,
+                                            MenuImportResult result) {
+        Optional<PartnerVenueGrant> grant = partnerLookup.pushableGrant(restaurant.getId());
+        if (grant.isPresent()) {
+            Partner partner = grant.get().getPartner();
+            String partnerKey = partner.getOutboundApiKey();
+            if (partnerKey != null && !partnerKey.isBlank()) {
+                log.info("Importing restaurant {} from the PARTNER menu endpoint (channel prices)",
+                        restaurant.getId());
+                return menuClient.fetchPartnerMenu(baseUrl, externalRestaurantId,
+                        partnerKey, partner.getOutboundAuthHeader());
+            }
+        }
+
+        result.getWarnings().add("Imported from the public menu endpoint, which carries counter "
+                + "prices rather than this channel's. Configure the partner credential to import "
+                + "the prices the venue intends us to charge.");
+        log.warn("Restaurant {} imported from the PUBLIC menu endpoint — prices may be below the "
+                + "venue's channel price", restaurant.getId());
+        return menuClient.fetchFullMenu(baseUrl, externalRestaurantId, apiKey);
     }
 
     /**
@@ -412,10 +455,13 @@ public class RestosMenuImportService {
             return;
         }
 
+        // Restos confirmed they have no ARCHIVED status — a product there is
+        // DRAFT or LIVE, and only LIVE reaches the partner menu, so this branch
+        // never fires for them. Kept because it is the right handling for any
+        // partner that does mark products retired, and because "retired
+        // upstream" must reach the deactivation pass rather than being skipped
+        // into permanent life here. Deliberately NOT recorded as seen.
         if ("ARCHIVED".equalsIgnoreCase(ext.getStatus())) {
-            // Deliberately NOT recorded as seen. Archived upstream means retired,
-            // so letting it fall through to the deactivation pass is the point —
-            // previously it was skipped here and stayed live with us forever.
             result.getWarnings().add("Skipped archived product '" + ext.getName() + "'");
             result.setProductsSkipped(result.getProductsSkipped() + 1);
             return;
@@ -484,6 +530,71 @@ public class RestosMenuImportService {
                 .externalId(ext.getId())
                 .externalSource(EXTERNAL_SOURCE)
                 .build();
+
+        menuItemRepository.save(item);
+        upsertVariants(item, ext, result);
+    }
+
+    /**
+     * Bring a product's sizes across, converting their absolute price into the
+     * delta ours stores.
+     *
+     * <p>A variant that disappears upstream is deactivated rather than deleted,
+     * for the same reason a product is: past order lines reference it by id and
+     * have to keep resolving.
+     */
+    private void upsertVariants(MenuItem item, RestosProduct ext, MenuImportResult result) {
+        if (ext.getVariants() == null || ext.getVariants().isEmpty()) {
+            return;
+        }
+
+        BigDecimal base = item.getEffectivePrice();
+        Set<Long> seen = new HashSet<>();
+
+        for (RestosVariant extVariant : ext.getVariants()) {
+            if (extVariant.getId() == null || extVariant.effectivePrice() == null) {
+                // Same reasoning as an unkeyed product: without a stable id we
+                // could neither match it next time nor name it on an order, and
+                // their API refuses an order that cannot say which size.
+                result.getWarnings().add("Skipped a variant of '" + ext.getName()
+                        + "' — Restos sent no id or no price for it.");
+                continue;
+            }
+            seen.add(extVariant.getId());
+
+            ItemVariant variant = item.getVariants().stream()
+                    .filter(v -> EXTERNAL_SOURCE.equals(v.getExternalSource())
+                            && extVariant.getId().equals(v.getExternalId()))
+                    .findFirst()
+                    .orElseGet(() -> {
+                        ItemVariant created = ItemVariant.builder()
+                                .menuItem(item)
+                                .externalId(extVariant.getId())
+                                .externalSource(EXTERNAL_SOURCE)
+                                .build();
+                        item.getVariants().add(created);
+                        return created;
+                    });
+
+            variant.setName(extVariant.getName());
+            // Theirs replaces the base price; ours adds to it. Storing their
+            // absolute price as a delta would charge the customer twice over.
+            variant.setPriceDelta(extVariant.effectivePrice().subtract(base));
+            variant.setInStock(extVariant.isAvailable());
+            variant.setActive(true);
+            if (extVariant.getSortOrder() != null) {
+                variant.setSortOrder(extVariant.getSortOrder());
+            }
+        }
+
+        // Retire the sizes they no longer sell. Safe without the snapshot
+        // machinery products need: a product's variant list arrives whole or
+        // not at all, and we returned above when it was absent.
+        item.getVariants().stream()
+                .filter(v -> EXTERNAL_SOURCE.equals(v.getExternalSource())
+                        && v.getExternalId() != null
+                        && !seen.contains(v.getExternalId()))
+                .forEach(v -> v.setActive(false));
 
         menuItemRepository.save(item);
     }

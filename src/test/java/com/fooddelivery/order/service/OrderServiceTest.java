@@ -152,7 +152,7 @@ class OrderServiceTest {
             // will make.
             org.mockito.Mockito.doThrow(new BusinessException("«Lunch special» сейчас недоступен."))
                     .when(partnerOrderGuard).checkOrderable(org.mockito.ArgumentMatchers.eq(1L),
-                            org.mockito.ArgumentMatchers.any());
+                            org.mockito.ArgumentMatchers.anyList());
 
             CreateOrderRequest request = CreateOrderRequest.builder()
                     .restaurantId(1L)

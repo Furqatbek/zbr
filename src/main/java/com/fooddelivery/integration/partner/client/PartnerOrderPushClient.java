@@ -102,7 +102,67 @@ public class PartnerOrderPushClient {
         }
     }
 
+    /**
+     * Tell the partner an order has moved.
+     *
+     * <p>Same retryable/permanent split as a push, and for the same reason: a
+     * venue that never hears the courier arrived is a counter wondering where
+     * its order went, while a status they have refused once they will refuse
+     * again.
+     */
+    public Result reportStatus(Partner partner, String externalOrderNo, String venueId,
+                               String status, String reason, String occurredAt) {
+        String base = baseUrl(partner);
+        if (base == null) {
+            return new Result.Rejected("Partner " + partner.getCode()
+                    + " has no outbound base URL configured");
+        }
+
+        String url = base + "/api/v1/partner/orders/" + externalOrderNo + "/status"
+                + (venueId != null ? "?restaurantId=" + venueId : "");
+
+        try {
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            headers.setAccept(java.util.List.of(MediaType.APPLICATION_JSON));
+            applyCredential(partner, headers);
+
+            Map<String, Object> body = new java.util.LinkedHashMap<>();
+            body.put("status", status);
+            body.put("reason", reason);
+            body.put("occurredAt", occurredAt);
+
+            restTemplate.exchange(url, HttpMethod.POST, new HttpEntity<>(body, headers),
+                    new org.springframework.core.ParameterizedTypeReference<Map<String, Object>>() {});
+            return new Result.Accepted(null, false);
+
+        } catch (HttpClientErrorException e) {
+            HttpStatusCode status4xx = e.getStatusCode();
+            String detail = status4xx + " " + truncate(e.getResponseBodyAsString());
+            if (status4xx.value() == 408 || status4xx.value() == 429) {
+                return new Result.Retryable(detail);
+            }
+            // 409 included: they disagree about where the order is, and saying
+            // it again will not change their mind. Worth a human, not a retry.
+            return new Result.Rejected(detail);
+
+        } catch (HttpServerErrorException e) {
+            return new Result.Retryable(e.getStatusCode() + " " + truncate(e.getResponseBodyAsString()));
+        } catch (ResourceAccessException e) {
+            return new Result.Retryable(e.getMessage());
+        } catch (Exception e) {
+            log.error("Unexpected failure reporting {} on order {} to {}",
+                    status, externalOrderNo, partner.getCode(), e);
+            return new Result.Retryable(e.toString());
+        }
+    }
+
     private String endpoint(Partner partner) {
+        String base = baseUrl(partner);
+        return base == null ? null : base + "/api/v1/partner/orders";
+    }
+
+    private String baseUrl(Partner partner) {
         String base = partner.getOutboundBaseUrl();
         if (base == null || base.isBlank()) {
             return null;
@@ -113,7 +173,7 @@ public class PartnerOrderPushClient {
         // internal address should still be refused rather than handed our
         // metadata service.
         urlSafetyValidator.validate(normalized);
-        return normalized + "/api/v1/partner/orders";
+        return normalized;
     }
 
     private void applyCredential(Partner partner, HttpHeaders headers) {

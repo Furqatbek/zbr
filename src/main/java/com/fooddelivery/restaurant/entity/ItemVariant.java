@@ -50,6 +50,16 @@ public class ItemVariant {
     private Boolean active = true;
 
     @CreationTimestamp
+    /**
+     * This variant's id in the system it was imported from. An order pushed to
+     * that system names the variant by this, never by ours.
+     */
+    @Column(name = "external_id")
+    private Long externalId;
+
+    @Column(name = "external_source", length = 50)
+    private String externalSource;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 

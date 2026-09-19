@@ -12,14 +12,14 @@ import java.util.List;
 /**
  * An order as we send it to a partner's POS.
  *
- * <p><strong>Field names are provisional.</strong> Restos have told us the
- * endpoint and its idempotency semantics but not the body schema, so this is
- * our proposal rather than their contract. It is one class and one mapper, so
- * renaming to match theirs is cheap — but do not assume it is already right.
+ * <p>The field names are Restos's, not ours — they published the body they
+ * parse, backed by a test in their repository that posts it and passes, so this
+ * is a contract rather than a guess. Our earlier draft used our own names and
+ * they were kind enough to send a mapping instead of a rejection.
  *
- * <p>Nulls are omitted. A partner parsing this should not have to distinguish
- * "no delivery address because it is a collection order" from a null they were
- * sent on purpose.
+ * <p>Extra fields are ignored rather than refused on their side, so the ones
+ * they do not read ({@code subtotal}, {@code deliveryFee}, item names and
+ * prices) stay: they make the ticket readable and cost nothing.
  */
 @Data
 @Builder
@@ -28,52 +28,66 @@ import java.util.List;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class OutboundOrder {
 
+    /** The venue in the PARTNER's numbering, from the venue grant. */
+    private Long restaurantId;
+
     /**
-     * Our order reference, {@code FD-YYYYMMDD-XXXXXX}. This is the idempotency
-     * key: it is assigned once at creation and never changes, so a retry after
-     * a timeout carries the same value and the partner collapses it onto the
-     * order they already have rather than printing a second ticket.
+     * Our order reference, {@code FD-YYYYMMDD-XXXXXX}, and their idempotency
+     * key. Assigned once at creation and never changed, so a retry after a
+     * timeout carries the same value and they collapse it onto the order they
+     * already have rather than printing a second ticket.
      */
     private String externalOrderId;
 
-    /** The venue in the PARTNER's numbering, from the venue grant. */
-    private String venueId;
-
     private String orderType;
+
+    /**
+     * {@code PREPAID} or {@code CASH}. Required, and they refuse to guess it —
+     * rightly: it decides whether the venue hands over food already paid for or
+     * money still to collect.
+     */
+    private String paymentMode;
+
+    private Customer customer;
+    private Delivery delivery;
 
     private List<Item> items;
 
     /**
-     * What the partner should expect to charge for the food: the sum of the
-     * line totals, at their own prices.
+     * What the customer pays. Their name for our total, per their mapping.
      *
-     * <p>Sent because they validate it against their own computation and refuse
-     * the order on a mismatch. It is deliberately NOT {@link #total} — ours
-     * carries delivery, tip and tax, none of which are theirs to collect or
-     * could be reconstructed from the menu they published.
+     * <p>They validate it and answer 409 on a mismatch, so if their check is
+     * against their own line prices rather than against what we charge, this
+     * will need to become the food-only figure. Flagged to them; their table
+     * is what is implemented.
      */
     private BigDecimal expectedTotal;
 
+    /** Not read by Restos. Kept because it makes the ticket legible. */
     private BigDecimal subtotal;
     private BigDecimal deliveryFee;
 
-    /**
-     * What the customer pays us, all in. Sent for the ticket to show, never for
-     * reconciliation against their prices — see {@link #expectedTotal}.
-     */
-    private BigDecimal total;
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public static class Customer {
+        private String name;
+        private String phone;
+    }
 
-    private String customerName;
-    private String customerPhone;
-
-    private String deliveryAddress;
-    private String deliveryInstructions;
-
-    /** Free text the customer attached to the whole order. */
-    private String notes;
-
-    /** ISO-8601 UTC, e.g. {@code 2026-09-19T10:02:11Z}. */
-    private String placedAt;
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public static class Delivery {
+        private String address;
+        private BigDecimal latitude;
+        private BigDecimal longitude;
+        private String instructions;
+    }
 
     @Data
     @Builder
@@ -82,21 +96,26 @@ public class OutboundOrder {
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public static class Item {
 
-        /**
-         * The product id in the PARTNER's system, taken from what their own
-         * menu import stamped on the item. Sending our id would be meaningless
-         * to their kitchen — and an order whose lines they cannot resolve is
-         * one they refuse outright.
-         */
-        private String productId;
+        /** Their product id, from what their menu import stamped on the item. */
+        private Long productId;
 
-        /** For a human reading the ticket, not for matching. */
-        private String name;
+        /**
+         * Their variant id, required for a dish sold by size.
+         *
+         * <p>Omitting it on a product that has variants is refused with
+         * {@code 422 VARIANT_REQUIRED} rather than charged at the base price —
+         * which is the behaviour we want, because the alternative is a Large
+         * billed as a Regular and cooked Large with nothing on the ticket to
+         * show it.
+         */
+        private Long variantId;
 
         private Integer quantity;
+        private String specialInstructions;
+
+        /** Not read by them. For the ticket. */
+        private String name;
         private BigDecimal unitPrice;
         private BigDecimal lineTotal;
-
-        private String notes;
     }
 }

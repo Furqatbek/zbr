@@ -41,6 +41,7 @@ public class RabbitMQConfig {
     public static final String NOTIFICATION_PUSH_QUEUE = "notification.push.queue";
     public static final String KITCHEN_TICKET_QUEUE = "kitchen.ticket.queue";
     public static final String PARTNER_ORDER_PUSH_QUEUE = "partner.order.push.queue";
+    public static final String PARTNER_STATUS_REPORT_QUEUE = "partner.status.report.queue";
 
     // Routing keys
     public static final String ORDER_CREATED_KEY = "order.created";
@@ -181,6 +182,21 @@ public class RabbitMQConfig {
         return BindingBuilder.bind(partnerOrderPushQueue())
                 .to(orderExchange())
                 .with(ORDER_CREATED_KEY);
+    }
+
+    @Bean
+    public Queue partnerStatusReportQueue() {
+        return QueueBuilder.durable(PARTNER_STATUS_REPORT_QUEUE)
+                .withArgument("x-dead-letter-exchange", DLX_EXCHANGE)
+                .withArgument("x-dead-letter-routing-key", "dlq")
+                .build();
+    }
+
+    @Bean
+    public Binding partnerStatusReportBinding() {
+        return BindingBuilder.bind(partnerStatusReportQueue())
+                .to(orderExchange())
+                .with(ORDER_STATUS_CHANGED_KEY);
     }
 
     @Bean

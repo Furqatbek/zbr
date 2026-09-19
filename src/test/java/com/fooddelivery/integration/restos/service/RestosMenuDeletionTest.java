@@ -60,6 +60,7 @@ class RestosMenuDeletionTest {
     @Mock private MenuCategoryRepository categoryRepository;
     @Mock private MenuItemRepository menuItemRepository;
     @Mock private UrlSafetyValidator urlSafetyValidator;
+    @Mock private com.fooddelivery.integration.partner.service.PartnerOrderPushService partnerLookup;
 
     private final RestosProperties properties = new RestosProperties();
     private RestosMenuImportService service;
@@ -68,7 +69,10 @@ class RestosMenuDeletionTest {
     @BeforeEach
     void setUp() {
         service = new RestosMenuImportService(menuClient, restaurantService, categoryRepository,
-                menuItemRepository, properties, urlSafetyValidator);
+                menuItemRepository, properties, urlSafetyValidator, partnerLookup);
+        // No partner credential in these tests, so the import falls back to the
+        // public menu endpoint — which is what fetchFullMenu is stubbed as.
+        when(partnerLookup.pushableGrant(anyLong())).thenReturn(Optional.empty());
 
         restaurant = Restaurant.builder().id(1L).name("Osh Markazi").build();
         when(restaurantService.getRestaurantEntityById(1L)).thenReturn(restaurant);

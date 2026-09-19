@@ -3,6 +3,7 @@ package com.fooddelivery.integration.partner.service;
 import com.fooddelivery.common.exception.BusinessException;
 import com.fooddelivery.integration.partner.entity.Partner;
 import com.fooddelivery.integration.partner.entity.PartnerVenueGrant;
+import com.fooddelivery.order.entity.OrderItem;
 import com.fooddelivery.restaurant.entity.MenuItem;
 import com.fooddelivery.restaurant.entity.Restaurant;
 import org.junit.jupiter.api.BeforeEach;
@@ -53,9 +54,27 @@ class PartnerOrderGuardTest {
                 .build()));
     }
 
-    private MenuItem item(String name, Long externalId, String source) {
-        return MenuItem.builder().id(1L).name(name)
-                .externalId(externalId).externalSource(source).build();
+    private OrderItem item(String name, Long externalId, String source) {
+        return line(MenuItem.builder().id(1L).name(name)
+                .externalId(externalId).externalSource(source).build(), null);
+    }
+
+    /** A dish sold by size, with the size the customer chose (or did not). */
+    private OrderItem sized(String name, Long externalId, Long chosenVariantId) {
+        MenuItem menuItem = MenuItem.builder().id(1L).name(name)
+                .externalId(externalId).externalSource("RESTOS").build();
+        menuItem.setVariants(new java.util.HashSet<>(java.util.List.of(
+                com.fooddelivery.restaurant.entity.ItemVariant.builder()
+                        .id(50L).name("Large").externalId(11L).externalSource("RESTOS")
+                        .active(true).build())));
+        return line(menuItem, chosenVariantId);
+    }
+
+    private OrderItem line(MenuItem menuItem, Long variantId) {
+        return OrderItem.builder()
+                .menuItem(menuItem).itemName(menuItem.getName())
+                .quantity(1).variantId(variantId)
+                .build();
     }
 
     @Test
@@ -118,6 +137,39 @@ class PartnerOrderGuardTest {
                 item("Soup of the day", null, null))))
                 .hasMessageContaining("Lunch special")
                 .hasMessageContaining("Soup of the day");
+    }
+
+    @Test
+    @DisplayName("a dish sold by size is refused when no size was chosen")
+    void missingVariantRefused() {
+        // Restos answer 422 VARIANT_REQUIRED rather than charging the base
+        // price. Catching it here means the customer is told before paying,
+        // rather than the kitchen never seeing the order.
+        venueOn("RESTOS");
+
+        assertThatThrownBy(() -> guard.checkOrderable(100L, List.of(sized("Lagman", 4417L, null))))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("Lagman");
+    }
+
+    @Test
+    @DisplayName("a dish sold by size is allowed once a size is chosen")
+    void chosenVariantAllowed() {
+        venueOn("RESTOS");
+
+        assertThatCode(() -> guard.checkOrderable(100L, List.of(sized("Lagman", 4417L, 50L))))
+                .doesNotThrowAnyException();
+    }
+
+    @Test
+    @DisplayName("a dish with no sizes needs no size")
+    void unsizedDishNeedsNoVariant() {
+        // Most dishes. Requiring a variant of everything would refuse the whole
+        // menu.
+        venueOn("RESTOS");
+
+        assertThatCode(() -> guard.checkOrderable(100L, List.of(item("Plov", 4417L, "RESTOS"))))
+                .doesNotThrowAnyException();
     }
 
     @Test

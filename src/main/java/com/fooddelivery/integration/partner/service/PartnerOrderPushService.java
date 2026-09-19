@@ -10,6 +10,8 @@ import com.fooddelivery.integration.partner.repository.PartnerOrderPushRepositor
 import com.fooddelivery.integration.partner.repository.PartnerVenueGrantRepository;
 import com.fooddelivery.order.entity.Order;
 import com.fooddelivery.order.entity.OrderItem;
+import com.fooddelivery.restaurant.entity.ItemVariant;
+import com.fooddelivery.restaurant.entity.MenuItem;
 import com.fooddelivery.order.repository.OrderRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -17,8 +19,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.time.ZoneOffset;
-import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Optional;
 
@@ -33,9 +33,6 @@ import java.util.Optional;
 @RequiredArgsConstructor
 @Slf4j
 public class PartnerOrderPushService {
-
-    private static final DateTimeFormatter ISO_UTC =
-            DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss'Z'");
 
     private final OrderRepository orderRepository;
     private final PartnerVenueGrantRepository grantRepository;
@@ -152,43 +149,79 @@ public class PartnerOrderPushService {
                 : order.getItems().stream().map(this::toItem).toList();
 
         return OutboundOrder.builder()
+                .restaurantId(parseVenueId(venueId))
                 // Assigned once at creation and never changed, which is exactly
                 // what an idempotency key has to be.
                 .externalOrderId(order.getExternalOrderNo())
-                .venueId(venueId)
                 .orderType(order.getOrderType() != null ? order.getOrderType().name() : null)
+                .paymentMode(order.getPaymentMode() != null ? order.getPaymentMode().name() : null)
+                .customer(OutboundOrder.Customer.builder()
+                        .name(order.getCustomerName())
+                        .phone(order.getCustomerPhone())
+                        .build())
+                .delivery(order.getDeliveryAddress() == null ? null
+                        : OutboundOrder.Delivery.builder()
+                                .address(order.getDeliveryAddress())
+                                .latitude(order.getDeliveryLatitude())
+                                .longitude(order.getDeliveryLongitude())
+                                .instructions(order.getDeliveryInstructions())
+                                .build())
                 .items(items)
-                // Their validation compares this against what their own prices
-                // add up to, and refuses the order if it disagrees. The food
-                // only: our total carries delivery, tip and an 8% tax line,
-                // none of which exist in the menu they published.
-                .expectedTotal(order.getSubtotal())
+                .expectedTotal(order.getTotal())
                 .subtotal(order.getSubtotal())
                 .deliveryFee(order.getDeliveryFee())
-                .total(order.getTotal())
-                .customerName(order.getCustomerName())
-                .customerPhone(order.getCustomerPhone())
-                .deliveryAddress(order.getDeliveryAddress())
-                .deliveryInstructions(order.getDeliveryInstructions())
-                .notes(order.getNotes())
-                .placedAt(order.getCreatedAt() != null
-                        ? order.getCreatedAt().atOffset(ZoneOffset.UTC).format(ISO_UTC) : null)
                 .build();
     }
 
+    /**
+     * Their venue id is stored as text because not every partner numbers their
+     * venues, but Restos read it as a number. An unparseable one is left null
+     * rather than guessed: their API refuses the order, which is the visible
+     * failure we want, where a wrong venue id would print in someone else's
+     * kitchen.
+     */
+    private Long parseVenueId(String venueId) {
+        try {
+            return venueId == null ? null : Long.parseLong(venueId.trim());
+        } catch (NumberFormatException e) {
+            log.error("Venue id '{}' is not numeric; the partner will refuse this order", venueId);
+            return null;
+        }
+    }
+
     private OutboundOrder.Item toItem(OrderItem item) {
+        MenuItem menuItem = item.getMenuItem();
         return OutboundOrder.Item.builder()
                 // Their product id, stamped on the item when we imported their
-                // menu. Null here means an item they have never heard of, which
-                // their API refuses for the whole basket — PartnerOrderGuard
-                // stops such an order being placed at all.
-                .productId(item.getMenuItem() != null && item.getMenuItem().getExternalId() != null
-                        ? String.valueOf(item.getMenuItem().getExternalId()) : null)
-                .name(item.getItemName())
+                // menu. Null means an item they have never heard of, which
+                // PartnerOrderGuard stops being ordered at all.
+                .productId(menuItem != null ? menuItem.getExternalId() : null)
+                // Their variant id, not ours. A dish sold by size is refused
+                // outright without it.
+                .variantId(externalVariantId(menuItem, item.getVariantId()))
                 .quantity(item.getQuantity())
+                .specialInstructions(item.getSpecialInstructions())
+                .name(item.getItemName())
                 .unitPrice(item.getUnitPrice())
                 .lineTotal(item.getTotalPrice())
-                .notes(item.getSpecialInstructions())
                 .build();
+    }
+
+    /**
+     * Translate the variant our order line records into the partner's id.
+     *
+     * <p>The order stores OUR variant id, which means nothing to their kitchen.
+     * The mapping lives on the variant itself, put there by the menu import.
+     */
+    private Long externalVariantId(MenuItem menuItem, Long ourVariantId) {
+        if (menuItem == null || ourVariantId == null || menuItem.getVariants() == null) {
+            return null;
+        }
+        return menuItem.getVariants().stream()
+                .filter(variant -> ourVariantId.equals(variant.getId()))
+                .map(ItemVariant::getExternalId)
+                .filter(java.util.Objects::nonNull)
+                .findFirst()
+                .orElse(null);
     }
 }

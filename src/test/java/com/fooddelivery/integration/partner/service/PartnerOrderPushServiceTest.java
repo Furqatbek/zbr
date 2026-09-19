@@ -280,7 +280,8 @@ class PartnerOrderPushServiceTest {
             // Assigned once at creation and never changed, which is exactly
             // what an idempotency key has to be.
             assertThat(payload.getExternalOrderId()).isEqualTo("FD-20260919-A7K2M9");
-            assertThat(payload.getVenueId()).isEqualTo("55");
+            // Their field name, and a number — they read restaurantId.
+            assertThat(payload.getRestaurantId()).isEqualTo(55L);
         }
 
         @Test
@@ -294,48 +295,74 @@ class PartnerOrderPushServiceTest {
             // they cannot resolve is one they refuse outright.
             assertThat(payload.getItems()).singleElement()
                     .satisfies(item -> {
-                        assertThat(item.getProductId()).isEqualTo("4417");
+                        assertThat(item.getProductId()).isEqualTo(4417L);
                         assertThat(item.getQuantity()).isEqualTo(2);
                         assertThat(item.getName()).isEqualTo("Plov");
                     });
         }
 
         @Test
-        @DisplayName("expectedTotal is the food only, not what the customer pays us")
-        void expectedTotalIsTheFoodOnly() {
+        @DisplayName("expectedTotal is what the customer pays, per their mapping")
+        void expectedTotalIsOurTotal() {
+            // Their published mapping is total -> expectedTotal, and their
+            // worked example used our all-in figure. We follow the contract
+            // they wrote and have asked them to confirm the arithmetic, since
+            // ours carries delivery, tip and an 8% tax line that cannot be
+            // reconstructed from the menu they published.
             Order order = order();
 
-            OutboundOrder payload = service.build(order, "55");
-
-            // Their side validates this against what their own prices add up
-            // to and refuses the order on a mismatch. Our total carries
-            // delivery, tip and an 8% tax line — none of which exist in the
-            // menu they published, so sending it would fail every order.
-            assertThat(payload.getExpectedTotal()).isEqualByComparingTo("60000");
-            assertThat(payload.getTotal()).isEqualByComparingTo("75000");
-            assertThat(payload.getExpectedTotal()).isNotEqualByComparingTo(payload.getTotal());
+            assertThat(service.build(order, "55").getExpectedTotal()).isEqualByComparingTo("75000");
         }
 
         @Test
-        @DisplayName("expectedTotal matches what the line totals add up to")
-        void expectedTotalMatchesTheLines() {
-            Order order = order();
+        @DisplayName("the customer and delivery blocks are nested, as they read them")
+        void nestedBlocks() {
+            OutboundOrder payload = service.build(order(), "55");
 
-            OutboundOrder payload = service.build(order, "55");
-
-            BigDecimal fromLines = payload.getItems().stream()
-                    .map(OutboundOrder.Item::getLineTotal)
-                    .reduce(BigDecimal.ZERO, BigDecimal::add);
-            assertThat(payload.getExpectedTotal()).isEqualByComparingTo(fromLines);
+            assertThat(payload.getCustomer().getName()).isEqualTo("Anvar");
+            assertThat(payload.getCustomer().getPhone()).isEqualTo("998901234567");
+            assertThat(payload.getDelivery().getAddress()).isEqualTo("Mustaqillik 15");
         }
 
         @Test
-        @DisplayName("timestamps are ISO-8601 UTC with a Z")
-        void timestampFormat() {
+        @DisplayName("a collection order carries no delivery block at all")
+        void noDeliveryBlockWhenThereIsNoAddress() {
             Order order = order();
+            order.setDeliveryAddress(null);
 
-            assertThat(service.build(order, "55").getPlacedAt())
-                    .isEqualTo("2026-09-19T10:02:11Z");
+            // Omitted rather than sent empty: they should not have to tell a
+            // null we meant from one we sent by accident.
+            assertThat(service.build(order, "55").getDelivery()).isNull();
+        }
+
+        @Test
+        @DisplayName("paymentMode is always sent — they refuse to guess it")
+        void paymentModeIsSent() {
+            // It decides whether the venue hands over food already paid for or
+            // money still to collect. Their API rejects an order without it.
+            assertThat(service.build(order(), "55").getPaymentMode()).isEqualTo("PREPAID");
+        }
+
+        @Test
+        @DisplayName("a chosen size is named by THEIR variant id, not ours")
+        void variantIdIsTheirs() {
+            Order order = order();
+            MenuItem menuItem = order.getItems().get(0).getMenuItem();
+            menuItem.setVariants(new java.util.HashSet<>(List.of(
+                    com.fooddelivery.restaurant.entity.ItemVariant.builder()
+                            .id(50L).externalId(11L).externalSource("RESTOS").active(true).build())));
+            order.getItems().get(0).setVariantId(50L);
+
+            // 50 is our id and means nothing to their kitchen; 11 is theirs.
+            assertThat(service.build(order, "55").getItems().get(0).getVariantId()).isEqualTo(11L);
+        }
+
+        @Test
+        @DisplayName("an unparseable venue id is left null rather than guessed")
+        void badVenueIdIsNull() {
+            // Their API refuses the order, which is the visible failure we
+            // want — a wrong venue id would print in someone else's kitchen.
+            assertThat(service.build(order(), "not-a-number").getRestaurantId()).isNull();
         }
 
         @Test

@@ -132,6 +132,8 @@ public class OrderService {
                 .customerName(request.getCustomerName() != null ? request.getCustomerName() : consumer.getFullName())
                 .customerPhone(request.getCustomerPhone() != null ? request.getCustomerPhone() : consumer.getPhone())
                 .notes(request.getNotes())
+                .paymentMode(request.getPaymentMode() != null
+                        ? request.getPaymentMode() : PaymentMode.PREPAID)
                 .tipAmount(request.getTipAmount() != null ? request.getTipAmount() : BigDecimal.ZERO)
                 .deliveryFee(deliveryFee)
                 .build();
@@ -144,8 +146,7 @@ public class OrderService {
         // partner's till rejects the whole basket if any line names a product
         // they do not have, and that rejection would otherwise land on someone
         // who has already been charged for food nobody will make.
-        partnerOrderGuard.checkOrderable(restaurant.getId(),
-                orderItems.stream().map(OrderItem::getMenuItem).toList());
+        partnerOrderGuard.checkOrderable(restaurant.getId(), orderItems);
 
         // Calculate totals
         order.calculateTotals();

@@ -1,0 +1,12 @@
+-- Whether an order is paid up front or on the doorstep.
+--
+-- Distinct from payment_status, which tracks how far a payment has got. This
+-- says what kind to expect, and it has to be known at creation: an integrated
+-- POS is handed the ticket immediately and refuses an order that does not say
+-- whether the venue is giving away food already paid for or money still to
+-- collect.
+--
+-- Existing rows default to PREPAID because that is what the apps do today —
+-- they take payment through the platform, and the cash path is driven by a
+-- separately created payment record rather than by anything on the order.
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS payment_mode VARCHAR(20) NOT NULL DEFAULT 'PREPAID';

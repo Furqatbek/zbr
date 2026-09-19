@@ -68,6 +68,18 @@ public class Order {
     @Builder.Default
     private OrderStatus status = OrderStatus.CREATED;
 
+    /**
+     * Prepaid or cash. Sent to an integrated POS, which requires it.
+     *
+     * <p>Defaults to PREPAID because that is what the apps do today. Anything
+     * that takes cash must set it explicitly — a cash order announced as
+     * prepaid means a venue hands over food nobody collects money for.
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "payment_mode", nullable = false, length = 20)
+    @Builder.Default
+    private PaymentMode paymentMode = PaymentMode.PREPAID;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "payment_status", nullable = false, length = 20)
     @Builder.Default

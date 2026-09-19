@@ -2,6 +2,7 @@ package com.fooddelivery.integration.partner.service;
 
 import com.fooddelivery.common.exception.BusinessException;
 import com.fooddelivery.integration.partner.entity.PartnerVenueGrant;
+import com.fooddelivery.order.entity.OrderItem;
 import com.fooddelivery.restaurant.entity.MenuItem;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -35,12 +36,33 @@ public class PartnerOrderGuard {
     private final PartnerOrderPushService pushService;
 
     /**
+     * Whether the partner's kitchen could act on this line.
+     *
+     * <p>Two ways it could not. The dish may be one they have never heard of —
+     * something added in our own panel, which carries no id of theirs. Or it
+     * may be a dish they sell by size with no size chosen: they refuse those
+     * outright rather than charging the base price, because the alternative is
+     * a Large billed as a Regular, cooked Large, with nothing on the ticket to
+     * show it.
+     */
+    private boolean canBeCooked(OrderItem line, String source) {
+        MenuItem item = line.getMenuItem();
+        if (item == null || item.getExternalId() == null || !source.equals(item.getExternalSource())) {
+            return false;
+        }
+        boolean sellsBySize = item.getVariants() != null && item.getVariants().stream()
+                .anyMatch(variant -> Boolean.TRUE.equals(variant.getActive())
+                        && variant.getExternalId() != null);
+        return !sellsBySize || line.getVariantId() != null;
+    }
+
+    /**
      * @param restaurantId the venue the basket is for
-     * @param items the menu items being ordered, already resolved
+     * @param lines the order lines being placed, already resolved
      * @throws BusinessException naming the offending dishes, in a sentence a
      *         customer can act on
      */
-    public void checkOrderable(Long restaurantId, List<MenuItem> items) {
+    public void checkOrderable(Long restaurantId, List<OrderItem> lines) {
         Optional<PartnerVenueGrant> grant = pushService.pushableGrant(restaurantId);
         if (grant.isEmpty()) {
             // Not a partner venue. Nothing to check — this is most restaurants.
@@ -49,10 +71,9 @@ public class PartnerOrderGuard {
 
         String source = grant.get().getPartner().getCode();
 
-        List<String> unorderable = items.stream()
-                .filter(item -> item.getExternalId() == null
-                        || !source.equals(item.getExternalSource()))
-                .map(MenuItem::getName)
+        List<String> unorderable = lines.stream()
+                .filter(line -> !canBeCooked(line, source))
+                .map(OrderItem::getItemName)
                 .distinct()
                 .toList();
 
@@ -66,8 +87,9 @@ public class PartnerOrderGuard {
                 restaurantId, source, unorderable);
 
         throw new BusinessException(unorderable.size() == 1
-                ? "«" + unorderable.get(0) + "» сейчас недоступен. Удалите его из корзины."
+                ? "«" + unorderable.get(0) + "» сейчас недоступен. Проверьте выбор порции "
+                        + "или удалите его из корзины."
                 : "Эти блюда сейчас недоступны: " + String.join(", ", unorderable)
-                        + ". Удалите их из корзины.");
+                        + ". Проверьте выбор порции или удалите их из корзины.");
     }
 }

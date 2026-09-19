@@ -259,28 +259,36 @@ We treat your `201` and your `200` + `duplicate: true` as the same success.
 
 ```json
 {
+  "restaurantId": 55,
   "externalOrderId": "FD-20260919-A7K2M9",
-  "venueId": "55",
   "orderType": "DELIVERY",
+  "paymentMode": "PREPAID",
+  "customer": { "name": "Anvar", "phone": "998901234567" },
+  "delivery": { "address": "Mustaqillik 15, kv 42" },
   "items": [
-    { "productId": "4417", "name": "Plov", "quantity": 2,
-      "unitPrice": 30000, "lineTotal": 60000, "notes": "no onions" }
+    { "productId": 4417, "variantId": 11, "quantity": 2,
+      "specialInstructions": "no onions",
+      "name": "Plov", "unitPrice": 30000, "lineTotal": 60000 }
   ],
-  "expectedTotal": 60000,
-  "subtotal": 60000, "deliveryFee": 15000, "total": 75000,
-  "customerName": "Anvar", "customerPhone": "998901234567",
-  "deliveryAddress": "Mustaqillik 15, kv 42",
-  "placedAt": "2026-09-19T10:02:11Z"
+  "expectedTotal": 75000,
+  "subtotal": 60000, "deliveryFee": 15000
 }
 ```
 
 `productId` is **your** product id, taken from what your menu import stamped on
 the item. Nulls are omitted.
 
-**`expectedTotal` is the food only** — the sum of the line totals at your
-prices, and the number you can reconstruct from the menu you published. It is
-deliberately not `total`, which carries delivery, tip and tax: none of those
-exist in your menu, so validating against them would refuse every order.
+**`variantId` is yours, not ours**, and is sent whenever the customer chose a
+size. A dish you sell by size cannot be ordered here without one — we refuse
+that basket at checkout rather than let you answer `422 VARIANT_REQUIRED` after
+the customer has paid.
+
+**`paymentMode`** is `PREPAID` or `CASH`, always sent.
+
+**`expectedTotal`** follows your mapping of our `total`. Worth confirming: ours
+carries delivery, tip and tax, so if you validate against what your own prices
+add up to it will never match. Say the word and we will send the food-only
+figure instead.
 
 **On `422 UNKNOWN_ITEMS`.** We now check at checkout instead: a basket
 containing an item you do not have is refused before the customer pays, naming

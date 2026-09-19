@@ -125,6 +125,63 @@ public class RestosMenuClient {
         return products;
     }
 
+    /**
+     * The PARTNER menu endpoint, and the one an integrated venue's catalogue
+     * should be built from.
+     *
+     * <p>Everything above reads {@code /customer/public/...}, which is what a
+     * diner's app sees: counter prices. A venue sets a separate markup for our
+     * channel to cover commission, and that markup only appears here. Importing
+     * from the public endpoint therefore prices their dishes below what they
+     * intend us to charge, and the venue silently absorbs the difference on
+     * every order.
+     *
+     * <p>Authenticated with the credential the partner issued us, in the header
+     * they specified. The public endpoints take a bearer token or nothing;
+     * this one does not.
+     */
+    public List<RestosCategory> fetchPartnerMenu(String baseUrl, Long restaurantId,
+                                                  String partnerKey, String authHeader) {
+        String url = baseUrl + "/api/v1/partner/menu/" + restaurantId;
+        log.info("Fetching partner menu from Restos: {}", url);
+
+        RestosApiResponse<List<RestosCategory>> response = executePartnerGet(
+                url, partnerKey, authHeader, new ParameterizedTypeReference<>() {});
+
+        List<RestosCategory> menu = extractData(response, url);
+        log.info("Fetched partner menu: {} categories from Restos for restaurant {}",
+                menu.size(), restaurantId);
+        return menu;
+    }
+
+    private <T> RestosApiResponse<T> executePartnerGet(
+            String url, String partnerKey, String authHeader,
+            ParameterizedTypeReference<RestosApiResponse<T>> typeRef) {
+        try {
+            HttpHeaders headers = new HttpHeaders();
+            headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
+            if (partnerKey != null && !partnerKey.isBlank()) {
+                if (authHeader == null || authHeader.isBlank()
+                        || HttpHeaders.AUTHORIZATION.equalsIgnoreCase(authHeader)) {
+                    headers.setBearerAuth(partnerKey);
+                } else {
+                    headers.set(authHeader, partnerKey);
+                }
+            }
+
+            ResponseEntity<RestosApiResponse<T>> responseEntity =
+                    restTemplate.exchange(url, HttpMethod.GET, new HttpEntity<Void>(headers), typeRef);
+
+            if (responseEntity.getBody() == null) {
+                throw new BusinessException("Restos API returned empty response from: " + url);
+            }
+            return responseEntity.getBody();
+        } catch (RestClientException e) {
+            log.error("Failed to call Restos partner API at {}: {}", url, e.getMessage());
+            throw new BusinessException("Failed to connect to Restos system: " + e.getMessage());
+        }
+    }
+
     private <T> RestosApiResponse<T> executeGet(String url, String apiKey,
                                                  ParameterizedTypeReference<RestosApiResponse<T>> typeRef) {
         try {
