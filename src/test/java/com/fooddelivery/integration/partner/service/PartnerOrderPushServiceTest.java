@@ -301,6 +301,35 @@ class PartnerOrderPushServiceTest {
         }
 
         @Test
+        @DisplayName("expectedTotal is the food only, not what the customer pays us")
+        void expectedTotalIsTheFoodOnly() {
+            Order order = order();
+
+            OutboundOrder payload = service.build(order, "55");
+
+            // Their side validates this against what their own prices add up
+            // to and refuses the order on a mismatch. Our total carries
+            // delivery, tip and an 8% tax line — none of which exist in the
+            // menu they published, so sending it would fail every order.
+            assertThat(payload.getExpectedTotal()).isEqualByComparingTo("60000");
+            assertThat(payload.getTotal()).isEqualByComparingTo("75000");
+            assertThat(payload.getExpectedTotal()).isNotEqualByComparingTo(payload.getTotal());
+        }
+
+        @Test
+        @DisplayName("expectedTotal matches what the line totals add up to")
+        void expectedTotalMatchesTheLines() {
+            Order order = order();
+
+            OutboundOrder payload = service.build(order, "55");
+
+            BigDecimal fromLines = payload.getItems().stream()
+                    .map(OutboundOrder.Item::getLineTotal)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+            assertThat(payload.getExpectedTotal()).isEqualByComparingTo(fromLines);
+        }
+
+        @Test
         @DisplayName("timestamps are ISO-8601 UTC with a Z")
         void timestampFormat() {
             Order order = order();

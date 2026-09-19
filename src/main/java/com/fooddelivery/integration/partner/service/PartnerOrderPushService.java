@@ -158,6 +158,11 @@ public class PartnerOrderPushService {
                 .venueId(venueId)
                 .orderType(order.getOrderType() != null ? order.getOrderType().name() : null)
                 .items(items)
+                // Their validation compares this against what their own prices
+                // add up to, and refuses the order if it disagrees. The food
+                // only: our total carries delivery, tip and an 8% tax line,
+                // none of which exist in the menu they published.
+                .expectedTotal(order.getSubtotal())
                 .subtotal(order.getSubtotal())
                 .deliveryFee(order.getDeliveryFee())
                 .total(order.getTotal())

@@ -43,8 +43,24 @@ public class OutboundOrder {
 
     private List<Item> items;
 
+    /**
+     * What the partner should expect to charge for the food: the sum of the
+     * line totals, at their own prices.
+     *
+     * <p>Sent because they validate it against their own computation and refuse
+     * the order on a mismatch. It is deliberately NOT {@link #total} — ours
+     * carries delivery, tip and tax, none of which are theirs to collect or
+     * could be reconstructed from the menu they published.
+     */
+    private BigDecimal expectedTotal;
+
     private BigDecimal subtotal;
     private BigDecimal deliveryFee;
+
+    /**
+     * What the customer pays us, all in. Sent for the ticket to show, never for
+     * reconciliation against their prices — see {@link #expectedTotal}.
+     */
     private BigDecimal total;
 
     private String customerName;
