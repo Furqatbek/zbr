@@ -205,14 +205,15 @@ Break-Even Order Value = Variable Cost per Order / Effective Commission Rate
   "gmv": 100000.00,
   "commissionRevenue": 15000.00,
   "deliveryFeeRevenue": 1500.00,
+  "serviceFeeRevenue": 8000.00,
   "courierCosts": 8500.00,
   "promotionCosts": 5000.00,
-  "totalRevenue": 16500.00,
+  "totalRevenue": 24500.00,
   "totalVariableCosts": 13500.00,
-  "contributionMargin": 3000.00,
-  "contributionMarginPercentage": 3.00,
+  "contributionMargin": 11000.00,
+  "contributionMarginPercentage": 11.00,
   "orderCount": 500,
-  "unitEconomics": 6.00,
+  "unitEconomics": 22.00,
   "revenuePerOrder": 33.00,
   "variableCostPerOrder": 27.00,
   "breakEvenOrderValue": 180.00
@@ -360,3 +361,28 @@ analytics.financial/
 3. **Pagination**: Use `topN` parameter for large result sets
 4. **Date Ranges**: Always specify appropriate date ranges
 5. **Aggregations**: Use repository methods with native queries for complex aggregations
+
+
+---
+
+## `serviceFeeRevenue`
+
+The platform's service fee on the food subtotal, at `app.order.service-fee-rate`.
+
+**It appeared in no report until now.** The fee has been charged on every order
+since the platform's first, under the label "tax", while `totalRevenue` was
+computed as commission plus net delivery margin alone. Revenue was therefore
+understated by roughly the fee rate times GMV for the platform's whole life. See
+V47 for how the label was traced to a US sales-tax default in the initial
+import.
+
+**Comparing periods across this change:** the previous-period figure includes
+the fee too, so the first report after it does not show a revenue jump that
+never happened. But a report *exported* before this change and compared against
+one after it will disagree, and the older one is the wrong one.
+
+**It is counted on the commission clock**, not the order's own — commission is
+earned on delivery, so an order placed in August and delivered in September
+belongs to September in both lines. That is deliberate: a revenue line on a
+different denominator never reconciles with the others, and nobody can say which
+of them is wrong.
