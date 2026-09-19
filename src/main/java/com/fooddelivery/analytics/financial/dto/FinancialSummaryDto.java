@@ -51,6 +51,12 @@ public class FinancialSummaryDto {
     private BigDecimal deliveryFeeRevenue;
 
     /**
+     * The platform's service fee on the food subtotal. See V47 — charged since
+     * the platform's first order, reported since this one.
+     */
+    private BigDecimal serviceFeeRevenue;
+
+    /**
      * Total promotion costs (platform-funded).
      */
     private BigDecimal promotionCosts;

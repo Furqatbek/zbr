@@ -658,6 +658,12 @@ public class FinancialAnalyticsServiceImpl implements FinancialAnalyticsService 
         // Get commission revenue
         BigDecimal commissionRevenue = commissionRepository.getTotalCommission(startDate, endDate);
 
+        // The platform's service fee on the food. Counted over exactly the
+        // orders GMV and commission are counted over — a revenue line on a
+        // different denominator would never reconcile with the others, and
+        // nobody could say which was wrong.
+        BigDecimal serviceFeeRevenue = commissionRepository.getTotalServiceFee(startDate, endDate);
+
         // Get delivery fee revenue
         List<Object[]> deliveryMetricsList = courierPaymentRepository.getCourierPaymentMetrics(startDate, endDate);
         Object[] deliveryMetrics = deliveryMetricsList.isEmpty() ? new Object[]{BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, 0L, 0L} : deliveryMetricsList.get(0);
@@ -681,7 +687,9 @@ public class FinancialAnalyticsServiceImpl implements FinancialAnalyticsService 
         BigDecimal totalPromotionCosts = promotionCosts.add(giftCardCosts).add(referralCosts);
 
         // Calculate contribution margin
-        BigDecimal totalRevenue = commissionRevenue.add(deliveryFeeRevenue);
+        // The service fee was missing from this sum for the platform's whole
+        // life: charged on every order, reported in none of them.
+        BigDecimal totalRevenue = commissionRevenue.add(deliveryFeeRevenue).add(serviceFeeRevenue);
         BigDecimal totalVariableCosts = totalCourierCosts.add(totalPromotionCosts);
         BigDecimal contributionMargin = totalRevenue.subtract(totalVariableCosts);
 
@@ -718,7 +726,12 @@ public class FinancialAnalyticsServiceImpl implements FinancialAnalyticsService 
         BigDecimal previousDeliveryFees = previousDeliveryMetrics[0] != null
                 ? ((BigDecimal) previousDeliveryMetrics[0]).multiply(platformMargin)
                 : BigDecimal.ZERO;
-        BigDecimal previousRevenue = previousCommission.add(previousDeliveryFees);
+        // Includes the service fee on both sides, or the first period after
+        // this change would show a growth spike that never happened.
+        BigDecimal previousServiceFee = commissionRepository.getTotalServiceFee(
+                previousStart, startDate);
+        BigDecimal previousRevenue = previousCommission.add(previousDeliveryFees)
+                .add(previousServiceFee);
         BigDecimal growthRate = mapper.calculateGrowthRate(totalRevenue, previousRevenue);
 
         // Build revenue breakdown
@@ -727,6 +740,8 @@ public class FinancialAnalyticsServiceImpl implements FinancialAnalyticsService 
                 mapper.calculatePercentage(commissionRevenue, totalRevenue),
                 deliveryFeeRevenue,
                 mapper.calculatePercentage(deliveryFeeRevenue, totalRevenue),
+                serviceFeeRevenue,
+                mapper.calculatePercentage(serviceFeeRevenue, totalRevenue),
                 BigDecimal.ZERO,
                 BigDecimal.ZERO);
 
@@ -776,6 +791,7 @@ public class FinancialAnalyticsServiceImpl implements FinancialAnalyticsService 
                 .gmv(gmv)
                 .commissionRevenue(commissionRevenue)
                 .deliveryFeeRevenue(deliveryFeeRevenue)
+                .serviceFeeRevenue(serviceFeeRevenue)
                 .courierCosts(totalCourierCosts)
                 .promotionCosts(totalPromotionCosts)
                 .totalRevenue(totalRevenue)
@@ -829,6 +845,7 @@ public class FinancialAnalyticsServiceImpl implements FinancialAnalyticsService 
                 .commissionRevenue(commissionMetrics.getTotalCommission())
                 .effectiveCommissionRate(commissionMetrics.getEffectiveCommissionRate())
                 .deliveryFeeRevenue(deliveryFeeMetrics.getNetDeliveryFeeRevenue())
+                .serviceFeeRevenue(marginMetrics.getServiceFeeRevenue())
                 .promotionCosts(promotionMetrics.getPlatformCost())
                 .courierCosts(marginMetrics.getCourierCosts())
                 .contributionMargin(marginMetrics.getContributionMargin())

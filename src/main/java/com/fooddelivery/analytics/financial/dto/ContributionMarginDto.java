@@ -34,6 +34,16 @@ public class ContributionMarginDto {
     private BigDecimal deliveryFeeRevenue;
 
     /**
+     * The platform's service fee, charged on the food subtotal.
+     *
+     * <p>Absent from every report until V47. It was charged on every order
+     * under the label "tax" while total revenue was computed as commission plus
+     * delivery margin alone, so the platform understated what it earned by
+     * roughly the fee rate times GMV — for its whole life.
+     */
+    private BigDecimal serviceFeeRevenue;
+
+    /**
      * Total courier costs (base + bonuses + incentives).
      */
     private BigDecimal courierCosts;
@@ -44,7 +54,7 @@ public class ContributionMarginDto {
     private BigDecimal promotionCosts;
 
     /**
-     * Total revenue (commission + delivery fees).
+     * Total revenue: commission + net delivery fees + service fee.
      */
     private BigDecimal totalRevenue;
 
@@ -144,6 +154,10 @@ public class ContributionMarginDto {
         private BigDecimal commissionPercentage;
         private BigDecimal deliveryFeeRevenue;
         private BigDecimal deliveryFeePercentage;
+        // Its own line rather than folded into otherRevenue. Vagueness is how
+        // it stayed invisible for as long as it did.
+        private BigDecimal serviceFeeRevenue;
+        private BigDecimal serviceFeePercentage;
         private BigDecimal otherRevenue;
         private BigDecimal otherPercentage;
     }

@@ -140,6 +140,7 @@ public interface FinancialMetricsMapper {
     ContributionMarginDto.RevenueBreakdownDto toRevenueBreakdownDto(
             BigDecimal commissionRevenue, BigDecimal commissionPercentage,
             BigDecimal deliveryFeeRevenue, BigDecimal deliveryFeePercentage,
+            BigDecimal serviceFeeRevenue, BigDecimal serviceFeePercentage,
             BigDecimal otherRevenue, BigDecimal otherPercentage);
 
     ContributionMarginDto.CostBreakdownDto toCostBreakdownDto(

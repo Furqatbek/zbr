@@ -124,6 +124,27 @@ public interface RestaurantCommissionRepository extends JpaRepository<Restaurant
     Long getOrderCount(@Param("startDate") LocalDateTime startDate,
                        @Param("endDate") LocalDateTime endDate);
 
+    /**
+     * The platform's service fee collected over a period.
+     *
+     * <p>Joined through the commission row rather than read from orders
+     * directly, so this counts exactly the orders GMV and commission count, on
+     * exactly the same clock. A revenue line on a different denominator is
+     * worse than no line at all: the two would never reconcile and nobody would
+     * be able to say which was wrong.
+     *
+     * <p>The fee had never appeared in any report. It arrived as a hard-coded
+     * 8% labelled "tax" (see V47) and was charged on every order while total
+     * revenue was computed as commission plus delivery margin alone — so the
+     * platform has been understating what it earns by roughly 8% of GMV since
+     * its first order.
+     */
+    @Query("SELECT COALESCE(SUM(o.serviceFee), 0) FROM RestaurantCommission rc " +
+           "JOIN Order o ON o.id = rc.orderId " +
+           "WHERE rc.earnedAt BETWEEN :startDate AND :endDate")
+    BigDecimal getTotalServiceFee(@Param("startDate") LocalDateTime startDate,
+                                  @Param("endDate") LocalDateTime endDate);
+
     List<RestaurantCommission> findByRestaurantIdAndEarnedAtBetween(
             Long restaurantId, LocalDateTime startDate, LocalDateTime endDate);
 }
