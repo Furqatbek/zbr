@@ -34,6 +34,7 @@ import org.springframework.web.cors.CorsConfigurationSource;
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final com.fooddelivery.integration.partner.security.PartnerAuthenticationFilter partnerAuthenticationFilter;
     private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
     private final UserDetailsService userDetailsService;
     private final CorsConfigurationSource corsConfigurationSource;
@@ -61,6 +62,37 @@ public class SecurityConfig {
     private static final String[] ADMIN_ENDPOINTS = {
             "/api/v1/admin/**"
     };
+
+    private final org.springframework.security.authentication.AuthenticationTrustResolver trustResolver =
+            new org.springframework.security.authentication.AuthenticationTrustResolverImpl();
+
+    /**
+     * Authenticated, and not a partner.
+     *
+     * <p>A partner key carries authority over many restaurants, where a user
+     * session is one person — so a partner reaching a general endpoint would
+     * arrive somewhere written for a UserPrincipal that it is not, with an
+     * ownership check that has nothing to compare against.
+     *
+     * <p>PartnerAuthenticationFilter already refuses to authenticate a partner
+     * key outside /api/v1/partner/**, which makes this unreachable today. It is
+     * here as the second gate: the courier registration deadlock in this same
+     * file was a URL rule and a method rule disagreeing, and containment that
+     * rests on one line in one filter is one edit away from being gone.
+     */
+    private org.springframework.security.authorization.AuthorizationDecision authenticatedAndNotAPartner(
+            java.util.function.Supplier<org.springframework.security.core.Authentication> authentication,
+            org.springframework.security.web.access.intercept.RequestAuthorizationContext context) {
+
+        org.springframework.security.core.Authentication auth = authentication.get();
+        if (auth == null || !auth.isAuthenticated() || trustResolver.isAnonymous(auth)) {
+            return new org.springframework.security.authorization.AuthorizationDecision(false);
+        }
+        boolean partner = auth.getAuthorities().stream().anyMatch(granted ->
+                com.fooddelivery.integration.partner.security.PartnerPrincipal.ROLE
+                        .equals(granted.getAuthority()));
+        return new org.springframework.security.authorization.AuthorizationDecision(!partner);
+    }
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -94,6 +126,12 @@ public class SecurityConfig {
                         // where the apps — and Apple's reviewer — expect a 401 they can
                         // tell apart from "you are not allowed to delete this".
                         .requestMatchers(HttpMethod.DELETE, "/api/v1/auth/account").authenticated()
+
+                        // Partner API: authenticated by X-Partner-Key, never by a
+                        // user session. ROLE_PARTNER is held by nothing else, so a
+                        // logged-in user cannot reach these however privileged they
+                        // are — and a partner key grants nothing anywhere else.
+                        .requestMatchers("/api/v1/partner/**").hasRole("PARTNER")
 
                         // Public endpoints
                         .requestMatchers(PUBLIC_ENDPOINTS).permitAll()
@@ -172,8 +210,10 @@ public class SecurityConfig {
                         // Payment endpoints
                         .requestMatchers("/api/v1/payments/**").authenticated()
 
-                        // All other requests require authentication
-                        .anyRequest().authenticated()
+                        // All other requests require authentication — and must
+                        // NOT be reachable by a partner. See
+                        // authenticatedAndNotAPartner below.
+                        .anyRequest().access(this::authenticatedAndNotAPartner)
                 )
 
                 // Add authentication provider
@@ -181,6 +221,14 @@ public class SecurityConfig {
 
                 // Add JWT filter before UsernamePasswordAuthenticationFilter
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+
+                // Partner keys, in their own header and only under /api/v1/partner/**.
+                // Order relative to the JWT filter does not matter — they read
+                // different headers and each only acts when the context is still
+                // empty — but this one runs second so a request carrying both
+                // credentials is treated as the user it names rather than
+                // silently upgraded to a partner's reach over many restaurants.
+                .addFilterAfter(partnerAuthenticationFilter, JwtAuthenticationFilter.class)
 
                 // Security headers
                 .headers(headers -> headers

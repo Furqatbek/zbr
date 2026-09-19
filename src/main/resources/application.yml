@@ -214,6 +214,20 @@ app:
       read-timeout-ms: ${RESTOS_READ_TIMEOUT_MS:10000}
       # Optional hostname allowlist; private/loopback/metadata IPs are always blocked.
       allowed-hosts: ${RESTOS_ALLOWED_HOSTS:}
+      # Ceiling on how much of a venue's menu one sync may deactivate. Above it
+      # the sync reports what it would have done and changes nothing, on the
+      # assumption that a menu collapsing is an upstream outage.
+      max-deactivation-ratio: ${RESTOS_MAX_DEACTIVATION_RATIO:0.30}
+      deactivation-floor: ${RESTOS_DEACTIVATION_FLOOR:5}
+
+    # Partner API: external POS systems calling US.
+    partner:
+      # Stamped onto every issued key and checked on every request. A key issued
+      # here is refused anywhere else — which is what stops a staging credential
+      # printing a test order in a real kitchen. Staging overrides this.
+      environment: ${PARTNER_ENVIRONMENT:production}
+      # How stale a key's last-used timestamp may get before it is written again.
+      last-used-write-interval-seconds: ${PARTNER_LAST_USED_INTERVAL_SECONDS:300}
 
   delivery:
     base-fee: ${DELIVERY_BASE_FEE:2.00}

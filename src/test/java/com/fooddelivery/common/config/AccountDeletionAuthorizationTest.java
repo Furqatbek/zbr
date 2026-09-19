@@ -62,6 +62,9 @@ class AccountDeletionAuthorizationTest {
     private MockMvc mockMvc;
 
     @MockBean private JwtAuthenticationFilter jwtAuthenticationFilter;
+    // SecurityConfig wires the partner filter too, so this slice needs it
+    // present — and, like the JWT one, taught to continue the chain.
+    @MockBean private com.fooddelivery.integration.partner.security.PartnerAuthenticationFilter partnerAuthenticationFilter;
     @MockBean private JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
     @MockBean private UserDetailsService userDetailsService;
 
@@ -85,6 +88,15 @@ class AccountDeletionAuthorizationTest {
             chain.doFilter(invocation.getArgument(0), invocation.getArgument(1));
             return null;
         }).when(jwtAuthenticationFilter).doFilter(
+                org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any());
+
+        org.mockito.Mockito.doAnswer(invocation -> {
+            jakarta.servlet.FilterChain chain = invocation.getArgument(2);
+            chain.doFilter(invocation.getArgument(0), invocation.getArgument(1));
+            return null;
+        }).when(partnerAuthenticationFilter).doFilter(
                 org.mockito.ArgumentMatchers.any(),
                 org.mockito.ArgumentMatchers.any(),
                 org.mockito.ArgumentMatchers.any());

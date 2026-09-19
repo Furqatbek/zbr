@@ -106,4 +106,21 @@ public interface MenuItemRepository extends JpaRepository<MenuItem, Long> {
             "AND mi.active = true")
     long countUnkeyedExternalItems(@Param("restaurantId") Long restaurantId,
                                    @Param("externalSource") String externalSource);
+
+    /**
+     * One item in a restaurant, addressed by the external system's own product
+     * id. The lookup a partner request makes, so they never handle our ids.
+     *
+     * <p>Scoped by restaurant rather than by category because a partner knows
+     * which venue a product belongs to but not which of our categories it
+     * landed in — and because their ids are unique per venue, not per category.
+     */
+    @Query("SELECT mi FROM MenuItem mi " +
+            "JOIN mi.category mc " +
+            "WHERE mc.restaurant.id = :restaurantId " +
+            "AND mi.externalSource = :externalSource " +
+            "AND mi.externalId = :externalId")
+    Optional<MenuItem> findByRestaurantAndExternalId(@Param("restaurantId") Long restaurantId,
+                                                     @Param("externalSource") String externalSource,
+                                                     @Param("externalId") Long externalId);
 }

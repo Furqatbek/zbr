@@ -54,6 +54,23 @@ public class GlobalExceptionHandler {
         return buildErrorResponse(HttpStatus.CONFLICT, ex.getMessage(), request);
     }
 
+    /**
+     * A partner and the platform disagree about where an order is.
+     *
+     * <p>409 rather than the 422 used for an internal bad transition: nothing
+     * about the request was malformed, the state simply moved underneath them.
+     * Restos answers 409 for the mirror case, so the same handler works in both
+     * directions. Registered explicitly because @ExceptionHandler matches by
+     * assignability — the catch-all below would otherwise turn this into a 500.
+     */
+    @ExceptionHandler(com.fooddelivery.integration.partner.service.PartnerStateConflictException.class)
+    public ResponseEntity<ApiResponse<Void>> handlePartnerStateConflict(
+            com.fooddelivery.integration.partner.service.PartnerStateConflictException ex,
+            WebRequest request) {
+        log.warn("Partner order state conflict: {}", ex.getMessage());
+        return buildErrorResponse(HttpStatus.CONFLICT, ex.getMessage(), request);
+    }
+
     @ExceptionHandler(BusinessException.class)
     public ResponseEntity<ApiResponse<Void>> handleBusinessException(
             BusinessException ex, WebRequest request) {

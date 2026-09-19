@@ -159,4 +159,12 @@ public class RateLimitService {
     public static String endpointKey(String endpoint, String identifier) {
         return "endpoint:" + endpoint + ":" + identifier;
     }
+
+    /**
+     * Create rate limit key from partner code. Keyed by the partner rather than
+     * by the credential, so rotating a key does not hand out a fresh allowance.
+     */
+    public static String partnerKey(String partnerCode) {
+        return "partner:" + partnerCode;
+    }
 }

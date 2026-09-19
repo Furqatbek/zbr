@@ -36,6 +36,17 @@ public @interface RateLimited {
     enum KeyType {
         IP,
         USER,
-        ENDPOINT
+        ENDPOINT,
+
+        /**
+         * Rate limit by partner, across all their keys and venues.
+         *
+         * <p>Not USER: that resolver only understands a UserPrincipal and
+         * answers 0 for anything else, so every partner on the platform would
+         * have shared one bucket. Not IP either — a partner is one integration
+         * however many servers it calls from, and an integrator behind a
+         * changing egress IP would otherwise get a fresh allowance per hop.
+         */
+        PARTNER
     }
 }

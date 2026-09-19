@@ -42,6 +42,8 @@ public class RateLimitAspect {
         switch (rateLimited.keyType()) {
             case USER:
                 return resolveUserKey();
+            case PARTNER:
+                return resolvePartnerKey();
             case ENDPOINT:
                 return resolveEndpointKey(joinPoint);
             case IP:
@@ -62,6 +64,22 @@ public class RateLimitAspect {
             return RateLimitService.userKey(getUserId(authentication));
         }
         // Fall back to IP if not authenticated
+        return resolveIpKey();
+    }
+
+    /**
+     * One bucket per partner, shared across every key and venue they hold.
+     *
+     * <p>Falls back to the IP bucket when the caller is not a partner, which
+     * only happens if this annotation is put on a non-partner endpoint — an
+     * unauthenticated caller must still be limited by something.
+     */
+    private String resolvePartnerKey() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.getPrincipal()
+                instanceof com.fooddelivery.integration.partner.security.PartnerPrincipal partner) {
+            return RateLimitService.partnerKey(partner.getPartnerCode());
+        }
         return resolveIpKey();
     }
 

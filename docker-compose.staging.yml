@@ -60,6 +60,9 @@ services:
       # in two minutes instead of an hour.
       - JWT_ACCESS_EXPIRATION=${JWT_ACCESS_EXPIRATION:-60000}
       - JWT_REFRESH_EXPIRATION=${JWT_REFRESH_EXPIRATION:-604800000}
+      # Partner keys issued on staging are stamped 'staging' and are refused by
+      # production, and the reverse. A test order must never print in a real kitchen.
+      - PARTNER_ENVIRONMENT=staging
       - IMAGE_STORAGE_PATH=/app/images
       - IMAGE_BASE_URL=${IMAGE_BASE_URL:-https://staging.zbrr.uz/api/v1/images}
       - CORS_ORIGINS=${CORS_ORIGINS:-*}
