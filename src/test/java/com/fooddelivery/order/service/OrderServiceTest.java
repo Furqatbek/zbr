@@ -70,6 +70,7 @@ class OrderServiceTest {
     @Mock private DeliveryFeeCalculationService deliveryFeeCalculationService;
     @Mock private CommissionService commissionService;
     @Mock private PaymentService paymentService;
+    @Mock private com.fooddelivery.integration.partner.service.PartnerOrderGuard partnerOrderGuard;
 
     @InjectMocks
     private OrderService orderService;
@@ -130,6 +131,43 @@ class OrderServiceTest {
             // The key short-circuits before any order work happens.
             verify(orderRepository, never()).save(any());
             verifyNoInteractions(restaurantService, userService, deliveryFeeCalculationService);
+        }
+
+        @Test
+        @DisplayName("a basket the partner's kitchen cannot read is refused before anything is saved")
+        void partnerGuardRunsBeforePersisting() {
+            Restaurant restaurant = mock(Restaurant.class);
+            when(restaurant.getId()).thenReturn(1L);
+            when(restaurant.isCurrentlyOpen()).thenReturn(true);
+            when(restaurantService.getRestaurantEntityById(1L)).thenReturn(restaurant);
+            when(userService.getUserEntityById(20L)).thenReturn(mock(com.fooddelivery.auth.entity.User.class));
+
+            com.fooddelivery.restaurant.entity.MenuItem menuItem = com.fooddelivery.restaurant.entity.MenuItem.builder().id(9L).name("Lunch special")
+                    .price(new java.math.BigDecimal("30000")).inStock(true).build();
+            when(menuItemRepository.findByIdWithVariantsAndOptions(9L)).thenReturn(Optional.of(menuItem));
+
+            // Where the refusal has to happen. A partner rejects the whole
+            // basket for an item they do not have, and if that only surfaced at
+            // push time the customer would already have paid for food nobody
+            // will make.
+            org.mockito.Mockito.doThrow(new BusinessException("«Lunch special» сейчас недоступен."))
+                    .when(partnerOrderGuard).checkOrderable(org.mockito.ArgumentMatchers.eq(1L),
+                            org.mockito.ArgumentMatchers.any());
+
+            CreateOrderRequest request = CreateOrderRequest.builder()
+                    .restaurantId(1L)
+                    .orderType(OrderType.DINE_IN)
+                    .tableId("12")
+                    .items(java.util.List.of(com.fooddelivery.order.dto.OrderItemRequest.builder()
+                            .menuItemId(9L).quantity(1).build()))
+                    .build();
+
+            assertThatThrownBy(() -> orderService.createOrder(20L, request, null))
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessageContaining("Lunch special");
+
+            verify(orderRepository, never()).save(any());
+            verify(eventPublisher, never()).publishAsync(any(), any(), any());
         }
     }
 

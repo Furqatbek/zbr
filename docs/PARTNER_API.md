@@ -212,12 +212,23 @@ curl -X POST https://zbrr.uz/api/v1/admin/partners/1/keys \
   -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' \
   -d '{"label":"Restos production, issued to their integration team"}'
 
-# 3. Grant a venue
+# 3. Grant a venue. pushOrders decides whether its orders print on their till;
+#    omitting it leaves that setting alone rather than switching a kitchen back.
 curl -X PUT https://zbrr.uz/api/v1/admin/partners/1/venues \
   -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' \
   -d '{"restaurantId":100,"externalVenueId":"55",
-       "capabilities":["MENU_WRITE","ORDER_STATUS_WRITE"]}'
+       "capabilities":["MENU_WRITE","ORDER_STATUS_WRITE"],"pushOrders":true}'
+
+# 4. Where WE send orders, using the credential they issued us
+curl -X PUT https://zbrr.uz/api/v1/admin/partners/1/outbound \
+  -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' \
+  -d '{"baseUrl":"https://pos.restos.uz","apiKey":"<their key>",
+       "authHeader":"X-Partner-Key"}'
 ```
+
+Order push needs both step 3's `pushOrders` and step 4. A venue switched on
+against a partner with no outbound URL sends nothing and logs an error — the
+alternative is orders quietly not printing.
 
 The partner code must match the `external_source` stamped on imported menu items
 — `RESTOS` for Restos. That is what ties a partner's key to the items they may
@@ -225,11 +236,60 @@ change, so a partner can only ever touch what they themselves imported.
 
 ---
 
+---
+
+## Orders we send you
+
+The other direction. When a venue is switched on for it, a new order is POSTed
+to **your** `/api/v1/partner/orders` so the ticket prints in the kitchen.
+
+This is asynchronous and off the customer's checkout path: if your system is
+slow or down, the order is still taken and we keep retrying. Food arriving late
+is recoverable; an order that was never accepted is not.
+
+**Idempotency.** `externalOrderId` is our order reference, `FD-YYYYMMDD-XXXXXX`.
+It is assigned once and never changes, so every retry carries the same value —
+we rely on your `(partner, venue, id)` uniqueness, and hold our own record of
+each push so a redelivered message cannot produce a second ticket from our side
+either. A double print is a double-cooked order, so both guards are deliberate.
+
+We treat your `201` and your `200` + `duplicate: true` as the same success.
+
+**Payload** (field names are our proposal — tell us if yours differ):
+
+```json
+{
+  "externalOrderId": "FD-20260919-A7K2M9",
+  "venueId": "55",
+  "orderType": "DELIVERY",
+  "items": [
+    { "productId": "4417", "name": "Plov", "quantity": 2,
+      "unitPrice": 30000, "lineTotal": 60000, "notes": "no onions" }
+  ],
+  "subtotal": 60000, "deliveryFee": 15000, "total": 75000,
+  "customerName": "Anvar", "customerPhone": "998901234567",
+  "deliveryAddress": "Mustaqillik 15, kv 42",
+  "placedAt": "2026-09-19T10:02:11Z"
+}
+```
+
+`productId` is **your** product id, taken from what your menu import stamped on
+the item. Nulls are omitted.
+
+**On `422 UNKNOWN_ITEMS`.** We now check at checkout instead: a basket
+containing an item you do not have is refused before the customer pays, naming
+the dish so they can remove it. You should therefore rarely see this — and if
+you do, it means our catalogues have drifted and we want to know.
+
+A rejection is never retried. It is recorded against the order and logged
+loudly, because it means a ticket that will never print.
+
+---
+
 ## Not built yet
 
 Named so nobody builds against something that is not there:
 
-- **Pushing orders to you** is still ours to do. This API is you calling us.
 - **Order-status webhooks out to you** are not built; you poll or we agree a
   callback later.
 - **Reading a menu back** through this API is not implemented — we pull yours.

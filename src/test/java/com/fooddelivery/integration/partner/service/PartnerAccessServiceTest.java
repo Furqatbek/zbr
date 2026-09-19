@@ -155,7 +155,7 @@ class PartnerAccessServiceTest {
         when(grantRepository.save(any())).thenAnswer(i -> i.getArgument(0));
 
         PartnerVenueGrant updated = service.grantVenue(7L, 100L, "venue-56",
-                Set.of(PartnerCapability.ORDER_STATUS_WRITE));
+                Set.of(PartnerCapability.ORDER_STATUS_WRITE), null);
 
         assertThat(updated.getExternalVenueId()).isEqualTo("venue-56");
         assertThat(updated.getCapabilities()).containsExactly(PartnerCapability.ORDER_STATUS_WRITE);
@@ -169,9 +169,31 @@ class PartnerAccessServiceTest {
         when(restaurantService.getRestaurantEntityById(100L)).thenReturn(restaurant);
         when(grantRepository.save(any())).thenAnswer(i -> i.getArgument(0));
 
-        PartnerVenueGrant created = service.grantVenue(7L, 100L, "venue-55", null);
+        PartnerVenueGrant created = service.grantVenue(7L, 100L, "venue-55", null, null);
 
         assertThat(created.getCapabilities()).isEmpty();
         assertThat(created.allows(PartnerCapability.MENU_WRITE)).isFalse();
+        // And orders keep printing where they always did. Switching a kitchen
+        // over is its own decision, never a side effect of mapping a venue.
+        assertThat(created.isPushOrders()).isFalse();
+    }
+
+    @Test
+    @DisplayName("omitting pushOrders leaves a switched-on venue switched on")
+    void omittingPushOrdersDoesNotSwitchAKitchenBack() {
+        Partner partner = Partner.builder().id(7L).code("RESTOS").active(true).build();
+        when(partnerRepository.findById(7L)).thenReturn(Optional.of(partner));
+        when(restaurantService.getRestaurantEntityById(100L)).thenReturn(restaurant);
+        PartnerVenueGrant existing = grant(PartnerCapability.MENU_WRITE);
+        existing.setPushOrders(true);
+        when(grantRepository.findByPartnerIdAndRestaurantId(7L, 100L)).thenReturn(Optional.of(existing));
+        when(grantRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+
+        // Editing capabilities must not silently stop a restaurant's orders
+        // reaching the till they are cooked from.
+        PartnerVenueGrant updated = service.grantVenue(7L, 100L, "venue-55",
+                Set.of(PartnerCapability.ORDER_STATUS_WRITE), null);
+
+        assertThat(updated.isPushOrders()).isTrue();
     }
 }

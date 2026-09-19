@@ -105,7 +105,7 @@ public class PartnerAccessService {
 
     @Transactional
     public PartnerVenueGrant grantVenue(Long partnerId, Long restaurantId, String externalVenueId,
-                                        Set<PartnerCapability> capabilities) {
+                                        Set<PartnerCapability> capabilities, Boolean pushOrders) {
         Partner partner = partnerRepository.findById(partnerId)
                 .orElseThrow(() -> new ResourceNotFoundException("Partner", "id", partnerId));
         Restaurant restaurant = restaurantService.getRestaurantEntityById(restaurantId);
@@ -125,10 +125,45 @@ public class PartnerAccessService {
 
         grant.setExternalVenueId(externalVenueId.trim());
         grant.setCapabilities(capabilities == null ? Set.of() : Set.copyOf(capabilities));
+        if (pushOrders != null) {
+            grant.setPushOrders(pushOrders);
+        }
 
         PartnerVenueGrant saved = grantRepository.save(grant);
-        log.info("Partner {} granted {} on restaurant {} (their venue id '{}')",
-                partner.getCode(), saved.getCapabilities(), restaurantId, saved.getExternalVenueId());
+        log.info("Partner {} granted {} on restaurant {} (their venue id '{}'), order push {}",
+                partner.getCode(), saved.getCapabilities(), restaurantId, saved.getExternalVenueId(),
+                saved.isPushOrders() ? "ON" : "off");
+        return saved;
+    }
+
+    /**
+     * Configure where we send this partner's orders, and with what credential.
+     *
+     * <p>The credential is one they issued us. It is stored, never returned,
+     * and never logged — a partner key in a log line is a partner key in a log
+     * aggregator, a backup and a screenshot.
+     */
+    @Transactional
+    public Partner configureOutbound(Long partnerId, String baseUrl, String apiKey, String authHeader) {
+        Partner partner = partnerRepository.findById(partnerId)
+                .orElseThrow(() -> new ResourceNotFoundException("Partner", "id", partnerId));
+
+        if (baseUrl != null) {
+            partner.setOutboundBaseUrl(baseUrl.isBlank() ? null : baseUrl.trim());
+        }
+        // Null leaves the existing credential alone, so the URL can be changed
+        // without re-sending a secret. Blank clears it deliberately.
+        if (apiKey != null) {
+            partner.setOutboundApiKey(apiKey.isBlank() ? null : apiKey.trim());
+        }
+        if (authHeader != null) {
+            partner.setOutboundAuthHeader(authHeader.isBlank() ? null : authHeader.trim());
+        }
+
+        Partner saved = partnerRepository.save(partner);
+        log.info("Partner {} outbound configured: url={}, credential {}",
+                saved.getCode(), saved.getOutboundBaseUrl(),
+                saved.getOutboundApiKey() != null ? "set" : "absent");
         return saved;
     }
 

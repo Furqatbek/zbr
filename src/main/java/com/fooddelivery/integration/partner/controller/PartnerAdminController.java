@@ -94,8 +94,22 @@ public class PartnerAdminController {
             @Valid @RequestBody GrantVenueBody body) {
 
         PartnerVenueGrant grant = accessService.grantVenue(
-                partnerId, body.getRestaurantId(), body.getExternalVenueId(), body.getCapabilities());
+                partnerId, body.getRestaurantId(), body.getExternalVenueId(),
+                body.getCapabilities(), body.getPushOrders());
         return ResponseEntity.ok(ApiResponse.success("Venue granted", GrantView.of(grant)));
+    }
+
+    @PutMapping("/{partnerId}/outbound")
+    @Operation(summary = "Configure where we push orders to this partner",
+            description = "The API key is the credential THEY issued US. It is stored, never "
+                    + "returned and never logged. Omit it to change the URL without re-sending it.")
+    public ResponseEntity<ApiResponse<PartnerView>> configureOutbound(
+            @PathVariable Long partnerId,
+            @RequestBody OutboundBody body) {
+
+        Partner partner = accessService.configureOutbound(
+                partnerId, body.getBaseUrl(), body.getApiKey(), body.getAuthHeader());
+        return ResponseEntity.ok(ApiResponse.success("Outbound configured", PartnerView.of(partner)));
     }
 
     @GetMapping("/{partnerId}/venues")
@@ -141,6 +155,22 @@ public class PartnerAdminController {
          * decisions, and the second one should have to be typed.
          */
         private Set<PartnerCapability> capabilities;
+
+        /**
+         * Whether this venue's orders print on the partner's till. Absent
+         * leaves it as it was, so editing capabilities cannot silently switch a
+         * kitchen over — or silently switch it back.
+         */
+        private Boolean pushOrders;
+    }
+
+    @Data
+    public static class OutboundBody {
+        private String baseUrl;
+        /** Write-only. Omit to leave the stored credential untouched. */
+        private String apiKey;
+        /** Defaults to Authorization: Bearer when absent. */
+        private String authHeader;
     }
 
     // --- responses ---------------------------------------------------------
@@ -198,6 +228,7 @@ public class PartnerAdminController {
         private String restaurantName;
         private String externalVenueId;
         private Set<PartnerCapability> capabilities;
+        private Boolean pushOrders;
 
         static GrantView of(PartnerVenueGrant grant) {
             return GrantView.builder()
@@ -206,6 +237,7 @@ public class PartnerAdminController {
                     .restaurantName(grant.getRestaurant().getName())
                     .externalVenueId(grant.getExternalVenueId())
                     .capabilities(grant.getCapabilities())
+                    .pushOrders(grant.isPushOrders())
                     .build();
         }
     }

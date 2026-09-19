@@ -53,6 +53,7 @@ import java.util.Set;
 public class OrderService {
 
     private final OrderRepository orderRepository;
+    private final com.fooddelivery.integration.partner.service.PartnerOrderGuard partnerOrderGuard;
     private final MenuItemRepository menuItemRepository;
     private final RestaurantService restaurantService;
     private final UserService userService;
@@ -138,6 +139,13 @@ public class OrderService {
         // Process order items
         List<OrderItem> orderItems = processOrderItems(order, request.getItems());
         order.setItems(orderItems);
+
+        // Before the customer pays, not after. A venue that cooks from a
+        // partner's till rejects the whole basket if any line names a product
+        // they do not have, and that rejection would otherwise land on someone
+        // who has already been charged for food nobody will make.
+        partnerOrderGuard.checkOrderable(restaurant.getId(),
+                orderItems.stream().map(OrderItem::getMenuItem).toList());
 
         // Calculate totals
         order.calculateTotals();

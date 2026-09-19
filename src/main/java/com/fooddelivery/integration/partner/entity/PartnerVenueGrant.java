@@ -58,6 +58,19 @@ public class PartnerVenueGrant {
     @Builder.Default
     private Set<PartnerCapability> capabilities = new HashSet<>();
 
+    /**
+     * Whether this venue's orders are sent to the partner's till.
+     *
+     * <p>Off by default and separate from every capability above, because those
+     * describe what the partner may do to us and this decides where a
+     * restaurant's orders get cooked. Switching it on for the wrong venue means
+     * a ticket printing in the wrong kitchen; switching it on before the
+     * partner is ready means orders nobody cooks.
+     */
+    @Column(name = "push_orders", nullable = false)
+    @Builder.Default
+    private Boolean pushOrders = false;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -65,6 +78,10 @@ public class PartnerVenueGrant {
     @UpdateTimestamp
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+    public boolean isPushOrders() {
+        return Boolean.TRUE.equals(pushOrders);
+    }
 
     public boolean allows(PartnerCapability capability) {
         return capabilities != null && capabilities.contains(capability);

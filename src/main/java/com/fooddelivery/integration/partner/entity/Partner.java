@@ -42,6 +42,29 @@ public class Partner {
     @Builder.Default
     private Boolean active = true;
 
+    /**
+     * Where we POST orders for this partner. Null means we push nothing to
+     * them, whatever a venue grant says — a venue switched on against a partner
+     * with no address configured is a misconfiguration, not an instruction.
+     */
+    @Column(name = "outbound_base_url", length = 500)
+    private String outboundBaseUrl;
+
+    /**
+     * The credential THEY issued US. Distinct from the keys we issue them, and
+     * never returned by any endpoint.
+     */
+    @Column(name = "outbound_api_key", length = 500)
+    private String outboundApiKey;
+
+    /**
+     * Which header carries that credential. Restos accept X-Partner-Key or
+     * Authorization; the next partner will want something else, and hard-coding
+     * one means a code change per integration. Null means Authorization: Bearer.
+     */
+    @Column(name = "outbound_auth_header", length = 50)
+    private String outboundAuthHeader;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;

@@ -40,6 +40,7 @@ public class RabbitMQConfig {
     public static final String NOTIFICATION_SMS_QUEUE = "notification.sms.queue";
     public static final String NOTIFICATION_PUSH_QUEUE = "notification.push.queue";
     public static final String KITCHEN_TICKET_QUEUE = "kitchen.ticket.queue";
+    public static final String PARTNER_ORDER_PUSH_QUEUE = "partner.order.push.queue";
 
     // Routing keys
     public static final String ORDER_CREATED_KEY = "order.created";
@@ -156,6 +157,30 @@ public class RabbitMQConfig {
                 .withArgument("x-dead-letter-exchange", DLX_EXCHANGE)
                 .withArgument("x-dead-letter-routing-key", "dlq")
                 .build();
+    }
+
+    /**
+     * Its own queue on the same routing key as orderCreatedQueue, so the two
+     * consumers each get a copy and neither can starve the other.
+     *
+     * <p>Sharing one queue would mean whichever consumer took a message
+     * decided whether the other's work happened at all — an order reaching a
+     * partner's kitchen only when the notification consumer happened not to win
+     * the race.
+     */
+    @Bean
+    public Queue partnerOrderPushQueue() {
+        return QueueBuilder.durable(PARTNER_ORDER_PUSH_QUEUE)
+                .withArgument("x-dead-letter-exchange", DLX_EXCHANGE)
+                .withArgument("x-dead-letter-routing-key", "dlq")
+                .build();
+    }
+
+    @Bean
+    public Binding partnerOrderPushBinding() {
+        return BindingBuilder.bind(partnerOrderPushQueue())
+                .to(orderExchange())
+                .with(ORDER_CREATED_KEY);
     }
 
     @Bean
