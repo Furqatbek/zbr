@@ -35,6 +35,7 @@ public class PartnerAccessService {
     private final PartnerRepository partnerRepository;
     private final PartnerVenueGrantRepository grantRepository;
     private final RestaurantService restaurantService;
+    private final com.fooddelivery.common.security.SecretCipher secretCipher;
 
     /**
      * Whether an order's paymentMode reflects how it will actually be paid.
@@ -175,6 +176,15 @@ public class PartnerAccessService {
         Partner partner = partnerRepository.findById(partnerId)
                 .orElseThrow(() -> new ResourceNotFoundException("Partner", "id", partnerId));
 
+        // A row written before the column was encrypted still reads, but it is
+        // sitting in the clear until someone re-sends the credential. Said here
+        // because this is the endpoint that fixes it, so the person who can act
+        // is the person who sees it.
+        if (apiKey == null && secretCipher.isLegacyPlaintext(partner.getOutboundApiKey())) {
+            log.warn("Partner {} still has an unencrypted outbound credential. Re-send apiKey on "
+                    + "this call to rewrite it encrypted.", partner.getCode());
+        }
+
         if (baseUrl != null) {
             partner.setOutboundBaseUrl(baseUrl.isBlank() ? null : baseUrl.trim());
         }
@@ -188,6 +198,7 @@ public class PartnerAccessService {
         }
 
         Partner saved = partnerRepository.save(partner);
+        // The value itself is never logged, here or anywhere.
         log.info("Partner {} outbound configured: url={}, credential {}",
                 saved.getCode(), saved.getOutboundBaseUrl(),
                 saved.getOutboundApiKey() != null ? "set" : "absent");

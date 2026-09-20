@@ -47,13 +47,21 @@ we present you are columns on the partner row, set from an admin call rather
 than an environment variable. So the bottleneck you describe — *"onboarding a
 partner means an environment change and a deploy"* — is not one we have.
 
-Your observation underneath it is the useful half and it does land on us: your
-key to call us is hashed, ours to call you is readable, and we stored the
-readable one in a plain column. You wrote the warning about your own future
+Your observation underneath it is the useful half, and it landed on us: your key
+to call us is hashed, ours to call you is readable, and we had stored the
+readable one in a plain column. You wrote that warning about your own future
 work — *"wants a real encryptor and a rotation path, not a column called
-`api_key`"* — and it describes our present. It is admin-only, never returned by
-any endpoint and never logged, but a database dump is a live credential to your
-production system. On the list, and named for what it is.
+`api_key`"* — and it described our present. A database dump was a live
+credential to your production system.
+
+**Fixed before sending this.** AES-GCM, a fresh random IV per value, the key
+held outside the database. GCM rather than CBC because it authenticates: a
+tampered value fails to decrypt instead of decrypting into something else and
+being presented to you as a credential. Your key is still hashed, ours is now
+encrypted, and the two no longer look alike in the same table.
+
+Rotation is the half we have not built. Today it is reissue-and-re-enter, which
+is honest for one partner and will not survive ten.
 
 **Your "what not to build" list is better than ours.** Particularly *do not make
 the cutoff, the price rule or the refusal configurable per partner*. We had not

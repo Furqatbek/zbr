@@ -147,6 +147,17 @@ jwt:
 
 # Application Configuration
 app:
+  security:
+    # Base64 of 32 random bytes, used to encrypt secrets that must be readable
+    # back — today that is only the credential a partner issued us for calling
+    # their API. Generate with: openssl rand -base64 32
+    #
+    # Unset, the app still starts and everything else works, but storing a
+    # partner's outbound credential fails loudly rather than writing it in the
+    # clear. Losing this key makes stored credentials unrecoverable: they are
+    # reissued by the partner, not decrypted.
+    secret-key: ${APP_SECRET_KEY:}
+
   # ISO-4217 code stamped on payments, payouts, referrals and analytics. The
   # platform operates in Uzbekistan, so amounts throughout are UZS. Money values
   # are stored as plain decimals, NOT minor units — 15000 means 15 000 so'm.

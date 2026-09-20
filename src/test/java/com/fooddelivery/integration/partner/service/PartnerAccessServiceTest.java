@@ -45,13 +45,18 @@ class PartnerAccessServiceTest {
     @Mock private PartnerVenueGrantRepository grantRepository;
     @Mock private RestaurantService restaurantService;
 
+    /** A real cipher rather than a mock: it is 30 lines and the real one round-trips. */
+    private static final String SECRET_KEY =
+            java.util.Base64.getEncoder().encodeToString(new byte[32]);
+
     private PartnerAccessService service;
     private PartnerPrincipal restos;
     private Restaurant restaurant;
 
     @BeforeEach
     void setUp() {
-        service = new PartnerAccessService(partnerRepository, grantRepository, restaurantService);
+        service = new PartnerAccessService(partnerRepository, grantRepository, restaurantService,
+                new com.fooddelivery.common.security.SecretCipher(SECRET_KEY));
         // The apps do not set a payment mode yet, so live order push is barred.
         // Individual tests turn it on where that is what they are testing.
         org.springframework.test.util.ReflectionTestUtils.setField(

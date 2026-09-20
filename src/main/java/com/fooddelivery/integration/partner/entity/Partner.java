@@ -53,8 +53,14 @@ public class Partner {
     /**
      * The credential THEY issued US. Distinct from the keys we issue them, and
      * never returned by any endpoint.
+     *
+     * <p>Encrypted at rest, not hashed: we have to replay this one on every
+     * call, so it has to be recoverable. The converter handles it, which is why
+     * every reader of this field sees a plain String and none of them had to
+     * change.
      */
-    @Column(name = "outbound_api_key", length = 500)
+    @Convert(converter = com.fooddelivery.common.security.EncryptedStringConverter.class)
+    @Column(name = "outbound_api_key", length = 2000)
     private String outboundApiKey;
 
     /**
