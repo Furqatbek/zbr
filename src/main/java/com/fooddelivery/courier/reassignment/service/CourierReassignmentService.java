@@ -39,6 +39,7 @@ public class CourierReassignmentService {
 
     private final OrderRepository orderRepository;
     private final CourierRepository courierRepository;
+    private final com.fooddelivery.delivery.eta.DeliveryEtaService etaService;
     private final ReassignmentLogRepository reassignmentLogRepository;
     private final PersistentNotificationService notificationService;
     private final EventPublisher eventPublisher;
@@ -177,6 +178,10 @@ public class CourierReassignmentService {
         // Assign courier to order
         order.setCourier(bestCourier);
         order.setStatus(OrderStatus.COURIER_ASSIGNED);
+        // A replacement courier may be in a different vehicle from the one that
+        // dropped the order, so the arrival estimate is recomputed rather than
+        // inherited.
+        etaService.refreshEstimatedDeliveryTime(order);
         bestCourier.setStatus(CourierStatus.BUSY);
 
         orderRepository.save(order);

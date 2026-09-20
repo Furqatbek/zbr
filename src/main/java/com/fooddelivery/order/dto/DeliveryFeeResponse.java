@@ -50,4 +50,20 @@ public class DeliveryFeeResponse {
 
     @Schema(description = "Maximum fee cap applied")
     private BigDecimal maxFee;
+
+    // Arrival time, from the same distance the fee was computed from. Null when
+    // there were no coordinates to measure — the same condition that falls the
+    // fee back to the base rate.
+
+    @Schema(description = "Kitchen time in minutes used in the estimate")
+    private Integer prepMinutes;
+
+    @Schema(description = "Courier time in minutes: travel plus parking and handover")
+    private Integer travelMinutes;
+
+    @Schema(description = "Lower bound in minutes for the food to arrive")
+    private Integer etaMinutesMin;
+
+    @Schema(description = "Upper bound in minutes for the food to arrive")
+    private Integer etaMinutesMax;
 }

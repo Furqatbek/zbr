@@ -16,7 +16,7 @@ import java.time.LocalTime;
  * DTO for restaurant information.
  */
 @Data
-@Builder
+@Builder(toBuilder = true)
 @NoArgsConstructor
 @AllArgsConstructor
 @Schema(description = "Restaurant information")
@@ -101,6 +101,25 @@ public class RestaurantDto {
 
     @Schema(description = "Average preparation time in minutes")
     private Integer averagePrepTimeMinutes;
+
+    // The three below are per-customer and therefore never cached with the
+    // restaurant: they are stamped onto a copy of the cached DTO after it is
+    // read. They are null whenever the caller sent no coordinates, or the
+    // restaurant has none — a missing distance is shown as nothing, never as
+    // zero kilometres away.
+
+    @Schema(description = "Distance from the customer to this restaurant in km, "
+            + "null when the request carried no location. Straight-line times a "
+            + "road-detour factor, not a driven route")
+    private Double distanceKm;
+
+    @Schema(description = "Lower bound in minutes for food to arrive: kitchen plus courier. "
+            + "Null when the request carried no location")
+    private Integer etaMinutesMin;
+
+    @Schema(description = "Upper bound in minutes for food to arrive. "
+            + "Null when the request carried no location")
+    private Integer etaMinutesMax;
 
     @Schema(description = "Opening time")
     private LocalTime opensAt;

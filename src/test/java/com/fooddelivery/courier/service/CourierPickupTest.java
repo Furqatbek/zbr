@@ -56,6 +56,7 @@ class CourierPickupTest {
     private static final Long ORDER_ID = 77L;
 
     @Mock private CourierRepository courierRepository;
+    @Mock private com.fooddelivery.delivery.eta.DeliveryEtaService etaService;
     @Mock private OrderRepository orderRepository;
     @Mock private PaymentRepository paymentRepository;
     @Mock private DeliveryIssueRepository deliveryIssueRepository;

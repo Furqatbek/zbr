@@ -284,6 +284,36 @@ app:
       osrm-base-url: ${DELIVERY_ROUTING_OSRM_URL:https://router.project-osrm.org}
       connect-timeout: ${DELIVERY_ROUTING_CONNECT_TIMEOUT:3000}
       read-timeout: ${DELIVERY_ROUTING_READ_TIMEOUT:5000}
+    # How long a delivery takes, by vehicle. See EtaProperties for what each
+    # number means and why the defaults are pessimistic.
+    #
+    # planning-vehicle is what every estimate assumes before a courier accepts —
+    # which is every estimate a customer sees while choosing. Set it to what the
+    # fleet in this city actually rides, or the ETA on every restaurant card is
+    # computed for a vehicle nobody is on.
+    eta:
+      planning-vehicle: ${DELIVERY_ETA_PLANNING_VEHICLE:BICYCLE}
+      # Straight-line distances are multiplied by this to approximate roads.
+      # Not applied when routing above is enabled and OSRM answers, since a
+      # route has already been round the corners.
+      detour-factor: ${DELIVERY_ETA_DETOUR_FACTOR:1.3}
+      spread-fraction: 0.15
+      min-spread-minutes: 5
+      round-to-minutes: 5
+      speed-kmh:
+        WALKING: 4.5
+        BICYCLE: 12
+        E_BIKE: 18
+        MOTORCYCLE: 24
+        CAR: 20
+        VAN: 18
+      overhead-minutes:
+        WALKING: 3
+        BICYCLE: 3
+        E_BIKE: 3
+        MOTORCYCLE: 4
+        CAR: 6
+        VAN: 7
 
   referral:
     reward-amount: 10.00

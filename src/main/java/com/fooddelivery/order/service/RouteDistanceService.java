@@ -40,19 +40,41 @@ public class RouteDistanceService {
     }
 
     /**
+     * A distance and where it came from.
+     *
+     * <p>The provenance matters to anything that turns the distance into a
+     * time: a straight line needs a detour factor applied to it and a road
+     * route does not, and applying one to both quotes every routed journey 30%
+     * long. Fees never needed to tell the two apart; estimates do.
+     *
+     * @param km     distance in kilometres
+     * @param routed true when this came from the road network, false when it is
+     *               the straight-line fallback
+     */
+    public record Distance(double km, boolean routed) {}
+
+    /**
      * Calculate distance in km between two coordinates.
      * Uses OSRM route distance if enabled and available, otherwise falls back to Haversine.
      *
      * @return distance in kilometers
      */
     public double calculateDistanceKm(double lat1, double lon1, double lat2, double lon2) {
+        return calculateDistance(lat1, lon1, lat2, lon2).km();
+    }
+
+    /**
+     * As {@link #calculateDistanceKm}, but says whether the road network
+     * answered or the straight-line fallback did.
+     */
+    public Distance calculateDistance(double lat1, double lon1, double lat2, double lon2) {
         DeliveryFeeSettingsDto settings = settingsService.getSettings();
         boolean routingEnabled = settings.getRoutingEnabled() != null
                 ? settings.getRoutingEnabled()
                 : properties.isEnabled();
 
         if (!routingEnabled) {
-            return calculateHaversineDistanceKm(lat1, lon1, lat2, lon2);
+            return new Distance(calculateHaversineDistanceKm(lat1, lon1, lat2, lon2), false);
         }
 
         String osrmBaseUrl = settings.getRoutingOsrmBaseUrl() != null
@@ -69,16 +91,16 @@ public class RouteDistanceService {
             if (routeDistance < haversineDistance * 0.5) {
                 log.warn("OSRM returned suspicious distance: {} km (straight-line: {} km). Using Haversine.",
                         String.format("%.2f", routeDistance), String.format("%.2f", haversineDistance));
-                return haversineDistance;
+                return new Distance(haversineDistance, false);
             }
 
             log.debug("OSRM route distance: {} km (straight-line: {} km)",
                     String.format("%.2f", routeDistance),
                     String.format("%.2f", haversineDistance));
-            return routeDistance;
+            return new Distance(routeDistance, true);
         } catch (Exception e) {
             log.warn("OSRM route calculation failed, falling back to Haversine: {}", e.getMessage());
-            return calculateHaversineDistanceKm(lat1, lon1, lat2, lon2);
+            return new Distance(calculateHaversineDistanceKm(lat1, lon1, lat2, lon2), false);
         }
     }
 

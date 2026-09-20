@@ -13,6 +13,7 @@ import com.fooddelivery.common.util.JsonUtils;
 import com.fooddelivery.common.util.SlugUtils;
 import com.fooddelivery.courier.entity.Courier;
 import com.fooddelivery.courier.repository.CourierRepository;
+import com.fooddelivery.delivery.eta.DeliveryEtaService;
 import com.fooddelivery.order.dto.*;
 import com.fooddelivery.order.entity.*;
 import com.fooddelivery.order.event.OrderCreatedEvent;
@@ -62,6 +63,7 @@ public class OrderService {
     private final SimpMessagingTemplate messagingTemplate;
     private final CourierRepository courierRepository;
     private final DeliveryFeeCalculationService deliveryFeeCalculationService;
+    private final DeliveryEtaService deliveryEtaService;
     private final CommissionService commissionService;
     private final PaymentService paymentService;
     private final OrderRealtimeBroadcaster realtimeBroadcaster;
@@ -617,10 +619,10 @@ public class OrderService {
                 // When restaurant accepts/starts preparing, set estimated times
                 if (request.getEstimatedPrepTimeMinutes() != null) {
                     order.setEstimatedPrepTimeMinutes(request.getEstimatedPrepTimeMinutes());
-                    order.setEstimatedDeliveryTime(
-                            LocalDateTime.now().plusMinutes(request.getEstimatedPrepTimeMinutes() + 15)
-                    );
                 }
+                // Distance and vehicle, not a flat fifteen minutes. Set whether
+                // or not the kitchen volunteered a preparation time.
+                deliveryEtaService.refreshEstimatedDeliveryTime(order);
             }
             case DELIVERED, COMPLETED -> {
                 if (newStatus == OrderStatus.COMPLETED) {

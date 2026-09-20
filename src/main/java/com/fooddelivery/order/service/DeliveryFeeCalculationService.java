@@ -1,5 +1,7 @@
 package com.fooddelivery.order.service;
 
+import com.fooddelivery.delivery.eta.DeliveryEta;
+import com.fooddelivery.delivery.eta.DeliveryEtaService;
 import com.fooddelivery.order.dto.DeliveryFeeResponse;
 import com.fooddelivery.order.dto.DeliveryFeeSettingsDto;
 import com.fooddelivery.restaurant.entity.Restaurant;
@@ -25,6 +27,7 @@ public class DeliveryFeeCalculationService {
 
     private final DeliveryFeeSettingsService settingsService;
     private final RouteDistanceService routeDistanceService;
+    private final DeliveryEtaService etaService;
 
     /**
      * Initialised as well as injected: Spring overwrites this, but @Value is
@@ -185,13 +188,15 @@ public class DeliveryFeeCalculationService {
                     .build();
         }
 
-        // Calculate distance using route-based calculation (with Haversine fallback)
-        double distanceKm = routeDistanceService.calculateDistanceKm(
+        // Calculate distance using route-based calculation (with Haversine fallback).
+        // Measured once and used twice: the fee, and the arrival estimate below.
+        RouteDistanceService.Distance distance = routeDistanceService.calculateDistance(
                 restaurant.getLatitude().doubleValue(),
                 restaurant.getLongitude().doubleValue(),
                 deliveryLatitude.doubleValue(),
                 deliveryLongitude.doubleValue()
         );
+        double distanceKm = distance.km();
 
         // Check delivery radius
         Integer radiusKm = restaurant.getDeliveryRadiusKm();
@@ -223,7 +228,17 @@ public class DeliveryFeeCalculationService {
 
         calculatedFee = calculatedFee.setScale(2, RoundingMode.HALF_UP);
 
+        // No courier exists yet at checkout, so this assumes the configured
+        // planning vehicle. It is replaced with the real one the moment a
+        // courier accepts.
+        DeliveryEta eta = etaService.fromDistance(distanceKm, distance.routed(),
+                restaurant.getAveragePrepTimeMinutes(), null);
+
         return DeliveryFeeResponse.builder()
+                .prepMinutes(eta.getPrepMinutes())
+                .travelMinutes(eta.getTravelMinutes())
+                .etaMinutesMin(eta.getEtaMinutesMin())
+                .etaMinutesMax(eta.getEtaMinutesMax())
                 .deliveryFee(calculatedFee)
                 .baseFee(settings.getBaseFee())
                 .perKmFee(settings.getPerKmFee())

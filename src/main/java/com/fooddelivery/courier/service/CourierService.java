@@ -49,6 +49,7 @@ public class CourierService {
 
     private final CourierRepository courierRepository;
     private final OrderRepository orderRepository;
+    private final com.fooddelivery.delivery.eta.DeliveryEtaService etaService;
     private final PaymentRepository paymentRepository;
     private final DeliveryIssueRepository deliveryIssueRepository;
     private final UserService userService;
@@ -230,6 +231,10 @@ public class CourierService {
         // Assign courier to order
         order.setCourier(courier);
         order.updateStatus(OrderStatus.COURIER_ASSIGNED);
+        // The vehicle stops being an assumption here: until now the arrival
+        // estimate used the configured planning vehicle, and this courier may
+        // be on foot or in a van.
+        etaService.refreshEstimatedDeliveryTime(order);
         orderRepository.save(order);
 
         // Update courier
@@ -620,6 +625,7 @@ public class CourierService {
 
         order.setCourier(courier);
         order.updateStatus(OrderStatus.COURIER_ASSIGNED);
+        etaService.refreshEstimatedDeliveryTime(order);
         order = orderRepository.save(order);
 
         courier.assignOrder();
@@ -696,6 +702,9 @@ public class CourierService {
 
         OrderStatus previousStatus = order.getStatus();
         order.updateStatus(OrderStatus.PICKED_UP);
+        // The kitchen's share of the wait is over — from here it is the road
+        // only, so the estimate drops rather than counting cooking twice.
+        etaService.refreshEstimatedDeliveryTime(order);
         order = orderRepository.save(order);
 
         log.info("Courier {} picked up order {}", courierId, orderId);

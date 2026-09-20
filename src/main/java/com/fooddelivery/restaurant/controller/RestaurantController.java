@@ -14,6 +14,7 @@ import com.fooddelivery.restaurant.dto.RestaurantDto;
 import com.fooddelivery.restaurant.dto.RestaurantFinancialReportDto;
 import com.fooddelivery.restaurant.dto.TransferOwnershipRequest;
 import com.fooddelivery.restaurant.entity.RestaurantStatus;
+import com.fooddelivery.restaurant.service.RestaurantEtaEnricher;
 import com.fooddelivery.restaurant.service.RestaurantService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -47,8 +48,21 @@ import java.util.List;
 public class RestaurantController {
 
     private final RestaurantService restaurantService;
+    private final RestaurantEtaEnricher etaEnricher;
     private final ReviewService reviewService;
     private final FinancialAnalyticsService financialAnalyticsService;
+
+    /*
+     * lat/lng are optional on every customer-facing read below. Sent, the
+     * response carries distanceKm and an arrival range; omitted, it is exactly
+     * what it was before — the app then shows preparation time alone, which is
+     * what it showed until now.
+     *
+     * They are query parameters rather than something read from the customer's
+     * saved address because the answer depends on where the phone is standing,
+     * which is the question the customer is actually asking of a restaurant
+     * list.
+     */
 
     @PostMapping
     @PreAuthorize("hasAnyRole('RESTAURANT_OWNER', 'PLATFORM', 'ADMIN')")
@@ -65,16 +79,26 @@ public class RestaurantController {
 
     @GetMapping("/{id}")
     @Operation(summary = "Get restaurant by ID", description = "Get restaurant details by ID")
-    public ResponseEntity<ApiResponse<RestaurantDto>> getRestaurantById(@PathVariable Long id) {
+    public ResponseEntity<ApiResponse<RestaurantDto>> getRestaurantById(
+            @PathVariable Long id,
+            @Parameter(description = "Customer latitude, for distance and arrival time")
+            @RequestParam(required = false) BigDecimal lat,
+            @Parameter(description = "Customer longitude, for distance and arrival time")
+            @RequestParam(required = false) BigDecimal lng) {
+
         RestaurantDto restaurant = restaurantService.getRestaurantById(id);
-        return ResponseEntity.ok(ApiResponse.success(restaurant));
+        return ResponseEntity.ok(ApiResponse.success(etaEnricher.withEta(restaurant, lat, lng)));
     }
 
     @GetMapping("/slug/{slug}")
     @Operation(summary = "Get restaurant by slug", description = "Get restaurant details by URL slug")
-    public ResponseEntity<ApiResponse<RestaurantDto>> getRestaurantBySlug(@PathVariable String slug) {
+    public ResponseEntity<ApiResponse<RestaurantDto>> getRestaurantBySlug(
+            @PathVariable String slug,
+            @RequestParam(required = false) BigDecimal lat,
+            @RequestParam(required = false) BigDecimal lng) {
+
         RestaurantDto restaurant = restaurantService.getRestaurantBySlug(slug);
-        return ResponseEntity.ok(ApiResponse.success(restaurant));
+        return ResponseEntity.ok(ApiResponse.success(etaEnricher.withEta(restaurant, lat, lng)));
     }
 
     @GetMapping
@@ -89,29 +113,35 @@ public class RestaurantController {
     @GetMapping("/active")
     @Operation(summary = "Get active restaurants", description = "Get active and open restaurants")
     public ResponseEntity<ApiResponse<PagedResponse<RestaurantDto>>> getActiveRestaurants(
+            @RequestParam(required = false) BigDecimal lat,
+            @RequestParam(required = false) BigDecimal lng,
             @PageableDefault(size = 20) Pageable pageable) {
 
         PagedResponse<RestaurantDto> restaurants = restaurantService.getActiveRestaurants(pageable);
-        return ResponseEntity.ok(ApiResponse.success(restaurants));
+        return ResponseEntity.ok(ApiResponse.success(etaEnricher.withEta(restaurants, lat, lng)));
     }
 
     @GetMapping("/search")
     @Operation(summary = "Search restaurants", description = "Search restaurants by name or description")
     public ResponseEntity<ApiResponse<PagedResponse<RestaurantDto>>> searchRestaurants(
             @Parameter(description = "Search query") @RequestParam String q,
+            @RequestParam(required = false) BigDecimal lat,
+            @RequestParam(required = false) BigDecimal lng,
             @PageableDefault(size = 20) Pageable pageable) {
 
         PagedResponse<RestaurantDto> restaurants = restaurantService.searchRestaurants(q, pageable);
-        return ResponseEntity.ok(ApiResponse.success(restaurants));
+        return ResponseEntity.ok(ApiResponse.success(etaEnricher.withEta(restaurants, lat, lng)));
     }
 
     @GetMapping("/featured")
     @Operation(summary = "Get featured restaurants", description = "Get featured restaurants")
     public ResponseEntity<ApiResponse<PagedResponse<RestaurantDto>>> getFeaturedRestaurants(
+            @RequestParam(required = false) BigDecimal lat,
+            @RequestParam(required = false) BigDecimal lng,
             @PageableDefault(size = 10) Pageable pageable) {
 
         PagedResponse<RestaurantDto> restaurants = restaurantService.getFeaturedRestaurants(pageable);
-        return ResponseEntity.ok(ApiResponse.success(restaurants));
+        return ResponseEntity.ok(ApiResponse.success(etaEnricher.withEta(restaurants, lat, lng)));
     }
 
     @GetMapping("/nearby")
@@ -121,8 +151,11 @@ public class RestaurantController {
             @RequestParam BigDecimal lng,
             @RequestParam(defaultValue = "10") double radius) {
 
+        // Nearby already knows where the customer is, so distance and arrival
+        // time are not optional here — a list sorted by proximity that does not
+        // say the proximity was the odd part.
         List<RestaurantDto> restaurants = restaurantService.getNearbyRestaurants(lat, lng, radius);
-        return ResponseEntity.ok(ApiResponse.success(restaurants));
+        return ResponseEntity.ok(ApiResponse.success(etaEnricher.withEta(restaurants, lat, lng)));
     }
 
     @GetMapping("/my")

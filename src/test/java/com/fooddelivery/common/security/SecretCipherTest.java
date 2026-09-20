@@ -68,14 +68,30 @@ class SecretCipherTest {
     @Test
     @DisplayName("a tampered value fails rather than decrypting into something else")
     void tamperingIsDetected() {
-        // What GCM buys over CBC. A flipped byte is a failure, not a different
+        // What GCM buys over CBC. A flipped bit is a failure, not a different
         // credential silently presented to a partner.
         String stored = cipher().encrypt("zbrp_real_key");
-        String tampered = stored.substring(0, stored.length() - 2)
-                + (stored.endsWith("A") ? "B" : "A") + "=";
 
-        assertThatThrownBy(() -> cipher().decrypt(tampered))
+        assertThatThrownBy(() -> cipher().decrypt(flipLastCiphertextBit(stored)))
                 .isInstanceOf(IllegalStateException.class);
+    }
+
+    /**
+     * Flip one bit of the authentication tag, in the bytes rather than in the
+     * text.
+     *
+     * <p>This used to substitute a character near the end of the base64 and
+     * append a padding '=' — which, depending on where the ciphertext length
+     * left the base64 alignment, sometimes decoded to the very same bytes. The
+     * test then asserted that an untampered value failed to decrypt, and
+     * passed or failed with the random IV. A tamper test that is sometimes not
+     * a tamper is worse than no tamper test, because it is read as one.
+     */
+    private static String flipLastCiphertextBit(String stored) {
+        int lastColon = stored.lastIndexOf(':');
+        byte[] bytes = Base64.getDecoder().decode(stored.substring(lastColon + 1));
+        bytes[bytes.length - 1] ^= 0x01;
+        return stored.substring(0, lastColon + 1) + Base64.getEncoder().encodeToString(bytes);
     }
 
     @Test
