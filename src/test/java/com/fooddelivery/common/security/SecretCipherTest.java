@@ -87,6 +87,114 @@ class SecretCipherTest {
                 .isInstanceOf(IllegalStateException.class);
     }
 
+    // --- rotation ----------------------------------------------------------
+
+    @Test
+    @DisplayName("a value written by the old key still reads after the new one is primary")
+    void rotatedKeyStillReadsOldValues() {
+        // THE property. If this failed, rotating a key would be an outage
+        // rather than a rotation.
+        String stored = new SecretCipher(OTHER_KEY).encrypt("zbrp_written_before_rotation");
+
+        SecretCipher afterRotation = new SecretCipher(KEY, OTHER_KEY);
+
+        assertThat(afterRotation.decrypt(stored)).isEqualTo("zbrp_written_before_rotation");
+    }
+
+    @Test
+    @DisplayName("new values are written with the primary, not the previous key")
+    void newValuesUseThePrimary() {
+        SecretCipher afterRotation = new SecretCipher(KEY, OTHER_KEY);
+        String stored = afterRotation.encrypt("fresh");
+
+        // Readable by the primary alone, which is what lets the old key be
+        // deleted once everything has been rewrapped.
+        assertThat(new SecretCipher(KEY).decrypt(stored)).isEqualTo("fresh");
+        assertThat(afterRotation.needsRewrap(stored)).isFalse();
+    }
+
+    @Test
+    @DisplayName("a value under an old key is flagged for rewrapping")
+    void oldValuesNeedRewrap() {
+        String stored = new SecretCipher(OTHER_KEY).encrypt("old");
+        SecretCipher afterRotation = new SecretCipher(KEY, OTHER_KEY);
+
+        // The signal that the rotation is not finished, and the old key cannot
+        // yet be deleted.
+        assertThat(afterRotation.needsRewrap(stored)).isTrue();
+    }
+
+    @Test
+    @DisplayName("a rewrapped value no longer needs the old key")
+    void rewrapRetiresTheOldKey() {
+        SecretCipher afterRotation = new SecretCipher(KEY, OTHER_KEY);
+        String old = new SecretCipher(OTHER_KEY).encrypt("secret");
+
+        String rewrapped = afterRotation.encrypt(afterRotation.decrypt(old));
+
+        // The whole point: the old key can now be removed from configuration.
+        assertThat(new SecretCipher(KEY).decrypt(rewrapped)).isEqualTo("secret");
+    }
+
+    @Test
+    @DisplayName("a value whose key is gone says which key it needs")
+    void missingKeyIsNamed() {
+        // "Failed to decrypt" would send someone hunting corruption. The key id
+        // is not secret and it names the remedy exactly.
+        String stored = new SecretCipher(OTHER_KEY).encrypt("secret");
+        String expectedId = stored.substring("enc:v2:".length(), stored.indexOf(':', 7));
+
+        assertThatThrownBy(() -> new SecretCipher(KEY).decrypt(stored))
+                .hasMessageContaining(expectedId)
+                .hasMessageContaining("previous-keys");
+    }
+
+    @Test
+    @DisplayName("a value written before keys were identified still reads")
+    void v1ValuesStillRead() {
+        // enc:v1: carries no key id, so every configured key is tried. GCM is
+        // what makes that safe: a wrong key fails rather than returning
+        // plausible rubbish.
+        SecretCipher single = new SecretCipher(OTHER_KEY);
+        String v1 = legacyV1(single, "written-before-rotation-existed");
+
+        assertThat(new SecretCipher(KEY, OTHER_KEY).decrypt(v1))
+                .isEqualTo("written-before-rotation-existed");
+    }
+
+    @Test
+    @DisplayName("legacy plaintext is rewrapped too")
+    void plaintextNeedsRewrap() {
+        assertThat(new SecretCipher(KEY).needsRewrap("plain-old-key")).isTrue();
+    }
+
+    @Test
+    @DisplayName("listing the primary key again as previous does not confuse it")
+    void duplicateKeyIsHarmless() {
+        // What a careless rotation looks like: the new key left in both places.
+        SecretCipher cipher = new SecretCipher(KEY, KEY + "," + OTHER_KEY);
+
+        String stored = cipher.encrypt("secret");
+        assertThat(cipher.decrypt(stored)).isEqualTo("secret");
+        assertThat(cipher.needsRewrap(stored)).isFalse();
+    }
+
+    @Test
+    @DisplayName("the key id identifies a key without being one")
+    void keyIdIsNotTheKey() {
+        String stored = cipher().encrypt("secret");
+        String id = stored.substring("enc:v2:".length(), stored.indexOf(':', 7));
+
+        assertThat(id).hasSize(8);
+        assertThat(KEY).doesNotContain(id);
+    }
+
+    /** Rebuild the pre-rotation format, which nothing writes any more. */
+    private String legacyV1(SecretCipher with, String plaintext) {
+        String v2 = with.encrypt(plaintext);
+        return "enc:v1:" + v2.substring(v2.indexOf(':', "enc:v2:".length()) + 1);
+    }
+
     @Test
     @DisplayName("a value written before encryption still reads")
     void legacyPlaintextPassesThrough() {

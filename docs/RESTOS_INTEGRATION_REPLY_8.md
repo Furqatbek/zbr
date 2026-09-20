@@ -60,8 +60,18 @@ tampered value fails to decrypt instead of decrypting into something else and
 being presented to you as a credential. Your key is still hashed, ours is now
 encrypted, and the two no longer look alike in the same table.
 
-Rotation is the half we have not built. Today it is reissue-and-re-enter, which
-is honest for one partner and will not survive ten.
+Rotation too, since a rotation path was half your point. One key encrypts, it
+and any retired ones decrypt, and a stored value names the key that wrote it —
+so changing keys is: add the old one to the previous list, make a new one
+primary, restart, rewrap. Nothing is unreadable at any point in that sequence.
+
+The last step is the one we built an endpoint for rather than a runbook line: a
+rotation that never finishes is a key you have to keep forever, and "remaining:
+0" is what says the old one can actually be deleted.
+
+Rotating *your* credential is separate and simpler: issue us a new one, we
+replace it, the old one stops being presented. Tell us if you would rather
+overlap them for a window — we can hold both if your side accepts either.
 
 **Your "what not to build" list is better than ours.** Particularly *do not make
 the cutoff, the price rule or the refusal configurable per partner*. We had not

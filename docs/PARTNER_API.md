@@ -310,3 +310,18 @@ Named so nobody builds against something that is not there:
 - **Order-status webhooks out to you** are not built; you poll or we agree a
   callback later.
 - **Reading a menu back** through this API is not implemented — we pull yours.
+
+---
+
+## Rotating the credential you issued us
+
+Issue a new key and send it; we replace ours and stop presenting the old one.
+There is no multi-step handover on our side — the change takes effect on the
+next call.
+
+If you would rather accept both for a window while the change propagates, say
+so. We can hold only one at a time, so an overlap has to come from your side.
+
+Rotating the key **we** issued **you** is the other direction and already
+supported: we issue a second key, you switch, we revoke the first. Both are live
+in between, so there is no moment where a call of yours is refused.

@@ -82,9 +82,6 @@ exists — `partner_order_pushes` records every attempt, its status and its erro
 
 Two smaller ones:
 
-- **No key rotation.** A partner's outbound credential is encrypted at rest, but
-  replacing one means reissuing it with them and re-entering it. Fine for one
-  partner, not for ten.
 - **Onboarding is a shell script and three `curl` calls.** Fine for the first
   partner, wrong for the tenth, and a step someone will skip.
 - **Known gap: a withdrawal shows as "sold out" until the next sync.** A dish

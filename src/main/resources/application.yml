@@ -158,6 +158,18 @@ app:
     # reissued by the partner, not decrypted.
     secret-key: ${APP_SECRET_KEY:}
 
+    # Keys that may still have written stored secrets, comma-separated. They
+    # decrypt but never encrypt.
+    #
+    # Rotating: put the current key here, make a new one secret-key, restart,
+    # then POST /api/v1/admin/security/rewrap. When that reports remaining = 0,
+    # delete the old key from here. Nothing is unreadable at any point in that
+    # sequence, which is the difference between a rotation and an outage.
+    #
+    # A rotation left half-finished is a key you have to keep forever, so the
+    # last step is the one that matters. GET the same path to see what is left.
+    previous-keys: ${APP_PREVIOUS_SECRET_KEYS:}
+
   # ISO-4217 code stamped on payments, payouts, referrals and analytics. The
   # platform operates in Uzbekistan, so amounts throughout are UZS. Money values
   # are stored as plain decimals, NOT minor units — 15000 means 15 000 so'm.
