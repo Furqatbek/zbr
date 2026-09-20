@@ -53,8 +53,18 @@ Content-Type: application/json
 { "price": 32000, "available": true }
 ```
 
-Both fields are optional and **omitting one leaves it unchanged** — this is a
-partial update, not a replacement. Sending neither is rejected.
+To change one size rather than the whole product, add its id:
+
+```json
+{ "externalVariantId": "11", "price": 40000 }
+```
+
+`price` there is the **absolute price of that size**, not a difference from the
+product's. Omit `externalVariantId` and the change is to the product itself.
+
+Both `price` and `available` are optional and **omitting one leaves it
+unchanged** — this is a partial update, not a replacement. Sending neither is
+rejected.
 
 - **`price`** is charged to the customer exactly as sent. We add nothing to it.
 - **`available`** means sold out, not delisted. To withdraw an item, drop it from
@@ -74,7 +84,9 @@ Content-Type: application/json
 ```
 
 Up to 1000 items per call. Use this for a menu-wide change — a markup moving
-across four hundred dishes is one call, not four hundred.
+across four hundred dishes is one call, not four hundred. Sizes may be mixed in
+with products; we apply product changes first, so a size's price is never
+computed against a base that is about to move.
 
 **Partial success is reported, not rolled back:**
 

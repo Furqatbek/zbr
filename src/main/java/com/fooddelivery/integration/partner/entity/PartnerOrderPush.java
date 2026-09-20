@@ -80,4 +80,22 @@ public class PartnerOrderPush {
 
     @Column(name = "venue_owed_reason", length = 1000)
     private String venueOwedReason;
+
+    /**
+     * What the food was worth at the partner's published prices.
+     *
+     * <p>The goods alone. Not the delivery fee — nobody drove it, so nobody
+     * earned it, and counting it would overstate the ticket in the venue's
+     * favour. Not our service fee, which is ours. Not a tip.
+     *
+     * <p>So it is {@code expectedTotal} minus the delivery fee. The two are one
+     * word apart in description and differ on every delivery order, which is
+     * the same shape as the mistake both sides nearly made over
+     * {@code expectedTotal} itself.
+     *
+     * <p>Not a claim. It is what the food was worth, not an amount anyone has
+     * agreed to pay.
+     */
+    @Column(name = "venue_owed_amount", precision = 10, scale = 2)
+    private java.math.BigDecimal venueOwedAmount;
 }

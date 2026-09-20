@@ -31,8 +31,30 @@ public class PartnerItemUpdate {
     private String externalItemId;
 
     /**
+     * The size, when the change is about one rather than the whole product.
+     *
+     * <p>Without this a partner could only address a product, so a price moved
+     * on one size never arrived: they publish it, their adapter has nowhere to
+     * put it and drops it, and we keep selling that size at yesterday's number
+     * until the next full pull. The order is then refused for a total
+     * disagreement while the prices are supposedly in step — a refusal the
+     * customer should never have met, caused by an update we had no way to
+     * accept.
+     *
+     * <p>Its own field rather than overloading {@code externalItemId}, because
+     * product ids and variant ids are separate namespaces on their side and a
+     * collision would reprice the wrong thing.
+     */
+    @Schema(description = "The variant (size) id in the partner's system. Omit to change the "
+            + "product itself.", example = "11")
+    private String externalVariantId;
+
+    /**
      * Charged to the customer exactly as sent. We add nothing to it — see the
      * pricing agreement — so this is the number that appears in the app.
+     *
+     * <p>With {@code externalVariantId}, this is the absolute price of that
+     * size, not a difference from the product's.
      */
     @DecimalMin(value = "0.0", inclusive = false, message = "Price must be greater than zero")
     @Digits(integer = 8, fraction = 2, message = "Price has too many digits")

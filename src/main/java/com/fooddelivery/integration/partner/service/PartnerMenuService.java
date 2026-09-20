@@ -3,6 +3,7 @@ package com.fooddelivery.integration.partner.service;
 import com.fooddelivery.common.exception.ResourceNotFoundException;
 import com.fooddelivery.integration.partner.dto.PartnerBulkResult;
 import com.fooddelivery.integration.partner.dto.PartnerItemUpdate;
+import com.fooddelivery.restaurant.entity.ItemVariant;
 import com.fooddelivery.restaurant.entity.MenuItem;
 import com.fooddelivery.restaurant.entity.Restaurant;
 import com.fooddelivery.restaurant.repository.MenuItemRepository;
@@ -44,7 +45,15 @@ public class PartnerMenuService {
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "No item in this venue has id: " + update.getExternalItemId()));
 
-        apply(item, update);
+        if (update.getExternalVariantId() != null && !update.getExternalVariantId().isBlank()) {
+            ItemVariant variant = findVariant(item, externalSource, update.getExternalVariantId());
+            if (!applyToVariant(item, variant, update)) {
+                throw new ResourceNotFoundException("Item " + update.getExternalItemId()
+                        + " in this venue has no size with id: " + update.getExternalVariantId());
+            }
+        } else {
+            apply(item, update);
+        }
         return menuItemRepository.save(item);
     }
 
@@ -61,7 +70,17 @@ public class PartnerMenuService {
                                           List<PartnerItemUpdate> updates) {
         PartnerBulkResult result = PartnerBulkResult.builder().build();
 
-        for (PartnerItemUpdate update : updates) {
+        // Product changes before size changes, always. A size's price is stored
+        // as a difference from the product's, so a size computed against the
+        // old base and then re-based by a product update in the same call would
+        // land at the wrong number. Sorting here costs nothing and removes the
+        // ordering as something a caller has to know about.
+        List<PartnerItemUpdate> ordered = updates.stream()
+                .sorted(java.util.Comparator.comparing(u ->
+                        u.getExternalVariantId() != null && !u.getExternalVariantId().isBlank()))
+                .toList();
+
+        for (PartnerItemUpdate update : ordered) {
             if (update.isEmpty()) {
                 result.getRejected().add(update.getExternalItemId() + ": nothing to change");
                 continue;
@@ -74,7 +93,18 @@ public class PartnerMenuService {
             }
 
             MenuItem item = found.get();
-            apply(item, update);
+            if (update.getExternalVariantId() != null && !update.getExternalVariantId().isBlank()) {
+                ItemVariant variant = findVariant(item, externalSource, update.getExternalVariantId());
+                if (!applyToVariant(item, variant, update)) {
+                    // Reported with both ids: "4417" alone would send them
+                    // looking at a product that is perfectly present.
+                    result.getUnknownItemIds().add(
+                            update.getExternalItemId() + "/" + update.getExternalVariantId());
+                    continue;
+                }
+            } else {
+                apply(item, update);
+            }
             menuItemRepository.save(item);
             result.setUpdated(result.getUpdated() + 1);
         }
@@ -83,6 +113,40 @@ public class PartnerMenuService {
                 restaurant.getId(), result.getUpdated(),
                 result.getUnknownItemIds().size(), result.getRejected().size());
         return result;
+    }
+
+    /**
+     * Apply a change to one size rather than the whole product.
+     *
+     * <p>Their price is absolute; ours is stored as a difference from the
+     * product's, so it is converted here. Getting that backwards would add the
+     * size's full price to the product's and charge a customer twice over.
+     *
+     * @return false when the size is not one we hold, so the caller can report
+     *         it rather than silently doing nothing
+     */
+    private boolean applyToVariant(MenuItem item, ItemVariant variant, PartnerItemUpdate update) {
+        if (variant == null) {
+            return false;
+        }
+        if (update.getPrice() != null) {
+            variant.setPriceDelta(update.getPrice().subtract(item.getEffectivePrice()));
+        }
+        if (update.getAvailable() != null) {
+            variant.setInStock(update.getAvailable());
+        }
+        return true;
+    }
+
+    private ItemVariant findVariant(MenuItem item, String externalSource, String externalVariantId) {
+        Long id = parseId(externalVariantId);
+        if (id == null || item.getVariants() == null) {
+            return null;
+        }
+        return item.getVariants().stream()
+                .filter(v -> externalSource.equals(v.getExternalSource()) && id.equals(v.getExternalId()))
+                .findFirst()
+                .orElse(null);
     }
 
     private void apply(MenuItem item, PartnerItemUpdate update) {

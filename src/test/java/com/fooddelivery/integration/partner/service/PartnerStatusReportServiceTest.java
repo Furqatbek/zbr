@@ -48,13 +48,20 @@ class PartnerStatusReportServiceTest {
     @Mock private PartnerOrderPushService pushService;
     @Mock private PartnerOrderPushRepository pushRepository;
     @Mock private PartnerOrderPushClient client;
+    @Mock private com.fooddelivery.order.repository.OrderRepository orderRepository;
 
     private PartnerStatusReportService service;
     private Partner partner;
 
     @BeforeEach
     void setUp() {
-        service = new PartnerStatusReportService(pushService, pushRepository, client);
+        service = new PartnerStatusReportService(pushService, pushRepository, client, orderRepository);
+        when(orderRepository.findById(anyLong())).thenReturn(Optional.of(
+                com.fooddelivery.order.entity.Order.builder()
+                        .id(5L).subtotal(new java.math.BigDecimal("38000"))
+                        .deliveryFee(new java.math.BigDecimal("15000"))
+                        .total(new java.math.BigDecimal("56040"))
+                        .build()));
         partner = Partner.builder().id(7L).code("RESTOS").active(true)
                 .outboundBaseUrl("https://pos.example.com").build();
 
@@ -205,6 +212,41 @@ class PartnerStatusReportServiceTest {
         verify(pushRepository).save(org.mockito.ArgumentMatchers.argThat(record ->
                 record.getVenueOwedAt() != null
                         && record.getVenueOwedReason().contains("CANCELLATION_WINDOW_CLOSED")));
+    }
+
+    @Test
+    @DisplayName("the owed ticket records the food value, not what the customer paid")
+    void owedTicketCarriesTheFoodValue() {
+        // The number both sides can compute from the same menu. Their list and
+        // ours have to match ticket by ticket, and equal totals hide two
+        // offsetting errors.
+        when(client.reportStatus(any(), anyString(), any(), anyString(), any(), anyString()))
+                .thenReturn(new PartnerOrderPushClient.Result.Rejected(
+                        "422 CANCELLATION_WINDOW_CLOSED"));
+
+        service.report(5L, 100L, REF, OrderStatus.CANCELLED, "Customer changed mind");
+
+        // 38 000 goods. Not 53 000 (with delivery) and not 56 040 (what was
+        // charged) — nobody drove the delivery, so nobody earned it.
+        verify(pushRepository).save(org.mockito.ArgumentMatchers.argThat(record ->
+                record.getVenueOwedAmount() != null
+                        && record.getVenueOwedAmount().compareTo(new java.math.BigDecimal("38000")) == 0));
+    }
+
+    @Test
+    @DisplayName("an unreadable order leaves the value missing rather than zero")
+    void missingOrderLeavesValueNull() {
+        // A ticket that looks free is worse than one that is visibly
+        // incomplete: the first gets reconciled, the second gets asked about.
+        when(orderRepository.findById(anyLong())).thenReturn(Optional.empty());
+        when(client.reportStatus(any(), anyString(), any(), anyString(), any(), anyString()))
+                .thenReturn(new PartnerOrderPushClient.Result.Rejected(
+                        "422 CANCELLATION_WINDOW_CLOSED"));
+
+        service.report(5L, 100L, REF, OrderStatus.CANCELLED, null);
+
+        verify(pushRepository).save(org.mockito.ArgumentMatchers.argThat(record ->
+                record.getVenueOwedAt() != null && record.getVenueOwedAmount() == null));
     }
 
     @Test

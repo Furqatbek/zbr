@@ -63,6 +63,7 @@ public class PartnerStatusReportService {
     private final PartnerOrderPushService pushService;
     private final PartnerOrderPushRepository pushRepository;
     private final PartnerOrderPushClient client;
+    private final com.fooddelivery.order.repository.OrderRepository orderRepository;
 
     /**
      * Write down that a venue cooked food for an order we cancelled.
@@ -72,18 +73,33 @@ public class PartnerStatusReportService {
      * of the week is explainable.
      */
     @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW)
-    void recordVenueOwed(PartnerOrderPush push, String partnerCode,
-                         String externalOrderNo, String reason) {
+    void recordVenueOwed(PartnerOrderPush push, String partnerCode, String externalOrderNo,
+                         String reason, java.math.BigDecimal foodValue) {
         if (push.getVenueOwedAt() != null) {
             return;
         }
         push.setVenueOwedAt(java.time.LocalDateTime.now());
         push.setVenueOwedReason(reason);
+        push.setVenueOwedAmount(foodValue);
         pushRepository.save(push);
 
         log.warn("VENUE OWED — {} refused the cancellation of order {}: their kitchen had already "
-                        + "started, so the food was made and someone carries the cost. {}",
-                partnerCode, externalOrderNo, reason);
+                        + "started, so the food was made and someone carries the cost. "
+                        + "Food value {}. {}",
+                partnerCode, externalOrderNo, foodValue, reason);
+    }
+
+    /**
+     * The goods at the partner's published prices, which is our order subtotal:
+     * every line is priced from their menu and nothing is added to it.
+     *
+     * <p>Null rather than zero when the order cannot be read, so a missing
+     * figure is visibly missing rather than a ticket that looks free.
+     */
+    private java.math.BigDecimal foodValue(Long orderId) {
+        return orderRepository.findById(orderId)
+                .map(com.fooddelivery.order.entity.Order::getSubtotal)
+                .orElse(null);
     }
 
     /**
@@ -157,7 +173,8 @@ public class PartnerStatusReportService {
                 // Recorded rather than merely logged, because the commercial
                 // answer does not exist yet and a log line cannot be settled
                 // against later.
-                recordVenueOwed(push.get(), partner.getCode(), externalOrderNo, rejected.reason());
+                recordVenueOwed(push.get(), partner.getCode(), externalOrderNo,
+                        rejected.reason(), foodValue(orderId));
                 return true;
             }
 

@@ -3,6 +3,7 @@ package com.fooddelivery.integration.partner.service;
 import com.fooddelivery.common.exception.ResourceNotFoundException;
 import com.fooddelivery.integration.partner.dto.PartnerBulkResult;
 import com.fooddelivery.integration.partner.dto.PartnerItemUpdate;
+import com.fooddelivery.restaurant.entity.ItemVariant;
 import com.fooddelivery.restaurant.entity.MenuItem;
 import com.fooddelivery.restaurant.entity.Restaurant;
 import com.fooddelivery.restaurant.repository.MenuItemRepository;
@@ -174,6 +175,85 @@ class PartnerMenuServiceTest {
         // the same thing anyway.
         assertThat(result.getUpdated()).isEqualTo(1);
         assertThat(result.getUnknownItemIds()).containsExactly("not-a-number");
+    }
+
+    @Test
+    @DisplayName("a size's price is addressable, and stored as a difference from the product's")
+    void variantPriceIsConverted() {
+        // THE gap this closes. Their outbox carries a per-size price and our
+        // API had nowhere to put it, so a Large's price change never arrived —
+        // and the order was then refused for a total disagreement while the
+        // prices were supposedly in step.
+        MenuItem item = item(4417L);
+        ItemVariant large = ItemVariant.builder()
+                .id(50L).name("Large").externalId(11L).externalSource(SOURCE).menuItem(item)
+                .priceDelta(new BigDecimal("5000")).active(true).inStock(true).build();
+        item.setVariants(new java.util.HashSet<>(List.of(large)));
+
+        // Their 40 000 is absolute; ours is a delta from the item's 33 000.
+        service.applyUpdate(restaurant, SOURCE, PartnerItemUpdate.builder()
+                .externalItemId("4417").externalVariantId("11")
+                .price(new BigDecimal("40000")).build());
+
+        assertThat(large.getPriceDelta()).isEqualByComparingTo("7000");
+        assertThat(large.calculateTotalPrice()).isEqualByComparingTo("40000");
+        // The product itself is untouched: repricing every Regular because a
+        // Large moved is the failure this replaces.
+        assertThat(item.getEffectivePrice()).isEqualByComparingTo("33000");
+    }
+
+    @Test
+    @DisplayName("a size can sell out without the product selling out")
+    void variantAvailabilityIsIndependent() {
+        MenuItem item = item(4417L);
+        ItemVariant large = ItemVariant.builder()
+                .id(50L).externalId(11L).externalSource(SOURCE).menuItem(item)
+                .priceDelta(BigDecimal.ZERO).active(true).inStock(true).build();
+        item.setVariants(new java.util.HashSet<>(List.of(large)));
+
+        service.applyUpdate(restaurant, SOURCE, PartnerItemUpdate.builder()
+                .externalItemId("4417").externalVariantId("11").available(false).build());
+
+        assertThat(large.getInStock()).isFalse();
+        assertThat(item.getInStock()).isTrue();
+    }
+
+    @Test
+    @DisplayName("an unknown size is reported with both ids")
+    void unknownVariantNamesBothIds() {
+        // "4417" alone would send them looking at a product that is present.
+        item(4417L);
+
+        PartnerBulkResult result = service.applyUpdates(restaurant, SOURCE, List.of(
+                PartnerItemUpdate.builder().externalItemId("4417").externalVariantId("99")
+                        .price(new BigDecimal("40000")).build()));
+
+        assertThat(result.getUnknownItemIds()).containsExactly("4417/99");
+        assertThat(result.getUpdated()).isZero();
+    }
+
+    @Test
+    @DisplayName("a product price in the same batch is applied before the sizes")
+    void productBeforeVariantInOneBatch() {
+        // A size is stored as a difference from the product, so a size computed
+        // against the old base and then re-based by a product update in the
+        // same call would land at the wrong number. Order is not the caller's
+        // problem.
+        MenuItem item = item(4417L);
+        ItemVariant large = ItemVariant.builder()
+                .id(50L).externalId(11L).externalSource(SOURCE).menuItem(item)
+                .priceDelta(new BigDecimal("5000")).active(true).build();
+        item.setVariants(new java.util.HashSet<>(List.of(large)));
+
+        service.applyUpdates(restaurant, SOURCE, List.of(
+                // Size first in the list, product second.
+                PartnerItemUpdate.builder().externalItemId("4417").externalVariantId("11")
+                        .price(new BigDecimal("45000")).build(),
+                PartnerItemUpdate.builder().externalItemId("4417")
+                        .price(new BigDecimal("35000")).build()));
+
+        assertThat(item.getEffectivePrice()).isEqualByComparingTo("35000");
+        assertThat(large.calculateTotalPrice()).isEqualByComparingTo("45000");
     }
 
     @Test

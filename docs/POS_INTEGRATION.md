@@ -13,13 +13,15 @@ issued, sent in `X-Partner-Key`.
 | # | Direction | What moves | How |
 |---|---|---|---|
 | 1 | POS → ZBR | The menu | We pull `GET /partner/menu/{venue}` and build our catalogue from it |
-| 2 | POS → ZBR | Price and availability, as they change | They push to `PATCH /api/v1/partner/venues/{venue}/menu/items/{id}`, or in bulk |
+| 2 | POS → ZBR | Price and availability, as they change | They push to `PATCH /api/v1/partner/venues/{venue}/menu/items/{id}`, or in bulk — for a product or for one size |
 | 3 | ZBR → POS | A customer's order | We `POST /partner/orders`; it becomes a real order and the kitchen ticket prints |
 | 4 | Both ways | Order status | They send kitchen states (accepted, preparing, ready, declined); we send courier states (assigned, picked up, in transit, delivered, completed, cancelled) — and kitchen states too, when a restaurant set them on our tablet rather than the till |
 
-**Pipe 2 carries two fields only: price and availability.** A withdrawal is not
-pushed. The item simply stops appearing in the menu we pull, and the next sync
-retires it — see *Known gap* below for what that costs.
+**Pipe 2 carries price and availability**, for a product or for one of its
+sizes. A withdrawal is pushed too, as `available: false` — the POS collapses
+"ingredient short", "manager flipped the switch" and "item withdrawn" into that
+one flag on purpose, because a customer cannot act on the difference. What the
+flag cannot say is *permanently*, which is the known gap below.
 
 ### The rules that make it work
 
@@ -85,8 +87,10 @@ Two smaller ones:
 - **Onboarding is a shell script and three `curl` calls.** Fine for the first
   partner, wrong for the tenth, and a step someone will skip.
 - **Known gap: a withdrawal shows as "sold out" until the next sync.** A dish
-  taken off the menu permanently at 11am reads *sold out* to customers until
-  tonight. Harmless once; irritating across a hundred venues.
+  taken off permanently at 11am reads *sold out* until tonight, because
+  `available: false` is the only word the message has. Harmless once; irritating
+  across a hundred venues. Not worth a `withdrawn` flag yet — Restos would
+  rather we spent a schema change on sizes, and we agree.
 
 ---
 
@@ -149,12 +153,16 @@ building alone: they chose the current behaviour deliberately and may prefer it.
 
 | | Why |
 |---|---|
-| 1. Partner health view | Reads existing data, no schema change, and it is what tells you the first live integration is working before a venue does |
-| 2. Adapter boundary | Do it while there is one implementation. Retrofitting after the second partner means migrating both |
-| 3. Onboarding screen | Only worth it at partner three or venue twenty |
-| 4. Withdrawal signal | A conversation before it is code |
+| 1. Partner health view | Reads existing data, no schema change, and it is the only item here that changes what happens on the day the first real order fails |
+| 2. Adapter *boundary* | Do it at the second partner, while there is one implementation. Retrofitting after two means migrating both |
+| 3. Generalising the boundary into a profile | Wait for the **third** partner. Two data points are not a pattern, and a template built from one API is that API with extra indirection |
+| 4. Onboarding screen | Partner three or venue twenty |
 
-**Do 1 before Restos goes live.** The rest can wait for a second partner to
-actually be in prospect — building for a scale you do not have is its own kind
-of waste, and the adapter boundary is cheap precisely because the hard parts are
-already written and already generic.
+**Do 1 before Restos goes live.**
+
+Two refinements from Restos, both of which we take over our own reasoning. The
+*boundary* and the *generalisation* are separable and worth separating — ours
+argued for doing both early, and only the first of them earns that. And keep the
+ability to write a class for an awkward partner: some will sign requests, or
+page oddly, or want the menu as one document, and a template that grows a flag
+per awkward partner ends up less readable than the classes it replaced.
