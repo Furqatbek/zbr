@@ -53,14 +53,22 @@ Content-Type: application/json
 { "price": 32000, "available": true }
 ```
 
-To change one size rather than the whole product, add its id:
+To change one size rather than the whole product, add its id. **Both fields
+work on a size**, together or separately:
 
 ```json
-{ "externalVariantId": "11", "price": 40000 }
+{ "externalVariantId": "11", "price": 40000, "available": false }
 ```
 
 `price` there is the **absolute price of that size**, not a difference from the
-product's. Omit `externalVariantId` and the change is to the product itself.
+product's. `available` is that size's own stock — a Large selling out does not
+make the Regular unavailable, and vice versa.
+
+Omit `externalVariantId` and the change is to the product itself.
+
+A size we do not hold is never silently ignored: the single-item call answers
+`404`, and the bulk call returns it under `unknownItemIds` as `4417/99` — the
+product id alone would send you looking at something that is present.
 
 Both `price` and `available` are optional and **omitting one leaves it
 unchanged** — this is a partial update, not a replacement. Sending neither is
