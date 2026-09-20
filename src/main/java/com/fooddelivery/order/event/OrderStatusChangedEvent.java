@@ -25,10 +25,28 @@ public class OrderStatusChangedEvent extends DomainEvent {
     private final OrderStatus newStatus;
     private final String reason;
 
+    /**
+     * The partner whose system caused this change, when one did.
+     *
+     * <p>Null means the change originated here — a tap in the vendor app, a
+     * courier, a scheduler. That distinction is what stops us reporting a
+     * partner's own kitchen state back to the kitchen that just set it, while
+     * still telling them about one a restaurant set on our tablet.
+     */
+    private final Long reportedByPartnerId;
+
     public OrderStatusChangedEvent(Long orderId, String externalOrderNo, Long restaurantId,
                                     Long consumerId, Long courierId, OrderStatus previousStatus,
                                     OrderStatus newStatus, String reason) {
+        this(orderId, externalOrderNo, restaurantId, consumerId, courierId,
+                previousStatus, newStatus, reason, null);
+    }
+
+    public OrderStatusChangedEvent(Long orderId, String externalOrderNo, Long restaurantId,
+                                    Long consumerId, Long courierId, OrderStatus previousStatus,
+                                    OrderStatus newStatus, String reason, Long reportedByPartnerId) {
         super();
+        this.reportedByPartnerId = reportedByPartnerId;
         this.orderId = orderId;
         this.externalOrderNo = externalOrderNo;
         this.restaurantId = restaurantId;
@@ -52,8 +70,10 @@ public class OrderStatusChangedEvent extends DomainEvent {
             @JsonProperty("courierId") Long courierId,
             @JsonProperty("previousStatus") OrderStatus previousStatus,
             @JsonProperty("newStatus") OrderStatus newStatus,
-            @JsonProperty("reason") String reason) {
+            @JsonProperty("reason") String reason,
+            @JsonProperty("reportedByPartnerId") Long reportedByPartnerId) {
         super(eventId, eventType, occurredAt, version);
+        this.reportedByPartnerId = reportedByPartnerId;
         this.orderId = orderId;
         this.externalOrderNo = externalOrderNo;
         this.restaurantId = restaurantId;

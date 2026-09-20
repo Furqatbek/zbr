@@ -30,7 +30,7 @@ public class PartnerStatusReportConsumer {
     public void handleStatusChanged(OrderStatusChangedEvent event) {
         boolean settled = reportService.report(
                 event.getOrderId(), event.getRestaurantId(), event.getExternalOrderNo(),
-                event.getNewStatus(), event.getReason());
+                event.getNewStatus(), event.getReason(), event.getReportedByPartnerId());
 
         if (!settled) {
             throw new PartnerOrderPushConsumer.PartnerPushRetryException(

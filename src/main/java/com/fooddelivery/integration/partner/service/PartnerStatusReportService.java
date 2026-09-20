@@ -37,15 +37,22 @@ public class PartnerStatusReportService {
     /**
      * The states worth a call, which is not the same as the states we have.
      *
-     * <p>Everything up to READY is theirs to report to us, not ours to them —
-     * sending it back would be telling a kitchen what it just did. CREATED is
-     * excluded for the same reason: we pushed the order, so they know.
+     * <p>Kitchen states are in this set as well as delivery ones, because a
+     * restaurant can work from OUR tablet instead of their till: accepting
+     * there has to reach the till, or their screen shows an order still
+     * waiting while ours shows it cooking. What stops the echo is not the state
+     * but its origin — see {@link #report}.
      *
-     * <p>REFUNDED is excluded because it is a fact about money rather than about
-     * the order, and their own note says forcing it onto an order state would
-     * mark a delivered order cancelled.
+     * <p>CREATED is excluded: we pushed the order, so they already know it
+     * exists. REFUNDED is excluded because it is a fact about money rather than
+     * about the order, and forcing it onto an order state would mark a
+     * delivered order cancelled — their reasoning, and the same reason we do
+     * not accept it from them.
      */
     private static final Set<OrderStatus> REPORTABLE = EnumSet.of(
+            OrderStatus.ACCEPTED,
+            OrderStatus.PREPARING,
+            OrderStatus.READY,
             OrderStatus.COURIER_ASSIGNED,
             OrderStatus.PICKED_UP,
             OrderStatus.IN_TRANSIT,
@@ -85,6 +92,16 @@ public class PartnerStatusReportService {
     @Transactional(readOnly = true)
     public boolean report(Long orderId, Long restaurantId, String externalOrderNo,
                           OrderStatus status, String reason) {
+        return report(orderId, restaurantId, externalOrderNo, status, reason, null);
+    }
+
+    /**
+     * @param reportedByPartnerId the partner whose system caused this change,
+     *        or null when it originated here.
+     */
+    @Transactional(readOnly = true)
+    public boolean report(Long orderId, Long restaurantId, String externalOrderNo,
+                          OrderStatus status, String reason, Long reportedByPartnerId) {
 
         if (!REPORTABLE.contains(status)) {
             return true;
@@ -95,6 +112,18 @@ public class PartnerStatusReportService {
             return true;
         }
         Partner partner = grant.get().getPartner();
+
+        // Never send a change back to the partner who reported it. This is the
+        // whole rule: origin decides, not the state. A kitchen state they set
+        // is theirs and they know it; the same state set on our vendor app is
+        // news, and without it their till shows an order still waiting while
+        // ours shows it cooking. Their side applies the identical rule in the
+        // other direction.
+        if (partner.getId().equals(reportedByPartnerId)) {
+            log.debug("Not reporting {} on order {} to {}: they reported it",
+                    status, externalOrderNo, partner.getCode());
+            return true;
+        }
 
         // Only report on an order they actually have. A status update for an
         // order that never reached their till is one they would refuse, and it

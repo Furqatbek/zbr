@@ -297,6 +297,17 @@ public class OrderService {
     public OrderDto updateOrderStatus(Long orderId, UpdateOrderStatusRequest request,
                                       boolean isAdminOrPlatform, boolean isRestaurantRole,
                                       boolean isCourier) {
+        return updateOrderStatus(orderId, request, isAdminOrPlatform, isRestaurantRole, isCourier, null);
+    }
+
+    /**
+     * @param reportedByPartnerId set when a partner's POS drove this change, so
+     *        it is not echoed back to them.
+     */
+    @Transactional
+    public OrderDto updateOrderStatus(Long orderId, UpdateOrderStatusRequest request,
+                                      boolean isAdminOrPlatform, boolean isRestaurantRole,
+                                      boolean isCourier, Long reportedByPartnerId) {
         Order order = orderRepository.findByIdWithLock(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Order", "id", orderId));
 
@@ -333,7 +344,7 @@ public class OrderService {
         log.info("Order {} status changed: {} -> {}", order.getExternalOrderNo(), previousStatus, newStatus);
 
         // Publish event
-        publishOrderStatusChangedEvent(order, previousStatus, request.getNotes());
+        publishOrderStatusChangedEvent(order, previousStatus, request.getNotes(), reportedByPartnerId);
 
         // Notify via WebSocket
         notifyOrderStatusChange(order);
@@ -360,6 +371,16 @@ public class OrderService {
      */
     public OrderDto cancelOrder(Long orderId, CancelOrderRequest request, Long cancelledBy,
                                 boolean onBehalfOfBusiness) {
+        return cancelOrder(orderId, request, cancelledBy, onBehalfOfBusiness, null);
+    }
+
+    /**
+     * @param reportedByPartnerId set when a partner declined the order, so the
+     *        cancellation is not reported straight back to them.
+     */
+    @Transactional
+    public OrderDto cancelOrder(Long orderId, CancelOrderRequest request, Long cancelledBy,
+                                boolean onBehalfOfBusiness, Long reportedByPartnerId) {
         Order order = orderRepository.findByIdWithLock(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Order", "id", orderId));
 
@@ -402,7 +423,7 @@ public class OrderService {
         refundIfPaid(order, request.getReason());
 
         // Publish event
-        publishOrderStatusChangedEvent(order, previousStatus, request.getReason());
+        publishOrderStatusChangedEvent(order, previousStatus, request.getReason(), reportedByPartnerId);
 
         // Notify via WebSocket
         notifyOrderStatusChange(order);
@@ -630,6 +651,16 @@ public class OrderService {
     }
 
     private void publishOrderStatusChangedEvent(Order order, OrderStatus previousStatus, String reason) {
+        publishOrderStatusChangedEvent(order, previousStatus, reason, null);
+    }
+
+    /**
+     * @param reportedByPartnerId the partner whose system caused this, or null
+     *        when it originated here. Carried so we do not report a partner's
+     *        own state back to the kitchen that set it.
+     */
+    private void publishOrderStatusChangedEvent(Order order, OrderStatus previousStatus, String reason,
+                                                Long reportedByPartnerId) {
         OrderStatusChangedEvent event = new OrderStatusChangedEvent(
                 order.getId(),
                 order.getExternalOrderNo(),
@@ -638,7 +669,8 @@ public class OrderService {
                 order.getCourier() != null ? order.getCourier().getId() : null,
                 previousStatus,
                 order.getStatus(),
-                reason
+                reason,
+                reportedByPartnerId
         );
         eventPublisher.publishAsync(
                 RabbitMQConfig.ORDER_EXCHANGE,

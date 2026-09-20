@@ -84,12 +84,14 @@ public class PartnerOrderService {
                                     ? reason
                                     : "Declined by the restaurant")
                             .build(),
-                    null, true);
+                    null, true, principal.getPartnerId());
         }
 
         log.info("Partner {} reported {} on order {}", principal.getPartnerCode(), reported, externalOrderNo);
+        // Stamped with the partner who reported it, so we do not send their own
+        // kitchen state straight back to the kitchen that just set it.
         return orderService.updateOrderStatus(order.getId(),
                 UpdateOrderStatusRequest.builder().status(target).build(),
-                false, true, false);
+                false, true, false, principal.getPartnerId());
     }
 }

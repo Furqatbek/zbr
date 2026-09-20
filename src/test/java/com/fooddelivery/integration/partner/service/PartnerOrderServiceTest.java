@@ -64,9 +64,9 @@ class PartnerOrderServiceTest {
         restos = new PartnerPrincipal(
                 Partner.builder().id(7L).code("RESTOS").active(true).build(), 1L);
         when(orderService.getOrderById(anyLong())).thenReturn(mock(OrderDto.class));
-        when(orderService.updateOrderStatus(anyLong(), any(), anyBoolean(), anyBoolean(), anyBoolean()))
+        when(orderService.updateOrderStatus(anyLong(), any(), anyBoolean(), anyBoolean(), anyBoolean(), any()))
                 .thenReturn(mock(OrderDto.class));
-        when(orderService.cancelOrder(anyLong(), any(), any(), anyBoolean()))
+        when(orderService.cancelOrder(anyLong(), any(), any(), anyBoolean(), any()))
                 .thenReturn(mock(OrderDto.class));
     }
 
@@ -93,7 +93,8 @@ class PartnerOrderServiceTest {
         // partner-driven orders a second, silent lifecycle.
         ArgumentCaptor<UpdateOrderStatusRequest> captor =
                 ArgumentCaptor.forClass(UpdateOrderStatusRequest.class);
-        verify(orderService).updateOrderStatus(eq(5L), captor.capture(), eq(false), eq(true), eq(false));
+        verify(orderService).updateOrderStatus(eq(5L), captor.capture(),
+                eq(false), eq(true), eq(false), eq(7L));
         assertThat(captor.getValue().getStatus()).isEqualTo(OrderStatus.ACCEPTED);
     }
 
@@ -107,8 +108,9 @@ class PartnerOrderServiceTest {
 
         service.report(restos, REF, PartnerOrderStatus.ACCEPTED, null);
 
-        verify(orderService, never()).updateOrderStatus(anyLong(), any(), anyBoolean(), anyBoolean(), anyBoolean());
-        verify(orderService, never()).cancelOrder(anyLong(), any(), any(), anyBoolean());
+        verify(orderService, never()).updateOrderStatus(
+                anyLong(), any(), anyBoolean(), anyBoolean(), anyBoolean(), any());
+        verify(orderService, never()).cancelOrder(anyLong(), any(), any(), anyBoolean(), any());
     }
 
     @Test
@@ -133,7 +135,7 @@ class PartnerOrderServiceTest {
 
         ArgumentCaptor<CancelOrderRequest> captor = ArgumentCaptor.forClass(CancelOrderRequest.class);
         // cancelOrder, not updateStatus: that is what returns the customer's money.
-        verify(orderService).cancelOrder(eq(5L), captor.capture(), any(), eq(true));
+        verify(orderService).cancelOrder(eq(5L), captor.capture(), any(), eq(true), eq(7L));
         assertThat(captor.getValue().getReason()).isEqualTo("Out of lamb");
     }
 
@@ -146,7 +148,7 @@ class PartnerOrderServiceTest {
 
         // onBehalfOfBusiness = true. A venue that has to stop must be able to,
         // however far along the order is.
-        verify(orderService).cancelOrder(eq(5L), any(), any(), eq(true));
+        verify(orderService).cancelOrder(eq(5L), any(), any(), eq(true), eq(7L));
     }
 
     @Test
@@ -157,8 +159,22 @@ class PartnerOrderServiceTest {
         service.report(restos, REF, PartnerOrderStatus.DECLINED, "   ");
 
         ArgumentCaptor<CancelOrderRequest> captor = ArgumentCaptor.forClass(CancelOrderRequest.class);
-        verify(orderService).cancelOrder(anyLong(), captor.capture(), any(), anyBoolean());
+        verify(orderService).cancelOrder(anyLong(), captor.capture(), any(), anyBoolean(), any());
         assertThat(captor.getValue().getReason()).isNotBlank();
+    }
+
+    @Test
+    @DisplayName("a change they drove is stamped with their id, so it is not echoed back")
+    void partnerOriginIsStamped() {
+        // The stamp is what stops us reporting their own kitchen state back to
+        // the kitchen that set it — while still forwarding one a restaurant set
+        // on our vendor app, which carries no stamp.
+        order(OrderStatus.CREATED);
+
+        service.report(restos, REF, PartnerOrderStatus.ACCEPTED, null);
+
+        verify(orderService).updateOrderStatus(anyLong(), any(), anyBoolean(), anyBoolean(),
+                anyBoolean(), eq(7L));
     }
 
     @Test

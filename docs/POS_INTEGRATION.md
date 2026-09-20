@@ -15,7 +15,7 @@ issued, sent in `X-Partner-Key`.
 | 1 | POS → ZBR | The menu | We pull `GET /partner/menu/{venue}` and build our catalogue from it |
 | 2 | POS → ZBR | Price and availability, as they change | They push to `PATCH /api/v1/partner/venues/{venue}/menu/items/{id}`, or in bulk |
 | 3 | ZBR → POS | A customer's order | We `POST /partner/orders`; it becomes a real order and the kitchen ticket prints |
-| 4 | Both ways | Order status | They send kitchen states (accepted, preparing, ready, declined); we send courier states (assigned, picked up, in transit, delivered, completed, cancelled) |
+| 4 | Both ways | Order status | They send kitchen states (accepted, preparing, ready, declined); we send courier states (assigned, picked up, in transit, delivered, completed, cancelled) — and kitchen states too, when a restaurant set them on our tablet rather than the till |
 
 **Pipe 2 carries two fields only: price and availability.** A withdrawal is not
 pushed. The item simply stops appearing in the menu we pull, and the next sync
@@ -37,6 +37,11 @@ meet.
 **The cancellation cutoff is `PREPARING`.** A customer cancels free until the
 kitchen starts. After that the POS refuses, and both sides record the order as a
 ticket the venue is owed for.
+
+**Either system can accept an order, and they stay in step.** A restaurant may
+work from the till or from our vendor app. Whichever sets a state, the other
+hears about it — neither side echoes back a change the other reported, so there
+is no loop.
 
 **Access is per venue, and order push is off by default.** Reading a menu and
 sending live orders into a kitchen are two separate decisions. A menu that is

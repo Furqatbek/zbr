@@ -29,11 +29,14 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
- * What a venue's till hears about an order after the food leaves it.
+ * What a venue's till hears about an order it is cooking.
  *
- * <p>Most of this is about what NOT to send. Everything up to READY is theirs
- * to tell us, not ours to tell them, and a status update for an order that
- * never reached their till would bury the real failure under a second one.
+ * <p>Most of this is about what NOT to send, and the rule is ORIGIN rather than
+ * state. A status the partner reported is theirs and goes nowhere; the same
+ * status set on our own vendor app is news their till needs. Getting that
+ * backwards — excluding kitchen states outright, as this did — leaves a
+ * restaurant that accepts on our tablet with a till still showing the order
+ * waiting.
  */
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
@@ -83,16 +86,50 @@ class PartnerStatusReportServiceTest {
     }
 
     @Test
-    @DisplayName("kitchen states are not sent back to the kitchen")
-    void kitchenStatesNotReported() {
-        // ACCEPTED, PREPARING and READY come FROM them. Sending them back would
-        // be telling a kitchen what it just did.
+    @DisplayName("a kitchen state they reported is not sent back to them")
+    void theirOwnStatesNotEchoed() {
+        // Telling a kitchen what it just did. Partner id 7 is the one that
+        // reported it, and the one that would receive it.
         for (OrderStatus status : new OrderStatus[]{
-                OrderStatus.CREATED, OrderStatus.ACCEPTED,
-                OrderStatus.PREPARING, OrderStatus.READY}) {
+                OrderStatus.ACCEPTED, OrderStatus.PREPARING, OrderStatus.READY,
+                OrderStatus.CANCELLED}) {
 
-            assertThat(service.report(5L, 100L, REF, status, null)).isTrue();
+            assertThat(service.report(5L, 100L, REF, status, null, 7L)).isTrue();
         }
+        verify(client, never()).reportStatus(any(), anyString(), any(), anyString(), any(), anyString());
+    }
+
+    @Test
+    @DisplayName("a kitchen state set on OUR tablet does reach their till")
+    void ourKitchenStatesAreReported() {
+        // THE bug this fixes. A restaurant can accept on our vendor app instead
+        // of their till. Without this their screen shows an order still waiting
+        // while ours shows it cooking, and the two never converge.
+        for (OrderStatus status : new OrderStatus[]{
+                OrderStatus.ACCEPTED, OrderStatus.PREPARING, OrderStatus.READY}) {
+
+            assertThat(service.report(5L, 100L, REF, status, null, null))
+                    .as("reporting %s", status).isTrue();
+        }
+        verify(client, org.mockito.Mockito.times(3))
+                .reportStatus(any(), anyString(), any(), anyString(), any(), anyString());
+    }
+
+    @Test
+    @DisplayName("a state reported by a DIFFERENT partner is still sent")
+    void anotherPartnersReportIsStillForwarded() {
+        // Origin is matched by partner, not by "came from some partner". A
+        // venue on two systems must still have both kept in step.
+        assertThat(service.report(5L, 100L, REF, OrderStatus.ACCEPTED, null, 99L)).isTrue();
+
+        verify(client).reportStatus(any(), anyString(), any(), eq("ACCEPTED"), any(), anyString());
+    }
+
+    @Test
+    @DisplayName("CREATED is never reported — we pushed the order, they know")
+    void createdNotReported() {
+        assertThat(service.report(5L, 100L, REF, OrderStatus.CREATED, null)).isTrue();
+
         verify(client, never()).reportStatus(any(), anyString(), any(), anyString(), any(), anyString());
     }
 
