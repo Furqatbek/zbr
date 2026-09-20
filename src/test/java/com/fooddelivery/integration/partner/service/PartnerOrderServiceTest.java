@@ -17,6 +17,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -201,16 +203,82 @@ class PartnerOrderServiceTest {
                 .isInstanceOf(ResourceNotFoundException.class);
     }
 
-    @Test
-    @DisplayName("every reportable status maps to one we actually have")
-    void allReportedStatusesMap() {
-        for (PartnerOrderStatus status : PartnerOrderStatus.values()) {
-            assertThat(status.toOrderStatus()).isNotNull();
+    // ---------------------------------------------------------------------
+    // The translation table, pinned value by value.
+    //
+    // This used to be one test asserting that every mapping was non-null,
+    // which cannot fail for a mapping that is merely wrong: collapsing
+    // ACCEPTED, PREPARING and READY onto CANCELLED broke two tests out of the
+    // whole suite, both of them about ACCEPTED. PREPARING and READY were
+    // correct in the code and unexamined here — so a mutation that cancels and
+    // refunds an order the kitchen is actively cooking passed.
+    //
+    // The expectations below are written out longhand rather than read from
+    // toOrderStatus(), because an expectation derived from the code under test
+    // cannot contradict it. Both switches are exhaustive, so a state added to
+    // the partner vocabulary fails the build here rather than arriving with no
+    // test at all.
+    // ---------------------------------------------------------------------
+
+    private static OrderStatus expectedPlatformStatus(PartnerOrderStatus reported) {
+        return switch (reported) {
+            case ACCEPTED -> OrderStatus.ACCEPTED;
+            case PREPARING -> OrderStatus.PREPARING;
+            case READY -> OrderStatus.READY;
+            // DECLINED has no status of its own — an order nobody will cook is
+            // cancelled, and the refusal lives in the cancellation reason.
+            case DECLINED -> OrderStatus.CANCELLED;
+        };
+    }
+
+    private static boolean expectedDecline(PartnerOrderStatus reported) {
+        return switch (reported) {
+            case ACCEPTED, PREPARING, READY -> false;
+            case DECLINED -> true;
+        };
+    }
+
+    /** A status the order can legally be in when this one is reported. */
+    private static OrderStatus startingPointFor(PartnerOrderStatus reported) {
+        return switch (reported) {
+            case ACCEPTED -> OrderStatus.CREATED;
+            case PREPARING -> OrderStatus.ACCEPTED;
+            case READY -> OrderStatus.PREPARING;
+            case DECLINED -> OrderStatus.CREATED;
+        };
+    }
+
+    @ParameterizedTest
+    @EnumSource(PartnerOrderStatus.class)
+    @DisplayName("every reportable status maps to the status it names")
+    void everyReportedStatusMapsByName(PartnerOrderStatus reported) {
+        assertThat(reported.toOrderStatus()).isEqualTo(expectedPlatformStatus(reported));
+        assertThat(reported.isDecline()).isEqualTo(expectedDecline(reported));
+    }
+
+    @ParameterizedTest
+    @EnumSource(PartnerOrderStatus.class)
+    @DisplayName("every reportable status reaches OrderService as the status it names")
+    void everyReportedStatusArrivesByName(PartnerOrderStatus reported) {
+        // Driven through the service, not read off the enum: a correct table
+        // the service does not consult is the same bug from the outside.
+        order(startingPointFor(reported));
+
+        service.report(restos, REF, reported, "Out of lamb");
+
+        if (expectedDecline(reported)) {
+            verify(orderService).cancelOrder(eq(5L), any(), any(), eq(true), eq(7L));
+            verify(orderService, never()).updateOrderStatus(
+                    anyLong(), any(), anyBoolean(), anyBoolean(), anyBoolean(), any());
+            return;
         }
-        // DECLINED has no status of its own — an order nobody will cook is
-        // cancelled, and the refusal lives in the cancellation reason.
-        assertThat(PartnerOrderStatus.DECLINED.toOrderStatus()).isEqualTo(OrderStatus.CANCELLED);
-        assertThat(PartnerOrderStatus.DECLINED.isDecline()).isTrue();
-        assertThat(PartnerOrderStatus.ACCEPTED.isDecline()).isFalse();
+
+        ArgumentCaptor<UpdateOrderStatusRequest> captor =
+                ArgumentCaptor.forClass(UpdateOrderStatusRequest.class);
+        verify(orderService).updateOrderStatus(eq(5L), captor.capture(),
+                anyBoolean(), anyBoolean(), anyBoolean(), eq(7L));
+        assertThat(captor.getValue().getStatus()).isEqualTo(expectedPlatformStatus(reported));
+        // And nothing that is not a decline may reach the refund path.
+        verify(orderService, never()).cancelOrder(anyLong(), any(), any(), anyBoolean(), any());
     }
 }
