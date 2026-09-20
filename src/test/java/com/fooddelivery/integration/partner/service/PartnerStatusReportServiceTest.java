@@ -12,11 +12,13 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -76,6 +78,21 @@ class PartnerStatusReportServiceTest {
                 .thenReturn(new PartnerOrderPushClient.Result.Accepted(null, false));
     }
 
+    /**
+     * Every status string handed to the client, in order.
+     *
+     * <p>Restos found the same weakness in their own suite while checking ours:
+     * one state pinned, the rest resting on a mapping nobody had asserted ever
+     * reached the other side. Counting calls proves something was sent; only
+     * this proves what.
+     */
+    private List<String> statusesSent() {
+        ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
+        verify(client, org.mockito.Mockito.atLeastOnce())
+                .reportStatus(any(), anyString(), any(), captor.capture(), any(), anyString());
+        return captor.getAllValues();
+    }
+
     @Test
     @DisplayName("the delivery states are reported")
     void deliveryStatesReported() {
@@ -88,8 +105,14 @@ class PartnerStatusReportServiceTest {
             assertThat(service.report(5L, 100L, REF, status, null))
                     .as("reporting %s", status).isTrue();
         }
-        verify(client, org.mockito.Mockito.times(6))
-                .reportStatus(any(), anyString(), any(), anyString(), any(), anyString());
+
+        // The WORDS, not just the count. Counting calls leaves the mapping from
+        // our enum to their vocabulary unexamined, which is the surface someone
+        // tidies while simplifying a switch — invisible here, visible on a
+        // restaurant's screen.
+        assertThat(statusesSent()).containsExactly(
+                "COURIER_ASSIGNED", "PICKED_UP", "IN_TRANSIT",
+                "DELIVERED", "COMPLETED", "CANCELLED");
     }
 
     @Test
@@ -118,8 +141,7 @@ class PartnerStatusReportServiceTest {
             assertThat(service.report(5L, 100L, REF, status, null, null))
                     .as("reporting %s", status).isTrue();
         }
-        verify(client, org.mockito.Mockito.times(3))
-                .reportStatus(any(), anyString(), any(), anyString(), any(), anyString());
+        assertThat(statusesSent()).containsExactly("ACCEPTED", "PREPARING", "READY");
     }
 
     @Test
