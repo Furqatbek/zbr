@@ -57,6 +57,39 @@ credentials from us yet because their staging environment is not deployed, and
 order push stays off on both sides until our `paymentMode` field stops being a
 constant.
 
+### When pipe 1 cannot be opened at all
+
+A venue's POS may be unreachable from this server for reasons that have nothing
+to do with either system. Qahvoon's is: our packets and theirs are dropped in
+both directions, with no firewall rule on either machine, somewhere between two
+providers.
+
+For that case there is `POST /api/v1/restos/import-menu-payload`, which takes
+the venue's own response body instead of fetching it:
+
+```bash
+# wherever the venue IS reachable from
+curl -s https://qahvoon.uz/api/v1/customer/public/restaurants/1/menu > menu.json
+
+# then, with that file in hand
+curl -X POST https://zbrr.uz/api/v1/restos/import-menu-payload \
+  -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
+  -d "{\"externalRestaurantId\":1,\"localRestaurantId\":3,
+       \"overwriteExisting\":false,\"payload\":$(cat menu.json)}"
+```
+
+Everything after the fetch is the same code as a network import: the same id
+matching, the same price and publishing rules, the same refusal to deactivate
+from a partial snapshot, the same ceiling on how much one run may retire. That
+last one matters more here than anywhere, because a payload pasted from a
+terminal that scrolled looks exactly like a menu with half its dishes
+withdrawn.
+
+**It is a first import, not a link.** Nothing keeps it up to date, the result
+says so in a warning, and the venue is not stamped with a source URL — writing
+one would claim a connection that does not work. Prices are accurate as of the
+moment the payload was taken and no later.
+
 ---
 
 ## Part 2 — What does not scale today

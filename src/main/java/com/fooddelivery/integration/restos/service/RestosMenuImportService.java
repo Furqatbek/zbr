@@ -97,6 +97,70 @@ public class RestosMenuImportService {
             return result;
         }
 
+        return applyMenu(restaurant, menu, overwrite, result, baseUrl);
+    }
+
+    /**
+     * Import a menu the caller already has, without fetching anything.
+     *
+     * <p>For a venue whose system we cannot reach. Qahvoon's POS is on a network
+     * that drops our server's packets in both directions — nothing to do with
+     * either machine's firewall, and not ours to fix — so their catalogue would
+     * otherwise wait on a provider ticket before a single dish could be sold.
+     * The payload is the same JSON their API serves; someone who can reach them
+     * pastes it here.
+     *
+     * <p>Everything after the fetch is identical to a network import, on
+     * purpose: the same id matching, the same price and publishing rules, the
+     * same refusal to deactivate from a partial snapshot, the same ceiling on
+     * how much one run may retire. A different code path for the same job is
+     * how the two quietly stop agreeing.
+     *
+     * <p>It is a first import, not a link. Nothing here keeps itself up to
+     * date, so the venue is stamped as synced but not as reachable.
+     */
+    @Transactional
+    @CacheEvict(value = {"menus", "menuItems"}, allEntries = true)
+    public MenuImportResult importSuppliedMenu(Long restaurantId, SuppliedMenuImportRequest request) {
+        if (!restosProperties.isEnabled()) {
+            throw new BusinessException("Restos integration is disabled");
+        }
+        Restaurant restaurant = restaurantService.getRestaurantEntityById(restaurantId);
+        List<RestosCategory> menu = request.resolveCategories();
+        boolean overwrite = Boolean.TRUE.equals(request.getOverwriteExisting());
+
+        MenuImportResult result = MenuImportResult.builder()
+                .restaurantId(restaurantId)
+                .externalRestaurantId(request.getExternalRestaurantId())
+                .syncedAt(LocalDateTime.now())
+                .errors(new ArrayList<>())
+                .warnings(new ArrayList<>())
+                .build();
+
+        // Said out loud in the result, because everything downstream — a price
+        // query, a stale dish, a reconciliation — reads differently when the
+        // catalogue came from a paste rather than from their live system.
+        result.getWarnings().add("Imported from a supplied payload rather than fetched from Restos. "
+                + "These prices are as accurate as the moment the payload was taken, and nothing "
+                + "will update them until the connection to the venue's system works.");
+
+        log.info("Importing a supplied menu for restaurant {}: {} categories, no fetch",
+                restaurantId, menu.size());
+
+        return applyMenu(restaurant, menu, overwrite, result, null);
+    }
+
+    /**
+     * Everything after the menu is in hand: matching, upserting, retiring.
+     *
+     * @param sourceUrl the system it was fetched from, or null when the caller
+     *                  supplied the payload — in which case the venue keeps
+     *                  whatever source URL it had, since a paste is not a link
+     *                  to anything
+     */
+    private MenuImportResult applyMenu(Restaurant restaurant, List<RestosCategory> menu,
+                                       boolean overwrite, MenuImportResult result, String sourceUrl) {
+        Long restaurantId = restaurant.getId();
         Snapshot snapshot = new Snapshot();
 
         for (RestosCategory extCategory : menu) {
@@ -133,7 +197,9 @@ public class RestosMenuImportService {
         retireVanished(restaurant, snapshot, overwrite, result);
         warnAboutUnkeyedItems(restaurant, result);
 
-        restaurant.setExternalSystemUrl(baseUrl);
+        if (sourceUrl != null) {
+            restaurant.setExternalSystemUrl(sourceUrl);
+        }
         restaurant.setLastMenuSyncAt(LocalDateTime.now());
 
         log.info("Menu import completed for restaurant {}: {} categories created, {} updated, {} deactivated, "

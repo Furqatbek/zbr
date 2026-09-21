@@ -67,6 +67,39 @@ public class RestosIntegrationController {
     }
 
     /**
+     * Import a menu the caller already holds, with no outbound call.
+     *
+     * <p>For a venue we cannot reach. Everything after the fetch is the same
+     * code as {@code /import-menu} — same id matching, same price and
+     * publishing rules, same brakes on deactivation.
+     */
+    @PostMapping("/import-menu-payload")
+    @PreAuthorize("hasAnyRole('RESTAURANT_OWNER', 'PLATFORM', 'ADMIN')")
+    @Operation(summary = "Import a supplied menu payload",
+            description = "Import the venue's own menu JSON without fetching it. For venues whose "
+                    + "system is unreachable from this server. Send their response body as "
+                    + "'payload', or the array inside it as 'categories'.")
+    public ResponseEntity<ApiResponse<MenuImportResult>> importMenuPayload(
+            @AuthenticationPrincipal UserPrincipal currentUser,
+            @Valid @RequestBody ImportMenuPayloadBody body) {
+
+        Long localRestaurantId = resolveOwnerRestaurant(currentUser, body.getLocalRestaurantId());
+
+        log.info("Restaurant owner {} importing a supplied menu payload for local restaurant {}",
+                currentUser.getId(), localRestaurantId);
+
+        SuppliedMenuImportRequest request = SuppliedMenuImportRequest.builder()
+                .externalRestaurantId(body.getExternalRestaurantId())
+                .payload(body.getPayload())
+                .categories(body.getCategories())
+                .overwriteExisting(body.getOverwriteExisting())
+                .build();
+
+        MenuImportResult result = importService.importSuppliedMenu(localRestaurantId, request);
+        return ResponseEntity.ok(ApiResponse.success("Menu imported from the supplied payload", result));
+    }
+
+    /**
      * Preview menu from Restos before importing (read-only, no DB changes).
      */
     @PostMapping("/preview-menu")
@@ -123,6 +156,24 @@ public class RestosIntegrationController {
         private Long externalRestaurantId;
 
         private String apiKey;
+
+        private Long localRestaurantId;
+
+        private Boolean overwriteExisting = false;
+    }
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class ImportMenuPayloadBody {
+        @NotNull(message = "External restaurant ID is required")
+        private Long externalRestaurantId;
+
+        /** The venue's response body, unedited. */
+        private RestosApiResponse<List<RestosCategory>> payload;
+
+        /** Or just the array inside it. Exactly one of the two. */
+        private List<RestosCategory> categories;
 
         private Long localRestaurantId;
 
