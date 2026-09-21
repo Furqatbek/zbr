@@ -1,6 +1,7 @@
 package com.fooddelivery.common.security;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -64,6 +65,16 @@ public class SecretCipher {
     /** Every key we can read with, primary first, by id. */
     private final Map<String, SecretKeySpec> byId = new LinkedHashMap<>();
 
+    /**
+     * @implNote {@code @Autowired} is load-bearing, not decoration. There are
+     *           two public constructors here, and Spring only picks one
+     *           automatically when there is exactly one — otherwise it looks
+     *           for a no-arg constructor, does not find it, and the whole
+     *           context fails to start. Adding the convenience constructor
+     *           below is what turned that from impossible into a deployment
+     *           that would not boot.
+     */
+    @Autowired
     public SecretCipher(@Value("${app.security.secret-key:}") String primaryKey,
                         @Value("${app.security.previous-keys:}") String previousKeys) {
         this.primary = parseKey(primaryKey, "app.security.secret-key");

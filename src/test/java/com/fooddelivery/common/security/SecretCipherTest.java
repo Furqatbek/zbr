@@ -2,6 +2,8 @@ package com.fooddelivery.common.security;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.context.annotation.AnnotationConfigApplicationContext;
+import org.springframework.context.support.PropertySourcesPlaceholderConfigurer;
 
 import java.util.Base64;
 import java.util.HashSet;
@@ -33,6 +35,26 @@ class SecretCipherTest {
 
     private SecretCipher cipher() {
         return new SecretCipher(KEY);
+    }
+
+    @Test
+    @DisplayName("Spring can build the bean")
+    void springCanInstantiateIt() {
+        // The failure this pins took production down: two public constructors
+        // and no @Autowired, so Spring looked for a no-arg one and found none.
+        // Nothing caught it, because the only test that loads a context needs
+        // Docker and is excluded from `mvn test` — the first thing to ever
+        // instantiate this bean was the deployment.
+        //
+        // A whole context is not needed to ask the question. This is the same
+        // constructor resolution, in a container small enough to run anywhere.
+        try (AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext()) {
+            context.register(PropertySourcesPlaceholderConfigurer.class);
+            context.register(SecretCipher.class);
+            context.refresh();
+
+            assertThat(context.getBean(SecretCipher.class)).isNotNull();
+        }
     }
 
     @Test
