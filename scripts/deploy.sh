@@ -110,6 +110,52 @@ say "Deploying $TARGET from $(git rev-parse --short HEAD) ($(git rev-parse --abb
 # left on the version that is known to work. Printed in the rollback hint below.
 PREV_IMAGE="$(docker inspect -f '{{.Image}}' "$CONTAINER" 2>/dev/null || true)"
 IMAGE_TAG="$(docker inspect -f '{{.Config.Image}}' "$CONTAINER" 2>/dev/null || true)"
+PREV_TAG=""
+
+# --- Keep the running version reachable ------------------------------------
+# An image id in a message is not a rollback. The build overwrites :latest, the
+# old image becomes dangling, and the next `docker image prune` deletes it — so
+# the hint printed on failure can name an image that no longer exists. That is
+# not theoretical: production was down for an hour with nothing to go back to,
+# because the only surviving zbr-app image WAS the broken one.
+#
+# A name of its own keeps it. :previous is a tag like any other, which means
+# prune leaves it alone and `docker tag zbr-app:previous zbr-app` is the whole
+# rollback.
+#
+# Only from a container that is actually working. Tagging a crash-looping
+# container's image as :previous would overwrite the last good one with the
+# thing we are trying to escape from — which is exactly how the old hint came
+# to point at a broken image on the second attempt.
+keep_previous() {
+  say "Keeping the running image as :previous"
+
+  if [ -z "$PREV_IMAGE" ] || [ -z "$IMAGE_TAG" ]; then
+    echo "     nothing running yet — first deploy, no previous version to keep"
+    return 0
+  fi
+
+  local running health base
+  running="$(docker inspect -f '{{.State.Running}}' "$CONTAINER" 2>/dev/null || echo false)"
+  health="$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' \
+            "$CONTAINER" 2>/dev/null || echo unknown)"
+
+  if [ "$running" != "true" ] || { [ "$health" != "healthy" ] && [ "$health" != "none" ]; }; then
+    echo "     NOT tagging :previous — the running container is $health (running=$running)."
+    echo "     Any existing :previous is left alone; it is the last version known to work."
+    return 0
+  fi
+  [ "$health" = "none" ] && echo "     (no healthcheck on this container — tagging on 'running' alone)"
+
+  # Strip the tag, keeping any registry host:port before the first slash.
+  base="$IMAGE_TAG"
+  case "${base##*/}" in *:*) base="${base%:*}" ;; esac
+  PREV_TAG="${base}:previous"
+
+  docker tag "$PREV_IMAGE" "$PREV_TAG"
+  echo "     $PREV_TAG -> ${PREV_IMAGE#sha256:}"
+}
+keep_previous
 
 # --- Build separately from the restart -------------------------------------
 # `up --build` would tear the old container down and only then discover the
@@ -173,15 +219,21 @@ if ! $ready; then
   echo "   Look here first — a failed Flyway migration and a bad env var both" >&2
   echo "   show up as a startup crash:" >&2
   echo "     ${COMPOSE[*]} logs $SERVICE --tail 80" >&2
-  if [ -n "$PREV_IMAGE" ] && [ -n "$IMAGE_TAG" ]; then
+  if [ -n "$PREV_TAG" ]; then
     echo >&2
     echo "   To put the previous version back:" >&2
-    echo "     docker tag $PREV_IMAGE $IMAGE_TAG" >&2
+    echo "     docker tag $PREV_TAG $IMAGE_TAG" >&2
     echo "     ${COMPOSE[*]} up -d --no-build $SERVICE" >&2
     echo "   NOTE: this reverts the CODE only. Flyway migrations are not undone," >&2
     echo "   so if the new version added one, the old code runs against the new" >&2
     echo "   schema. That is fine for an additive migration and is not fine for" >&2
     echo "   a destructive one — check what shipped before relying on this." >&2
+  else
+    echo >&2
+    echo "   NO ROLLBACK AVAILABLE: nothing was tagged :previous this run, because" >&2
+    echo "   the container was already unhealthy when the deploy started. Check" >&2
+    echo "   whether an older one survived:" >&2
+    echo "     docker images -a | head" >&2
   fi
   exit 1
 fi
