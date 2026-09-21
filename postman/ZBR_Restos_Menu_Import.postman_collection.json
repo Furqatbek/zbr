@@ -1,0 +1,160 @@
+{
+  "info": {
+    "_postman_id": "zbr-restos-menu-import",
+    "name": "ZBR \u2014 Restos menu import",
+    "description": "Pulling a venue's menu from a Restos POS, including the case where this server cannot reach the venue at all.\n\nSet access_token to a token for an account that owns the local restaurant, or any ADMIN/PLATFORM token.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{access_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://zbrr.uz/api/v1"
+    },
+    {
+      "key": "access_token",
+      "value": ""
+    },
+    {
+      "key": "venue_url",
+      "value": "https://qahvoon.uz"
+    },
+    {
+      "key": "venue_id",
+      "value": "1"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Fetch venue menu (their server, no auth)",
+      "request": {
+        "auth": {
+          "type": "noauth"
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{venue_url}}/api/v1/customer/public/restaurants/{{venue_id}}/menu",
+          "host": [
+            "{{venue_url}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "customer",
+            "public",
+            "restaurants",
+            "{{venue_id}}",
+            "menu"
+          ]
+        },
+        "description": "The VENUE's endpoint, not ours. Run it from a machine that can reach them.\n\nCopy the ENTIRE response body \u2014 the {\"success\": true, \"data\": [...]} object, envelope included \u2014 and paste it into request 4 as the value of \"payload\"."
+      }
+    },
+    {
+      "name": "2. Preview (read-only, needs a working route)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"baseUrl\": \"{{venue_url}}\",\n    \"externalRestaurantId\": 1\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/restos/preview-menu",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "restos",
+            "preview-menu"
+          ]
+        },
+        "description": "Fetches the menu and returns it without writing anything. Fails if this server cannot reach the venue \u2014 which is the case for Qahvoon today."
+      }
+    },
+    {
+      "name": "3. Import by fetching (needs a working route)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"baseUrl\": \"{{venue_url}}\",\n    \"externalRestaurantId\": 1,\n    \"localRestaurantId\": 3,\n    \"overwriteExisting\": false\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/restos/import-menu",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "restos",
+            "import-menu"
+          ]
+        },
+        "description": "The normal path. baseUrl is the HOST only \u2014 no /api/v1, the client appends the rest itself.\n\noverwriteExisting=false creates what is new and leaves existing items alone. true updates in place and may deactivate items missing from the menu."
+      }
+    },
+    {
+      "name": "4. Import a supplied payload (no fetch)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"externalRestaurantId\": 1,\n    \"localRestaurantId\": 3,\n    \"overwriteExisting\": false,\n    \"payload\": PASTE_THE_WHOLE_RESPONSE_FROM_REQUEST_1_HERE\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/restos/import-menu-payload",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "restos",
+            "import-menu-payload"
+          ]
+        },
+        "description": "For a venue this server cannot reach.\n\nReplace PASTE_THE_WHOLE_RESPONSE_FROM_REQUEST_1_HERE with the entire body from request 1 \u2014 including {\"success\": true, ...}, not just the array.\n\nIf you already have just the array, send it as \"categories\" instead. Exactly one of the two: both, or neither, is refused rather than guessed at.\n\nSame rules as a fetched import: matched by the venue's ids, their prices charged as sent, DRAFT and ARCHIVED items skipped, and a run that would deactivate more than 30% of their live items refuses and changes nothing."
+      }
+    }
+  ]
+}
