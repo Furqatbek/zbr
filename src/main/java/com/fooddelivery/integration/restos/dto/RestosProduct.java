@@ -53,10 +53,27 @@ public class RestosProduct {
     private Long categoryId;
     private String categoryName;
 
+    /**
+     * Whether this product is published upstream — on sale to anyone at all.
+     *
+     * <p>Restos's current build only ever exposes LIVE products on the partner
+     * menu, so this never had to be asked. An older deployment's public menu
+     * serves DRAFT alongside LIVE, and importing those puts dishes a venue has
+     * not finished writing on sale here. A DRAFT is not "sold out" and not
+     * "retired"; it is not a product yet.
+     *
+     * <p>A missing status means published: a partner that does not track one at
+     * all must not have its entire menu treated as unfinished.
+     */
+    public boolean isPublished() {
+        if (status == null || status.isBlank()) return true;
+        return !("ARCHIVED".equalsIgnoreCase(status) || "DRAFT".equalsIgnoreCase(status));
+    }
+
     public boolean isAvailable() {
         if (available != null) return available;
         if (inStock != null) return inStock;
-        return !"ARCHIVED".equalsIgnoreCase(status);
+        return isPublished();
     }
 
     public boolean isFeaturedProduct() {

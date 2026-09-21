@@ -678,9 +678,9 @@ Delete menu item image.
 | name | string | Item name |
 | description | string | Description |
 | price | BigDecimal | Base price |
-| priceWithMargin | BigDecimal | Price with platform margin |
+| priceWithMargin | BigDecimal | The price actually charged. For an imported item this is the venue's own channel price when they publish one, and equal to `price` when they do not. Never a platform markup — the name is a fossil |
 | originalPrice | BigDecimal | Original price if on sale |
-| effectivePrice | BigDecimal | Display price |
+| effectivePrice | BigDecimal | What the customer pays: `priceWithMargin`, falling back to `price` |
 | onSale | Boolean | On sale flag |
 | discountPercentage | Integer | Discount percentage |
 | imageUrl | string | Image URL |

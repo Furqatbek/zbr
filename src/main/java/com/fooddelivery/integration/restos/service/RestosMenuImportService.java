@@ -252,6 +252,31 @@ public class RestosMenuImportService {
         }
     }
 
+    /**
+     * What the customer is charged for this dish: the venue's channel price
+     * when they publish one, their own price otherwise.
+     *
+     * <p>Never marked up. This used to invent {@code price × 1.10} whenever the
+     * source sent no channel price — a number that arrived with the original
+     * Restos module, is documented nowhere, matches no rate the platform uses,
+     * and was charged to customers because {@link MenuItem#getEffectivePrice()}
+     * returns this field. Commission is 15% and comes out of the venue's
+     * payout; adding 10% on top of the menu price charged for it twice, once to
+     * the venue and once to their customer.
+     *
+     * <p>It also contradicted the same platform's other price path: a price set
+     * through the Partner API is stored verbatim, with a comment saying a
+     * partner's published price is charged as sent. Two ways in, two answers,
+     * for the same dish at the same venue.
+     *
+     * <p>And it broke reconciliation: the {@code expectedTotal} we push with an
+     * order is the food at the venue's prices, so a silently inflated menu made
+     * our figure disagree with theirs on every ticket.
+     */
+    private BigDecimal sellingPrice(RestosProduct ext) {
+        return ext.getPriceWithMargin() != null ? ext.getPriceWithMargin() : ext.getPrice();
+    }
+
     private void retireVanished(Restaurant restaurant, Snapshot snapshot,
                                 boolean overwrite, MenuImportResult result) {
         // An import (overwriteExisting = false) deliberately leaves existing
@@ -455,14 +480,22 @@ public class RestosMenuImportService {
             return;
         }
 
-        // Restos confirmed they have no ARCHIVED status — a product there is
-        // DRAFT or LIVE, and only LIVE reaches the partner menu, so this branch
-        // never fires for them. Kept because it is the right handling for any
-        // partner that does mark products retired, and because "retired
-        // upstream" must reach the deactivation pass rather than being skipped
-        // into permanent life here. Deliberately NOT recorded as seen.
-        if ("ARCHIVED".equalsIgnoreCase(ext.getStatus())) {
-            result.getWarnings().add("Skipped archived product '" + ext.getName() + "'");
+        // Anything not published upstream — ARCHIVED (retired) or DRAFT (not
+        // finished) — is not a dish anyone may buy here.
+        //
+        // This used to test ARCHIVED alone, on the strength of Restos telling us
+        // a product there is DRAFT or LIVE and only LIVE reaches the partner
+        // menu. True of their current build; not true of the older deployment
+        // Qahvoon runs, whose public menu serves 14 drafts among 71 products.
+        // Every one of them would have gone on sale, priced, orderable, in a
+        // kitchen that had not finished writing them.
+        //
+        // Deliberately NOT recorded as seen: a product that stops being
+        // published must reach the deactivation pass and be retired here,
+        // rather than being skipped into permanent life.
+        if (!ext.isPublished()) {
+            result.getWarnings().add("Skipped product '" + ext.getName()
+                    + "' — upstream status " + ext.getStatus() + " is not on sale");
             result.setProductsSkipped(result.getProductsSkipped() + 1);
             return;
         }
@@ -496,9 +529,9 @@ public class RestosMenuImportService {
 
             existing.setName(ext.getName());
             existing.setPrice(ext.getPrice());
-            existing.setPriceWithMargin(ext.getPriceWithMargin() != null
-                    ? ext.getPriceWithMargin()
-                    : ext.getPrice().multiply(new BigDecimal("1.10")));
+            // Assigned unconditionally, so a stale margin from the old
+            // behaviour is cleared by the next sync rather than outliving it.
+            existing.setPriceWithMargin(sellingPrice(ext));
             existing.setInStock(ext.isAvailable());
             existing.setFeatured(ext.isFeaturedProduct());
             existing.setActive(true);
@@ -518,9 +551,7 @@ public class RestosMenuImportService {
                 .name(ext.getName())
                 .description(ext.getDescription())
                 .price(ext.getPrice())
-                .priceWithMargin(ext.getPriceWithMargin() != null
-                        ? ext.getPriceWithMargin()
-                        : ext.getPrice().multiply(new BigDecimal("1.10")))
+                .priceWithMargin(sellingPrice(ext))
                 .originalPrice(ext.getCostPrice())
                 .imageUrl(ext.getImageUrl())
                 .inStock(ext.isAvailable())
