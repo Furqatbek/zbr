@@ -41,6 +41,10 @@ public class SecurityConfig {
 
     private static final String[] PUBLIC_ENDPOINTS = {
             "/api/v1/auth/**",
+            // Read on launch and on the login screen, before anyone has a
+            // token. An update prompt gated behind sign-in cannot reach a
+            // customer whose version is too old to sign in.
+            "/api/v1/app/version",
             "/api/v1/restaurants/*/menu",
             "/api/v1/restaurants/*",
             "/api/v1/webhooks/**",

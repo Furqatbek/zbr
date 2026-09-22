@@ -38,6 +38,45 @@ live order updates. Hardcode the apex.
 `http://` is redirected but should never be used — iOS ATS and Android's
 cleartext policy block plain `http`/`ws` in release builds anyway.
 
+## New: app version check (Customer team — built, waiting for you)
+
+```
+GET /api/v1/app/version?platform=ios|android        (no token)
+```
+
+```json
+{ "success": true,
+  "data": { "latestVersion": "1.0.1", "minimumVersion": "1.0.0",
+            "storeUrl": "https://play.google.com/store/apps/details?id=app.zbr.customer" } }
+```
+
+**`platform` is required.** There is no shared answer and no default: the two
+stores are never in lockstep, and answering an Android device with an iOS
+version tells it to install something it cannot download — on every check,
+forever, because its installed version never catches up. A missing or unknown
+platform is a `400` naming what is accepted, rather than a guess.
+
+`storeUrl` is **omitted** when none is configured for that platform, and the app
+falls back to its own link. Currently set for Android; iOS needs the App Store
+URL once the listing is live.
+
+Unauthenticated by design — the check runs on launch and on the login screen,
+and an update prompt gated behind sign-in cannot reach a customer whose version
+is too old to sign in. The response carries `Cache-Control: public, max-age=300`.
+
+**Seeded at `latest 1.0.1`, `minimum 1.0.0`,** which prompts nobody. Both are
+per-platform environment variables — `APP_VERSION_IOS_LATEST`,
+`APP_VERSION_ANDROID_LATEST`, `..._MINIMUM`, `..._STORE_URL` — so a store
+release is a restart, not a rebuild.
+
+> **`minimumVersion` is a kill switch.** Set above what is actually live in the
+> store, it locks every customer on that platform out of the app: the dialog
+> cannot be dismissed and there is nothing newer to install. The backend now
+> refuses to start if a minimum is newer than that platform's latest, which
+> catches the mistake at deploy time rather than in the field. It cannot catch a
+> minimum that is merely wrong — 1.0.1 when the store still has 1.0.0 approved,
+> say — so treat changes to it as a release decision.
+
 ## New: Idempotency-Key on order creation (Customer team — strongly recommended)
 
 `POST /api/v1/orders` now accepts an optional header:

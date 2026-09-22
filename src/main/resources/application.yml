@@ -315,6 +315,28 @@ app:
         CAR: 6
         VAN: 7
 
+  # What the customer app checks on launch to decide whether to prompt for an
+  # update. Per platform, because the App Store and Play are never in lockstep:
+  # one shared "latest" tells half the customers to install something that does
+  # not exist for them, on every check, forever.
+  #
+  # minimum-version is a KILL SWITCH. Set above what is actually live in the
+  # store it locks every customer on that platform out of the app, with nothing
+  # to upgrade to and no way to dismiss the dialog. The application refuses to
+  # start if a minimum is newer than that platform's latest.
+  mobile:
+    version:
+      cache-seconds: ${APP_VERSION_CACHE_SECONDS:300}
+      platforms:
+        IOS:
+          latest: ${APP_VERSION_IOS_LATEST:1.0.1}
+          minimum: ${APP_VERSION_IOS_MINIMUM:1.0.0}
+          store-url: ${APP_VERSION_IOS_STORE_URL:}
+        ANDROID:
+          latest: ${APP_VERSION_ANDROID_LATEST:1.0.1}
+          minimum: ${APP_VERSION_ANDROID_MINIMUM:1.0.0}
+          store-url: ${APP_VERSION_ANDROID_STORE_URL:https://play.google.com/store/apps/details?id=app.zbr.customer}
+
   referral:
     reward-amount: 10.00
     currency: ${APP_CURRENCY:UZS}
