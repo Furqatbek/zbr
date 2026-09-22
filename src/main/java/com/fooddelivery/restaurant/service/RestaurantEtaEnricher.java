@@ -69,4 +69,54 @@ public class RestaurantEtaEnricher {
         page.setContent(withEta(page.getContent(), customerLat, customerLng));
         return page;
     }
+
+    /**
+     * Everything that depends on WHO is asking: how far away the restaurant is,
+     * and what language its cuisine should be named in.
+     *
+     * <p>Both are stamped after the cached read and onto a copy, for the same
+     * reason: {@code getRestaurantById} caches by id alone, so a distance or a
+     * translated name written before the cache would be served to the next
+     * customer, who is somewhere else and may be reading in another language.
+     */
+    public RestaurantDto forRequest(RestaurantDto restaurant, BigDecimal customerLat,
+                                    BigDecimal customerLng, String language) {
+        return withEta(withCategoryName(restaurant, language), customerLat, customerLng);
+    }
+
+    public List<RestaurantDto> forRequest(List<RestaurantDto> restaurants, BigDecimal customerLat,
+                                          BigDecimal customerLng, String language) {
+        if (restaurants == null) {
+            return null;
+        }
+        return restaurants.stream()
+                .map(r -> forRequest(r, customerLat, customerLng, language))
+                .toList();
+    }
+
+    public PagedResponse<RestaurantDto> forRequest(PagedResponse<RestaurantDto> page,
+                                                   BigDecimal customerLat, BigDecimal customerLng,
+                                                   String language) {
+        if (page == null) {
+            return null;
+        }
+        page.setContent(forRequest(page.getContent(), customerLat, customerLng, language));
+        return page;
+    }
+
+    /**
+     * Resolve the cuisine's name for this request's language.
+     *
+     * <p>A restaurant with no category is returned untouched — the field stays
+     * null and the app renders no chip, which is the honest answer until an
+     * admin files it under something.
+     */
+    private RestaurantDto withCategoryName(RestaurantDto restaurant, String language) {
+        if (restaurant == null || restaurant.getCategory() == null) {
+            return restaurant;
+        }
+        return restaurant.toBuilder()
+                .category(restaurant.getCategory().localized(language))
+                .build();
+    }
 }

@@ -18,7 +18,17 @@ import java.util.Optional;
  * Repository for Restaurant entity operations.
  */
 @Repository
-public interface RestaurantRepository extends JpaRepository<Restaurant, Long> {
+public interface RestaurantRepository extends JpaRepository<Restaurant, Long>,
+        org.springframework.data.jpa.repository.JpaSpecificationExecutor<Restaurant> {
+
+    /*
+     * Cuisine and featured filters are Specifications rather than more @Query
+     * methods. Four flags would be sixteen queries, and the alternative —
+     * "(:categoryId IS NULL OR ...)" — is the JPQL that works on H2 and then
+     * asks Postgres to infer the type of a null parameter. Criteria builds
+     * only the predicates that apply, so an absent filter contributes no SQL
+     * at all.
+     */
 
     Optional<Restaurant> findBySlug(String slug);
 

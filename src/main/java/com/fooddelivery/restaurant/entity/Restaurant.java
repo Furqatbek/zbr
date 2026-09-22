@@ -34,6 +34,18 @@ public class Restaurant {
     @JoinColumn(name = "owner_id", nullable = false)
     private User owner;
 
+    /**
+     * The cuisine this restaurant is filed under — one, not many.
+     *
+     * <p>Nullable, and it has to be: the restaurants that existed when this was
+     * added have no cuisine on record, and guessing one would put a wrong chip
+     * on a real venue. An admin assigns it; until then the API answers
+     * {@code category: null} and the app renders no chip.
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "category_id")
+    private RestaurantCategory category;
+
     @Column(nullable = false, length = 200)
     private String name;
 

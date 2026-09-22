@@ -15,6 +15,8 @@ import com.fooddelivery.restaurant.entity.Restaurant;
 import com.fooddelivery.restaurant.entity.RestaurantStatus;
 import com.fooddelivery.restaurant.mapper.RestaurantMapper;
 import com.fooddelivery.restaurant.repository.RestaurantRepository;
+import com.fooddelivery.restaurant.repository.RestaurantSpecifications;
+import org.springframework.data.jpa.domain.Specification;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
@@ -294,6 +296,35 @@ public class RestaurantService {
     }
 
     /**
+     * Put a restaurant in the recommended carousel, or take it out.
+     *
+     * <p>The {@code featured} flag has existed since the first schema, is
+     * returned by the API, and has a query behind it — but nothing could ever
+     * set it: the create mapper ignores it and the update request has no field
+     * for it. So the carousel has been empty for every customer since launch,
+     * showing no error because an empty carousel simply hides itself.
+     *
+     * <p>Admin and platform only. A restaurant that could feature itself would
+     * feature itself.
+     */
+    @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = "restaurants", key = "#id"),
+            @CacheEvict(value = "restaurants", key = "'slug:' + #result.slug",
+                        condition = "#result != null")
+    })
+    @Auditable(action = "UPDATE_RESTAURANT_FEATURED", entityType = "Restaurant")
+    public RestaurantDto setFeatured(Long id, Boolean featured) {
+        Restaurant restaurant = getRestaurantEntityById(id);
+        restaurant.setFeatured(Boolean.TRUE.equals(featured));
+        restaurant = restaurantRepository.save(restaurant);
+
+        log.info("Restaurant {} is {} the recommended carousel",
+                id, Boolean.TRUE.equals(featured) ? "now in" : "no longer in");
+        return restaurantMapper.toDto(restaurant);
+    }
+
+    /**
      * Toggle restaurant open/closed status.
      */
     @Transactional
@@ -408,7 +439,28 @@ public class RestaurantService {
      */
     @Transactional(readOnly = true)
     public PagedResponse<RestaurantDto> getActiveRestaurants(Pageable pageable) {
-        Page<Restaurant> restaurants = restaurantRepository.findActiveAndOpen(pageable);
+        return getActiveRestaurants(null, null, pageable);
+    }
+
+    /**
+     * Active and open, optionally narrowed to one cuisine or to the featured ones.
+     *
+     * <p>Filtered in the query rather than in the page that comes back. Filtering
+     * afterwards would give "the burgers on page 1", which is not the burgers —
+     * and the customer cannot tell the difference from a short list.
+     *
+     * @param categoryId cuisine to filter by, or null for all
+     * @param featured   true for the carousel, null for no opinion
+     */
+    @Transactional(readOnly = true)
+    public PagedResponse<RestaurantDto> getActiveRestaurants(Long categoryId, Boolean featured,
+                                                             Pageable pageable) {
+        Specification<Restaurant> spec = Specification
+                .where(RestaurantSpecifications.openForOrders())
+                .and(RestaurantSpecifications.inCategory(categoryId))
+                .and(RestaurantSpecifications.featured(featured));
+
+        Page<Restaurant> restaurants = restaurantRepository.findAll(spec, pageable);
         return PagedResponse.from(restaurants, restaurantMapper.toDtoList(restaurants.getContent()));
     }
 
@@ -417,7 +469,19 @@ public class RestaurantService {
      */
     @Transactional(readOnly = true)
     public PagedResponse<RestaurantDto> searchRestaurants(String query, Pageable pageable) {
-        Page<Restaurant> restaurants = restaurantRepository.searchByNameOrDescription(query, pageable);
+        return searchRestaurants(query, null, pageable);
+    }
+
+    /** Search, optionally within one cuisine. */
+    @Transactional(readOnly = true)
+    public PagedResponse<RestaurantDto> searchRestaurants(String query, Long categoryId,
+                                                          Pageable pageable) {
+        Specification<Restaurant> spec = Specification
+                .where(RestaurantSpecifications.active())
+                .and(RestaurantSpecifications.matching(query))
+                .and(RestaurantSpecifications.inCategory(categoryId));
+
+        Page<Restaurant> restaurants = restaurantRepository.findAll(spec, pageable);
         return PagedResponse.from(restaurants, restaurantMapper.toDtoList(restaurants.getContent()));
     }
 
@@ -435,7 +499,26 @@ public class RestaurantService {
      */
     @Transactional(readOnly = true)
     public List<RestaurantDto> getNearbyRestaurants(BigDecimal latitude, BigDecimal longitude, double radiusKm) {
+        return getNearbyRestaurants(latitude, longitude, radiusKm, null);
+    }
+
+    /**
+     * Nearby, optionally within one cuisine.
+     *
+     * <p>The cuisine is applied after the radius query rather than inside it.
+     * That query is native SQL doing trigonometry, and this list is already
+     * bounded by the radius — a few objects filtered in memory is cheaper than
+     * a second copy of a distance formula to keep in step with the first.
+     */
+    @Transactional(readOnly = true)
+    public List<RestaurantDto> getNearbyRestaurants(BigDecimal latitude, BigDecimal longitude,
+                                                    double radiusKm, Long categoryId) {
         List<Restaurant> restaurants = restaurantRepository.findNearbyRestaurants(latitude, longitude, radiusKm);
+        if (categoryId != null) {
+            restaurants = restaurants.stream()
+                    .filter(r -> r.getCategory() != null && categoryId.equals(r.getCategory().getId()))
+                    .toList();
+        }
         return restaurantMapper.toDtoList(restaurants);
     }
 

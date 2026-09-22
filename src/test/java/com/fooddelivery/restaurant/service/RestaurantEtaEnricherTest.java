@@ -4,6 +4,7 @@ import com.fooddelivery.common.dto.PagedResponse;
 import com.fooddelivery.delivery.eta.DeliveryEta;
 import com.fooddelivery.delivery.eta.DeliveryEtaService;
 import com.fooddelivery.courier.entity.VehicleType;
+import com.fooddelivery.restaurant.dto.RestaurantCategoryDto;
 import com.fooddelivery.restaurant.dto.RestaurantDto;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -129,6 +130,72 @@ class RestaurantEtaEnricherTest {
 
         assertThat(enriched).hasSize(3)
                 .allSatisfy(r -> assertThat(r.getDistanceKm()).isEqualTo(2.4));
+    }
+
+    @Test
+    @DisplayName("the cuisine is named in the language the request asked for")
+    void localizesTheCategory() {
+        RestaurantDto restaurant = restaurant(1L).toBuilder()
+                .category(RestaurantCategoryDto.builder()
+                        .id(3L).slug("burgers")
+                        .nameUz("Burgerlar").nameRu("Бургеры").nameEn("Burgers")
+                        .build())
+                .build();
+
+        assertThat(enricher().forRequest(restaurant, null, null, "ru").getCategory().getName())
+                .isEqualTo("Бургеры");
+        assertThat(enricher().forRequest(restaurant, null, null, "en").getCategory().getName())
+                .isEqualTo("Burgers");
+        assertThat(enricher().forRequest(restaurant, null, null, "uz").getCategory().getName())
+                .isEqualTo("Burgerlar");
+    }
+
+    @Test
+    @DisplayName("resolving a name does not write it into the cached restaurant")
+    void localizingDoesNotTouchTheCachedObject() {
+        // The same trap as the distance, one level deeper: getRestaurantById is
+        // cached by id, so a name resolved into the cached object would serve
+        // the next customer whatever language the first one asked for.
+        RestaurantCategoryDto category = RestaurantCategoryDto.builder()
+                .id(3L).slug("burgers")
+                .nameUz("Burgerlar").nameRu("Бургеры").nameEn("Burgers")
+                .build();
+        RestaurantDto cached = restaurant(1L).toBuilder().category(category).build();
+
+        RestaurantDto russian = enricher().forRequest(cached, null, null, "ru");
+
+        assertThat(russian.getCategory().getName()).isEqualTo("Бургеры");
+        assertThat(cached.getCategory().getName()).isNull();
+        assertThat(cached.getCategory()).isNotSameAs(russian.getCategory());
+    }
+
+    @Test
+    @DisplayName("a restaurant with no cuisine is returned untouched")
+    void noCategoryIsLeftAlone() {
+        // Null is the honest answer until an admin files it under something,
+        // and the app renders no chip for it.
+        RestaurantDto uncategorised = restaurant(1L);
+
+        assertThat(enricher().forRequest(uncategorised, null, null, "ru").getCategory()).isNull();
+    }
+
+    @Test
+    @DisplayName("a page is localized and paged at once")
+    void localizesAPage() {
+        etaIs(2.4, 35, 45);
+        RestaurantCategoryDto category = RestaurantCategoryDto.builder()
+                .id(3L).nameUz("Kofe").nameRu("Кофе").build();
+        PagedResponse<RestaurantDto> page = PagedResponse.<RestaurantDto>builder()
+                .content(List.of(restaurant(1L).toBuilder().category(category).build()))
+                .page(0).size(20).totalElements(1).totalPages(1).build();
+
+        PagedResponse<RestaurantDto> enriched =
+                enricher().forRequest(page, LAT, LNG, "ru");
+
+        assertThat(enriched.getContent()).singleElement().satisfies(r -> {
+            assertThat(r.getCategory().getName()).isEqualTo("Кофе");
+            assertThat(r.getDistanceKm()).isEqualTo(2.4);
+        });
     }
 
     @Test

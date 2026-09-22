@@ -81,6 +81,15 @@ public class RestaurantDto {
     @Schema(description = "Is featured restaurant")
     private Boolean featured;
 
+    /**
+     * The cuisine, with its name already resolved to the request's language.
+     *
+     * <p>Null until an admin assigns one. It cannot be made non-null without
+     * inventing a cuisine for the restaurants that predate this field.
+     */
+    @Schema(description = "Cuisine category, or null when none has been assigned")
+    private RestaurantCategoryDto category;
+
     @Schema(description = "Accepts delivery orders")
     private Boolean acceptsDelivery;
 

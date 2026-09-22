@@ -14,6 +14,10 @@ import com.fooddelivery.restaurant.dto.RestaurantDto;
 import com.fooddelivery.restaurant.dto.RestaurantFinancialReportDto;
 import com.fooddelivery.restaurant.dto.TransferOwnershipRequest;
 import com.fooddelivery.restaurant.entity.RestaurantStatus;
+import com.fooddelivery.common.i18n.RequestLanguage;
+import com.fooddelivery.restaurant.dto.RestaurantCategoryDto;
+import com.fooddelivery.restaurant.dto.SaveRestaurantCategoryRequest;
+import com.fooddelivery.restaurant.service.RestaurantCategoryService;
 import com.fooddelivery.restaurant.service.RestaurantEtaEnricher;
 import com.fooddelivery.restaurant.service.RestaurantService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -49,6 +53,7 @@ public class RestaurantController {
 
     private final RestaurantService restaurantService;
     private final RestaurantEtaEnricher etaEnricher;
+    private final RestaurantCategoryService categoryService;
     private final ReviewService reviewService;
     private final FinancialAnalyticsService financialAnalyticsService;
 
@@ -77,6 +82,24 @@ public class RestaurantController {
                 .body(ApiResponse.success("Restaurant created successfully", restaurant));
     }
 
+    /**
+     * The chips above the restaurant list.
+     *
+     * <p>Declared before {@code /{id}} deliberately: Spring would otherwise try
+     * "categories" as a restaurant id and answer 400 on a path that exists.
+     */
+    @GetMapping("/categories")
+    @Operation(summary = "List cuisine categories",
+            description = "Public. Only categories with at least one open restaurant, so a chip "
+                    + "never filters to an empty list. Names follow Accept-Language (uz, ru, en).")
+    public ResponseEntity<ApiResponse<List<RestaurantCategoryDto>>> getCategories(
+            @RequestHeader(value = "Accept-Language", required = false) String acceptLanguage) {
+
+        List<RestaurantCategoryDto> categories =
+                categoryService.listForCustomers(RequestLanguage.from(acceptLanguage));
+        return ResponseEntity.ok(ApiResponse.success(categories));
+    }
+
     @GetMapping("/{id}")
     @Operation(summary = "Get restaurant by ID", description = "Get restaurant details by ID")
     public ResponseEntity<ApiResponse<RestaurantDto>> getRestaurantById(
@@ -84,10 +107,12 @@ public class RestaurantController {
             @Parameter(description = "Customer latitude, for distance and arrival time")
             @RequestParam(required = false) BigDecimal lat,
             @Parameter(description = "Customer longitude, for distance and arrival time")
-            @RequestParam(required = false) BigDecimal lng) {
+            @RequestParam(required = false) BigDecimal lng,
+            @RequestHeader(value = "Accept-Language", required = false) String acceptLanguage) {
 
         RestaurantDto restaurant = restaurantService.getRestaurantById(id);
-        return ResponseEntity.ok(ApiResponse.success(etaEnricher.withEta(restaurant, lat, lng)));
+        return ResponseEntity.ok(ApiResponse.success(etaEnricher.forRequest(
+                restaurant, lat, lng, RequestLanguage.from(acceptLanguage))));
     }
 
     @GetMapping("/slug/{slug}")
@@ -95,10 +120,12 @@ public class RestaurantController {
     public ResponseEntity<ApiResponse<RestaurantDto>> getRestaurantBySlug(
             @PathVariable String slug,
             @RequestParam(required = false) BigDecimal lat,
-            @RequestParam(required = false) BigDecimal lng) {
+            @RequestParam(required = false) BigDecimal lng,
+            @RequestHeader(value = "Accept-Language", required = false) String acceptLanguage) {
 
         RestaurantDto restaurant = restaurantService.getRestaurantBySlug(slug);
-        return ResponseEntity.ok(ApiResponse.success(etaEnricher.withEta(restaurant, lat, lng)));
+        return ResponseEntity.ok(ApiResponse.success(etaEnricher.forRequest(
+                restaurant, lat, lng, RequestLanguage.from(acceptLanguage))));
     }
 
     @GetMapping
@@ -113,24 +140,36 @@ public class RestaurantController {
     @GetMapping("/active")
     @Operation(summary = "Get active restaurants", description = "Get active and open restaurants")
     public ResponseEntity<ApiResponse<PagedResponse<RestaurantDto>>> getActiveRestaurants(
+            @Parameter(description = "Show only this cuisine") @RequestParam(required = false) Long categoryId,
+            @Parameter(description = "Show only featured restaurants") @RequestParam(required = false) Boolean featured,
             @RequestParam(required = false) BigDecimal lat,
             @RequestParam(required = false) BigDecimal lng,
+            @RequestHeader(value = "Accept-Language", required = false) String acceptLanguage,
             @PageableDefault(size = 20) Pageable pageable) {
 
-        PagedResponse<RestaurantDto> restaurants = restaurantService.getActiveRestaurants(pageable);
-        return ResponseEntity.ok(ApiResponse.success(etaEnricher.withEta(restaurants, lat, lng)));
+        // Both filters go into the query, not into the page that comes back.
+        // Filtering a page would answer "the burgers on page 1", which looks
+        // identical to "the burgers" and is not.
+        PagedResponse<RestaurantDto> restaurants =
+                restaurantService.getActiveRestaurants(categoryId, featured, pageable);
+        return ResponseEntity.ok(ApiResponse.success(etaEnricher.forRequest(
+                restaurants, lat, lng, RequestLanguage.from(acceptLanguage))));
     }
 
     @GetMapping("/search")
     @Operation(summary = "Search restaurants", description = "Search restaurants by name or description")
     public ResponseEntity<ApiResponse<PagedResponse<RestaurantDto>>> searchRestaurants(
             @Parameter(description = "Search query") @RequestParam String q,
+            @Parameter(description = "Search only within this cuisine")
+            @RequestParam(required = false) Long categoryId,
             @RequestParam(required = false) BigDecimal lat,
             @RequestParam(required = false) BigDecimal lng,
+            @RequestHeader(value = "Accept-Language", required = false) String acceptLanguage,
             @PageableDefault(size = 20) Pageable pageable) {
 
-        PagedResponse<RestaurantDto> restaurants = restaurantService.searchRestaurants(q, pageable);
-        return ResponseEntity.ok(ApiResponse.success(etaEnricher.withEta(restaurants, lat, lng)));
+        PagedResponse<RestaurantDto> restaurants = restaurantService.searchRestaurants(q, categoryId, pageable);
+        return ResponseEntity.ok(ApiResponse.success(etaEnricher.forRequest(
+                restaurants, lat, lng, RequestLanguage.from(acceptLanguage))));
     }
 
     @GetMapping("/featured")
@@ -138,10 +177,12 @@ public class RestaurantController {
     public ResponseEntity<ApiResponse<PagedResponse<RestaurantDto>>> getFeaturedRestaurants(
             @RequestParam(required = false) BigDecimal lat,
             @RequestParam(required = false) BigDecimal lng,
+            @RequestHeader(value = "Accept-Language", required = false) String acceptLanguage,
             @PageableDefault(size = 10) Pageable pageable) {
 
         PagedResponse<RestaurantDto> restaurants = restaurantService.getFeaturedRestaurants(pageable);
-        return ResponseEntity.ok(ApiResponse.success(etaEnricher.withEta(restaurants, lat, lng)));
+        return ResponseEntity.ok(ApiResponse.success(etaEnricher.forRequest(
+                restaurants, lat, lng, RequestLanguage.from(acceptLanguage))));
     }
 
     @GetMapping("/nearby")
@@ -149,13 +190,17 @@ public class RestaurantController {
     public ResponseEntity<ApiResponse<List<RestaurantDto>>> getNearbyRestaurants(
             @RequestParam BigDecimal lat,
             @RequestParam BigDecimal lng,
-            @RequestParam(defaultValue = "10") double radius) {
+            @RequestParam(defaultValue = "10") double radius,
+            @Parameter(description = "Show only this cuisine") @RequestParam(required = false) Long categoryId,
+            @RequestHeader(value = "Accept-Language", required = false) String acceptLanguage) {
 
         // Nearby already knows where the customer is, so distance and arrival
         // time are not optional here — a list sorted by proximity that does not
         // say the proximity was the odd part.
-        List<RestaurantDto> restaurants = restaurantService.getNearbyRestaurants(lat, lng, radius);
-        return ResponseEntity.ok(ApiResponse.success(etaEnricher.withEta(restaurants, lat, lng)));
+        List<RestaurantDto> restaurants =
+                restaurantService.getNearbyRestaurants(lat, lng, radius, categoryId);
+        return ResponseEntity.ok(ApiResponse.success(etaEnricher.forRequest(
+                restaurants, lat, lng, RequestLanguage.from(acceptLanguage))));
     }
 
     @GetMapping("/my")
@@ -271,6 +316,22 @@ public class RestaurantController {
 
         RestaurantDto restaurant = restaurantService.transferOwnership(id, request.getNewOwnerId());
         return ResponseEntity.ok(ApiResponse.success("Ownership transferred", restaurant));
+    }
+
+    @PatchMapping("/{id}/featured")
+    @PreAuthorize("hasAnyRole('PLATFORM', 'ADMIN')")
+    @SecurityRequirement(name = "bearerAuth")
+    @Operation(summary = "Feature a restaurant",
+            description = "Puts the restaurant in the recommended carousel, or takes it out. "
+                    + "Admin/platform only — a restaurant that could feature itself would.")
+    public ResponseEntity<ApiResponse<RestaurantDto>> setFeatured(
+            @PathVariable Long id,
+            @RequestParam Boolean featured) {
+
+        RestaurantDto restaurant = restaurantService.setFeatured(id, featured);
+        return ResponseEntity.ok(ApiResponse.success(
+                Boolean.TRUE.equals(featured) ? "Restaurant featured" : "Restaurant unfeatured",
+                restaurant));
     }
 
     @PatchMapping("/{id}/toggle-open")
