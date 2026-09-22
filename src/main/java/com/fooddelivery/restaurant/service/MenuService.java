@@ -38,45 +38,6 @@ public class MenuService {
     private final RestaurantMapper mapper;
     private final ImageStorageService imageStorageService;
 
-    /**
-     * A markup added to every price a restaurant types, as a fraction.
-     *
-     * <p><strong>Zero by default.</strong> It was a hard-coded 10% — a venue
-     * entering 35 000 in the vendor app had 38 500 charged to the customer,
-     * with the venue's own screen showing the number they typed. The difference
-     * was not commission (that is 15%, taken out of the venue's payout, and
-     * still is), so the platform was charging the customer a tenth on top AND
-     * taking commission underneath, under a constant labelled "could be
-     * configurable".
-     *
-     * <p>It is the third markup of this kind found in two days: the same 10% in
-     * the Restos importer, and an 8% "tax" that was a US sales-tax default. All
-     * three were inherited rather than chosen, and none was written down
-     * anywhere a restaurant could see it.
-     *
-     * <p>Now configurable and off. Charging is a decision someone makes.
-     */
-    @org.springframework.beans.factory.annotation.Value("${app.menu.platform-margin-rate:0}")
-    private BigDecimal platformMargin;
-
-    /**
-     * A rate outside [0, 1) would be discovered on a customer's bill. Checked
-     * at startup instead.
-     */
-    @jakarta.annotation.PostConstruct
-    void validatePlatformMargin() {
-        if (platformMargin == null
-                || platformMargin.compareTo(BigDecimal.ZERO) < 0
-                || platformMargin.compareTo(BigDecimal.ONE) >= 0) {
-            throw new IllegalStateException("app.menu.platform-margin-rate must be at least 0 and "
-                    + "below 1 (it is a fraction, not a percentage). Got: " + platformMargin);
-        }
-        if (platformMargin.compareTo(BigDecimal.ZERO) > 0) {
-            log.info("Menu prices carry a platform margin of {}%",
-                    platformMargin.multiply(new BigDecimal("100")).stripTrailingZeros().toPlainString());
-        }
-    }
-
     // ============== Category Operations ==============
 
     /**
@@ -199,8 +160,7 @@ public class MenuService {
         MenuItem item = mapper.toEntity(request);
         item.setCategory(category);
 
-        // Calculate price with platform margin
-        item.setPriceWithMargin(calculatePriceWithMargin(request.getPrice()));
+        item.setPriceWithMargin(chargedPriceFor(request.getPrice()));
 
         // Set sort order if not provided
         if (item.getSortOrder() == null) {
@@ -294,7 +254,7 @@ public class MenuService {
         }
         if (request.getPrice() != null) {
             item.setPrice(request.getPrice());
-            item.setPriceWithMargin(calculatePriceWithMargin(request.getPrice()));
+            item.setPriceWithMargin(chargedPriceFor(request.getPrice()));
         }
         if (request.getOriginalPrice() != null) {
             item.setOriginalPrice(request.getOriginalPrice());
@@ -425,22 +385,28 @@ public class MenuService {
     }
 
     /**
-     * What the customer is charged for a price the restaurant typed.
+     * What the customer is charged for a price the restaurant set: that price.
      *
-     * <p>With the margin at zero — the default — this is the price itself, to
-     * the cent. That is the same rule the Partner API already states for a
-     * partner's published price and the Restos import now follows: the number
-     * the venue set is the number charged.
+     * <p>Nothing is added. There is no rate, no configuration key and no
+     * fallback that could put one back — a price changes when an admin or the
+     * restaurant changes it, and at no other time.
+     *
+     * <p>This was a hard-coded 10%, and the field it writes is what
+     * {@link com.fooddelivery.restaurant.entity.MenuItem#getEffectivePrice()}
+     * returns and what the customer pays. A venue entering 35 000 had 38 500
+     * charged while its own screen kept showing 35 000, so the one party able
+     * to notice could not see it. Two sibling markups were found the same
+     * week: the same 10% in the Restos importer, and an 8% "tax" that was a US
+     * sales-tax default. All three were inherited and none was chosen, which is
+     * why this is now an assignment rather than an arithmetic.
+     *
+     * <p>{@code priceWithMargin} keeps its name and its purpose: it is the
+     * charged price, and a PARTNER may still set it away from {@code price}
+     * when they publish a separate channel price for us. That is the venue's
+     * own number, not ours.
      */
-    private BigDecimal calculatePriceWithMargin(BigDecimal basePrice) {
-        if (basePrice == null) {
-            return null;
-        }
-        if (platformMargin.compareTo(BigDecimal.ZERO) == 0) {
-            return basePrice;
-        }
-        return basePrice.add(basePrice.multiply(platformMargin))
-                .setScale(2, java.math.RoundingMode.HALF_UP);
+    private BigDecimal chargedPriceFor(BigDecimal priceSetByTheRestaurant) {
+        return priceSetByTheRestaurant;
     }
 
     private String extractRelativePath(String fullPath) {
