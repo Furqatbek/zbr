@@ -228,10 +228,20 @@ app:
     # platform ever computed, reported or remitted. It is a service fee, and it
     # is now named and configured as one. See V47.
     #
-    # The default preserves what has always been charged, so an unset value
-    # changes nothing. Set it to 0 to stop charging it. Charged on the food
-    # only — the delivery fee and any tip are not marked up.
-    service-fee-rate: ${ORDER_SERVICE_FEE_RATE:0.08}
+    # The default is now 0: nothing is added to a customer's bill unless a
+    # deployment sets a rate deliberately. It ran at 0.08 for as long as the
+    # platform has existed, and that number was never chosen — it arrived with
+    # a template. A fee nobody decided on is not a fee, so it is off until
+    # someone decides otherwise.
+    #
+    # It is a FRACTION, not a percentage: 0.08 is 8%. The application refuses
+    # to start on anything at or above 1, which is what stops a typed "8" from
+    # charging 800%. Charged on the food only — the delivery fee and any tip
+    # are not marked up.
+    #
+    # Changing it never touches an order already placed: the amount is stamped
+    # onto the order at creation.
+    service-fee-rate: ${ORDER_SERVICE_FEE_RATE:0}
     auto-cancel-unpaid-minutes: 30
     max-preparation-minutes: 60
     delivery-radius-km: 10

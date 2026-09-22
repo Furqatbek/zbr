@@ -74,16 +74,23 @@ public class OrderService {
     /**
      * The platform's service fee, as a fraction of the food subtotal.
      *
-     * <p>Configurable, and defaulting to the 0.08 that has been charged since
-     * the platform's first order — so setting nothing changes nothing. It was
-     * called a tax until it was traced to a US sales-tax default in the initial
-     * import that nothing ever remitted (see V47); 8% of the food, on a
-     * platform in a country whose VAT is 12% and included in the shelf price.
+     * <p><strong>Off by default.</strong> It ran at 0.08 for as long as this
+     * platform has existed, shown to customers as "Tax" — a US sales-tax
+     * default that arrived with the initial import, that nothing ever computed,
+     * reported or remitted, and that matches no Uzbek tax (VAT here is 12% and
+     * included in the shelf price). See V47.
      *
-     * <p>Set it to 0 to stop charging it. Charged on the food only: the
-     * delivery fee and any tip are not marked up.
+     * <p>Making it configurable was the first step and keeping 0.08 was the
+     * conservative one: nobody's bill moved. Zero is the second step, and the
+     * honest one — a charge nobody chose should not be the thing that happens
+     * when a deployment sets nothing. A rate is now a decision someone makes,
+     * not one they inherit.
+     *
+     * <p>Charged on the food only: the delivery fee and any tip are not marked
+     * up. Stamped onto each order at creation, so changing the rate never
+     * alters an order already placed.
      */
-    @Value("${app.order.service-fee-rate:0.08}")
+    @Value("${app.order.service-fee-rate:0}")
     private BigDecimal serviceFeeRate;
 
     /**

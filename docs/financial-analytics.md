@@ -367,7 +367,10 @@ analytics.financial/
 
 ## `serviceFeeRevenue`
 
-The platform's service fee on the food subtotal, at `app.order.service-fee-rate`.
+The platform's service fee on the food subtotal, at `app.order.service-fee-rate`
+— which **defaults to 0 since 2026-09-22**, so this figure is zero for orders
+placed after that unless a deployment set a rate. Orders placed before it keep
+the fee they were charged, so a period spanning the change shows both.
 
 **It appeared in no report until now.** The fee has been charged on every order
 since the platform's first, under the label "tax", while `totalRevenue` was

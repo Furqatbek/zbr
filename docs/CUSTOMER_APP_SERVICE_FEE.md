@@ -94,10 +94,28 @@ Worth a look while you are in there: order history, receipts, email or push
 summaries, and anything exported or shared. The word is likely in more than the
 checkout screen.
 
+## Update: the fee is now off by default
+
+Since 2026-09-22 the rate defaults to **0**, so `serviceFee` (and its `tax`
+alias) come back as `0.00` on new orders unless a deployment sets a rate. The
+charge was never chosen — it came in with a template — so it is off until
+someone decides otherwise.
+
+**Two things this changes for the app:**
+
+1. **Hide a zero line.** A "Service fee 0 so'm" row is noise. Show the line only
+   when the amount is greater than zero.
+2. **Do not remove the line.** The rate is configuration and can come back
+   without an app release, so the field still has to be read and displayed when
+   it is non-zero.
+
+Past orders are untouched: the amount is stamped onto each order when it is
+placed, so an order charged 8% still shows 8%.
+
 ## Questions we can answer
 
-- **Did the amount change?** No. Same 8% of the food subtotal, same total. Only
-  the name.
+- **Did the amount change?** Yes, as of 2026-09-22 — the default rate is now 0,
+  so new orders carry no service fee. The rename itself changed nothing.
 - **Do past orders change?** No. Historical orders keep the amount they were
   charged; the backend column was renamed, not recalculated.
 - **Is it going away?** Not decided. That is a commercial question, which is why

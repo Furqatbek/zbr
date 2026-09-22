@@ -22,9 +22,10 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  * liability from it, reported it or remitted it. Uzbek VAT is 12% and included
  * in the shelf price, so it matched no tax here either.
  *
- * <p>Now a named, configured service fee. These tests pin the two things that
- * matter: the money is unchanged unless someone changes it, and a rate typed as
- * a percentage cannot reach a customer's bill.
+ * <p>Now a named, configured service fee, and <strong>off unless a deployment
+ * turns it on</strong>. These tests pin the two things that matter: what an
+ * unconfigured deployment charges, and that a rate typed as a percentage cannot
+ * reach a customer's bill.
  */
 @DisplayName("Platform service fee")
 class ServiceFeeTest {
@@ -41,18 +42,49 @@ class ServiceFeeTest {
     }
 
     @Test
-    @DisplayName("the default is what has always been charged")
-    void defaultPreservesExistingBehaviour() {
-        // Deploying this change must not move a single customer's bill. The
-        // rate becomes configurable; what it is stays the same until someone
-        // decides otherwise.
-        assertThat(defaultRateFromConfig()).isEqualByComparingTo("0.08");
+    @DisplayName("an unconfigured deployment charges nothing")
+    void defaultIsZero() {
+        // The fee ran at 8% because a template said so, not because anyone
+        // chose it. Charging is now something a deployment opts into.
+        assertThat(defaultRateFromAnnotation()).isEqualByComparingTo("0");
     }
 
-    private BigDecimal defaultRateFromConfig() {
-        // The default in the @Value expression, asserted here so a careless
-        // edit to it fails a test rather than a reconciliation.
-        return new BigDecimal("0.08");
+    @Test
+    @DisplayName("the yml default and the code default agree")
+    void theTwoDefaultsMatch() {
+        // There are two places a default can hide — the @Value expression and
+        // the env-var fallback in application.yml — and the yml wins, because
+        // it defines the property the annotation would otherwise default. An
+        // earlier version of this test restated "0.08" as a literal and would
+        // have passed with the two out of step, or with either one edited.
+        assertThat(ymlEnvFallback()).isEqualTo(defaultRateFromAnnotation().toPlainString());
+    }
+
+    /** The literal after ':' in {@code @Value("${app.order.service-fee-rate:0}")}. */
+    private BigDecimal defaultRateFromAnnotation() {
+        try {
+            String expression = OrderService.class.getDeclaredField("serviceFeeRate")
+                    .getAnnotation(org.springframework.beans.factory.annotation.Value.class).value();
+            String fallback = expression.substring(expression.indexOf(':') + 1,
+                    expression.lastIndexOf('}'));
+            return new BigDecimal(fallback);
+        } catch (NoSuchFieldException e) {
+            throw new AssertionError("serviceFeeRate is gone — this test needs rewriting", e);
+        }
+    }
+
+    /** The literal after ':' in {@code ${ORDER_SERVICE_FEE_RATE:0}} in application.yml. */
+    private String ymlEnvFallback() {
+        try (java.io.InputStream in = getClass().getResourceAsStream("/application.yml")) {
+            String yml = new String(in.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
+            java.util.regex.Matcher matcher = java.util.regex.Pattern
+                    .compile("service-fee-rate:\\s*\\$\\{ORDER_SERVICE_FEE_RATE:([^}]*)}")
+                    .matcher(yml);
+            assertThat(matcher.find()).as("service-fee-rate in application.yml").isTrue();
+            return matcher.group(1);
+        } catch (java.io.IOException e) {
+            throw new AssertionError("could not read application.yml", e);
+        }
     }
 
     @Test
