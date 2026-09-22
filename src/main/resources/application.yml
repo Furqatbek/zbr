@@ -220,6 +220,19 @@ app:
     webhook-secret: ${PAYMENT_WEBHOOK_SECRET:}
     api-key: ${PAYMENT_API_KEY:}
 
+  menu:
+    # A markup added to every price a restaurant types into the vendor app or
+    # the admin panel. As a fraction: 0.10 is 10%.
+    #
+    # Zero by default, and it was 10% hard-coded — a venue entering 35 000 had
+    # 38 500 charged to the customer while its own screen showed 35 000. That
+    # is not commission: commission is 15% and comes out of the venue's payout.
+    # The platform was doing both.
+    #
+    # The application refuses to start on anything at or above 1. See V51,
+    # which cleared the markup from rows already written.
+    platform-margin-rate: ${MENU_PLATFORM_MARGIN_RATE:0}
+
   order:
     # The platform's service fee, as a fraction of the food subtotal.
     #

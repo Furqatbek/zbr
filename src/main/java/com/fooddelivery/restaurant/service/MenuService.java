@@ -38,8 +38,44 @@ public class MenuService {
     private final RestaurantMapper mapper;
     private final ImageStorageService imageStorageService;
 
-    // Platform margin percentage (could be configurable)
-    private static final BigDecimal PLATFORM_MARGIN = new BigDecimal("0.10"); // 10%
+    /**
+     * A markup added to every price a restaurant types, as a fraction.
+     *
+     * <p><strong>Zero by default.</strong> It was a hard-coded 10% — a venue
+     * entering 35 000 in the vendor app had 38 500 charged to the customer,
+     * with the venue's own screen showing the number they typed. The difference
+     * was not commission (that is 15%, taken out of the venue's payout, and
+     * still is), so the platform was charging the customer a tenth on top AND
+     * taking commission underneath, under a constant labelled "could be
+     * configurable".
+     *
+     * <p>It is the third markup of this kind found in two days: the same 10% in
+     * the Restos importer, and an 8% "tax" that was a US sales-tax default. All
+     * three were inherited rather than chosen, and none was written down
+     * anywhere a restaurant could see it.
+     *
+     * <p>Now configurable and off. Charging is a decision someone makes.
+     */
+    @org.springframework.beans.factory.annotation.Value("${app.menu.platform-margin-rate:0}")
+    private BigDecimal platformMargin;
+
+    /**
+     * A rate outside [0, 1) would be discovered on a customer's bill. Checked
+     * at startup instead.
+     */
+    @jakarta.annotation.PostConstruct
+    void validatePlatformMargin() {
+        if (platformMargin == null
+                || platformMargin.compareTo(BigDecimal.ZERO) < 0
+                || platformMargin.compareTo(BigDecimal.ONE) >= 0) {
+            throw new IllegalStateException("app.menu.platform-margin-rate must be at least 0 and "
+                    + "below 1 (it is a fraction, not a percentage). Got: " + platformMargin);
+        }
+        if (platformMargin.compareTo(BigDecimal.ZERO) > 0) {
+            log.info("Menu prices carry a platform margin of {}%",
+                    platformMargin.multiply(new BigDecimal("100")).stripTrailingZeros().toPlainString());
+        }
+    }
 
     // ============== Category Operations ==============
 
@@ -388,8 +424,22 @@ public class MenuService {
         return mapper.toItemDto(item);
     }
 
+    /**
+     * What the customer is charged for a price the restaurant typed.
+     *
+     * <p>With the margin at zero — the default — this is the price itself, to
+     * the cent. That is the same rule the Partner API already states for a
+     * partner's published price and the Restos import now follows: the number
+     * the venue set is the number charged.
+     */
     private BigDecimal calculatePriceWithMargin(BigDecimal basePrice) {
-        return basePrice.add(basePrice.multiply(PLATFORM_MARGIN))
+        if (basePrice == null) {
+            return null;
+        }
+        if (platformMargin.compareTo(BigDecimal.ZERO) == 0) {
+            return basePrice;
+        }
+        return basePrice.add(basePrice.multiply(platformMargin))
                 .setScale(2, java.math.RoundingMode.HALF_UP);
     }
 
