@@ -430,7 +430,15 @@ public class RestaurantService {
      */
     @Transactional(readOnly = true)
     public PagedResponse<RestaurantDto> getAllRestaurants(Pageable pageable) {
-        Page<Restaurant> restaurants = restaurantRepository.findAll(pageable);
+        return getAllRestaurants(null, pageable);
+    }
+
+    /** Every restaurant, optionally within one cuisine. Status is not filtered here. */
+    @Transactional(readOnly = true)
+    public PagedResponse<RestaurantDto> getAllRestaurants(Long categoryId, Pageable pageable) {
+        Page<Restaurant> restaurants = categoryId == null
+                ? restaurantRepository.findAll(pageable)
+                : restaurantRepository.findAll(RestaurantSpecifications.inCategory(categoryId), pageable);
         return PagedResponse.from(restaurants, restaurantMapper.toDtoList(restaurants.getContent()));
     }
 

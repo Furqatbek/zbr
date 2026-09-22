@@ -85,8 +85,11 @@ public class RestaurantController {
     /**
      * The chips above the restaurant list.
      *
-     * <p>Declared before {@code /{id}} deliberately: Spring would otherwise try
-     * "categories" as a restaurant id and answer 400 on a path that exists.
+     * <p>Kept next to {@code /{id}} for readability, not for correctness:
+     * Spring matches on pattern specificity, not declaration order, so a
+     * literal segment beats a path variable wherever it is written. The live
+     * API answering {@code 400 Invalid id: 'categories'} means this endpoint
+     * is not deployed there yet, not that it is ordered wrongly.
      */
     @GetMapping("/categories")
     @Operation(summary = "List cuisine categories",
@@ -128,13 +131,36 @@ public class RestaurantController {
                 restaurant, lat, lng, RequestLanguage.from(acceptLanguage))));
     }
 
+    /**
+     * Every restaurant, whatever its status.
+     *
+     * <p>It takes {@code lat}/{@code lng}, {@code categoryId} and
+     * {@code Accept-Language} like the customer-facing lists do. It did not,
+     * and that mattered more than it looked: this is the endpoint the customer
+     * app called for its home screen, so it sent coordinates on every request
+     * and no customer ever saw a distance or an arrival estimate, while
+     * {@code /active} answered both. An endpoint that accepts half its query
+     * string and silently drops the rest will catch the next caller too.
+     *
+     * <p>Note what this list still is: {@code findAll}, including PENDING and
+     * INACTIVE restaurants. {@code /active} is the one that means "open for
+     * business".
+     */
     @GetMapping
-    @Operation(summary = "Get all restaurants", description = "Get all restaurants with pagination")
+    @Operation(summary = "Get all restaurants",
+            description = "Every restaurant regardless of status. For a customer-facing list use "
+                    + "/active, which returns only active and open ones.")
     public ResponseEntity<ApiResponse<PagedResponse<RestaurantDto>>> getAllRestaurants(
+            @Parameter(description = "Show only this cuisine") @RequestParam(required = false) Long categoryId,
+            @RequestParam(required = false) BigDecimal lat,
+            @RequestParam(required = false) BigDecimal lng,
+            @RequestHeader(value = "Accept-Language", required = false) String acceptLanguage,
             @PageableDefault(size = 20) Pageable pageable) {
 
-        PagedResponse<RestaurantDto> restaurants = restaurantService.getAllRestaurants(pageable);
-        return ResponseEntity.ok(ApiResponse.success(restaurants));
+        PagedResponse<RestaurantDto> restaurants =
+                restaurantService.getAllRestaurants(categoryId, pageable);
+        return ResponseEntity.ok(ApiResponse.success(etaEnricher.forRequest(
+                restaurants, lat, lng, RequestLanguage.from(acceptLanguage))));
     }
 
     @GetMapping("/active")

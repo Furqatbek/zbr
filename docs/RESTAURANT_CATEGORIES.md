@@ -1,7 +1,16 @@
 # Restaurant categories — backend answers
 
-Reply to `BACKEND_RESTAURANT_CATEGORIES.md`. All four items are built; two of
-them came with a decision, and one came with a bug on our side.
+Reply to `BACKEND_RESTAURANT_CATEGORIES.md`. All four items are built; two came
+with a decision, and one came with a bug on our side.
+
+**Why your probe found three of them missing: none of this is deployed yet.**
+It is committed and tested, not released — so `/restaurants/categories` is
+matched by `/{id}` and answers `400`, `category` is absent rather than null, and
+both filters are unknown parameters, which Spring ignores. That last part is
+worth keeping in mind generally: an unknown query parameter is never an error
+here, so a filter that has not shipped looks exactly like a filter that does
+nothing. Your decision to re-filter on the client is the right defence and worth
+keeping even after this deploys.
 
 ---
 
@@ -26,8 +35,7 @@ rename — analytics, a deep link, a hard-coded chip order. Names change; slugs
 do not, by design.
 
 **`category` can be null, and you have to handle that.** A restaurant only has
-one once an admin files it, and the four that existed when this shipped have
-none — nobody can say what cuisine a venue is without asking it, and a guess
+one once an admin files it, and the five that exist today have none — nobody can say what cuisine a venue is without asking it, and a guess
 puts a wrong chip on a real business. Render no chip when it is null.
 
 `imageUrl` is null everywhere for now; the categories exist, the artwork does
@@ -81,14 +89,16 @@ Names are stored per language (`nameUz`, `nameRu`, `nameEn`), and only Uzbek is
 required. A category with one name falls back to it rather than rendering blank,
 because an unlabelled chip is worse than one in the wrong language.
 
-## 4. `featured` — confirmed, and it was broken
+## 4. `featured` — half of what I told you was wrong
 
-**Nothing has ever been featured, and nothing could be.** The flag has existed
-since the first schema, is returned in the payload and has a query behind it,
-but no code path could set it: the create mapper ignored it and the update
-request had no field for it. So the carousel has been empty for every customer
-since launch — showing no error, because an empty carousel hides itself. Exactly
-the failure you suspected.
+**Correction.** I said nothing had ever been featured and the carousel had been
+empty since launch. You checked, and L'Amoura has `featured: true` in
+production — so the carousel does populate, and has.
+
+What is true is narrower: **no API could set the flag.** The create mapper
+ignores it and the update request has no field for it, so L'Amoura's flag was
+set outside the application, in the data. That is why there was nothing to turn
+it on with, and why a second featured restaurant was impossible to add.
 
 There is now a switch:
 
@@ -125,9 +135,28 @@ draft — rename, reorder, deactivate or add as you like. **Renaming before
 restaurants are assigned is free; after is the expensive conversation you
 warned about, which is why the slug exists.**
 
+## `GET /restaurants` — you were right, and it is fixed
+
+It accepted `lat`/`lng` and dropped them. That is why no customer has seen a
+distance or an arrival estimate on the home screen while the app was sending
+coordinates on every request: `/active` honoured them and `/restaurants` did
+not. It now takes `lat`, `lng`, `categoryId` and `Accept-Language`, so the two
+stop drifting.
+
+**One thing to know before you switch back to it, though: `/restaurants`
+returns every restaurant whatever its status** — including PENDING ones that
+have been created but not yet approved. `/active` returns only active and open
+venues, which is what a customer list wants. Your move to `/active` in 1.0.2 is
+the right one regardless of this fix; a home screen should not be able to show
+an unapproved restaurant.
+
+We would rather not silently narrow `/restaurants` to active-only, since we do
+not know what else calls it. Say if you want it narrowed and we will.
+
 ## What is still on us
 
-- **Assigning the four live restaurants.** Needs someone who knows what they
+- **Deploying it.** Nothing above is live until the next release.
+- **Assigning the five live restaurants.** Needs someone who knows what they
   sell, not a guess.
 - **Category artwork.** Nine `imageUrl`s waiting for nine PNGs.
 - **Deciding who is featured.** The switch exists; the editorial call does not.
