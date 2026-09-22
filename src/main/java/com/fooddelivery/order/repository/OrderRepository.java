@@ -128,28 +128,59 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     /**
      * Count deliveries by courier since a date.
      */
+    /*
+     * DELIVERED **or** COMPLETED, in every courier query below.
+     *
+     * Only DELIVERED used to count, and a delivered order becomes COMPLETED an
+     * hour later by the lifecycle scheduler — so a courier's earnings and
+     * delivery count silently decayed to zero over the course of a shift. The
+     * money was never wrong; the screen the courier checks was. deliveredAt
+     * survives the transition, so it stays the right column to bound by.
+     *
+     * REFUNDED is deliberately not here: whether a courier keeps the fee on a
+     * refunded order is a policy question nobody has answered, and guessing it
+     * in a query is how it would get answered by accident.
+     */
     @Query("SELECT COUNT(o) FROM Order o WHERE o.courier.id = :courierId " +
-            "AND o.status = com.fooddelivery.order.entity.OrderStatus.DELIVERED " +
+            "AND o.status IN (com.fooddelivery.order.entity.OrderStatus.DELIVERED, "
+            + "com.fooddelivery.order.entity.OrderStatus.COMPLETED) " +
             "AND o.deliveredAt >= :since")
     long countDeliveriesByCourierSince(
             @Param("courierId") Long courierId,
             @Param("since") LocalDateTime since);
+
+    /** Every delivery this courier has ever finished. */
+    @Query("SELECT COUNT(o) FROM Order o WHERE o.courier.id = :courierId " +
+            "AND o.status IN (com.fooddelivery.order.entity.OrderStatus.DELIVERED, "
+            + "com.fooddelivery.order.entity.OrderStatus.COMPLETED) " +
+            "AND o.deliveredAt IS NOT NULL")
+    long countDeliveriesByCourier(@Param("courierId") Long courierId);
 
     /**
      * Sum delivery fees and tips for a courier since a date.
      */
     @Query("SELECT COALESCE(SUM(o.deliveryFee), 0) + COALESCE(SUM(o.tipAmount), 0) FROM Order o " +
             "WHERE o.courier.id = :courierId " +
-            "AND o.status = com.fooddelivery.order.entity.OrderStatus.DELIVERED " +
+            "AND o.status IN (com.fooddelivery.order.entity.OrderStatus.DELIVERED, "
+            + "com.fooddelivery.order.entity.OrderStatus.COMPLETED) " +
             "AND o.deliveredAt >= :since")
     java.math.BigDecimal sumCourierEarningsSince(
             @Param("courierId") Long courierId,
             @Param("since") LocalDateTime since);
 
+    /** Everything this courier has ever earned, on the same definition. */
+    @Query("SELECT COALESCE(SUM(o.deliveryFee), 0) + COALESCE(SUM(o.tipAmount), 0) FROM Order o " +
+            "WHERE o.courier.id = :courierId " +
+            "AND o.status IN (com.fooddelivery.order.entity.OrderStatus.DELIVERED, "
+            + "com.fooddelivery.order.entity.OrderStatus.COMPLETED) " +
+            "AND o.deliveredAt IS NOT NULL")
+    java.math.BigDecimal sumCourierEarningsTotal(@Param("courierId") Long courierId);
+
     @Query("SELECT COALESCE(SUM(o.deliveryFee), 0) + COALESCE(SUM(o.tipAmount), 0) FROM Order o " +
             "JOIN com.fooddelivery.order.entity.Payment p ON p.order.id = o.id " +
             "WHERE o.courier.id = :courierId " +
-            "AND o.status = com.fooddelivery.order.entity.OrderStatus.DELIVERED " +
+            "AND o.status IN (com.fooddelivery.order.entity.OrderStatus.DELIVERED, "
+            + "com.fooddelivery.order.entity.OrderStatus.COMPLETED) " +
             "AND o.deliveredAt >= :since " +
             "AND LOWER(p.paymentMethod) = :paymentMethod")
     java.math.BigDecimal sumCourierEarningsByPaymentMethodSince(

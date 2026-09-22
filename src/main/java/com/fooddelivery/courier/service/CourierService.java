@@ -281,8 +281,15 @@ public class CourierService {
         commissionService.recordCommission(order);
 
         courier.completeOrder();
-        // Add delivery earnings (simplified)
-        courier.addEarnings(new BigDecimal("5.00"));
+        // What this delivery actually earned, on the same definition every
+        // earnings query uses: the delivery fee plus any tip.
+        //
+        // It used to add a flat 5.00 — dollar-shaped scaffolding on a platform
+        // that trades in so'm, where five is less than a bus fare. The courier's
+        // own screen showed it as lifetime earnings and as average-per-delivery,
+        // next to a weekly figure computed properly from orders, so one screen
+        // carried two incompatible answers to "what am I paid".
+        courier.addEarnings(courierEarningsFor(order));
         courier = courierRepository.save(courier);
 
         log.info("Courier {} completed delivery for order {}", courierId, orderId);
@@ -547,6 +554,23 @@ public class CourierService {
     }
 
     /**
+     * What one delivery earns its courier: the delivery fee plus any tip.
+     *
+     * <p>The same definition the earnings queries sum, deliberately — a counter
+     * that disagrees with the query beside it is worse than no counter.
+     *
+     * <p>Whether this is the right split at all is a commercial question
+     * nobody has answered: today the courier is credited the whole delivery
+     * fee. If the platform is meant to keep a share, this is the one place to
+     * express it, and the queries in OrderRepository are the other.
+     */
+    private BigDecimal courierEarningsFor(Order order) {
+        BigDecimal fee = order.getDeliveryFee() != null ? order.getDeliveryFee() : BigDecimal.ZERO;
+        BigDecimal tip = order.getTipAmount() != null ? order.getTipAmount() : BigDecimal.ZERO;
+        return fee.add(tip);
+    }
+
+    /**
      * Get earnings for a courier.
      */
     @Transactional(readOnly = true)
@@ -554,10 +578,16 @@ public class CourierService {
         Courier courier = courierRepository.findByIdWithUser(courierId)
                 .orElseThrow(() -> new ResourceNotFoundException("Courier", "id", courierId));
 
-        java.time.LocalDateTime now = java.time.LocalDateTime.now();
-        java.time.LocalDateTime startOfToday = now.toLocalDate().atStartOfDay();
-        java.time.LocalDateTime startOfWeek = now.toLocalDate().minusDays(now.getDayOfWeek().getValue() - 1).atStartOfDay();
-        java.time.LocalDateTime startOfMonth = now.toLocalDate().withDayOfMonth(1).atStartOfDay();
+        // Day boundaries in Tashkent, not in UTC. Computed from the JVM clock
+        // these windows ran 05:00 to 05:00 local, so a delivery made after
+        // midnight landed in yesterday's earnings — on the screen a courier
+        // checks at the end of a night shift.
+        java.time.LocalDate today = com.fooddelivery.common.time.BusinessTime.today();
+        java.time.LocalDateTime startOfToday = com.fooddelivery.common.time.BusinessTime.startOfDay(today);
+        java.time.LocalDateTime startOfWeek = com.fooddelivery.common.time.BusinessTime.startOfDay(
+                today.minusDays(today.getDayOfWeek().getValue() - 1L));
+        java.time.LocalDateTime startOfMonth = com.fooddelivery.common.time.BusinessTime.startOfDay(
+                today.withDayOfMonth(1));
 
         BigDecimal todayEarnings = orderRepository.sumCourierEarningsSince(courierId, startOfToday);
         BigDecimal weekEarnings = orderRepository.sumCourierEarningsSince(courierId, startOfWeek);
@@ -567,8 +597,15 @@ public class CourierService {
         long weekDeliveries = orderRepository.countDeliveriesByCourierSince(courierId, startOfWeek);
         long monthDeliveries = orderRepository.countDeliveriesByCourierSince(courierId, startOfMonth);
 
-        BigDecimal avgPerDelivery = courier.getTotalDeliveries() > 0
-                ? courier.getTotalEarnings().divide(BigDecimal.valueOf(courier.getTotalDeliveries()), 2, java.math.RoundingMode.HALF_UP)
+        // Lifetime figures from the orders too, rather than from the counter on
+        // the courier row. The counter is maintained and backfilled (see V52),
+        // but it is a running total that no delivery can correct afterwards —
+        // a tip added after the handover reaches the orders and never reaches
+        // it. What the courier is shown should come from one source.
+        BigDecimal totalEarnings = orderRepository.sumCourierEarningsTotal(courierId);
+        long lifetimeDeliveries = orderRepository.countDeliveriesByCourier(courierId);
+        BigDecimal avgPerDelivery = lifetimeDeliveries > 0
+                ? totalEarnings.divide(BigDecimal.valueOf(lifetimeDeliveries), 2, java.math.RoundingMode.HALF_UP)
                 : BigDecimal.ZERO;
 
         // Split earnings by payment method
@@ -581,11 +618,11 @@ public class CourierService {
                 .todayEarnings(todayEarnings != null ? todayEarnings : BigDecimal.ZERO)
                 .weekEarnings(weekEarnings != null ? weekEarnings : BigDecimal.ZERO)
                 .monthEarnings(monthEarnings != null ? monthEarnings : BigDecimal.ZERO)
-                .totalEarnings(courier.getTotalEarnings())
+                .totalEarnings(totalEarnings != null ? totalEarnings : BigDecimal.ZERO)
                 .todayDeliveries((int) todayDeliveries)
                 .weekDeliveries((int) weekDeliveries)
                 .monthDeliveries((int) monthDeliveries)
-                .totalDeliveries(courier.getTotalDeliveries())
+                .totalDeliveries((int) lifetimeDeliveries)
                 .averagePerDelivery(avgPerDelivery)
                 .cashEarnings(cashEarnings != null ? cashEarnings : BigDecimal.ZERO)
                 .cardEarnings(cardEarnings != null ? cardEarnings : BigDecimal.ZERO)
