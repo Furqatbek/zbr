@@ -17,11 +17,12 @@ import java.math.BigDecimal;
  * name is required when creating and optional when editing.
  */
 @Data
+@lombok.EqualsAndHashCode(callSuper = false)
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 @Schema(description = "Create or update an item size")
-public class SaveItemVariantRequest {
+public class SaveItemVariantRequest extends com.fooddelivery.common.dto.StrictRequest {
 
     @Schema(description = "What the customer picks, e.g. Large", example = "Large")
     @NotBlank(message = "Variant name is required", groups = OnCreate.class)

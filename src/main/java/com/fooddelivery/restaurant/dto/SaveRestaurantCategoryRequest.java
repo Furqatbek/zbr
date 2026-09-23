@@ -17,11 +17,12 @@ import lombok.NoArgsConstructor;
  * in the caller's language would render a blank chip.
  */
 @Data
+@lombok.EqualsAndHashCode(callSuper = false)
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 @Schema(description = "Create or update a restaurant cuisine category")
-public class SaveRestaurantCategoryRequest {
+public class SaveRestaurantCategoryRequest extends com.fooddelivery.common.dto.StrictRequest {
 
     @Schema(description = "Stable identifier. Derived from the English name when omitted, "
             + "and never changed by an update", example = "burgers")

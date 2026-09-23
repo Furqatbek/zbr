@@ -14,11 +14,12 @@ import java.util.List;
  * Request DTO for creating a menu item.
  */
 @Data
+@lombok.EqualsAndHashCode(callSuper = false)
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 @Schema(description = "Create menu item request")
-public class CreateMenuItemRequest {
+public class CreateMenuItemRequest extends com.fooddelivery.common.dto.StrictRequest {
 
     @Schema(description = "Category ID", requiredMode = Schema.RequiredMode.REQUIRED)
     @NotNull(message = "Category ID is required")

@@ -192,6 +192,33 @@ public class GlobalExceptionHandler {
                 "Endpoint " + ex.getRequestURL() + " not found", request);
     }
 
+    /**
+     * A body Jackson could not read — malformed JSON, a string where a number
+     * belongs, or a field a {@link com.fooddelivery.common.dto.StrictRequest}
+     * refuses.
+     *
+     * <p>Without this it fell to the catch-all below and answered 500, telling
+     * a client its own bad request was our fault and burying the reason in a
+     * server log. It is a 400, and when the cause is one of ours the message
+     * naming the field is passed through.
+     */
+    @ExceptionHandler(org.springframework.http.converter.HttpMessageNotReadableException.class)
+    public ResponseEntity<ApiResponse<Void>> handleUnreadableBody(
+            org.springframework.http.converter.HttpMessageNotReadableException ex, WebRequest request) {
+
+        Throwable cause = ex.getCause();
+        while (cause != null && !(cause instanceof BusinessException)) {
+            cause = cause.getCause();
+        }
+        String message = cause != null
+                ? cause.getMessage()
+                : "The request body could not be read. Check that it is valid JSON and that "
+                        + "every field has the expected type.";
+
+        log.warn("Unreadable request body: {}", ex.getMessage());
+        return buildErrorResponse(HttpStatus.BAD_REQUEST, message, request);
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Void>> handleAllUncaughtException(
             Exception ex, WebRequest request) {

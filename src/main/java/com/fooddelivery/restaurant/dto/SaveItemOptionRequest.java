@@ -23,11 +23,12 @@ import java.math.BigDecimal;
  * consistent across it; the order validator reads the strictest value it finds.
  */
 @Data
+@lombok.EqualsAndHashCode(callSuper = false)
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 @Schema(description = "Create or update an item add-on")
-public class SaveItemOptionRequest {
+public class SaveItemOptionRequest extends com.fooddelivery.common.dto.StrictRequest {
 
     @Schema(description = "The question this option answers, e.g. Sauce", example = "Extras")
     @Size(max = 100)
