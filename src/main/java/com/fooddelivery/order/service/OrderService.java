@@ -64,6 +64,7 @@ public class OrderService {
     private final CourierRepository courierRepository;
     private final DeliveryFeeCalculationService deliveryFeeCalculationService;
     private final DeliveryEtaService deliveryEtaService;
+    private final MenuSelectionValidator menuSelectionValidator;
     private final CommissionService commissionService;
     private final PaymentService paymentService;
     private final OrderRealtimeBroadcaster realtimeBroadcaster;
@@ -567,6 +568,13 @@ public class OrderService {
             if (!menuItem.getInStock()) {
                 throw new BusinessException("Item '" + menuItem.getName() + "' is out of stock");
             }
+
+            // Sizes and add-ons, before anything is priced. Until now the only
+            // check was that an id belonged to this dish, so an order could
+            // arrive with a required choice missing, more add-ons than the group
+            // allows, or a size that sold out at lunchtime — accepted, charged,
+            // and found by whoever had to cook it.
+            menuSelectionValidator.validate(menuItem, itemReq);
 
             OrderItem orderItem = OrderItem.builder()
                     .order(order)

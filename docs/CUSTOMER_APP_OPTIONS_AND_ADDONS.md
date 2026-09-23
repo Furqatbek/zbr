@@ -1,10 +1,8 @@
 # For the customer app team: sizes and add-ons
 
-**Short answer: reading them and ordering with them works today. Creating them
-from the vendor app does not** — see the last section, which is ours to fix.
-
-So you can build the picker now; it will stay empty until restaurants have
-something to put in it.
+**All of it works now.** Reading them, ordering with them, and — as of this
+change — creating and editing them from the vendor app. The picker will stay
+empty until restaurants add something, but nothing is blocking them any more.
 
 ---
 
@@ -86,40 +84,61 @@ order the server creates. The order response echoes back `variantName` and the
 chosen modifiers, so the confirmation screen can show what was picked without
 re-deriving it.
 
-## Two rules the backend does NOT enforce — so you must
+## The rules the server now enforces
 
-The server checks that each `variantId`/`optionId` belongs to that menu item and
-nothing more. It does **not** check:
+Validate in the UI for a decent experience, but these are checked on the server
+too, and an order that breaks one is refused with a message written to be shown
+to the customer:
 
-1. **`required` groups.** An order with no sauce chosen is accepted. If your UI
-   lets it through, the kitchen gets an ambiguous ticket.
-2. **`maxSelections`.** Five extras from a group capped at three is accepted and
-   charged.
+| Rule | Message |
+|---|---|
+| A dish with sizes needs one chosen | *Choose a size for 'Lavash': Regular, Large* |
+| A `required` group needs an answer | *Choose 'Sauce' for 'Lavash'* |
+| `maxSelections` per group | *Choose at most 2 from 'Extras' for 'Lavash'* |
+| Sold-out size or add-on | *'Large' is sold out for 'Lavash'* |
+| Withdrawn size or add-on | *That size is no longer available for 'Lavash'* |
+| The same add-on twice | *The same add-on was chosen twice for 'Lavash'* |
 
-It also does not check `inStock` on a variant or option — a sold-out size can
-be ordered if the client sends its id.
+Two of those matter even with a correct UI: a menu the app fetched an hour ago
+can name a size that has since sold out, and an id can always be replayed.
+Surface the message rather than a generic failure — it tells the customer what
+to change.
 
-We would rather the server enforced all three, and it should; until it does,
-the app is the only thing standing between a customer and a ticket the kitchen
-cannot cook. Validate before you submit.
+Where `required` and `maxSelections` disagree across options in one group (they
+are stored per option but describe the group), the server takes the strictest
+value it finds.
 
-## What is missing on our side
-
-**There is no endpoint to add a size or an add-on to an item that already
-exists.** They can only be supplied nested inside the item at creation:
+## Managing them (vendor app / admin panel)
 
 ```http
-POST /api/v1/restaurants/{restaurantId}/menu/items
-{ "name": "Lavash", "price": 30000, "categoryId": 6,
-  "variants": [ { "name": "Large", "priceDelta": 8000 } ],
-  "options":  [ { "groupName": "Extras", "name": "Cheese", "priceDelta": 5000 } ] }
+POST   /api/v1/restaurants/{rid}/menu/items/{itemId}/variants
+PUT    /api/v1/restaurants/{rid}/menu/items/{itemId}/variants/{variantId}
+DELETE /api/v1/restaurants/{rid}/menu/items/{itemId}/variants/{variantId}
+
+POST   /api/v1/restaurants/{rid}/menu/items/{itemId}/options
+PUT    /api/v1/restaurants/{rid}/menu/items/{itemId}/options/{optionId}
+DELETE /api/v1/restaurants/{rid}/menu/items/{itemId}/options/{optionId}
 ```
 
-`PUT /menu/items/{itemId}` accepts `variants` and `options` in the body and
-**silently ignores them** — the same "accepted and ignored" shape you flagged on
-`categoryId`, and worth knowing before someone tests against it and concludes
-the feature works.
+Restaurant owner, staff, platform or admin.
 
-So today a restaurant can only get add-ons by deleting an item and recreating
-it. That is the gap to close before any of this reaches a customer, and it is on
-us, not on you.
+```json
+POST .../variants   { "name": "Large", "priceDelta": 8000 }
+POST .../options    { "groupName": "Extras", "name": "Cheese", "priceDelta": 5000,
+                      "maxSelections": 3, "required": false }
+```
+
+`PUT` is partial — send `{"inStock": false}` to mark one sold out for the
+evening and nothing else changes. Defaults on create: in stock, active,
+`priceDelta` 0, optional, `maxSelections` 1, and a sort order after whatever is
+already there.
+
+`DELETE` really deletes. Past orders keep the name and the price they were
+charged, so nothing is lost; to hide a size you may want back, send
+`{"active": false}` instead.
+
+**`PUT /menu/items/{itemId}` now refuses a body containing `variants` or
+`options`** and names these endpoints instead. It used to accept them and drop
+them silently — the same "accepted and ignored" shape you flagged on
+`categoryId` — which from the outside is indistinguishable from a request that
+worked.

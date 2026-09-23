@@ -2,6 +2,7 @@ package com.fooddelivery.restaurant.controller;
 
 import com.fooddelivery.auth.security.UserPrincipal;
 import com.fooddelivery.common.dto.ApiResponse;
+import com.fooddelivery.common.exception.BusinessException;
 import com.fooddelivery.common.dto.PagedResponse;
 import com.fooddelivery.restaurant.dto.*;
 import com.fooddelivery.restaurant.service.MenuService;
@@ -20,6 +21,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -179,8 +181,125 @@ public class MenuController {
             @Valid @RequestBody CreateMenuItemRequest request) {
 
         validateAccess(restaurantId, currentUser);
+
+        // Refused rather than ignored. This endpoint took "variants" and
+        // "options" in the body and dropped them on the floor, which reads from
+        // the outside exactly like a request that worked — the same trap as a
+        // query parameter that has not shipped. Sizes and add-ons have their own
+        // endpoints below, and saying so is more use than a silent success.
+        if (request.getVariants() != null || request.getOptions() != null) {
+            throw new BusinessException(
+                    "Sizes and add-ons are not changed here. Use "
+                            + "POST/PUT/DELETE /api/v1/restaurants/" + restaurantId
+                            + "/menu/items/" + itemId + "/variants and /options.");
+        }
+
         MenuItemDto item = menuService.updateItem(restaurantId, itemId, request);
         return ResponseEntity.ok(ApiResponse.success("Menu item updated successfully", item));
+    }
+
+    // ============== Sizes ==============
+
+    @PostMapping("/items/{itemId}/variants")
+    @PreAuthorize("hasAnyRole('RESTAURANT_OWNER', 'RESTAURANT_STAFF', 'PLATFORM', 'ADMIN')")
+    @SecurityRequirement(name = "bearerAuth")
+    @Operation(summary = "Add a size to an item",
+            description = "priceDelta is a DIFFERENCE from the item's price, not the price of the size.")
+    public ResponseEntity<ApiResponse<ItemVariantDto>> addVariant(
+            @AuthenticationPrincipal UserPrincipal currentUser,
+            @PathVariable Long restaurantId,
+            @PathVariable Long itemId,
+            @Validated(SaveItemVariantRequest.OnCreate.class) @RequestBody SaveItemVariantRequest request) {
+
+        validateAccess(restaurantId, currentUser);
+        ItemVariantDto variant = menuService.addVariant(restaurantId, itemId, request);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.success("Size added", variant));
+    }
+
+    @PutMapping("/items/{itemId}/variants/{variantId}")
+    @PreAuthorize("hasAnyRole('RESTAURANT_OWNER', 'RESTAURANT_STAFF', 'PLATFORM', 'ADMIN')")
+    @SecurityRequirement(name = "bearerAuth")
+    @Operation(summary = "Update a size", description = "Partial: a field left out is left alone.")
+    public ResponseEntity<ApiResponse<ItemVariantDto>> updateVariant(
+            @AuthenticationPrincipal UserPrincipal currentUser,
+            @PathVariable Long restaurantId,
+            @PathVariable Long itemId,
+            @PathVariable Long variantId,
+            @Valid @RequestBody SaveItemVariantRequest request) {
+
+        validateAccess(restaurantId, currentUser);
+        ItemVariantDto variant = menuService.updateVariant(restaurantId, itemId, variantId, request);
+        return ResponseEntity.ok(ApiResponse.success("Size updated", variant));
+    }
+
+    @DeleteMapping("/items/{itemId}/variants/{variantId}")
+    @PreAuthorize("hasAnyRole('RESTAURANT_OWNER', 'RESTAURANT_STAFF', 'PLATFORM', 'ADMIN')")
+    @SecurityRequirement(name = "bearerAuth")
+    @Operation(summary = "Delete a size",
+            description = "Really deletes. Past orders keep the name and price they were charged. "
+                    + "To hide a size you may want back, set active=false instead.")
+    public ResponseEntity<ApiResponse<Void>> deleteVariant(
+            @AuthenticationPrincipal UserPrincipal currentUser,
+            @PathVariable Long restaurantId,
+            @PathVariable Long itemId,
+            @PathVariable Long variantId) {
+
+        validateAccess(restaurantId, currentUser);
+        menuService.deleteVariant(restaurantId, itemId, variantId);
+        return ResponseEntity.ok(ApiResponse.success("Size deleted"));
+    }
+
+    // ============== Add-ons ==============
+
+    @PostMapping("/items/{itemId}/options")
+    @PreAuthorize("hasAnyRole('RESTAURANT_OWNER', 'RESTAURANT_STAFF', 'PLATFORM', 'ADMIN')")
+    @SecurityRequirement(name = "bearerAuth")
+    @Operation(summary = "Add an add-on to an item",
+            description = "groupName turns a flat list into one question asked of the customer; "
+                    + "required and maxSelections describe how that question may be answered.")
+    public ResponseEntity<ApiResponse<ItemOptionDto>> addOption(
+            @AuthenticationPrincipal UserPrincipal currentUser,
+            @PathVariable Long restaurantId,
+            @PathVariable Long itemId,
+            @Validated(SaveItemVariantRequest.OnCreate.class) @RequestBody SaveItemOptionRequest request) {
+
+        validateAccess(restaurantId, currentUser);
+        ItemOptionDto option = menuService.addOption(restaurantId, itemId, request);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.success("Add-on added", option));
+    }
+
+    @PutMapping("/items/{itemId}/options/{optionId}")
+    @PreAuthorize("hasAnyRole('RESTAURANT_OWNER', 'RESTAURANT_STAFF', 'PLATFORM', 'ADMIN')")
+    @SecurityRequirement(name = "bearerAuth")
+    @Operation(summary = "Update an add-on", description = "Partial: a field left out is left alone.")
+    public ResponseEntity<ApiResponse<ItemOptionDto>> updateOption(
+            @AuthenticationPrincipal UserPrincipal currentUser,
+            @PathVariable Long restaurantId,
+            @PathVariable Long itemId,
+            @PathVariable Long optionId,
+            @Valid @RequestBody SaveItemOptionRequest request) {
+
+        validateAccess(restaurantId, currentUser);
+        ItemOptionDto option = menuService.updateOption(restaurantId, itemId, optionId, request);
+        return ResponseEntity.ok(ApiResponse.success("Add-on updated", option));
+    }
+
+    @DeleteMapping("/items/{itemId}/options/{optionId}")
+    @PreAuthorize("hasAnyRole('RESTAURANT_OWNER', 'RESTAURANT_STAFF', 'PLATFORM', 'ADMIN')")
+    @SecurityRequirement(name = "bearerAuth")
+    @Operation(summary = "Delete an add-on",
+            description = "Really deletes. Past orders keep what they were charged.")
+    public ResponseEntity<ApiResponse<Void>> deleteOption(
+            @AuthenticationPrincipal UserPrincipal currentUser,
+            @PathVariable Long restaurantId,
+            @PathVariable Long itemId,
+            @PathVariable Long optionId) {
+
+        validateAccess(restaurantId, currentUser);
+        menuService.deleteOption(restaurantId, itemId, optionId);
+        return ResponseEntity.ok(ApiResponse.success("Add-on deleted"));
     }
 
     @PatchMapping("/items/{itemId}/stock")

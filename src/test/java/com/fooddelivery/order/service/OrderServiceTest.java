@@ -71,6 +71,7 @@ class OrderServiceTest {
     @Mock private CommissionService commissionService;
     @Mock private PaymentService paymentService;
     @Mock private com.fooddelivery.delivery.eta.DeliveryEtaService deliveryEtaService;
+    @Mock private MenuSelectionValidator menuSelectionValidator;
     @Mock private com.fooddelivery.integration.partner.service.PartnerOrderGuard partnerOrderGuard;
 
     @InjectMocks

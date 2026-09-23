@@ -7,6 +7,8 @@ import com.fooddelivery.common.exception.ResourceNotFoundException;
 import com.fooddelivery.common.service.ImageStorageService;
 import com.fooddelivery.common.service.ImageStorageService.ImageInfo;
 import com.fooddelivery.restaurant.dto.*;
+import com.fooddelivery.restaurant.entity.ItemOption;
+import com.fooddelivery.restaurant.entity.ItemVariant;
 import com.fooddelivery.restaurant.entity.*;
 import com.fooddelivery.restaurant.mapper.RestaurantMapper;
 import com.fooddelivery.restaurant.repository.MenuCategoryRepository;
@@ -292,6 +294,174 @@ public class MenuService {
 
         item = itemRepository.save(item);
         return mapper.toItemDto(item);
+    }
+
+    // ============== Sizes and add-ons ==============
+    //
+    // These exist because there was no way to add either to a dish that already
+    // existed. They could only be supplied nested inside the item at creation,
+    // and PUT /items/{id} accepted "variants" and "options" in the body and
+    // silently dropped them — so a restaurant wanting one add-on had to delete
+    // the dish and build it again, losing its id, its image and its history.
+    //
+    // Managed through the MenuItem aggregate rather than their own
+    // repositories: the collections cascade and orphan-remove, so adding to the
+    // set and saving the item is the whole operation.
+
+    /**
+     * Add a size to a dish.
+     *
+     * <p>DELETE really deletes. An order line snapshots the variant's name and
+     * its price at the time, and order_items.variant_id carries no foreign key,
+     * so removing a size cannot damage history. {@code active: false} is the
+     * switch for hiding one you may want back; {@code inStock: false} is for
+     * today's lunch service.
+     */
+    @Transactional
+    @CacheEvict(value = {"menus", "menuItems"}, allEntries = true)
+    @Auditable(action = "ADD_ITEM_VARIANT", entityType = "MenuItem")
+    public ItemVariantDto addVariant(Long restaurantId, Long itemId, SaveItemVariantRequest request) {
+        MenuItem item = getItemForRestaurant(restaurantId, itemId);
+
+        ItemVariant variant = ItemVariant.builder()
+                .menuItem(item)
+                .name(request.getName())
+                .priceDelta(request.getPriceDelta() != null ? request.getPriceDelta() : BigDecimal.ZERO)
+                .inStock(request.getInStock() == null || request.getInStock())
+                .sortOrder(request.getSortOrder() != null ? request.getSortOrder() : nextVariantSortOrder(item))
+                .active(request.getActive() == null || request.getActive())
+                .build();
+
+        item.getVariants().add(variant);
+        itemRepository.save(item);
+
+        log.info("Variant '{}' added to item {}", variant.getName(), itemId);
+        return mapper.toVariantDto(variant);
+    }
+
+    /** Partial: a field left out is left alone. */
+    @Transactional
+    @CacheEvict(value = {"menus", "menuItems"}, allEntries = true)
+    @Auditable(action = "UPDATE_ITEM_VARIANT", entityType = "MenuItem")
+    public ItemVariantDto updateVariant(Long restaurantId, Long itemId, Long variantId,
+                                        SaveItemVariantRequest request) {
+        MenuItem item = getItemForRestaurant(restaurantId, itemId);
+        ItemVariant variant = findVariant(item, variantId);
+
+        if (request.getName() != null) variant.setName(request.getName());
+        if (request.getPriceDelta() != null) variant.setPriceDelta(request.getPriceDelta());
+        if (request.getInStock() != null) variant.setInStock(request.getInStock());
+        if (request.getSortOrder() != null) variant.setSortOrder(request.getSortOrder());
+        if (request.getActive() != null) variant.setActive(request.getActive());
+
+        itemRepository.save(item);
+        return mapper.toVariantDto(variant);
+    }
+
+    @Transactional
+    @CacheEvict(value = {"menus", "menuItems"}, allEntries = true)
+    @Auditable(action = "DELETE_ITEM_VARIANT", entityType = "MenuItem")
+    public void deleteVariant(Long restaurantId, Long itemId, Long variantId) {
+        MenuItem item = getItemForRestaurant(restaurantId, itemId);
+        ItemVariant variant = findVariant(item, variantId);
+
+        item.getVariants().remove(variant);
+        itemRepository.save(item);
+        log.info("Variant {} removed from item {}", variantId, itemId);
+    }
+
+    @Transactional
+    @CacheEvict(value = {"menus", "menuItems"}, allEntries = true)
+    @Auditable(action = "ADD_ITEM_OPTION", entityType = "MenuItem")
+    public ItemOptionDto addOption(Long restaurantId, Long itemId, SaveItemOptionRequest request) {
+        MenuItem item = getItemForRestaurant(restaurantId, itemId);
+
+        ItemOption option = ItemOption.builder()
+                .menuItem(item)
+                .groupName(request.getGroupName())
+                .name(request.getName())
+                .priceDelta(request.getPriceDelta() != null ? request.getPriceDelta() : BigDecimal.ZERO)
+                .isDefault(Boolean.TRUE.equals(request.getIsDefault()))
+                .maxSelections(request.getMaxSelections() != null ? request.getMaxSelections() : 1)
+                .required(Boolean.TRUE.equals(request.getRequired()))
+                .inStock(request.getInStock() == null || request.getInStock())
+                .sortOrder(request.getSortOrder() != null ? request.getSortOrder() : nextOptionSortOrder(item))
+                .active(request.getActive() == null || request.getActive())
+                .build();
+
+        item.getOptions().add(option);
+        itemRepository.save(item);
+
+        log.info("Option '{}' ({}) added to item {}", option.getName(), option.getGroupName(), itemId);
+        return mapper.toOptionDto(option);
+    }
+
+    /** Partial: a field left out is left alone. */
+    @Transactional
+    @CacheEvict(value = {"menus", "menuItems"}, allEntries = true)
+    @Auditable(action = "UPDATE_ITEM_OPTION", entityType = "MenuItem")
+    public ItemOptionDto updateOption(Long restaurantId, Long itemId, Long optionId,
+                                      SaveItemOptionRequest request) {
+        MenuItem item = getItemForRestaurant(restaurantId, itemId);
+        ItemOption option = findOption(item, optionId);
+
+        if (request.getGroupName() != null) option.setGroupName(request.getGroupName());
+        if (request.getName() != null) option.setName(request.getName());
+        if (request.getPriceDelta() != null) option.setPriceDelta(request.getPriceDelta());
+        if (request.getIsDefault() != null) option.setIsDefault(request.getIsDefault());
+        if (request.getMaxSelections() != null) option.setMaxSelections(request.getMaxSelections());
+        if (request.getRequired() != null) option.setRequired(request.getRequired());
+        if (request.getInStock() != null) option.setInStock(request.getInStock());
+        if (request.getSortOrder() != null) option.setSortOrder(request.getSortOrder());
+        if (request.getActive() != null) option.setActive(request.getActive());
+
+        itemRepository.save(item);
+        return mapper.toOptionDto(option);
+    }
+
+    @Transactional
+    @CacheEvict(value = {"menus", "menuItems"}, allEntries = true)
+    @Auditable(action = "DELETE_ITEM_OPTION", entityType = "MenuItem")
+    public void deleteOption(Long restaurantId, Long itemId, Long optionId) {
+        MenuItem item = getItemForRestaurant(restaurantId, itemId);
+        ItemOption option = findOption(item, optionId);
+
+        item.getOptions().remove(option);
+        itemRepository.save(item);
+        log.info("Option {} removed from item {}", optionId, itemId);
+    }
+
+    /**
+     * A variant of THIS item, or a 404.
+     *
+     * <p>Answering "not found" rather than "not yours" for a variant belonging
+     * to another dish is the same rule the item lookup uses: an id that is not
+     * yours does not exist as far as you are concerned.
+     */
+    private ItemVariant findVariant(MenuItem item, Long variantId) {
+        return item.getVariants().stream()
+                .filter(v -> v.getId().equals(variantId))
+                .findFirst()
+                .orElseThrow(() -> new ResourceNotFoundException("ItemVariant", "id", variantId));
+    }
+
+    private ItemOption findOption(MenuItem item, Long optionId) {
+        return item.getOptions().stream()
+                .filter(o -> o.getId().equals(optionId))
+                .findFirst()
+                .orElseThrow(() -> new ResourceNotFoundException("ItemOption", "id", optionId));
+    }
+
+    private int nextVariantSortOrder(MenuItem item) {
+        return item.getVariants().stream()
+                .map(ItemVariant::getSortOrder).filter(java.util.Objects::nonNull)
+                .max(Integer::compareTo).orElse(-1) + 1;
+    }
+
+    private int nextOptionSortOrder(MenuItem item) {
+        return item.getOptions().stream()
+                .map(ItemOption::getSortOrder).filter(java.util.Objects::nonNull)
+                .max(Integer::compareTo).orElse(-1) + 1;
     }
 
     /**
