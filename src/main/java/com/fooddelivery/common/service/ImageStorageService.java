@@ -43,6 +43,28 @@ public class ImageStorageService {
     private static final long MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
     /**
+     * The drawers an image may be filed in.
+     *
+     * <p>This list is new. The bucket arrived from a {@code @PathVariable} and
+     * was used as a directory name with nothing but a traversal check, so
+     * <em>any</em> name was accepted and created a drawer — which meant a typo
+     * ({@code catagories}) silently produced a second one that no audit would
+     * ever look in, and "what is in the restaurants bucket?" had no stable
+     * answer. Clients reasonably assumed an enumeration existed, because the
+     * endpoint reads like it should have one.
+     *
+     * <p>{@code documents} is here although nothing in this codebase writes to
+     * it: the admin panel believes it is accepted, and until today it was.
+     * Removing it is a separate decision from adding {@code categories}.
+     *
+     * <p>Only the first segment is checked. Callers compose deeper paths —
+     * {@code restaurants/7/logo}, {@code profiles/42} — and those stay free,
+     * because the bucket is what the policy hangs off.
+     */
+    private static final List<String> ALLOWED_BUCKETS = List.of(
+            "restaurants", "menu-items", "categories", "profiles", "documents");
+
+    /**
      * Shown verbatim to the vendor when the server, not their file, is at
      * fault. Deliberately says nothing about paths or permissions: it is not
      * their problem to act on, and they are not the audience for it.
@@ -113,6 +135,10 @@ public class ImageStorageService {
      * Store an image file and return the stored file information.
      */
     public ImageInfo storeImage(MultipartFile file, String category) {
+        // Before the file, because an upload aimed at a drawer that does not
+        // exist is wrong whatever it carries, and that is the message the
+        // caller can act on.
+        category = validateBucket(category);
         validateFile(file);
 
         String originalFilename = StringUtils.cleanPath(file.getOriginalFilename());
@@ -226,6 +252,31 @@ public class ImageStorageService {
             throw new BusinessException("Invalid " + what);
         }
         return resolved;
+    }
+
+    /**
+     * Check the bucket and return the path with it canonicalised.
+     *
+     * <p>Matching ignores case, and the stored path uses the canonical spelling:
+     * the filesystem is case-sensitive, so {@code Restaurants} would otherwise
+     * be a twin of {@code restaurants} — the exact split this list exists to
+     * prevent. Everything after the first segment is left exactly as the caller
+     * composed it.
+     */
+    private String validateBucket(String category) {
+        if (category == null || category.isBlank()) {
+            throw new BusinessException("An image bucket is required. Accepted: "
+                    + String.join(", ", ALLOWED_BUCKETS));
+        }
+
+        String[] segments = category.split("/", 2);
+        String bucket = ALLOWED_BUCKETS.stream()
+                .filter(allowed -> allowed.equalsIgnoreCase(segments[0]))
+                .findFirst()
+                .orElseThrow(() -> new BusinessException("Unknown image bucket '" + segments[0]
+                        + "'. Accepted: " + String.join(", ", ALLOWED_BUCKETS)));
+
+        return segments.length == 1 ? bucket : bucket + "/" + segments[1];
     }
 
     /**

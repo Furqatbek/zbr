@@ -698,33 +698,58 @@ Authorization: Bearer {token}
 
 ### Upload Image
 ```
-POST /images/upload
+POST /images/upload/{bucket}
 Authorization: Bearer {token}
 Content-Type: multipart/form-data
 ```
 
+The bucket is a path segment, not a form field. Accepted:
+
+| Bucket | For |
+|---|---|
+| `restaurants` | logos and covers |
+| `menu-items` | dish photos |
+| `categories` | cuisine icons |
+| `profiles` | avatars |
+| `documents` | courier paperwork |
+
+Anything else is a `400` naming the list. Case is forgiving — `Categories`
+files into `categories`.
+
 **Form Data:**
 | Field | Type | Description |
 |-------|------|-------------|
-| file | file | Image file (JPEG, PNG, WebP) |
-| type | string | MENU_ITEM, RESTAURANT, CATEGORY |
+| file | file | JPEG, PNG, GIF or WebP, up to 5 MB |
 
 **Response:**
 ```json
 {
   "success": true,
   "data": {
-    "url": "/images/menu/abc123.jpg",
-    "thumbnailUrl": "/images/menu/abc123_thumb.jpg"
+    "url": "https://zbrr.uz/api/v1/images/menu-items/abc123.jpg",
+    "relativePath": "menu-items/abc123.jpg",
+    "storedName": "abc123.jpg",
+    "originalName": "lavash.jpg",
+    "size": 18422,
+    "contentType": "image/jpeg"
   }
 }
 ```
 
+Store `url` verbatim on the record. **There are no thumbnails** — nothing
+generates them, and the `thumbnailUrl` this document used to promise would have
+404'd.
+
 ### Delete Image
 ```
-DELETE /images/{imageId}
-Authorization: Bearer {token}
+DELETE /images/{relativePath}
+Authorization: Bearer {token}     # ADMIN or PLATFORM only
 ```
+
+E.g. `DELETE /images/menu-items/abc123.jpg`. Vendors do not need it: replacing
+or removing a menu item deletes the old file behind that endpoint's own
+ownership check. Images carry no ownership record of their own, which is why
+this is not open to owners — every image URL is public in menu responses.
 
 ---
 

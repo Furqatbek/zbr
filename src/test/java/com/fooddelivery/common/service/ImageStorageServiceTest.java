@@ -129,6 +129,70 @@ class ImageStorageServiceTest {
         }
     }
 
+    /**
+     * The bucket used to be whatever the caller typed. It was a
+     * {@code @PathVariable} used directly as a directory name, so every name
+     * worked and every name created a drawer — a typo made a second one
+     * silently, and no per-bucket rule could mean anything.
+     */
+    @Nested
+    @DisplayName("buckets")
+    class Buckets {
+
+        @Test
+        @DisplayName("categories is a bucket of its own, not a corner of restaurants")
+        void categoriesBucketAccepted(@TempDir Path tmp) {
+            Path root = tmp.resolve("images");
+
+            ImageStorageService.ImageInfo info = serviceAt(root).storeImage(png(), "categories");
+
+            assertThat(info.getRelativePath()).startsWith("categories/");
+            assertThat(root.resolve("categories")).isDirectory();
+        }
+
+        @Test
+        @DisplayName("an unknown bucket is refused, and the accepted ones are named")
+        void unknownBucketRefused(@TempDir Path tmp) {
+            Path root = tmp.resolve("images");
+            ImageStorageService service = serviceAt(root);
+
+            assertThatThrownBy(() -> service.storeImage(png(), "catagories"))
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessageContaining("catagories")
+                    // Without the list, the caller's next move is guesswork.
+                    .hasMessageContaining("categories");
+
+            // And nothing was created on the way to being refused.
+            assertThat(root.resolve("catagories")).doesNotExist();
+        }
+
+        @Test
+        @DisplayName("a bucket in the wrong case files into the same drawer, not a twin")
+        void caseDoesNotSplitTheBucket(@TempDir Path tmp) {
+            // Linux filesystems are case-sensitive, so "Categories" would be a
+            // second drawer that every audit and cleanup rule would miss.
+            Path root = tmp.resolve("images");
+
+            ImageStorageService.ImageInfo info = serviceAt(root).storeImage(png(), "Categories");
+
+            assertThat(info.getRelativePath()).startsWith("categories/");
+            assertThat(root.resolve("Categories")).doesNotExist();
+        }
+
+        @Test
+        @DisplayName("what a caller composes below the bucket is still its own business")
+        void deeperPathsAreUntouched(@TempDir Path tmp) {
+            // Only the first segment is policy. restaurants/{id}/{logo|cover}
+            // and profiles/{userId} are built by our own callers.
+            ImageStorageService service = serviceAt(tmp.resolve("images"));
+
+            assertThat(service.storeImage(png(), "restaurants/7/logo").getRelativePath())
+                    .startsWith("restaurants/7/logo/");
+            assertThat(service.storeImage(png(), "profiles/42").getRelativePath())
+                    .startsWith("profiles/42/");
+        }
+    }
+
     @Nested
     @DisplayName("containment")
     class Containment {
@@ -139,6 +203,19 @@ class ImageStorageServiceTest {
             ImageStorageService service = serviceAt(tmp.resolve("images"));
 
             assertThatThrownBy(() -> service.storeImage(png(), "../../etc"))
+                    .isInstanceOf(BusinessException.class);
+            assertThat(tmp.resolve("etc")).doesNotExist();
+        }
+
+        @Test
+        @DisplayName("traversal from inside a legitimate bucket is still refused")
+        void traversalBelowAValidBucketRefused(@TempDir Path tmp) {
+            // The bucket check would otherwise be the only thing stopping "../"
+            // — and it stops the obvious spelling, not this one. Containment has
+            // to hold on its own.
+            ImageStorageService service = serviceAt(tmp.resolve("images"));
+
+            assertThatThrownBy(() -> service.storeImage(png(), "categories/../../etc"))
                     .isInstanceOf(BusinessException.class);
             assertThat(tmp.resolve("etc")).doesNotExist();
         }

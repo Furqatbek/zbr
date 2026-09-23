@@ -129,6 +129,13 @@ PUT    /api/v1/admin/restaurant-categories/assignments/{restaurantId}?categoryId
 Omitting `categoryId` on the assignment clears it, so a restaurant filed wrongly
 does not need an invented category to get out of the wrong one.
 
+Icons go through the image endpoint first, then the URL onto the category:
+
+```http
+POST  /api/v1/images/upload/categories     # multipart, field: file → { url }
+PATCH /api/v1/admin/restaurant-categories/{id}   { "imageUrl": "<that url>" }
+```
+
 Nine categories ship seeded, in all three languages: national, fast-food,
 burgers, pizza, shashlik, coffee, desserts, sushi, drinks. That is a first
 draft — rename, reorder, deactivate or add as you like. **Renaming before

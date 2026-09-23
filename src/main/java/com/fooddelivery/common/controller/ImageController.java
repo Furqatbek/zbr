@@ -27,17 +27,19 @@ public class ImageController {
 
     private final ImageStorageService imageStorageService;
 
-    @PostMapping(value = "/upload/{category}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PostMapping(value = "/upload/{bucket}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("hasAnyRole('ADMIN', 'PLATFORM', 'RESTAURANT_OWNER', 'RESTAURANT_STAFF')")
-    @Operation(summary = "Upload an image", description = "Upload an image file to the specified category")
+    @Operation(summary = "Upload an image",
+            description = "Buckets: restaurants, menu-items, categories, profiles, documents. "
+                    + "Anything else is a 400 naming the accepted list.")
     public ResponseEntity<ApiResponse<ImageInfo>> uploadImage(
-            @PathVariable String category,
+            @PathVariable String bucket,
             @RequestParam("file") MultipartFile file) {
 
-        log.info("Uploading image to category: {}, filename: {}, size: {}",
-                category, file.getOriginalFilename(), file.getSize());
+        log.info("Uploading image to bucket: {}, filename: {}, size: {}",
+                bucket, file.getOriginalFilename(), file.getSize());
 
-        ImageInfo imageInfo = imageStorageService.storeImage(file, category);
+        ImageInfo imageInfo = imageStorageService.storeImage(file, bucket);
 
         return ResponseEntity.ok(ApiResponse.success("Image uploaded successfully", imageInfo));
     }
