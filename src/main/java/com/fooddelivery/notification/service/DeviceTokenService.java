@@ -31,12 +31,21 @@ public class DeviceTokenService {
     public UserDeviceToken registerToken(Long userId, DeviceTokenRequest request) {
         log.info("Registering device token for user {}", userId);
 
-        // Prefer upserting on (user, deviceId): the OS rotates push tokens, and
-        // keying on the token alone would leave the old row behind so the device
-        // receives duplicate pushes. One row per physical device.
+        // Prefer upserting on (user, deviceId, appId): the OS rotates push
+        // tokens, and keying on the token alone would leave the old row behind
+        // so the device receives duplicate pushes. One row per APP per physical
+        // device.
+        //
+        // The appId is not optional in that key, though it looks it. Our apps
+        // report the SAME deviceId on one phone — Android's ANDROID_ID is per
+        // signing key, iOS's identifierForVendor is per vendor — so keying on
+        // (user, deviceId) meant the courier app's registration overwrote the
+        // customer app's row. One person running both apps ended up with a
+        // single token, and every push for them went to whichever app had
+        // registered last: courier alerts on the customer app, order updates on
+        // the courier app.
         if (request.getDeviceId() != null && !request.getDeviceId().isBlank()) {
-            Optional<UserDeviceToken> byDevice =
-                    deviceTokenRepository.findByUserIdAndDeviceId(userId, request.getDeviceId());
+            Optional<UserDeviceToken> byDevice = findForApp(userId, request);
             if (byDevice.isPresent()) {
                 UserDeviceToken token = byDevice.get();
                 token.setDeviceToken(request.getDeviceToken());
@@ -98,6 +107,34 @@ public class DeviceTokenService {
 
         log.debug("Created new device token for user {}", userId);
         return deviceTokenRepository.save(newToken);
+    }
+
+    /**
+     * The row this app already owns on this device, if any.
+     *
+     * <p>An app that now sends an {@code appId} adopts its own legacy row — the
+     * one registered before the apps sent one — rather than leaving it behind.
+     * An abandoned row keeps receiving every push for that user, because
+     * targeting deliberately fails open for a token whose app is unknown, so
+     * "leave it alone" would mean the wrong app keeps buzzing indefinitely.
+     *
+     * <p>Whichever app registers first claims it; the second finds it stamped
+     * and creates its own.
+     */
+    private Optional<UserDeviceToken> findForApp(Long userId, DeviceTokenRequest request) {
+        String deviceId = request.getDeviceId();
+        String appId = request.getAppId();
+
+        if (appId == null || appId.isBlank()) {
+            return deviceTokenRepository.findByUserIdAndDeviceIdAndAppIdIsNull(userId, deviceId);
+        }
+
+        Optional<UserDeviceToken> exact =
+                deviceTokenRepository.findByUserIdAndDeviceIdAndAppId(userId, deviceId, appId);
+        if (exact.isPresent()) {
+            return exact;
+        }
+        return deviceTokenRepository.findByUserIdAndDeviceIdAndAppIdIsNull(userId, deviceId);
     }
 
     /**

@@ -34,6 +34,24 @@ public interface UserDeviceTokenRepository extends JpaRepository<UserDeviceToken
     Optional<UserDeviceToken> findByUserIdAndDeviceId(Long userId, String deviceId);
 
     /**
+     * One row per app per physical device.
+     *
+     * <p>Two of our apps on one phone report the same {@code deviceId} — Android's
+     * ANDROID_ID is per signing key and iOS's identifierForVendor is per vendor,
+     * so apps from the same developer share both. Keying on (user, deviceId)
+     * alone therefore made the second app's registration overwrite the first
+     * app's row, leaving one token where there are two apps.
+     *
+     * <p>Split into two derived queries rather than one with a nullable
+     * parameter: Postgres cannot infer the type of a null bind parameter, and
+     * {@code appId = null} never matches anything in SQL regardless.
+     */
+    Optional<UserDeviceToken> findByUserIdAndDeviceIdAndAppId(Long userId, String deviceId, String appId);
+
+    /** Legacy rows, registered before the apps sent an appId. */
+    Optional<UserDeviceToken> findByUserIdAndDeviceIdAndAppIdIsNull(Long userId, String deviceId);
+
+    /**
      * Check if a device token exists for a user.
      */
     boolean existsByUserIdAndDeviceToken(Long userId, String deviceToken);
