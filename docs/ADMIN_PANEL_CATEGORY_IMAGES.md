@@ -158,7 +158,7 @@ We can, and you should have the command rather than our summary of it:
 
 ```bash
 ssh root@<zbr-host>
-docker exec zbr-app ls -la /app/images/restaurants/ | head -40
+docker exec food-delivery-app ls -la /app/images/restaurants/ | head -40
 ```
 
 Files sitting **directly** in `restaurants/` are category icons or strays:
