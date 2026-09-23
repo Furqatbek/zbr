@@ -30,7 +30,7 @@ public class ImageController {
     @PostMapping(value = "/upload/{bucket}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("hasAnyRole('ADMIN', 'PLATFORM', 'RESTAURANT_OWNER', 'RESTAURANT_STAFF')")
     @Operation(summary = "Upload an image",
-            description = "Buckets: restaurants, menu-items, categories, profiles, documents. "
+            description = "Buckets: restaurants, menu-items, categories, profiles. "
                     + "Anything else is a 400 naming the accepted list.")
     public ResponseEntity<ApiResponse<ImageInfo>> uploadImage(
             @PathVariable String bucket,

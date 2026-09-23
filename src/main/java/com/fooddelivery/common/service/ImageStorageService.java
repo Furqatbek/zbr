@@ -53,16 +53,21 @@ public class ImageStorageService {
      * answer. Clients reasonably assumed an enumeration existed, because the
      * endpoint reads like it should have one.
      *
-     * <p>{@code documents} is here although nothing in this codebase writes to
-     * it: the admin panel believes it is accepted, and until today it was.
-     * Removing it is a separate decision from adding {@code categories}.
+     * <p>{@code documents} was briefly on this list and is not, because it was
+     * dead at both ends: nothing here writes it, and the admin panel confirmed
+     * nothing there does either. Note {@code Courier.documentsSubmitted}, which
+     * is the feature it was presumably meant for — that flag is never set by
+     * any code path, so the bucket would have been a drawer for a feature that
+     * does not exist yet. Re-adding the string is the whole of the work when it
+     * does. Removal does not affect reads: anything already stored under it is
+     * still served.
      *
      * <p>Only the first segment is checked. Callers compose deeper paths —
      * {@code restaurants/7/logo}, {@code profiles/42} — and those stay free,
      * because the bucket is what the policy hangs off.
      */
     private static final List<String> ALLOWED_BUCKETS = List.of(
-            "restaurants", "menu-items", "categories", "profiles", "documents");
+            "restaurants", "menu-items", "categories", "profiles");
 
     /**
      * Shown verbatim to the vendor when the server, not their file, is at

@@ -711,7 +711,6 @@ The bucket is a path segment, not a form field. Accepted:
 | `menu-items` | dish photos |
 | `categories` | cuisine icons |
 | `profiles` | avatars |
-| `documents` | courier paperwork |
 
 Anything else is a `400` naming the list. Case is forgiving — `Categories`
 files into `categories`.
