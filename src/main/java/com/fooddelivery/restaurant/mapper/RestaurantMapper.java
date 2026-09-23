@@ -57,6 +57,7 @@ public interface RestaurantMapper {
     @Mapping(target = "categoryId", source = "category.id")
     @Mapping(target = "categoryName", source = "category.name")
     @Mapping(target = "effectivePrice", expression = "java(item.getEffectivePrice())")
+    @Mapping(target = "orderable", expression = "java(item.isOrderable())")
     @Mapping(target = "onSale", expression = "java(item.isOnSale())")
     @Mapping(target = "discountPercentage", expression = "java(item.getDiscountPercentage())")
     MenuItemDto toItemDto(MenuItem item);

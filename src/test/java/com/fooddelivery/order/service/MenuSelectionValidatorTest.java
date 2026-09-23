@@ -81,6 +81,38 @@ class MenuSelectionValidatorTest {
         }
 
         @Test
+        @DisplayName("every size sold out means the dish is unavailable, not that a size is missing")
+        void allSizesSoldOutRefusesTheDish() {
+            // The dead end we built: requiring a size, then refusing each one.
+            // The customer was told to choose from a list where nothing could
+            // be chosen, and no wording of "choose a size" fixes that.
+            MenuItem item = lavash();
+            item.getVariants().add(variant(11L, "Regular", false, true));
+            item.getVariants().add(variant(12L, "Large", false, true));
+
+            assertThatThrownBy(() -> validator.validate(item, choosing(null)))
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessageContaining("unavailable")
+                    .hasMessageContaining("every size is sold out")
+                    // And not the old message, which sent them back to an empty
+                    // picker.
+                    .hasMessageNotContaining("Choose a size");
+        }
+
+        @Test
+        @DisplayName("the sizes named are the ones that can be picked")
+        void onlyAvailableSizesAreOffered() {
+            MenuItem item = lavash();
+            item.getVariants().add(variant(11L, "Regular", true, true));
+            item.getVariants().add(variant(12L, "Large", false, true));
+
+            assertThatThrownBy(() -> validator.validate(item, choosing(null)))
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessageContaining("Regular")
+                    .hasMessageNotContaining("Large");
+        }
+
+        @Test
         @DisplayName("a dish with no sizes is fine without one")
         void noSizesNoProblem() {
             assertThatCode(() -> validator.validate(lavash(), choosing(null)))
@@ -88,9 +120,13 @@ class MenuSelectionValidatorTest {
         }
 
         @Test
-        @DisplayName("a sold-out size is refused, and says so")
+        @DisplayName("picking a sold-out size names that size, while others remain")
         void soldOutSizeIsRefused() {
+            // Two sizes, one gone. The dish is still orderable, so the message
+            // is about the size rather than the dish — the customer only has to
+            // change one thing.
             MenuItem item = lavash();
+            item.getVariants().add(variant(11L, "Regular", true, true));
             item.getVariants().add(variant(12L, "Large", false, true));
 
             assertThatThrownBy(() -> validator.validate(item, choosing(12L)))

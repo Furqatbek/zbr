@@ -132,6 +132,31 @@ public class MenuItem {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
+    /**
+     * Whether a customer can actually order this dish right now.
+     *
+     * <p>Not the same as {@code inStock}, which is the venue's own switch for
+     * the dish. A dish sold in sizes needs one of them to be available too:
+     * with every size sold out there is nothing to order, and the order path
+     * would otherwise ask the customer to choose a size and then refuse every
+     * size it had just named — a dead end we built ourselves by requiring a
+     * size and leaving none.
+     *
+     * <p>Add-ons deliberately do not count, even a required group: a sauce
+     * being out is a reason to pick another sauce, not to take the dish off the
+     * menu. Sizes are different because they carry the price.
+     */
+    public boolean isOrderable() {
+        if (!Boolean.TRUE.equals(inStock) || !Boolean.TRUE.equals(active)) {
+            return false;
+        }
+        java.util.List<ItemVariant> sellableSizes = variants == null ? java.util.List.of()
+                : variants.stream().filter(v -> Boolean.TRUE.equals(v.getActive())).toList();
+
+        return sellableSizes.isEmpty()
+                || sellableSizes.stream().anyMatch(v -> Boolean.TRUE.equals(v.getInStock()));
+    }
+
     // Helper method to calculate effective price
     public BigDecimal getEffectivePrice() {
         return priceWithMargin != null ? priceWithMargin : price;

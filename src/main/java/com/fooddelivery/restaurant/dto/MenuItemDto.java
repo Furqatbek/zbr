@@ -67,6 +67,17 @@ public class MenuItemDto {
     @Schema(description = "Image content type (MIME type)")
     private String imageContentType;
 
+    /**
+     * Whether a customer can order this right now, sizes included.
+     *
+     * <p>{@code inStock} is the venue's switch for the dish; this also accounts
+     * for a dish whose every size is sold out, which is unorderable however the
+     * dish itself is flagged. Customer clients should gate on this one.
+     */
+    @Schema(description = "True when the dish can be ordered now — its own stock flag AND, "
+            + "for a dish sold in sizes, at least one size available")
+    private Boolean orderable;
+
     @Schema(description = "Is in stock")
     private Boolean inStock;
 

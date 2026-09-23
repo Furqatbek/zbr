@@ -51,13 +51,26 @@ public class MenuSelectionValidator {
                 .filter(v -> Boolean.TRUE.equals(v.getActive()))
                 .toList();
 
+        List<ItemVariant> available = sellable.stream()
+                .filter(v -> Boolean.TRUE.equals(v.getInStock()))
+                .toList();
+
+        // Every size gone is the dish being gone. Asking for a size here and
+        // then refusing each one in turn is a dead end of our own making: the
+        // customer is told to choose from a list where nothing can be chosen.
+        if (!sellable.isEmpty() && available.isEmpty()) {
+            throw new BusinessException("'" + item.getName()
+                    + "' is unavailable right now — every size is sold out.");
+        }
+
         if (request.getVariantId() == null) {
             // A dish sold in sizes has no meaningful price without one: the
             // customer would be charged the base and the kitchen would have to
-            // guess which one to make.
-            if (!sellable.isEmpty()) {
+            // guess which one to make. Only the sizes they can actually pick
+            // are named.
+            if (!available.isEmpty()) {
                 throw new BusinessException("Choose a size for '" + item.getName() + "': "
-                        + sellable.stream().map(ItemVariant::getName).collect(Collectors.joining(", ")));
+                        + available.stream().map(ItemVariant::getName).collect(Collectors.joining(", ")));
             }
             return;
         }

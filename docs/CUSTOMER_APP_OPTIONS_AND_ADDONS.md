@@ -42,6 +42,20 @@ means that one choice is sold out while the dish itself is not — show it
 disabled rather than hiding it, so the customer understands why their usual
 order looks different.
 
+**Gate the "add to basket" button on `orderable`, not on `inStock`.** The item
+now carries both:
+
+```json
+{ "id": 4417, "name": "Lavash", "inStock": true, "orderable": false,
+  "variants": [ { "name": "Regular", "inStock": false }, { "name": "Large", "inStock": false } ] }
+```
+
+`inStock` is the venue's own switch for the dish. `orderable` is that **and**,
+for a dish sold in sizes, at least one size being available — because a dish
+whose every size is gone cannot be ordered however the dish itself is flagged.
+Add-ons do not affect it: a sauce being out is a reason to pick another sauce,
+not to take the dish off the menu.
+
 Both arrays are `[]` when an item has none, never null. Today **every live item
 has both empty**, because nothing has been able to create them yet.
 
@@ -95,6 +109,7 @@ to the customer:
 | A dish with sizes needs one chosen | *Choose a size for 'Lavash': Regular, Large* |
 | A `required` group needs an answer | *Choose 'Sauce' for 'Lavash'* |
 | `maxSelections` per group | *Choose at most 2 from 'Extras' for 'Lavash'* |
+| Every size sold out | *'Lavash' is unavailable right now — every size is sold out.* |
 | Sold-out size or add-on | *'Large' is sold out for 'Lavash'* |
 | Withdrawn size or add-on | *That size is no longer available for 'Lavash'* |
 | The same add-on twice | *The same add-on was chosen twice for 'Lavash'* |
@@ -103,6 +118,13 @@ Two of those matter even with a correct UI: a menu the app fetched an hour ago
 can name a size that has since sold out, and an id can always be replayed.
 Surface the message rather than a generic failure — it tells the customer what
 to change.
+
+**The dead end you would have hit is closed.** Requiring a size while every size
+was sold out asked the customer to choose from an empty list. Now the dish is
+refused as unavailable, and when only some sizes are gone the "choose a size"
+message names **only the ones that can actually be picked**. With `orderable`
+gating the button, the refusal should be unreachable from a current menu — it
+stays for the stale-menu case.
 
 Where `required` and `maxSelections` disagree across options in one group (they
 are stored per option but describe the group), the server takes the strictest
