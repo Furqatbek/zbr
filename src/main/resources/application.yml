@@ -346,6 +346,30 @@ app:
           latest: ${APP_VERSION_ANDROID_LATEST:1.0.1}
           minimum: ${APP_VERSION_ANDROID_MINIMUM:1.0.0}
           store-url: ${APP_VERSION_ANDROID_STORE_URL:https://play.google.com/store/apps/details?id=app.zbr.customer}
+      # Per app, overriding the shared values above — which are the CUSTOMER
+      # app's. Without an entry here an app is told the shared version numbers
+      # and NO store link, because sending the customer app's link to a courier
+      # is an update prompt that installs the wrong app. Set these as each app
+      # reaches its store.
+      apps:
+        COURIER:
+          IOS:
+            latest: ${APP_VERSION_COURIER_IOS_LATEST:1.0.1}
+            minimum: ${APP_VERSION_COURIER_IOS_MINIMUM:1.0.0}
+            store-url: ${APP_VERSION_COURIER_IOS_STORE_URL:}
+          ANDROID:
+            latest: ${APP_VERSION_COURIER_ANDROID_LATEST:1.0.1}
+            minimum: ${APP_VERSION_COURIER_ANDROID_MINIMUM:1.0.0}
+            store-url: ${APP_VERSION_COURIER_ANDROID_STORE_URL:}
+        VENDOR:
+          IOS:
+            latest: ${APP_VERSION_VENDOR_IOS_LATEST:1.0.1}
+            minimum: ${APP_VERSION_VENDOR_IOS_MINIMUM:1.0.0}
+            store-url: ${APP_VERSION_VENDOR_IOS_STORE_URL:}
+          ANDROID:
+            latest: ${APP_VERSION_VENDOR_ANDROID_LATEST:1.0.1}
+            minimum: ${APP_VERSION_VENDOR_ANDROID_MINIMUM:1.0.0}
+            store-url: ${APP_VERSION_VENDOR_ANDROID_STORE_URL:}
 
   referral:
     reward-amount: 10.00

@@ -23,6 +23,7 @@ public interface OrderMapper {
     @Mapping(target = "consumerName", source = "consumer.fullName")
     @Mapping(target = "restaurantId", source = "restaurant.id")
     @Mapping(target = "restaurantName", source = "restaurant.name")
+    @Mapping(target = "restaurantPhone", source = "restaurant.phone")
     @Mapping(target = "courierId", source = "courier.id")
     @Mapping(target = "courierName", expression = "java(order.getCourier() != null ? order.getCourier().getUser().getFullName() : null)")
     @Mapping(target = "courierPhone", expression = "java(order.getCourier() != null ? order.getCourier().getUser().getPhone() : null)")

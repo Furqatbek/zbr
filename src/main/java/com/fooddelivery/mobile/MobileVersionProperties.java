@@ -39,6 +39,16 @@ public class MobileVersionProperties {
             MobilePlatform.ANDROID, new Release()
     ));
 
+    /**
+     * Per app, then per platform. Overrides {@link #platforms} where present.
+     *
+     * <p>{@link #platforms} above is the customer app's, and was the whole
+     * configuration when there was one app. A courier asking was answered with
+     * the customer app's version and, worse, its store link — an update prompt
+     * that sends someone to install a different app.
+     */
+    private Map<MobileApp, Map<MobilePlatform, Release>> apps = new EnumMap<>(MobileApp.class);
+
     /** How long a client may cache the answer, in seconds. */
     private long cacheSeconds = 300;
 
@@ -61,6 +71,34 @@ public class MobileVersionProperties {
         return release;
     }
 
+    /**
+     * What to tell this app on this platform.
+     *
+     * <p>An app with nothing configured falls back to the shared versions but
+     * <b>never to another app's store link</b>: a wrong version number shows a
+     * prompt that is merely premature, while a wrong link sends someone to
+     * install the wrong app. Null storeUrl is already defined as "use your own
+     * link", which is the right answer when we do not know theirs.
+     */
+    public Release forApp(MobileApp app, MobilePlatform platform) {
+        Map<MobilePlatform, Release> perPlatform = apps.get(app);
+        Release configured = perPlatform == null ? null : perPlatform.get(platform);
+        if (configured != null) {
+            return configured;
+        }
+
+        Release shared = forPlatform(platform);
+        if (app == MobileApp.CUSTOMER) {
+            return shared;
+        }
+
+        Release withoutLink = new Release();
+        withoutLink.setLatest(shared.getLatest());
+        withoutLink.setMinimum(shared.getMinimum());
+        withoutLink.setStoreUrl(null);
+        return withoutLink;
+    }
+
     @PostConstruct
     void validate() {
         for (MobilePlatform platform : MobilePlatform.values()) {
@@ -71,36 +109,48 @@ public class MobileVersionProperties {
                                 + "Every platform the app runs on needs a latest and a minimum.");
             }
 
-            SemanticVersion latest = parse(platform, "latest", release.getLatest());
-            SemanticVersion minimum = parse(platform, "minimum", release.getMinimum());
-
-            if (minimum.compareTo(latest) > 0) {
-                throw new IllegalStateException(
-                        "app.mobile.version.platforms." + name(platform) + ": minimum "
-                                + release.getMinimum() + " is newer than latest " + release.getLatest()
-                                + ". That locks every " + name(platform) + " customer out of the app "
-                                + "with nothing in the store to upgrade to.");
-            }
-
-            String storeUrl = release.getStoreUrl();
-            if (storeUrl != null && !storeUrl.isBlank()
-                    && !(storeUrl.startsWith("https://") || storeUrl.startsWith("http://"))) {
-                throw new IllegalStateException(
-                        "app.mobile.version.platforms." + name(platform)
-                                + ".store-url must be an http(s) URL, got '" + storeUrl + "'");
-            }
+            validateRelease("app.mobile.version.platforms." + name(platform), release);
 
             log.info("App version for {}: latest {}, minimum {}",
                     name(platform), release.getLatest(), release.getMinimum());
         }
+
+        // Per-app overrides get the same treatment — a minimum newer than
+        // latest locks that app's users out just as completely, and it is the
+        // courier app where nobody would notice quickly.
+        apps.forEach((app, perPlatform) -> perPlatform.forEach((platform, release) -> {
+            String label = "app.mobile.version.apps." + app.name().toLowerCase(java.util.Locale.ROOT)
+                    + "." + name(platform);
+            validateRelease(label, release);
+            log.info("App version for {} on {}: latest {}, minimum {}",
+                    app, name(platform), release.getLatest(), release.getMinimum());
+        }));
     }
 
-    private static SemanticVersion parse(MobilePlatform platform, String field, String value) {
+    private static void validateRelease(String label, Release release) {
+        SemanticVersion latest = parse(label, "latest", release.getLatest());
+        SemanticVersion minimum = parse(label, "minimum", release.getMinimum());
+
+        if (minimum.compareTo(latest) > 0) {
+            throw new IllegalStateException(label + ": minimum " + release.getMinimum()
+                    + " is newer than latest " + release.getLatest()
+                    + ". That locks every one of those users out of the app "
+                    + "with nothing in the store to upgrade to.");
+        }
+
+        String storeUrl = release.getStoreUrl();
+        if (storeUrl != null && !storeUrl.isBlank()
+                && !(storeUrl.startsWith("https://") || storeUrl.startsWith("http://"))) {
+            throw new IllegalStateException(
+                    label + ".store-url must be an http(s) URL, got '" + storeUrl + "'");
+        }
+    }
+
+    private static SemanticVersion parse(String label, String field, String value) {
         try {
             return SemanticVersion.parse(value);
         } catch (IllegalArgumentException e) {
-            throw new IllegalStateException("app.mobile.version.platforms." + name(platform) + "."
-                    + field + ": " + e.getMessage(), e);
+            throw new IllegalStateException(label + "." + field + ": " + e.getMessage(), e);
         }
     }
 

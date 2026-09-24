@@ -117,4 +117,70 @@ class MobileVersionPropertiesTest {
 
         assertThatCode(properties::validate).doesNotThrowAnyException();
     }
+
+    @Test
+    @DisplayName("an app with no configuration of its own is never given another app's store link")
+    void unconfiguredAppGetsNoStoreLink() {
+        // The reported bug: a courier on an old build was told to update, and
+        // the link installed the customer app. A wrong version number is a
+        // premature prompt; a wrong link sends someone to the wrong product.
+        MobileVersionProperties properties = bind(Map.of(
+                PREFIX + ".platforms.android.latest", "1.0.4",
+                PREFIX + ".platforms.android.minimum", "1.0.0",
+                PREFIX + ".platforms.android.store-url",
+                "https://play.google.com/store/apps/details?id=app.zbr.customer"));
+
+        MobileVersionProperties.Release courier =
+                properties.forApp(MobileApp.COURIER, MobilePlatform.ANDROID);
+
+        assertThat(courier.getStoreUrl()).isNull();
+        // The versions still fall back — better a prompt than no answer.
+        assertThat(courier.getLatest()).isEqualTo("1.0.4");
+
+        // And the customer app, which these values describe, is unaffected.
+        assertThat(properties.forApp(MobileApp.CUSTOMER, MobilePlatform.ANDROID).getStoreUrl())
+                .contains("app.zbr.customer");
+    }
+
+    @Test
+    @DisplayName("a configured app answers with its own version and link")
+    void configuredAppWins() {
+        MobileVersionProperties properties = bind(Map.of(
+                PREFIX + ".platforms.android.latest", "1.0.4",
+                PREFIX + ".platforms.android.minimum", "1.0.0",
+                PREFIX + ".apps.courier.android.latest", "2.1.0",
+                PREFIX + ".apps.courier.android.minimum", "2.0.0",
+                PREFIX + ".apps.courier.android.store-url",
+                "https://play.google.com/store/apps/details?id=app.zbr.courier"));
+
+        MobileVersionProperties.Release courier =
+                properties.forApp(MobileApp.COURIER, MobilePlatform.ANDROID);
+
+        assertThat(courier.getLatest()).isEqualTo("2.1.0");
+        assertThat(courier.getStoreUrl()).contains("app.zbr.courier");
+    }
+
+    @Test
+    @DisplayName("a per-app kill switch is refused like any other")
+    void perAppKillSwitchIsRefused() {
+        MobileVersionProperties properties = bind(Map.of(
+                PREFIX + ".apps.courier.ios.latest", "1.0.0",
+                PREFIX + ".apps.courier.ios.minimum", "2.0.0"));
+
+        assertThatThrownBy(properties::validate)
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("apps.courier.ios")
+                .hasMessageContaining("locks every one of those users out");
+    }
+
+    @Test
+    @DisplayName("the app parameter is forgiving about what the vendor app is called")
+    void vendorAliases() {
+        assertThat(MobileApp.from("owner")).isEqualTo(MobileApp.VENDOR);
+        assertThat(MobileApp.from("restaurant")).isEqualTo(MobileApp.VENDOR);
+        assertThat(MobileApp.from("COURIER")).isEqualTo(MobileApp.COURIER);
+        // Absent means the customer app: that is who this endpoint answered
+        // before the parameter existed, and shipped builds do not send it.
+        assertThat(MobileApp.from(null)).isEqualTo(MobileApp.CUSTOMER);
+    }
 }

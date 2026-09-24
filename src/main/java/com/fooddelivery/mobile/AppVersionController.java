@@ -42,10 +42,13 @@ public class AppVersionController {
                     + "are never in lockstep.")
     public ResponseEntity<ApiResponse<AppVersionResponse>> version(
             @Parameter(description = "ios or android", required = true)
-            @RequestParam(required = false) String platform) {
+            @RequestParam(required = false) String platform,
+            @Parameter(description = "customer, courier or vendor — defaults to customer")
+            @RequestParam(required = false) String app) {
 
         MobilePlatform resolved = MobilePlatform.from(platform);
-        MobileVersionProperties.Release release = properties.forPlatform(resolved);
+        MobileVersionProperties.Release release =
+                properties.forApp(MobileApp.from(app), resolved);
 
         AppVersionResponse body = AppVersionResponse.builder()
                 .latestVersion(release.getLatest())

@@ -50,4 +50,13 @@ public class NotificationRequest implements Serializable {
      * in the queue at deploy time will carry.
      */
     private String targetRole;
+
+    /**
+     * Where tapping the push should land, e.g. {@code /orders/4417}.
+     *
+     * <p>Stored on the notification row since it was introduced, and never sent
+     * to a device — so the apps parsed an {@code actionUrl} the push had never
+     * contained and fell back to {@code orderId} every time.
+     */
+    private String actionUrl;
 }

@@ -32,7 +32,7 @@ class AppVersionControllerTest {
     }
 
     private AppVersionResponse get(String platform) {
-        return controller.version(platform).getBody().getData();
+        return controller.version(platform, null).getBody().getData();
     }
 
     @Test
@@ -68,7 +68,7 @@ class AppVersionControllerTest {
     void platformIsRequired() {
         // Defaulting would answer an iPhone with Android's store link, which
         // the app discards — leaving a prompt with nowhere to go.
-        assertThatThrownBy(() -> controller.version(null))
+        assertThatThrownBy(() -> controller.version(null, null))
                 .isInstanceOf(BusinessException.class)
                 .hasMessageContaining("platform is required");
     }
@@ -76,7 +76,7 @@ class AppVersionControllerTest {
     @Test
     @DisplayName("an unknown platform says what is accepted")
     void unknownPlatformIsNamed() {
-        assertThatThrownBy(() -> controller.version("huawei"))
+        assertThatThrownBy(() -> controller.version("huawei", null))
                 .isInstanceOf(BusinessException.class)
                 .hasMessageContaining("ios or android");
     }
@@ -94,7 +94,7 @@ class AppVersionControllerTest {
     @Test
     @DisplayName("the answer is cacheable, since every caller gets the same one")
     void isCacheable() {
-        String cacheControl = controller.version("ios").getHeaders().getCacheControl();
+        String cacheControl = controller.version("ios", null).getHeaders().getCacheControl();
 
         assertThat(cacheControl).contains("max-age=300").contains("public");
     }

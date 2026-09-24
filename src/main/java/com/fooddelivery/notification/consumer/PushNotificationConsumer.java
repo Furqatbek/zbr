@@ -325,6 +325,12 @@ public class PushNotificationConsumer {
             dataBuilder.put("category", request.getCategory());
         }
 
+        // Where a tap should land, e.g. "/orders/4417". The clients already
+        // parse this; it had simply never been sent.
+        if (request.getActionUrl() != null && !request.getActionUrl().isBlank()) {
+            dataBuilder.put("actionUrl", request.getActionUrl());
+        }
+
         // The in-app notification row, for deep-linking to the notifications
         // screen when there is no order to open.
         if ("notification".equals(request.getReferenceType()) && request.getReferenceId() != null) {

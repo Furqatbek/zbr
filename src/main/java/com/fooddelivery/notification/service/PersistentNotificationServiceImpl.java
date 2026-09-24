@@ -146,6 +146,7 @@ public class PersistentNotificationServiceImpl implements PersistentNotification
                         createDto.getRole(), createDto.getNotificationType()))
                 .orderId(createDto.getOrderId())
                 .category(createDto.getCategory() != null ? createDto.getCategory().name() : null)
+                .actionUrl(createDto.getActionUrl())
                 .build();
 
         rabbitTemplate.convertAndSend(
@@ -1083,6 +1084,15 @@ public class PersistentNotificationServiceImpl implements PersistentNotification
         Map<String, Object> metadata = new HashMap<>();
         if (request.getAdditionalData() != null) {
             metadata.putAll(request.getAdditionalData());
+        }
+        // OrderNotificationRequest carries two maps and only additionalData was
+        // read here — which NOTHING sets. Every caller populates metadata, so
+        // every per-event detail was built and then dropped one call before the
+        // push: newStatus and previousStatus on a status change, reason,
+        // paymentId, amount, failureReason. The courier app refetches the order
+        // after each push for exactly this reason.
+        if (request.getMetadata() != null) {
+            metadata.putAll(request.getMetadata());
         }
         metadata.put("orderNumber", request.getOrderNumber());
         metadata.put("restaurantName", request.getRestaurantName());

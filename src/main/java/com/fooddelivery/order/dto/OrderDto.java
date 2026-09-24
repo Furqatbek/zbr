@@ -41,6 +41,15 @@ public class OrderDto {
     @Schema(description = "Restaurant name")
     private String restaurantName;
 
+    /**
+     * The venue's own number, so a courier holding this order can call the
+     * kitchen. The courier app read it off the WebSocket OrderDto, where it did
+     * not exist — the field is only on CourierOrderDto, which the socket never
+     * sends.
+     */
+    @Schema(description = "Restaurant phone")
+    private String restaurantPhone;
+
     @Schema(description = "Courier ID")
     private Long courierId;
 
