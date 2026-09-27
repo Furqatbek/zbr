@@ -48,7 +48,13 @@ public class SecurityConfig {
             // Scanned from a poster by someone who has no account yet, and
             // served to a page on another origin. A menu behind a login is a
             // menu nobody reads.
-            "/api/v1/public/**",
+            //
+            // The exact path, not /public/**: a wildcard here makes every
+            // future controller under that prefix public the moment someone
+            // creates it, without anyone deciding that it should be. "public"
+            // is a convenient name and would attract exactly the handler that
+            // should not have been.
+            "/api/v1/public/r/*",
             "/api/v1/restaurants/*/menu",
             "/api/v1/restaurants/*",
             "/api/v1/webhooks/**",
