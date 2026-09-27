@@ -45,6 +45,10 @@ public class SecurityConfig {
             // token. An update prompt gated behind sign-in cannot reach a
             // customer whose version is too old to sign in.
             "/api/v1/app/version",
+            // Scanned from a poster by someone who has no account yet, and
+            // served to a page on another origin. A menu behind a login is a
+            // menu nobody reads.
+            "/api/v1/public/**",
             "/api/v1/restaurants/*/menu",
             "/api/v1/restaurants/*",
             "/api/v1/webhooks/**",

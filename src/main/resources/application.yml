@@ -635,7 +635,11 @@ server:
 # and production must not inherit that just because CORS_ORIGINS went unset.
 app:
   cors:
-    allowed-origins: ${CORS_ORIGINS:https://zbrr.uz}
+    # app.zbrr.uz is the QR landing page, served from Vercel. It is a browser
+    # calling /api/v1/public/** cross-origin, so leaving it out means every
+    # scanned poster renders an empty page with a CORS error in a console
+    # nobody is looking at.
+    allowed-origins: ${CORS_ORIGINS:https://zbrr.uz,https://app.zbrr.uz}
 
 ---
 # Docker Profile
