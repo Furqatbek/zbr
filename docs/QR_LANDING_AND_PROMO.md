@@ -154,10 +154,16 @@ Worth being plain, because the plan assumes some of it:
   not that menu. Only a vendor SDK (Branch, AppsFlyer, Adjust) does this
   reliably. The printed promo code is what ties the customer back to the venue
   in the meantime — which is exactly why the code has to work, and now does.
-- **No Universal Links / App Links yet.** Opening the app directly when it is
-  already installed needs `apple-app-site-association` and `assetlinks.json`
-  served from the domain, plus the app teams registering it. Ask and we will
-  serve both files; the app side is theirs.
+- **No Universal Links / App Links yet, and they are not ours to serve.**
+  Opening the app directly when it is already installed needs
+  `apple-app-site-association` and `assetlinks.json` at `/.well-known/` on **the
+  domain in the link** — `app.zbrr.uz`, which is Vercel. An earlier version of
+  this document said the backend could serve them; that was written assuming the
+  link lived on `zbrr.uz`, and iOS and Android fetch those files from the link's
+  own host, so us serving them would do nothing. The landing page hosts them, the
+  app teams supply what goes in them (iOS: Team ID + bundle id; Android: package
+  name + release signing SHA-256). If the link ever moves to `zbrr.uz`, it
+  becomes ours and we will add it.
 - **No scan tracking.** The landing page is on Vercel, so scans are counted
   there. The backend counts *conversions* — promo uses — which is the number
   that matters for rewarding a restaurant.
