@@ -29,7 +29,16 @@ public interface MenuCategoryRepository extends JpaRepository<MenuCategory, Long
             "WHERE mc.restaurant.id = :restaurantId " +
             "AND mc.active = true " +
             "AND (mi IS NULL OR mi.active = true) " +
-            "ORDER BY mc.sortOrder ASC, mi.sortOrder ASC")
+            // Tie-breakers, not decoration. Two categories sharing sortOrder 1 and
+            // most items sitting at 0 is the normal state of an imported menu, and
+            // without a second key Postgres is free to return ties in a different
+            // order each time — a menu that reshuffles between page loads.
+            //
+            // The item keys mirror @OrderBy("sortOrder ASC, name ASC") on the
+            // collection: a fetch join's ORDER BY governs the fetched order and
+            // @OrderBy is ignored, so the two have to agree or the same menu comes
+            // back differently depending on which path loaded it.
+            "ORDER BY mc.sortOrder ASC, mc.id ASC, mi.sortOrder ASC, mi.name ASC")
     List<MenuCategory> findActiveMenuWithItems(@Param("restaurantId") Long restaurantId);
 
     boolean existsByRestaurantIdAndName(Long restaurantId, String name);

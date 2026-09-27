@@ -53,7 +53,8 @@ The fields you are likely to render, with their real names:
 | `averageRating` | number | e.g. `4.6`. **`totalRatings`** is the count |
 | `minimumOrder`, `deliveryFee` | number | so'm — see **Money** below |
 | `averagePrepTimeMinutes` | number | kitchen time only, no delivery |
-| `isCurrentlyOpen` | boolean | whether it is taking orders now — **the only open flag you get** |
+| `isOpen` | boolean | the owner's switch alone — ignores opening hours |
+| `isCurrentlyOpen` | boolean | the switch **and** the clock. **Use this one** |
 | `opensAt`, `closesAt` | `"09:00:00"` | local wall clock |
 | `acceptsDelivery`, `acceptsTakeaway`, `acceptsDineIn` | boolean | |
 | `category` | object or absent | cuisine: `{ id, slug, name, imageUrl }` |
@@ -83,6 +84,32 @@ An array of categories, each with its items:
 the item is on sale, and then `price` is the higher, struck-through one.
 `onSale` and `discountPercentage` tell you whether to render that.
 
+**`priceWithMargin` is an input to `effectivePrice`, not a rival to it.** In the
+entity:
+
+```java
+public BigDecimal getEffectivePrice() {
+    return priceWithMargin != null ? priceWithMargin : price;
+}
+```
+
+So they cannot meaningfully diverge: when `priceWithMargin` is set,
+`effectivePrice` *is* that number. It exists because a POS partner may publish a
+separate channel price for us, which is the venue's own figure. Ignore it and
+read `effectivePrice` — it is the one the order charges. (It used to be where a
+10% markup nobody chose was applied; that is gone, which is why the two now
+match everywhere.)
+
+**Items carry `sortOrder` too**, not just categories — sorted within their
+category. The API returns both already ordered, so rendering in received order
+is correct and re-sorting is unnecessary.
+
+Worth knowing about the current data: several categories share a `sortOrder` and
+most items sit at `0`, so the venue has not really expressed an order yet. Ties
+are now broken by category id and by item name, which at least makes the order
+**stable** — before that fix the same menu could come back differently between
+page loads.
+
 **`orderable`, not `inStock`,** if you grey anything out. `inStock` is the
 venue's switch for the dish; `orderable` is that *and* at least one size being
 available. Today no live item has sizes, so they agree — they will not always.
@@ -100,12 +127,19 @@ error. Design for it.
 `"15000"`. Decimal so'm, no minor units, no tiyin. Format with a thousands
 separator and no decimals: `15 000 so'm`.
 
-**`isOpen` is documented in our OpenAPI schema and never sent.** The mapper
-ignores it, so it is always absent. If you find it in a schema browser, it is
-`isCurrentlyOpen` you want — a venue is open when the owner has switched it on
-*and* the clock is inside opening hours.
+**`isOpen` and `isCurrentlyOpen` are both sent, and they differ.** An earlier
+version of this document claimed `isOpen` was never sent — that was wrong. The
+mapper ignores it on the *inbound* direction only, and it maps straight through
+outbound. `isOpen` is the owner's on/off switch; `isCurrentlyOpen` is that switch
+**and** the clock being inside opening hours. A venue switched on at 03:00 has
+`isOpen: true` and `isCurrentlyOpen: false`, and the second one is the truth
+about whether an order can be placed.
 
-**A null field is absent from the JSON entirely.** Not `null`, not `""` — the
+**A null field is absent from the JSON entirely — but an empty string is not
+null.** `email: ""` is a stored value, not a missing one, so it survives
+serialisation. Several text fields are empty strings rather than nulls in the
+current data. Treat empty as missing in the UI: `if (email)` rather than
+`if (email !== undefined)`. Not `null`, not `""` — the
 key is missing. This applies to every optional field above, so use optional
 chaining throughout rather than checking for `null`.
 
