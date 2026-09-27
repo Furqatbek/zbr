@@ -29,4 +29,7 @@ public interface DeliveryCreditRepository extends JpaRepository<DeliveryCredit, 
     Optional<DeliveryCredit> findBySourceReferralId(Long referralId);
 
     long countByUserIdAndUsedAtIsNull(Long userId);
+
+    @Query("SELECT COUNT(c) FROM DeliveryCredit c WHERE c.userId = :userId AND c.usedAt IS NOT NULL")
+    long countSpentByUserId(@Param("userId") Long userId);
 }

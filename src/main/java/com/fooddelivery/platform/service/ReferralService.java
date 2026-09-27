@@ -254,7 +254,13 @@ public class ReferralService {
 
         long totalReferrals = referralRepository.countCompletedByReferrer(userId);
         BigDecimal earnedCredits = referralRepository.sumRewardsByReferrer(userId);
-        long pendingCount = referralRepository.countByReferrerIdAndStatus(userId, ReferralStatus.PENDING);
+
+        // PENDING means "a code exists and nobody has used it" — the state every
+        // referral starts in, including the one generated for this reader two
+        // lines ago. Counting those paid a customer for having a code: refer
+        // nobody, be shown credits. USED is the real pending state: somebody
+        // signed up with the code and has not completed a delivery yet.
+        long pendingCount = referralRepository.countByReferrerIdAndStatus(userId, ReferralStatus.USED);
         BigDecimal pendingCredits = BigDecimal.valueOf(pendingCount).multiply(rewardAmount);
 
         return MyReferralInfoDto.builder()
@@ -263,6 +269,14 @@ public class ReferralService {
                 .totalReferrals(totalReferrals)
                 .earnedCredits(earnedCredits != null ? earnedCredits : BigDecimal.ZERO)
                 .pendingCredits(pendingCredits)
+                // What a referral is actually worth. earnedCredits and
+                // pendingCredits are a currency amount nothing in the platform
+                // can spend — no wallet, no balance, no order path reads them —
+                // and at 10.00 UZS apiece they would buy nothing if it could.
+                // A completed referral grants the referrer one free delivery,
+                // which is real and spendable, so report that.
+                .freeDeliveriesAvailable(deliveryCreditService.available(userId))
+                .freeDeliveriesEarned(referralRepository.countCompletedByReferrer(userId))
                 .build();
     }
 
@@ -273,6 +287,10 @@ public class ReferralService {
         private String referralLink;
         private long totalReferrals;
         private BigDecimal earnedCredits;
+        /** Free deliveries this customer can spend now — the real reward. */
+        private long freeDeliveriesAvailable;
+        /** Referrals that produced one. */
+        private long freeDeliveriesEarned;
         private BigDecimal pendingCredits;
     }
 

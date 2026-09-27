@@ -120,4 +120,22 @@ public class DeliveryCreditService {
     public long available(Long userId) {
         return creditRepository.countByUserIdAndUsedAtIsNull(userId);
     }
+
+    /**
+     * Whether a credit would be spent on this customer's next delivery order.
+     *
+     * <p>The same question {@link #spendOn} answers, asked without spending
+     * anything — so the promise on the home screen and the discount at checkout
+     * come from one place and cannot disagree.
+     */
+    @Transactional(readOnly = true)
+    public boolean hasSpendableCredit(Long userId) {
+        return !creditRepository.findSpendable(userId, LocalDateTime.now()).isEmpty();
+    }
+
+    /** Whether this customer has ever spent one. */
+    @Transactional(readOnly = true)
+    public boolean hasSpentACredit(Long userId) {
+        return creditRepository.countSpentByUserId(userId) > 0;
+    }
 }

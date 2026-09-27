@@ -21,6 +21,27 @@ public class DeliveryFeeResponse {
     @Schema(description = "Calculated delivery fee")
     private BigDecimal deliveryFee;
 
+    /**
+     * What the customer actually pays for delivery.
+     *
+     * <p>{@code deliveryFee} stays the real fee, because the courier is paid from
+     * it — zeroing it would fund the promotion out of the courier's earnings
+     * rather than the platform's. The waiver is a discount on top, exactly as the
+     * order records it.
+     *
+     * <p>Display this one. Show {@code deliveryFee} struck through when
+     * {@code freeDeliveryApplied} is true. No arithmetic needed on the client.
+     */
+    @Schema(description = "What the customer pays for delivery, after any waiver", example = "0.00")
+    private BigDecimal payableDeliveryFee;
+
+    @Schema(description = "How much of the delivery fee is waived", example = "8000.00")
+    private BigDecimal deliveryFeeDiscount;
+
+    @Schema(description = "True when this customer's free delivery covers this order",
+            example = "true")
+    private boolean freeDeliveryApplied;
+
     @Schema(description = "Base fee component from settings")
     private BigDecimal baseFee;
 

@@ -28,6 +28,7 @@ public class DeliveryFeeCalculationService {
     private final DeliveryFeeSettingsService settingsService;
     private final RouteDistanceService routeDistanceService;
     private final DeliveryEtaService etaService;
+    private final DeliveryCreditService deliveryCreditService;
 
     /**
      * Initialised as well as injected: Spring overwrites this, but @Value is
@@ -176,6 +177,9 @@ public class DeliveryFeeCalculationService {
 
             return DeliveryFeeResponse.builder()
                     .deliveryFee(settings.getBaseFee())
+                    .payableDeliveryFee(settings.getBaseFee())
+                    .deliveryFeeDiscount(BigDecimal.ZERO)
+                    .freeDeliveryApplied(false)
                     .baseFee(settings.getBaseFee())
                     .perKmFee(settings.getPerKmFee())
                     .distanceFee(BigDecimal.ZERO)
@@ -240,6 +244,12 @@ public class DeliveryFeeCalculationService {
                 .etaMinutesMin(eta.getEtaMinutesMin())
                 .etaMinutesMax(eta.getEtaMinutesMax())
                 .deliveryFee(calculatedFee)
+                // Defaults to the full fee. withFreeDeliveryFor() lowers it when
+                // the customer is owed a delivery; set here so the field is
+                // never absent and a client has one number to display.
+                .payableDeliveryFee(calculatedFee)
+                .deliveryFeeDiscount(BigDecimal.ZERO)
+                .freeDeliveryApplied(false)
                 .baseFee(settings.getBaseFee())
                 .perKmFee(settings.getPerKmFee())
                 .distanceFee(distanceFee)
@@ -251,5 +261,33 @@ public class DeliveryFeeCalculationService {
                 .minFee(settings.getMinFee())
                 .maxFee(settings.getMaxFee())
                 .build();
+    }
+
+    /**
+     * Show this customer's free delivery in the quote, without spending it.
+     *
+     * <p>The app displays what we return and computes nothing, so this is the
+     * only place the promise can become a number. It reads the same credits the
+     * order path spends — asking rather than taking — so the figure at checkout
+     * and the figure on the order cannot disagree.
+     *
+     * <p>{@code deliveryFee} is left alone. The courier is paid from it, and
+     * zeroing it would fund a marketing promotion out of their earnings; the
+     * waiver is a discount the platform absorbs, recorded the same way on the
+     * order itself.
+     */
+    public DeliveryFeeResponse withFreeDeliveryFor(DeliveryFeeResponse quote, Long consumerId) {
+        if (consumerId == null || quote.getDeliveryFee() == null
+                || quote.getDeliveryFee().compareTo(BigDecimal.ZERO) <= 0) {
+            return quote;
+        }
+        if (!deliveryCreditService.hasSpendableCredit(consumerId)) {
+            return quote;
+        }
+
+        quote.setDeliveryFeeDiscount(quote.getDeliveryFee());
+        quote.setPayableDeliveryFee(BigDecimal.ZERO);
+        quote.setFreeDeliveryApplied(true);
+        return quote;
     }
 }

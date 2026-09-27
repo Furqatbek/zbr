@@ -294,6 +294,7 @@ public class OrderController {
     @PreAuthorize("hasAnyRole('CONSUMER', 'PLATFORM', 'ADMIN')")
     @Operation(summary = "Calculate delivery fee", description = "Calculate delivery fee based on restaurant and delivery location")
     public ResponseEntity<ApiResponse<DeliveryFeeResponse>> calculateDeliveryFee(
+            @AuthenticationPrincipal UserPrincipal currentUser,
             @Valid @RequestBody CalculateDeliveryFeeRequest request) {
 
         Restaurant restaurant = restaurantService.getRestaurantEntityById(request.getRestaurantId());
@@ -302,6 +303,11 @@ public class OrderController {
                 request.getDeliveryLatitude(),
                 request.getDeliveryLongitude()
         );
+        // A free delivery the customer is owed, shown before they commit. A flag
+        // on the home screen without this is the same false promise one screen
+        // later: "delivery is on us" followed by a delivery charge.
+        response = deliveryFeeCalculationService.withFreeDeliveryFor(
+                response, currentUser != null ? currentUser.getId() : null);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
