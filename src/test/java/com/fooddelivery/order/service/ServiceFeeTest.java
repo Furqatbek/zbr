@@ -31,7 +31,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class ServiceFeeTest {
 
     private OrderService serviceWithRate(String rate) {
-        OrderService service = new OrderService(null, null, null, null, null, null,
+        OrderService service = new OrderService(null, null, null, null, null, null, null, null,
                 null, null, null, null, null, null, null, null, null, null);
         ReflectionTestUtils.setField(service, "serviceFeeRate", new BigDecimal(rate));
         return service;

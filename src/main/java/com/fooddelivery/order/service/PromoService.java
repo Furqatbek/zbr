@@ -96,7 +96,8 @@ public class PromoService {
      * @throws BusinessException with a message written for the customer
      */
     @Transactional
-    public Claim claim(String code, Long userId, Long restaurantId, BigDecimal subtotal) {
+    public Claim claim(String code, Long userId, Long restaurantId,
+                       BigDecimal subtotal, BigDecimal deliveryFee) {
         PromoCode promo = promoCodeRepository.findByCodeIgnoreCase(code.trim())
                 .orElseThrow(() -> new BusinessException("Invalid promo code"));
 
@@ -124,10 +125,11 @@ public class PromoService {
             throw new BusinessException("This promo code has reached its usage limit");
         }
 
-        BigDecimal discount = promo.calculateDiscount(subtotal);
-        log.info("Promo {} claimed by user {} on restaurant {}: -{}",
-                promo.getCode(), userId, restaurantId, discount);
-        return new Claim(promo.getId(), promo.getCode(), discount);
+        BigDecimal discount = promo.calculateDiscount(subtotal, deliveryFee);
+        log.info("Promo {} ({}) claimed by user {} on restaurant {}: -{}",
+                promo.getCode(), promo.getDiscountType(), userId, restaurantId, discount);
+        return new Claim(promo.getId(), promo.getCode(), discount,
+                promo.getDiscountType() == PromoCode.DiscountType.FREE_DELIVERY);
     }
 
     /**
@@ -146,8 +148,13 @@ public class PromoService {
                 .build());
     }
 
-    /** A code taken for an order, and what it took off. */
-    public record Claim(Long promoCodeId, String code, BigDecimal discount) {
+    /**
+     * A code taken for an order, and what it took off.
+     *
+     * @param freeDelivery true when the code already paid for the delivery, so
+     *                     a delivery credit must not be spent on the same order
+     */
+    public record Claim(Long promoCodeId, String code, BigDecimal discount, boolean freeDelivery) {
     }
 
     private String reasonItIsNotValid(PromoCode promo) {

@@ -69,6 +69,8 @@ public class OrderService {
     private final PaymentService paymentService;
     private final OrderRealtimeBroadcaster realtimeBroadcaster;
     private final PromoService promoService;
+    private final DeliveryCreditService deliveryCreditService;
+    private final com.fooddelivery.platform.service.ReferralService referralService;
 
     @Value("${app.order.auto-cancel-unpaid-minutes:30}")
     private int autoCancelMinutes;
@@ -211,7 +213,7 @@ public class OrderService {
         PromoService.Claim claim = null;
         if (request.getDiscountCode() != null && !request.getDiscountCode().isBlank()) {
             claim = promoService.claim(request.getDiscountCode(), consumerId,
-                    restaurant.getId(), order.getSubtotal());
+                    restaurant.getId(), order.getSubtotal(), order.getDeliveryFee());
             order.setDiscount(claim.discount());
             order.setPromoCode(claim.code());
             order.calculateTotals();
@@ -225,6 +227,24 @@ public class OrderService {
         // the count increment rolls back with it.
         if (claim != null) {
             promoService.recordUsage(claim, consumerId, order.getId());
+        }
+
+        // A free delivery the customer is already owed — their welcome one, or
+        // one earned by referring somebody. Spent automatically: it is not a
+        // code they have to remember, and holding it back for a better order is
+        // not a choice anyone asked for.
+        //
+        // Skipped when a promo code has already made this delivery free, so one
+        // order cannot consume two benefits for the same fee.
+        if (order.getOrderType() == OrderType.DELIVERY
+                && (claim == null || !claim.freeDelivery())) {
+            java.util.Optional<BigDecimal> credited = deliveryCreditService.spendOn(
+                    consumerId, order.getId(), order.getDeliveryFee());
+            if (credited.isPresent()) {
+                order.setDiscount(order.getDiscount().add(credited.get()));
+                order.calculateTotals();
+                order = orderRepository.save(order);
+            }
         }
         log.info("Order created: {} (ID: {})", order.getExternalOrderNo(), order.getId());
 
@@ -670,6 +690,21 @@ public class OrderService {
                 }
                 // Record platform commission (idempotent — safe across DELIVERED then COMPLETED)
                 commissionService.recordCommission(order);
+
+                // Pay out a referral, if this customer arrived through one.
+                // Here rather than at order creation so an order placed and
+                // cancelled cannot mint a reward, and idempotent for the same
+                // reason the commission above is: this runs for DELIVERED and
+                // again for COMPLETED.
+                //
+                // Wrapped because a referral is never worth failing a delivery
+                // for — the order has already been handed to a customer.
+                try {
+                    referralService.completeReferral(order.getConsumer().getId());
+                } catch (Exception e) {
+                    log.error("Could not complete referral for user {} on order {}: {}",
+                            order.getConsumer().getId(), order.getExternalOrderNo(), e.getMessage());
+                }
             }
             default -> {}
         }

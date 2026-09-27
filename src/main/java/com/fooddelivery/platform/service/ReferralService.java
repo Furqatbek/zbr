@@ -41,6 +41,7 @@ public class ReferralService {
     @org.springframework.beans.factory.annotation.Value("${app.public-url:https://zbrr.uz}")
     private String publicBaseUrl;
     private final UserService userService;
+    private final com.fooddelivery.order.service.DeliveryCreditService deliveryCreditService;
 
     @Value("${app.referral.reward-amount:10.00}")
     private BigDecimal rewardAmount;
@@ -110,7 +111,22 @@ public class ReferralService {
     }
 
     /**
-     * Complete a referral (e.g., after first order).
+     * Pay out a referral, once the person who was referred has actually had a
+     * delivery.
+     *
+     * <p>This method existed with no caller and a comment reading "In
+     * production: Credit rewards to user wallets/accounts". So every referral
+     * sat at USED forever and nobody was ever rewarded for bringing anyone.
+     *
+     * <p>Both sides get a free delivery, but only one of them from here. The
+     * referred customer's side is the welcome credit they were granted when
+     * they registered — the same one every customer gets. Granting a second one
+     * for having arrived through a code would hand one person two free
+     * deliveries for one arrival, which is the double this is meant to avoid.
+     *
+     * <p>Idempotent. The trigger is an order reaching DELIVERED, and delivery
+     * events get redelivered; the credit's unique index on the referral is what
+     * makes a repeat harmless rather than expensive.
      */
     @Transactional
     public void completeReferral(Long referredUserId) {
@@ -121,15 +137,21 @@ public class ReferralService {
             return;
         }
 
+        boolean granted = deliveryCreditService.grantReferralReward(
+                referral.getReferrer().getId(), referral.getId());
+
         referral.complete();
         referral.setReferrerRewarded(true);
+        // The referred side was rewarded at registration, with the welcome
+        // credit. Recorded as true because it is true — they have their free
+        // delivery — not because anything was granted here.
         referral.setReferredRewarded(true);
         referralRepository.save(referral);
 
-        log.info("Referral {} completed. Rewards: referrer={}, referred={}",
-                referral.getCode(), rewardAmount, rewardAmount);
-
-        // In production: Credit rewards to user wallets/accounts
+        log.info("Referral {} completed: free delivery to referrer {} ({}), "
+                        + "referred user {} keeps their welcome credit",
+                referral.getCode(), referral.getReferrer().getId(),
+                granted ? "granted" : "already held", referredUserId);
     }
 
     /**

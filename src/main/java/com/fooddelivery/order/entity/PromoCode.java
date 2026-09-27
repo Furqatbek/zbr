@@ -79,8 +79,18 @@ public class PromoCode {
     private LocalDateTime updatedAt;
 
     public enum DiscountType {
+        /** A percentage of the food, capped by maxDiscountAmount when set. */
         PERCENTAGE,
-        FIXED
+        /** A flat amount off the food. */
+        FIXED,
+        /**
+         * The delivery is on us.
+         *
+         * <p>Not expressible as FIXED: the fee is distance-based, so it is a
+         * different number for every customer and any flat amount either
+         * short-changes someone far away or overpays someone next door.
+         */
+        FREE_DELIVERY
     }
 
     /**
@@ -101,6 +111,25 @@ public class PromoCode {
      * Calculate discount amount for a given subtotal.
      */
     public BigDecimal calculateDiscount(BigDecimal subtotal) {
+        return calculateDiscount(subtotal, BigDecimal.ZERO);
+    }
+
+    /**
+     * What this code takes off, given both halves of the bill.
+     *
+     * @param deliveryFee needed by FREE_DELIVERY, which is the only type that
+     *                    discounts something other than the food
+     */
+    public BigDecimal calculateDiscount(BigDecimal subtotal, BigDecimal deliveryFee) {
+        if (discountType == DiscountType.FREE_DELIVERY) {
+            BigDecimal fee = deliveryFee != null ? deliveryFee : BigDecimal.ZERO;
+            // A cap still applies, so "free delivery up to 15 000" is sayable.
+            if (maxDiscountAmount != null && fee.compareTo(maxDiscountAmount) > 0) {
+                return maxDiscountAmount;
+            }
+            return fee;
+        }
+
         BigDecimal discount;
 
         if (discountType == DiscountType.PERCENTAGE) {

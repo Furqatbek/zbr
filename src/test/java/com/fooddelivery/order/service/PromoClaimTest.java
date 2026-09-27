@@ -76,7 +76,7 @@ class PromoClaimTest {
         when(promoCodeRepository.claimOneUse(1L)).thenReturn(1);
 
         PromoService.Claim claim = promoService.claim(
-                "QAHVOON", USER, RESTAURANT, new BigDecimal("45000"));
+                "QAHVOON", USER, RESTAURANT, new BigDecimal("45000"), new BigDecimal("8000"));
 
         assertThat(claim.discount()).isEqualByComparingTo("5000");
         assertThat(claim.code()).isEqualTo("QAHVOON");
@@ -92,7 +92,7 @@ class PromoClaimTest {
         when(usageRepository.countByPromoCodeIdAndUserId(1L, USER)).thenReturn(1L);
 
         assertThatThrownBy(() -> promoService.claim(
-                "QAHVOON", USER, RESTAURANT, new BigDecimal("45000")))
+                "QAHVOON", USER, RESTAURANT, new BigDecimal("45000"), new BigDecimal("8000")))
                 .isInstanceOf(BusinessException.class)
                 .hasMessageContaining("already used");
 
@@ -112,7 +112,7 @@ class PromoClaimTest {
         when(promoCodeRepository.claimOneUse(1L)).thenReturn(0);
 
         assertThatThrownBy(() -> promoService.claim(
-                "QAHVOON", USER, RESTAURANT, new BigDecimal("45000")))
+                "QAHVOON", USER, RESTAURANT, new BigDecimal("45000"), new BigDecimal("8000")))
                 .isInstanceOf(BusinessException.class)
                 .hasMessageContaining("usage limit");
     }
@@ -124,7 +124,7 @@ class PromoClaimTest {
         codeExists();
 
         assertThatThrownBy(() -> promoService.claim(
-                "QAHVOON", USER, RESTAURANT, new BigDecimal("45000")))
+                "QAHVOON", USER, RESTAURANT, new BigDecimal("45000"), new BigDecimal("8000")))
                 .isInstanceOf(BusinessException.class)
                 .hasMessageContaining("not valid for this restaurant");
         verify(promoCodeRepository, never()).claimOneUse(anyLong());
@@ -137,7 +137,7 @@ class PromoClaimTest {
         codeExists();
 
         assertThatThrownBy(() -> promoService.claim(
-                "QAHVOON", USER, RESTAURANT, new BigDecimal("45000")))
+                "QAHVOON", USER, RESTAURANT, new BigDecimal("45000"), new BigDecimal("8000")))
                 .isInstanceOf(BusinessException.class)
                 // Not a generic "invalid": the customer can tell the difference
                 // between a typo and a campaign that ended.
@@ -151,7 +151,7 @@ class PromoClaimTest {
         codeExists();
 
         assertThatThrownBy(() -> promoService.claim(
-                "QAHVOON", USER, RESTAURANT, new BigDecimal("45000")))
+                "QAHVOON", USER, RESTAURANT, new BigDecimal("45000"), new BigDecimal("8000")))
                 .isInstanceOf(BusinessException.class)
                 .hasMessageContaining("minimum order");
     }
@@ -162,7 +162,7 @@ class PromoClaimTest {
         when(promoCodeRepository.findByCodeIgnoreCase("NOPE")).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> promoService.claim(
-                "NOPE", USER, RESTAURANT, new BigDecimal("45000")))
+                "NOPE", USER, RESTAURANT, new BigDecimal("45000"), new BigDecimal("8000")))
                 .isInstanceOf(BusinessException.class)
                 .hasMessageContaining("Invalid promo code");
         verify(usageRepository, never()).save(any());
@@ -179,7 +179,7 @@ class PromoClaimTest {
         when(promoCodeRepository.claimOneUse(1L)).thenReturn(1);
 
         // 20% of 45 000 is 9 000, capped at 6 000.
-        assertThat(promoService.claim("QAHVOON", USER, RESTAURANT, new BigDecimal("45000"))
+        assertThat(promoService.claim("QAHVOON", USER, RESTAURANT, new BigDecimal("45000"), new BigDecimal("8000"))
                 .discount()).isEqualByComparingTo("6000");
     }
 
@@ -193,7 +193,7 @@ class PromoClaimTest {
         when(usageRepository.countByPromoCodeIdAndUserId(1L, USER)).thenReturn(0L);
         when(promoCodeRepository.claimOneUse(1L)).thenReturn(1);
 
-        assertThat(promoService.claim("QAHVOON", USER, RESTAURANT, new BigDecimal("12000"))
+        assertThat(promoService.claim("QAHVOON", USER, RESTAURANT, new BigDecimal("12000"), new BigDecimal("8000"))
                 .discount()).isEqualByComparingTo("12000");
     }
 }

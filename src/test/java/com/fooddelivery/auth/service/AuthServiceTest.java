@@ -63,6 +63,7 @@ class AuthServiceTest {
     @Mock private AuthenticationManager authenticationManager;
     @Mock private NotificationService notificationService;
     @Mock private ReferralService referralService;
+    @Mock private com.fooddelivery.order.service.DeliveryCreditService deliveryCreditService;
 
     @InjectMocks
     private AuthService authService;

@@ -57,6 +57,7 @@ public class AuthService {
     private final NotificationService notificationService;
     private final ReferralService referralService;
     private final LastSeenService lastSeenService;
+    private final com.fooddelivery.order.service.DeliveryCreditService deliveryCreditService;
 
     /**
      * Register a new user.
@@ -119,6 +120,12 @@ public class AuthService {
                 log.warn("Failed to process referral code: {}", e.getMessage());
             }
         }
+
+        // One free delivery, for everyone, once. Granted here rather than
+        // worked out at checkout from "has this person ordered before": an
+        // order that is placed and cancelled would otherwise spend a benefit
+        // the customer never received. Never throws — see grantWelcome.
+        deliveryCreditService.grantWelcome(user.getId());
 
         // Generate tokens
         UserPrincipal userPrincipal = UserPrincipal.create(user);

@@ -162,3 +162,136 @@ Worth being plain, because the plan assumes some of it:
   there. The backend counts *conversions* — promo uses — which is the number
   that matters for rewarding a restaurant.
 - **No admin API for promo codes.** SQL for now, as above.
+
+---
+
+# Free delivery
+
+Three ways a delivery becomes free, one mechanism underneath.
+
+## 1. `FREE_DELIVERY` promo codes
+
+A third `DiscountType`, alongside `PERCENTAGE` and `FIXED`:
+
+```sql
+INSERT INTO promo_codes
+  (code, description, discount_type, discount_value, restaurant_id,
+   usage_limit, user_usage_limit, starts_at, expires_at, is_active)
+VALUES
+  ('QAHVOON', 'QR poster — first delivery free', 'FREE_DELIVERY', 0, 3,
+   500, 1, NOW(), NOW() + INTERVAL '3 months', TRUE);
+```
+
+`discount_value` is ignored — the discount *is* the fee, whatever it comes to
+for that customer. This is exactly why a `FIXED` code could not stand in: the
+fee is distance-based, so a flat amount short-changes someone far away and
+overpays someone next door. Set `max_discount_amount` to say "free delivery up
+to 10 000".
+
+## 2. Every new customer, automatically
+
+One credit is granted at registration. It is spent on the first delivery order
+that has a fee — no code to remember and nothing for the customer to do.
+
+Granted at registration rather than worked out at checkout from "has this
+person ordered before", because an order placed and cancelled would otherwise
+consume a benefit the customer never received.
+
+## 3. Referrals — both sides
+
+`completeReferral` existed with **no caller** and a body ending in
+`// In production: Credit rewards to user wallets/accounts`. Every referral has
+been sitting at `USED` forever and nobody has ever been rewarded for bringing
+anybody.
+
+It now pays out, and it now has a caller: the referred customer's order reaching
+`DELIVERED`.
+
+- **The referrer** gets a free delivery, one per successful referral.
+- **The referred customer** already has theirs — the welcome credit every
+  customer gets. Granting a second one for having arrived through a code would
+  hand one person two free deliveries for one arrival.
+
+That is the "no double" rule, and it is the answer to the obvious question: a
+customer who arrives through a referral gets *one* free delivery, the same as a
+customer who arrives on their own. The referrer's is the extra one, and it is
+what the referral is for.
+
+Paid on delivery rather than on order, so an order placed and cancelled cannot
+mint a reward.
+
+## How the rules are actually enforced
+
+In the database, not in a method:
+
+```sql
+CREATE UNIQUE INDEX uq_delivery_credits_welcome
+    ON delivery_credits (user_id) WHERE reason = 'WELCOME';
+
+CREATE UNIQUE INDEX uq_delivery_credits_referral
+    ON delivery_credits (source_referral_id) WHERE source_referral_id IS NOT NULL;
+```
+
+A service check is something a second code path can forget to call. A partial
+unique index is not. Both grants catch the violation and carry on, so a retried
+registration or a redelivered `DELIVERED` event is harmless rather than
+expensive — and `completeReferral` runs twice by design, once for `DELIVERED`
+and again for `COMPLETED`.
+
+**One order cannot take two free deliveries.** If a `FREE_DELIVERY` code has
+already covered the fee, no credit is spent — it stays for the customer's next
+order.
+
+**A credit is never spent on an order with no delivery fee.** Pickup, or a venue
+that does not charge, keeps the credit rather than burning it on nothing.
+
+## What it does to the money
+
+The credit discounts what the **customer** pays. It does **not** zero the
+delivery fee.
+
+```
+deliveryFee 8 000, discount 8 000, total = food + service fee
+```
+
+The courier is paid `deliveryFee + tip`, so zeroing the fee would fund the
+marketing out of the courier's pocket. The order keeps its fee, carries an equal
+discount, and the platform absorbs the cost. It also makes the invoice readable
+after the fact.
+
+## Nothing was granted to existing accounts
+
+Customers registering from this deploy on get a welcome credit. The people
+already registered do not — handing free deliveries to an existing list is a
+decision about money, and a migration should not make it quietly. To grant it to
+everyone who has registered but never ordered:
+
+```sql
+INSERT INTO delivery_credits (user_id, reason)
+SELECT u.id, 'WELCOME' FROM users u
+WHERE NOT EXISTS (SELECT 1 FROM orders o WHERE o.consumer_id = u.id)
+  AND NOT EXISTS (SELECT 1 FROM delivery_credits c
+                  WHERE c.user_id = u.id AND c.reason = 'WELCOME');
+```
+
+## Watching it
+
+```sql
+SELECT reason,
+       COUNT(*) FILTER (WHERE used_at IS NULL) AS outstanding,
+       COUNT(*) FILTER (WHERE used_at IS NOT NULL) AS spent,
+       COALESCE(SUM(amount), 0) AS cost_so_far
+FROM delivery_credits GROUP BY reason;
+```
+
+`outstanding` is a liability — free deliveries promised and not yet taken.
+
+## Still open
+
+- **The app shows nothing about it.** There is no field on any response saying
+  "your delivery is free" before checkout, so today the customer discovers it
+  when the total is lower than expected. Pleasant, but a benefit nobody knows
+  about does not bring anyone back. The obvious addition is `freeDeliveryAvailable`
+  on the customer's profile or the fee quote — tell us where you want it.
+- **No expiry is set.** The column exists and nothing fills it, so a credit
+  lasts forever. That is the safe default; a campaign may want 30 days.
