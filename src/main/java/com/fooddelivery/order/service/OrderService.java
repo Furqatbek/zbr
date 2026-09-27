@@ -470,6 +470,15 @@ public class OrderService {
         OrderStatus previousStatus = order.getStatus();
         order.updateStatus(OrderStatus.CANCELLED);
         order.setCancellationReason(request.getReason());
+        // The countable form. reason is the localised text the customer read, so
+        // on its own it is free text in three languages — "Wrong delivery
+        // address" and "Неверный адрес доставки" are the same fact and cannot be
+        // grouped. Normalised here so WRONG_ADDRESS and wrong_address are one
+        // value in a report rather than two.
+        if (request.getReasonCode() != null && !request.getReasonCode().isBlank()) {
+            order.setCancellationReasonCode(
+                    request.getReasonCode().trim().toUpperCase(java.util.Locale.ROOT));
+        }
 
         order = orderRepository.save(order);
         log.info("Order {} cancelled by user {}: {}", order.getExternalOrderNo(), cancelledBy, request.getReason());

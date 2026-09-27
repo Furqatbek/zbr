@@ -110,16 +110,45 @@ public class GlobalExceptionHandler {
         });
         log.warn("Validation failed: {}", errors);
 
+        // The clients display `message` verbatim, and this said "Validation
+        // failed" while the thing that actually failed sat in `data` where
+        // nobody looked. So a customer app surfacing our own message showed
+        // "Validation failed" for a request whose only problem was a missing
+        // reason — and the message we had carefully written for that field,
+        // "Cancellation reason is required", was never seen by anyone.
+        //
+        // One error names it. Several are joined, because a caller fixing a body
+        // wants all of them, not the first one the map happened to yield.
         ErrorDetails errorDetails = ErrorDetails.builder()
                 .timestamp(LocalDateTime.now())
                 .status(HttpStatus.BAD_REQUEST.value())
                 .error(HttpStatus.BAD_REQUEST.getReasonPhrase())
-                .message("Validation failed")
+                .message(describe(errors))
                 .path(request.getDescription(false).replace("uri=", ""))
                 .build();
 
         return ResponseEntity.badRequest()
                 .body(ApiResponse.error(errorDetails.getMessage(), errors));
+    }
+
+    /**
+     * Turn field errors into a sentence a client can show a person.
+     *
+     * <p>Sorted by field name so the same bad body always produces the same
+     * message: the errors arrive in a HashMap, and an order that changes between
+     * requests makes a response look unstable and breaks anyone asserting on it.
+     */
+    private static String describe(Map<String, String> errors) {
+        if (errors.isEmpty()) {
+            return "Validation failed";
+        }
+        if (errors.size() == 1) {
+            return errors.values().iterator().next();
+        }
+        return errors.entrySet().stream()
+                .sorted(Map.Entry.comparingByKey())
+                .map(e -> e.getKey() + ": " + e.getValue())
+                .collect(Collectors.joining("; "));
     }
 
     @ExceptionHandler(ConstraintViolationException.class)

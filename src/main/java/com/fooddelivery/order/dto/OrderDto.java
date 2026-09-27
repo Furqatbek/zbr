@@ -158,6 +158,10 @@ public class OrderDto {
     @Schema(description = "Cancellation reason")
     private String cancellationReason;
 
+    @Schema(description = "Stable reason identifier, for grouping cancellations",
+            example = "WRONG_ADDRESS")
+    private String cancellationReasonCode;
+
     // Rating
     @Schema(description = "Consumer rating (1-5)")
     private Integer consumerRating;

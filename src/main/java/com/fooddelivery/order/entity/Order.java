@@ -193,6 +193,13 @@ public class Order {
     @Column(name = "cancellation_reason", length = 500)
     private String cancellationReason;
 
+    /**
+     * The stable form of {@link #cancellationReason}, which is whatever text the
+     * customer was shown and is therefore in one of three languages.
+     */
+    @Column(name = "cancellation_reason_code", length = 40)
+    private String cancellationReasonCode;
+
     @Column(name = "rejected_at")
     private LocalDateTime rejectedAt;
 
