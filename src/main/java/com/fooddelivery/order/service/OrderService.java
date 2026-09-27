@@ -68,6 +68,7 @@ public class OrderService {
     private final CommissionService commissionService;
     private final PaymentService paymentService;
     private final OrderRealtimeBroadcaster realtimeBroadcaster;
+    private final PromoService promoService;
 
     @Value("${app.order.auto-cancel-unpaid-minutes:30}")
     private int autoCancelMinutes;
@@ -199,8 +200,32 @@ public class OrderService {
             throw new BusinessException("Order subtotal must be at least " + restaurant.getMinimumOrder());
         }
 
+        // The discount, which until now was accepted and ignored. discountCode
+        // has been on this request since promo codes existed and nothing read
+        // it: /orders/validate-promo told the customer what they would save,
+        // and then we charged them the full amount.
+        //
+        // After the minimum-order check, because the minimum is about what the
+        // restaurant is willing to cook, not what the customer ends up paying —
+        // a discount must not let an order slip under a venue's floor.
+        PromoService.Claim claim = null;
+        if (request.getDiscountCode() != null && !request.getDiscountCode().isBlank()) {
+            claim = promoService.claim(request.getDiscountCode(), consumerId,
+                    restaurant.getId(), order.getSubtotal());
+            order.setDiscount(claim.discount());
+            order.setPromoCode(claim.code());
+            order.calculateTotals();
+        }
+
         // Save order
         order = orderRepository.save(order);
+
+        // Needs the order id, so it cannot happen inside claim(). Same
+        // transaction: if the order fails to save, the use is not recorded and
+        // the count increment rolls back with it.
+        if (claim != null) {
+            promoService.recordUsage(claim, consumerId, order.getId());
+        }
         log.info("Order created: {} (ID: {})", order.getExternalOrderNo(), order.getId());
 
         // Publish event

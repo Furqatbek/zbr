@@ -115,6 +115,14 @@ public class Order {
     @Builder.Default
     private BigDecimal discount = BigDecimal.ZERO;
 
+    /**
+     * The code that produced {@link #discount}, for the invoice to be
+     * explainable afterwards — a refund, a dispute or a finance report
+     * otherwise sees a total that does not follow from the items.
+     */
+    @Column(name = "promo_code", length = 50)
+    private String promoCode;
+
     @Column(name = "tip_amount", precision = 10, scale = 2)
     @Builder.Default
     private BigDecimal tipAmount = BigDecimal.ZERO;

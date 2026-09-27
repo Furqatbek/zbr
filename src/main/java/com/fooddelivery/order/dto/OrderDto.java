@@ -95,6 +95,9 @@ public class OrderDto {
     @Schema(description = "Discount amount")
     private BigDecimal discount;
 
+    @Schema(description = "Promo code applied to this order, if any", example = "QAHVOON")
+    private String promoCode;
+
     @Schema(description = "Tip amount")
     private BigDecimal tipAmount;
 
