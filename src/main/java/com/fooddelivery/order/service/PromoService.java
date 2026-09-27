@@ -62,9 +62,24 @@ public class PromoService {
                     "Minimum order amount of " + promo.getMinOrderAmount() + " required for this promo code");
         }
 
-        // Calculate discount
-        BigDecimal discountAmount = promo.calculateDiscount(request.getSubtotal());
-        BigDecimal newTotal = request.getSubtotal().subtract(discountAmount);
+        // What the code is worth. A FREE_DELIVERY code is worth the delivery fee,
+        // so without one it cannot be priced — and answering 0 would display "you
+        // save nothing" for a promotion that works. Absent is the honest answer;
+        // discountType tells the client to render words instead of a number.
+        boolean freeDelivery = promo.getDiscountType() == PromoCode.DiscountType.FREE_DELIVERY;
+        BigDecimal discountAmount;
+        if (freeDelivery && request.getDeliveryFee() == null) {
+            discountAmount = null;
+        } else {
+            discountAmount = promo.calculateDiscount(request.getSubtotal(),
+                    request.getDeliveryFee() != null ? request.getDeliveryFee() : BigDecimal.ZERO);
+        }
+
+        // A free delivery does not reduce the food, so the basket total is
+        // unchanged by it.
+        BigDecimal newTotal = (discountAmount == null || freeDelivery)
+                ? request.getSubtotal()
+                : request.getSubtotal().subtract(discountAmount);
 
         return PromoValidationResponse.builder()
                 .valid(true)

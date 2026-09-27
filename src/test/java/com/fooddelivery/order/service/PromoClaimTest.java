@@ -196,4 +196,54 @@ class PromoClaimTest {
         assertThat(promoService.claim("QAHVOON", USER, RESTAURANT, new BigDecimal("12000"), new BigDecimal("8000"))
                 .discount()).isEqualByComparingTo("12000");
     }
+
+    @org.junit.jupiter.api.Nested
+    @DisplayName("Validating a FREE_DELIVERY code")
+    class ValidatingFreeDelivery {
+
+        private com.fooddelivery.order.dto.PromoValidationRequest ask(BigDecimal deliveryFee) {
+            com.fooddelivery.order.dto.PromoValidationRequest r =
+                    new com.fooddelivery.order.dto.PromoValidationRequest();
+            r.setPromoCode("QAHVOON");
+            r.setRestaurantId(RESTAURANT);
+            r.setSubtotal(new BigDecimal("45000"));
+            r.setDeliveryFee(deliveryFee);
+            return r;
+        }
+
+        @org.junit.jupiter.api.BeforeEach
+        void freeDeliveryCode() {
+            code.setDiscountType(PromoCode.DiscountType.FREE_DELIVERY);
+            code.setDiscountValue(BigDecimal.ZERO);
+            when(promoCodeRepository.findByCodeIgnoreCase("QAHVOON")).thenReturn(Optional.of(code));
+        }
+
+        @Test
+        @DisplayName("with the fee, it is worth the fee")
+        void withFee() {
+            assertThat(promoService.validatePromoCode(ask(new BigDecimal("8000")))
+                    .getDiscountAmount()).isEqualByComparingTo("8000");
+        }
+
+        @Test
+        @DisplayName("without the fee, no amount is claimed rather than zero")
+        void withoutFee() {
+            // "valid, you save 0" for a code that waives a real 8 000 is a
+            // working promotion advertised as worthless. The type tells the
+            // client to render words instead of a number.
+            com.fooddelivery.order.dto.PromoValidationResponse response =
+                    promoService.validatePromoCode(ask(null));
+
+            assertThat(response.isValid()).isTrue();
+            assertThat(response.getDiscountAmount()).isNull();
+            assertThat(response.getDiscountType()).isEqualTo("FREE_DELIVERY");
+        }
+
+        @Test
+        @DisplayName("the basket total is unchanged — delivery is not food")
+        void basketUnchanged() {
+            assertThat(promoService.validatePromoCode(ask(new BigDecimal("8000")))
+                    .getNewTotal()).isEqualByComparingTo("45000");
+        }
+    }
 }
