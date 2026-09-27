@@ -25,6 +25,23 @@ public interface MenuItemRepository extends JpaRepository<MenuItem, Long> {
 
     List<MenuItem> findByCategoryIdAndActiveOrderBySortOrderAsc(Long categoryId, Boolean active);
 
+    /**
+     * Whether any order has ever contained this item.
+     *
+     * <p>Gate for a permanent delete. {@code order_items.menu_item_id} has an
+     * index and NO foreign key, so the database will happily let the row go —
+     * and {@code OrderItem.menuItem} is {@code @ManyToOne(nullable = false)}, so
+     * Hibernate then throws when it loads that line. The damage appears later,
+     * when someone opens an old order, not when the delete happens.
+     */
+    @Query("SELECT COUNT(oi) > 0 FROM OrderItem oi WHERE oi.menuItem.id = :itemId")
+    boolean isReferencedByAnyOrder(@Param("itemId") Long itemId);
+
+    /** Everything a venue has withdrawn: invisible to customers, and to them. */
+    @Query("SELECT mi FROM MenuItem mi WHERE mi.category.restaurant.id = :restaurantId "
+            + "AND mi.active = false ORDER BY mi.category.id, mi.sortOrder")
+    List<MenuItem> findInactiveByRestaurantId(@Param("restaurantId") Long restaurantId);
+
     @Query("SELECT mi FROM MenuItem mi " +
             "JOIN mi.category mc " +
             "WHERE mc.restaurant.id = :restaurantId " +

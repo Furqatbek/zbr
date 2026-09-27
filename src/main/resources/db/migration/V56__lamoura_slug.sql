@@ -1,0 +1,25 @@
+-- The restaurant now trading as L'Amoura still carries the slug of the demo
+-- venue it was created from: pizza-palace.
+--
+-- Slugs are assigned once at creation and deliberately never regenerated, so a
+-- rename leaves the old one in place. That is right in general — analytics and
+-- links key on it — and wrong here, because the slug is about to be printed on
+-- QR posters as https://app.zbrr.uz/r/pizza-palace, naming a business that does
+-- not exist. Cheap to fix now, impossible once it is on a takeaway bag.
+--
+-- On a freshly seeded database this renames the demo restaurant's slug while its
+-- name stays "Pizza Palace". That is harmless: it is demo data, and the seed's
+-- own later migrations (V27) already ran against the old value.
+UPDATE restaurants SET slug = 'lamoura' WHERE slug = 'pizza-palace';
+
+-- Redis holds the restaurant DTO under 'restaurants::1' and under
+-- 'restaurants::slug:pizza-palace', and a migration cannot evict either. Until
+-- those expire, a response may still report the old slug. After deploying:
+--
+--   docker exec food-delivery-redis redis-cli DEL 'restaurants::1'
+--   docker exec food-delivery-redis redis-cli --scan --pattern 'restaurants::slug:*' \
+--     | xargs -r -n1 docker exec food-delivery-redis redis-cli DEL
+--
+-- The old URL keeps working only as long as its cache entry lives; after that
+-- /r/pizza-palace is a 404. Nothing is printed with it yet, which is the point
+-- of doing this today.

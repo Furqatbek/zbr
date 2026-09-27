@@ -321,15 +321,67 @@ public class MenuController {
     @DeleteMapping("/items/{itemId}")
     @PreAuthorize("hasAnyRole('RESTAURANT_OWNER', 'RESTAURANT_STAFF', 'PLATFORM', 'ADMIN')")
     @SecurityRequirement(name = "bearerAuth")
-    @Operation(summary = "Delete item", description = "Delete a menu item (soft delete)")
+    @Operation(summary = "Delete item",
+            description = "Hides the item by default. permanent=true removes the row, and is "
+                    + "refused for an item any order has ever contained.")
     public ResponseEntity<ApiResponse<Void>> deleteItem(
             @AuthenticationPrincipal UserPrincipal currentUser,
             @PathVariable Long restaurantId,
-            @PathVariable Long itemId) {
+            @PathVariable Long itemId,
+            @Parameter(description = "Remove the row instead of hiding it")
+            @RequestParam(required = false, defaultValue = "false") boolean permanent) {
 
         validateAccess(restaurantId, currentUser);
+        if (permanent) {
+            menuService.deleteItemPermanently(restaurantId, itemId);
+            return ResponseEntity.ok(ApiResponse.success("Menu item removed permanently"));
+        }
         menuService.deleteItem(restaurantId, itemId);
         return ResponseEntity.ok(ApiResponse.success("Menu item deleted successfully"));
+    }
+
+    /**
+     * The withdrawn items, which nothing else shows.
+     *
+     * <p>Both the customer menu and the vendor's own item list filter to active
+     * items, so a hidden dish was invisible to the person who hid it. That is
+     * what made them feel impossible to remove: there was nothing to press.
+     */
+    @GetMapping("/items/inactive")
+    @PreAuthorize("hasAnyRole('RESTAURANT_OWNER', 'RESTAURANT_STAFF', 'PLATFORM', 'ADMIN')")
+    @SecurityRequirement(name = "bearerAuth")
+    @Operation(summary = "List hidden items",
+            description = "Items withdrawn from the menu. Invisible in every other listing.")
+    public ResponseEntity<ApiResponse<List<MenuItemDto>>> getInactiveItems(
+            @AuthenticationPrincipal UserPrincipal currentUser,
+            @PathVariable Long restaurantId) {
+
+        validateAccess(restaurantId, currentUser);
+        return ResponseEntity.ok(ApiResponse.success(menuService.getInactiveItems(restaurantId)));
+    }
+
+    /**
+     * Clear out the hidden items in one go.
+     *
+     * <p>An imported menu can leave dozens behind, and deleting them one at a
+     * time through a list that does not show them is not a thing anybody can do.
+     */
+    @DeleteMapping("/items/inactive")
+    @PreAuthorize("hasAnyRole('RESTAURANT_OWNER', 'RESTAURANT_STAFF', 'PLATFORM', 'ADMIN')")
+    @SecurityRequirement(name = "bearerAuth")
+    @Operation(summary = "Remove all hidden items",
+            description = "Permanently removes every withdrawn item except those appearing in "
+                    + "past orders, which stay hidden. Reports both counts.")
+    public ResponseEntity<ApiResponse<MenuService.PurgeReport>> purgeInactiveItems(
+            @AuthenticationPrincipal UserPrincipal currentUser,
+            @PathVariable Long restaurantId) {
+
+        validateAccess(restaurantId, currentUser);
+        MenuService.PurgeReport report = menuService.purgeInactiveItems(restaurantId);
+        return ResponseEntity.ok(ApiResponse.success(
+                "Removed " + report.removed() + " hidden item(s); "
+                        + report.keptForOrderHistory() + " kept because past orders contain them",
+                report));
     }
 
     @PostMapping(value = "/items/{itemId}/image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)

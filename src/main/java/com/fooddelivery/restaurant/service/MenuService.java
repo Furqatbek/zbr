@@ -24,6 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -491,6 +492,99 @@ public class MenuService {
         item.setActive(false);
         itemRepository.save(item);
         log.info("Menu item deleted (soft): {}", itemId);
+    }
+
+    /**
+     * Remove an item for good.
+     *
+     * <p>A soft delete leaves the row behind, and nothing lists an inactive item
+     * — not the customer menu, not the vendor's own item list. So a "deleted"
+     * dish became invisible and unreachable: it could not be restored, could not
+     * be deleted again, and stayed there. This is the way out.
+     *
+     * <p>Refused for an item any order has ever contained. There is no foreign
+     * key on {@code order_items.menu_item_id}, so the delete would succeed and
+     * the damage would surface later as a failure to load somebody's order
+     * history. Those items stay soft-deleted, which is what soft deletion is
+     * actually for.
+     *
+     * <p>Sizes and add-ons go with it, through the aggregate's cascade.
+     */
+    @Transactional
+    @CacheEvict(value = {"menus", "menuItems"}, allEntries = true)
+    @Auditable(action = "DELETE_ITEM_PERMANENT", entityType = "MenuItem")
+    public void deleteItemPermanently(Long restaurantId, Long itemId) {
+        MenuItem item = getItemForRestaurant(restaurantId, itemId);
+
+        if (itemRepository.isReferencedByAnyOrder(itemId)) {
+            throw new com.fooddelivery.common.exception.BusinessException("'" + item.getName() + "' appears in past orders and "
+                    + "cannot be removed permanently — it would break those order records. "
+                    + "It has been hidden from the menu instead.");
+        }
+
+        // The image is ours to clean up; nothing else will.
+        if (item.getImagePath() != null) {
+            String relativePath = extractRelativePath(item.getImagePath());
+            if (relativePath != null) {
+                imageStorageService.deleteImage(relativePath);
+            }
+        }
+
+        itemRepository.delete(item);
+        log.info("Menu item deleted permanently: {} ({}) from restaurant {}",
+                itemId, item.getName(), restaurantId);
+    }
+
+    /**
+     * Clear out everything a venue has withdrawn, where it is safe to.
+     *
+     * <p>Exists because the alternative is a vendor deleting fifty imported
+     * items one at a time through a list that does not show them.
+     *
+     * @return how many went, and how many had to stay because orders reference
+     *         them
+     */
+    @Transactional
+    @CacheEvict(value = {"menus", "menuItems"}, allEntries = true)
+    @Auditable(action = "PURGE_INACTIVE_ITEMS", entityType = "MenuItem")
+    public PurgeReport purgeInactiveItems(Long restaurantId) {
+        List<MenuItem> inactive = itemRepository.findInactiveByRestaurantId(restaurantId);
+
+        int removed = 0;
+        List<String> kept = new ArrayList<>();
+        for (MenuItem item : inactive) {
+            if (itemRepository.isReferencedByAnyOrder(item.getId())) {
+                kept.add(item.getName());
+                continue;
+            }
+            if (item.getImagePath() != null) {
+                String relativePath = extractRelativePath(item.getImagePath());
+                if (relativePath != null) {
+                    imageStorageService.deleteImage(relativePath);
+                }
+            }
+            itemRepository.delete(item);
+            removed++;
+        }
+
+        log.info("Purged {} inactive item(s) from restaurant {}; {} kept for order history",
+                removed, restaurantId, kept.size());
+        return new PurgeReport(removed, kept.size(), kept);
+    }
+
+    /**
+     * What a purge did.
+     *
+     * @param keptNames named rather than counted, so a vendor can see that the
+     *                  leftovers are dishes people really ordered
+     */
+    public record PurgeReport(int removed, int keptForOrderHistory, List<String> keptNames) {
+    }
+
+    /** Withdrawn items, which nothing else will show a vendor. */
+    @Transactional(readOnly = true)
+    public List<MenuItemDto> getInactiveItems(Long restaurantId) {
+        return mapper.toItemDtoList(itemRepository.findInactiveByRestaurantId(restaurantId));
     }
 
     /**
