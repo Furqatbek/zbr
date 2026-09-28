@@ -220,4 +220,62 @@ class MenuItemVariantSyncTest {
         assertThat(item.getOptions()).filteredOn(o -> "Sauce".equals(o.getGroupName()))
                 .singleElement().satisfies(o -> assertThat(o.getId()).isEqualTo(51L));
     }
+
+
+    @Test
+    @DisplayName("a rename keeps the row when the id is sent")
+    void renameWithIdKeepsTheRow() {
+        // Name-matching alone deletes "Large" and creates "Katta", and a
+        // customer holding variant 11 in their basket is then pointing at a row
+        // that does not exist. Order history survives either way — the name and
+        // price are snapshotted on the line — but a basket in progress is not
+        // history.
+        MenuItem item = lavash();
+        item.getVariants().add(storedVariant(11L, "Large", "5000"));
+
+        CreateItemVariantRequest renamed = wanted("Katta", "5000");
+        renamed.setId(11L);
+        menuService.updateItem(RESTAURANT, ITEM, edit(List.of(renamed)));
+
+        assertThat(item.getVariants()).singleElement().satisfies(v -> {
+            assertThat(v.getId()).isEqualTo(11L);
+            assertThat(v.getName()).isEqualTo("Katta");
+        });
+    }
+
+    @Test
+    @DisplayName("a rename without an id still loses the row — the id is what saves it")
+    void renameWithoutIdReplacesTheRow() {
+        // Recorded rather than wished away: this is exactly why the id is worth
+        // sending, and the behaviour a client gets if it does not.
+        MenuItem item = lavash();
+        item.getVariants().add(storedVariant(11L, "Large", "5000"));
+
+        menuService.updateItem(RESTAURANT, ITEM, edit(List.of(wanted("Katta", "5000"))));
+
+        assertThat(item.getVariants()).singleElement().satisfies(v -> {
+            assertThat(v.getName()).isEqualTo("Katta");
+            assertThat(v.getId()).isNull();
+        });
+    }
+
+    @Test
+    @DisplayName("an id from another dish is ignored, not adopted")
+    void foreignIdIsIgnored() {
+        // Otherwise one restaurant could rewrite another's size by guessing a
+        // number.
+        MenuItem item = lavash();
+        item.getVariants().add(storedVariant(11L, "Large", "5000"));
+
+        CreateItemVariantRequest foreign = wanted("Large", "9000");
+        foreign.setId(9999L);
+        menuService.updateItem(RESTAURANT, ITEM, edit(List.of(foreign)));
+
+        // Fell back to the name, so it updated our own row rather than
+        // reaching for id 9999.
+        assertThat(item.getVariants()).singleElement().satisfies(v -> {
+            assertThat(v.getId()).isEqualTo(11L);
+            assertThat(v.getPriceDelta()).isEqualByComparingTo("9000");
+        });
+    }
 }

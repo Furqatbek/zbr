@@ -335,15 +335,23 @@ public class MenuService {
      * foreign key, so that cannot damage history.
      */
     private void replaceVariants(MenuItem item, List<CreateItemVariantRequest> wanted) {
-        Map<String, ItemVariant> existing = item.getVariants().stream()
+        Map<Long, ItemVariant> byId = item.getVariants().stream()
+                .filter(v -> v.getId() != null)
+                .collect(Collectors.toMap(ItemVariant::getId, v -> v, (a, b) -> a));
+        Map<String, ItemVariant> byName = item.getVariants().stream()
                 .collect(Collectors.toMap(v -> key(v.getName()), v -> v, (a, b) -> a));
 
-        Set<String> keep = new java.util.HashSet<>();
+        Set<ItemVariant> survivors = java.util.Collections.newSetFromMap(
+                new java.util.IdentityHashMap<>());
         int order = 0;
         for (CreateItemVariantRequest w : wanted) {
-            String key = key(w.getName());
-            keep.add(key);
-            ItemVariant variant = existing.get(key);
+            // Id first, name second. An id belonging to another dish is not in
+            // this map, so it falls through to the name rather than stealing a
+            // row from somebody else's menu.
+            ItemVariant variant = w.getId() != null ? byId.get(w.getId()) : null;
+            if (variant == null) {
+                variant = byName.get(key(w.getName()));
+            }
             if (variant == null) {
                 variant = ItemVariant.builder()
                         .menuItem(item)
@@ -356,10 +364,13 @@ public class MenuService {
             variant.setName(w.getName());
             variant.setPriceDelta(w.getPriceDelta() != null ? w.getPriceDelta() : BigDecimal.ZERO);
             variant.setSortOrder(w.getSortOrder() != null ? w.getSortOrder() : order);
+            survivors.add(variant);
             order++;
         }
 
-        item.getVariants().removeIf(v -> !keep.contains(key(v.getName())));
+        // By identity, not by name: a row matched on id has just been renamed,
+        // and looking it up by its new name would not find the old key.
+        item.getVariants().removeIf(v -> !survivors.contains(v));
     }
 
     /**
@@ -367,16 +378,20 @@ public class MenuService {
      * Sauce and "Garlic" in Extras are two different add-ons.
      */
     private void replaceOptions(MenuItem item, List<CreateItemOptionRequest> wanted) {
-        Map<String, ItemOption> existing = item.getOptions().stream()
-                .collect(Collectors.toMap(o -> key(o.getGroupName()) + "\u0000" + key(o.getName()),
-                        o -> o, (a, b) -> a));
+        Map<Long, ItemOption> byId = item.getOptions().stream()
+                .filter(o -> o.getId() != null)
+                .collect(Collectors.toMap(ItemOption::getId, o -> o, (a, b) -> a));
+        Map<String, ItemOption> byName = item.getOptions().stream()
+                .collect(Collectors.toMap(MenuService::optionKey, o -> o, (a, b) -> a));
 
-        Set<String> keep = new java.util.HashSet<>();
+        Set<ItemOption> survivors = java.util.Collections.newSetFromMap(
+                new java.util.IdentityHashMap<>());
         int order = 0;
         for (CreateItemOptionRequest w : wanted) {
-            String key = key(w.getGroupName()) + "\u0000" + key(w.getName());
-            keep.add(key);
-            ItemOption option = existing.get(key);
+            ItemOption option = w.getId() != null ? byId.get(w.getId()) : null;
+            if (option == null) {
+                option = byName.get(key(w.getGroupName()) + "\u0000" + key(w.getName()));
+            }
             if (option == null) {
                 option = ItemOption.builder()
                         .menuItem(item)
@@ -394,11 +409,16 @@ public class MenuService {
             option.setMaxSelections(w.getMaxSelections() != null ? w.getMaxSelections() : 1);
             option.setRequired(w.getRequired() != null ? w.getRequired() : Boolean.FALSE);
             option.setSortOrder(w.getSortOrder() != null ? w.getSortOrder() : order);
+            survivors.add(option);
             order++;
         }
 
-        item.getOptions().removeIf(
-                o -> !keep.contains(key(o.getGroupName()) + "\u0000" + key(o.getName())));
+        item.getOptions().removeIf(o -> !survivors.contains(o));
+    }
+
+    /** Group and name together: "Garlic" in Sauce is not "Garlic" in Extras. */
+    private static String optionKey(ItemOption option) {
+        return key(option.getGroupName()) + "\u0000" + key(option.getName());
     }
 
     /** Case- and whitespace-insensitive, so "Large" and "large " are one size. */

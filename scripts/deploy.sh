@@ -41,6 +41,31 @@ for arg in "$@"; do
   esac
 done
 
+# One deploy at a time.
+#
+# Three of these were started within seconds of each other, which is easier to
+# do than it sounds: nohup backgrounds it, nothing is printed for a minute, and
+# it looks like the command did not take. Concurrently they race on the same
+# compose project — the container-name conflict this script exists to avoid —
+# and on the same Flyway lock, where a migration interrupted mid-run leaves a
+# failed row that blocks every later deploy.
+#
+# Per target, so a staging deploy is not blocked by a production one. The lock
+# is released when this process exits, however it exits.
+LOCK_FILE="/tmp/zbr-deploy-${TARGET}.lock"
+# Opened for APPEND deliberately. "exec 9>" truncates on open, which happens
+# before flock can refuse — so the second deploy would erase the pid of the one
+# it is about to be told about, and the message would name nobody.
+exec 9>>"$LOCK_FILE"
+if ! flock -n 9; then
+  holder="$(cat "$LOCK_FILE" 2>/dev/null || true)"
+  echo "A ${TARGET} deploy is already running${holder:+ (pid ${holder})}." >&2
+  echo "Watch it instead of starting another: tail -f /tmp/deploy*.log" >&2
+  exit 3
+fi
+# Safe to truncate now: we hold the lock.
+printf '%s\n' "$$" > "$LOCK_FILE"
+
 if [ "$TARGET" = "staging" ]; then
   COMPOSE=(docker compose -f docker-compose.staging.yml --env-file .env.staging)
   SERVICE="staging-app"
