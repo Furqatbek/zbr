@@ -25,6 +25,11 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+import com.fooddelivery.restaurant.dto.CreateItemVariantRequest;
+import com.fooddelivery.restaurant.dto.CreateItemOptionRequest;
 import java.util.List;
 
 /**
@@ -293,8 +298,112 @@ public class MenuService {
             item.setSortOrder(request.getSortOrder());
         }
 
+        // Sizes and add-ons, when the caller sent them.
+        //
+        // This endpoint used to drop them silently, and then refused any body
+        // containing them — which was the wrong remedy. The vendor app reads an
+        // item, changes one field and sends the whole thing back, which is what
+        // PUT means; refusing that broke editing a price to protect against a
+        // rarer mistake. Honouring them is the answer to both.
+        //
+        // The three cases are distinct and all meaningful:
+        //   absent  — leave the sizes alone (a client that never sends them)
+        //   []      — remove them all, said deliberately
+        //   [ ... ] — this is the complete set
+        if (request.getVariants() != null) {
+            replaceVariants(item, request.getVariants());
+        }
+        if (request.getOptions() != null) {
+            replaceOptions(item, request.getOptions());
+        }
+
         item = itemRepository.save(item);
         return mapper.toItemDto(item);
+    }
+
+    /**
+     * Make the dish's sizes match what was sent.
+     *
+     * <p>Matched by name, because the nested shape carries no id — and matching
+     * rather than replacing wholesale is the point: rebuilding the rows on every
+     * edit would change their ids, and a customer holding one in their basket
+     * would be told their size no longer exists because a vendor corrected a
+     * typo in the price.
+     *
+     * <p>A size the caller left out is removed. An order line snapshots the
+     * variant's name and price and {@code order_items.variant_id} carries no
+     * foreign key, so that cannot damage history.
+     */
+    private void replaceVariants(MenuItem item, List<CreateItemVariantRequest> wanted) {
+        Map<String, ItemVariant> existing = item.getVariants().stream()
+                .collect(Collectors.toMap(v -> key(v.getName()), v -> v, (a, b) -> a));
+
+        Set<String> keep = new java.util.HashSet<>();
+        int order = 0;
+        for (CreateItemVariantRequest w : wanted) {
+            String key = key(w.getName());
+            keep.add(key);
+            ItemVariant variant = existing.get(key);
+            if (variant == null) {
+                variant = ItemVariant.builder()
+                        .menuItem(item)
+                        .name(w.getName())
+                        .inStock(true)
+                        .active(true)
+                        .build();
+                item.getVariants().add(variant);
+            }
+            variant.setName(w.getName());
+            variant.setPriceDelta(w.getPriceDelta() != null ? w.getPriceDelta() : BigDecimal.ZERO);
+            variant.setSortOrder(w.getSortOrder() != null ? w.getSortOrder() : order);
+            order++;
+        }
+
+        item.getVariants().removeIf(v -> !keep.contains(key(v.getName())));
+    }
+
+    /**
+     * The same for add-ons, keyed by group and name together — "Garlic" in
+     * Sauce and "Garlic" in Extras are two different add-ons.
+     */
+    private void replaceOptions(MenuItem item, List<CreateItemOptionRequest> wanted) {
+        Map<String, ItemOption> existing = item.getOptions().stream()
+                .collect(Collectors.toMap(o -> key(o.getGroupName()) + "\u0000" + key(o.getName()),
+                        o -> o, (a, b) -> a));
+
+        Set<String> keep = new java.util.HashSet<>();
+        int order = 0;
+        for (CreateItemOptionRequest w : wanted) {
+            String key = key(w.getGroupName()) + "\u0000" + key(w.getName());
+            keep.add(key);
+            ItemOption option = existing.get(key);
+            if (option == null) {
+                option = ItemOption.builder()
+                        .menuItem(item)
+                        .groupName(w.getGroupName())
+                        .name(w.getName())
+                        .inStock(true)
+                        .active(true)
+                        .build();
+                item.getOptions().add(option);
+            }
+            option.setGroupName(w.getGroupName());
+            option.setName(w.getName());
+            option.setPriceDelta(w.getPriceDelta() != null ? w.getPriceDelta() : BigDecimal.ZERO);
+            option.setIsDefault(w.getIsDefault() != null ? w.getIsDefault() : Boolean.FALSE);
+            option.setMaxSelections(w.getMaxSelections() != null ? w.getMaxSelections() : 1);
+            option.setRequired(w.getRequired() != null ? w.getRequired() : Boolean.FALSE);
+            option.setSortOrder(w.getSortOrder() != null ? w.getSortOrder() : order);
+            order++;
+        }
+
+        item.getOptions().removeIf(
+                o -> !keep.contains(key(o.getGroupName()) + "\u0000" + key(o.getName())));
+    }
+
+    /** Case- and whitespace-insensitive, so "Large" and "large " are one size. */
+    private static String key(String name) {
+        return name == null ? "" : name.trim().toLowerCase(java.util.Locale.ROOT);
     }
 
     // ============== Sizes and add-ons ==============

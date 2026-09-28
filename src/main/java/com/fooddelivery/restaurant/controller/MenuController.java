@@ -173,7 +173,10 @@ public class MenuController {
     @PutMapping("/items/{itemId}")
     @PreAuthorize("hasAnyRole('RESTAURANT_OWNER', 'RESTAURANT_STAFF', 'PLATFORM', 'ADMIN')")
     @SecurityRequirement(name = "bearerAuth")
-    @Operation(summary = "Update item", description = "Update a menu item")
+    @Operation(summary = "Update item",
+            description = "Partial: a field left out is left alone. Sending \"variants\" or "
+                    + "\"options\" replaces that whole set — omit them to leave sizes and "
+                    + "add-ons untouched, send [] to remove them all.")
     public ResponseEntity<ApiResponse<MenuItemDto>> updateItem(
             @AuthenticationPrincipal UserPrincipal currentUser,
             @PathVariable Long restaurantId,
@@ -182,18 +185,15 @@ public class MenuController {
 
         validateAccess(restaurantId, currentUser);
 
-        // Refused rather than ignored. This endpoint took "variants" and
-        // "options" in the body and dropped them on the floor, which reads from
-        // the outside exactly like a request that worked — the same trap as a
-        // query parameter that has not shipped. Sizes and add-ons have their own
-        // endpoints below, and saying so is more use than a silent success.
-        if (request.getVariants() != null || request.getOptions() != null) {
-            throw new BusinessException(
-                    "Sizes and add-ons are not changed here. Use "
-                            + "POST/PUT/DELETE /api/v1/restaurants/" + restaurantId
-                            + "/menu/items/" + itemId + "/variants and /options.");
-        }
-
+        // "variants" and "options" in this body are applied, not dropped and not
+        // refused.
+        //
+        // They were dropped silently first, which reads from outside exactly
+        // like a request that worked. The fix for that was to refuse any body
+        // containing them — and that was the wrong remedy: the vendor app reads
+        // an item, changes a price and sends the whole item back, which is what
+        // PUT means, so editing a price started failing in order to guard
+        // against a rarer mistake. Honouring them answers both.
         MenuItemDto item = menuService.updateItem(restaurantId, itemId, request);
         return ResponseEntity.ok(ApiResponse.success("Menu item updated successfully", item));
     }
