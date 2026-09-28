@@ -177,7 +177,19 @@ keep_previous() {
   case "${base##*/}" in *:*) base="${base%:*}" ;; esac
   PREV_TAG="${base}:previous"
 
-  docker tag "$PREV_IMAGE" "$PREV_TAG"
+  # A warning, never a failure. This step exists to make a rollback possible,
+  # and letting it abort the deploy means a missing rollback image blocks every
+  # deploy — the opposite of what it is for. It really happened: concurrent
+  # deploys left the running container pointing at an image id that had been
+  # pruned, and production could not be updated at all until this line was
+  # softened.
+  if ! docker tag "$PREV_IMAGE" "$PREV_TAG" 2>/dev/null; then
+    echo "     could not tag :previous — image ${PREV_IMAGE#sha256:} is gone from this host."
+    echo "     Continuing. There is no automatic rollback for THIS deploy; if it"
+    echo "     goes wrong, redeploy the previous commit instead."
+    PREV_TAG=""
+    return 0
+  fi
   echo "     $PREV_TAG -> ${PREV_IMAGE#sha256:}"
 }
 keep_previous
