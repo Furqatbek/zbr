@@ -268,7 +268,10 @@ public class MenuService {
             item.setOriginalPrice(request.getOriginalPrice());
         }
         if (request.getImageUrl() != null) {
-            item.setImageUrl(request.getImageUrl());
+            // "" clears it rather than storing a non-URL. A client echoing an
+            // empty field back must not plant a value that every consumer then
+            // has to special-case.
+            item.setImageUrl(com.fooddelivery.common.util.Blanks.toNull(request.getImageUrl()));
         }
         if (request.getPrepTimeMinutes() != null) {
             item.setPrepTimeMinutes(request.getPrepTimeMinutes());

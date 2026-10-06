@@ -1,5 +1,6 @@
 package com.fooddelivery.integration.restos.service;
 
+import com.fooddelivery.common.util.Blanks;
 import com.fooddelivery.common.exception.BusinessException;
 import com.fooddelivery.integration.restos.client.RestosMenuClient;
 import com.fooddelivery.integration.restos.dto.*;
@@ -508,7 +509,13 @@ public class RestosMenuImportService {
             if (overwrite) {
                 existing.setName(ext.getName());
                 existing.setDescription(ext.getDescription());
-                if (ext.getImageUrl() != null) existing.setImageUrl(ext.getImageUrl());
+                // Blank, not absent, is what Restos actually sends: every product and
+                // category of Qahvoon's menu arrived with imageUrl "", we stored it
+                // verbatim, and the landing page rendered a broken image frame for
+                // each of 45 items. An empty string is not a URL.
+                if (Blanks.toNull(ext.getImageUrl()) != null) {
+                    existing.setImageUrl(Blanks.toNull(ext.getImageUrl()));
+                }
                 if (ext.getSortOrder() != null) existing.setSortOrder(ext.getSortOrder());
                 existing.setActive(ext.getActive() != null ? ext.getActive() : true);
             }
@@ -521,7 +528,7 @@ public class RestosMenuImportService {
                 .restaurant(restaurant)
                 .name(ext.getName())
                 .description(ext.getDescription())
-                .imageUrl(ext.getImageUrl())
+                .imageUrl(Blanks.toNull(ext.getImageUrl()))
                 .sortOrder(ext.getSortOrder() != null ? ext.getSortOrder() : 0)
                 .active(ext.getActive() != null ? ext.getActive() : true)
                 .externalId(ext.getId())
@@ -602,7 +609,9 @@ public class RestosMenuImportService {
             existing.setFeatured(ext.isFeaturedProduct());
             existing.setActive(true);
             if (ext.getDescription() != null) existing.setDescription(ext.getDescription());
-            if (ext.getImageUrl() != null) existing.setImageUrl(ext.getImageUrl());
+            if (Blanks.toNull(ext.getImageUrl()) != null) {
+                existing.setImageUrl(Blanks.toNull(ext.getImageUrl()));
+            }
             if (ext.getSortOrder() != null) existing.setSortOrder(ext.getSortOrder());
             if (ext.getCostPrice() != null) existing.setOriginalPrice(ext.getCostPrice());
 
@@ -619,7 +628,7 @@ public class RestosMenuImportService {
                 .price(ext.getPrice())
                 .priceWithMargin(sellingPrice(ext))
                 .originalPrice(ext.getCostPrice())
-                .imageUrl(ext.getImageUrl())
+                .imageUrl(Blanks.toNull(ext.getImageUrl()))
                 .inStock(ext.isAvailable())
                 .featured(ext.isFeaturedProduct())
                 .sortOrder(ext.getSortOrder() != null ? ext.getSortOrder() : 0)
