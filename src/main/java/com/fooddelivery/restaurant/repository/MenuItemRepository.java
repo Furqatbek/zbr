@@ -18,6 +18,27 @@ import java.util.Optional;
 @Repository
 public interface MenuItemRepository extends JpaRepository<MenuItem, Long> {
 
+    /**
+     * The partner's product anywhere in this restaurant, not just in one
+     * category.
+     *
+     * <p>Matching per category meant a product moved to a different category in
+     * the partner's till was not found, so a second row was created — and the
+     * retire pass filters on external id alone, so the original was still
+     * "seen" and survived. Two active rows for one dish, in two categories.
+     *
+     * <p>A list rather than an Optional because that duplication may already
+     * exist in the data, and a query that throws on it would break the sync
+     * that is trying to repair it. Oldest first, so the row with history
+     * attached is the one kept.
+     */
+    @Query("SELECT mi FROM MenuItem mi WHERE mi.category.restaurant.id = :restaurantId "
+            + "AND mi.externalSource = :source AND mi.externalId = :externalId "
+            + "ORDER BY mi.id ASC")
+    List<MenuItem> findExternalItemsAnywhere(@Param("restaurantId") Long restaurantId,
+                                             @Param("source") String source,
+                                             @Param("externalId") Long externalId);
+
     Optional<MenuItem> findByCategoryIdAndExternalSourceAndExternalId(
             Long categoryId, String externalSource, Long externalId);
 

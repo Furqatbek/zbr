@@ -585,11 +585,42 @@ public class RestosMenuImportService {
             return;
         }
 
-        Optional<MenuItem> existingOpt = menuItemRepository
-                .findByCategoryIdAndExternalSourceAndExternalId(category.getId(), EXTERNAL_SOURCE, ext.getId());
+        // Looked up across the whole restaurant, not within one category.
+        //
+        // Per-category matching could not find a product the venue had moved to
+        // a different category in their till, so it created a second row — and
+        // the retire pass filters on external id alone, so the original counted
+        // as "seen" and survived. The result was two active rows for one dish,
+        // in two categories, growing by one on every move.
+        List<MenuItem> found = menuItemRepository
+                .findExternalItemsAnywhere(category.getRestaurant().getId(), EXTERNAL_SOURCE, ext.getId());
+        if (found.size() > 1) {
+            result.getWarnings().add("'" + ext.getName() + "' exists " + found.size()
+                    + " times in your menu — earlier syncs duplicated it when it moved category. "
+                    + "The oldest copy is being kept up to date; the others need removing.");
+        }
+        Optional<MenuItem> existingOpt = found.stream().findFirst();
 
         if (existingOpt.isPresent()) {
             MenuItem existing = existingOpt.get();
+
+            // Follow the move rather than leaving it filed where it used to be.
+            // The row keeps its id, so a basket holding it and every past order
+            // line still resolve.
+            // Null-safe: category is non-null in the schema, but a stored row
+            // read without it would otherwise abort the whole sync on a
+            // NullPointerException, which is a steep price for a tidy-up.
+            Long currentCategoryId = existing.getCategory() != null
+                    ? existing.getCategory().getId() : null;
+            // Objects.equals on both sides: either id can be absent, and a
+            // NullPointerException here is swallowed by the per-product catch
+            // further up — so it would not surface as an error at all, only as
+            // a dish that silently failed to update.
+            if (!java.util.Objects.equals(currentCategoryId, category.getId())) {
+                log.info("Menu item {} ('{}') moved from category {} to {} in Restos",
+                        existing.getId(), existing.getName(), currentCategoryId, category.getId());
+                existing.setCategory(category);
+            }
 
             // overwriteExisting=false (Import) must NOT touch an existing product —
             // skip it. Only overwriteExisting=true (Sync) updates in place.

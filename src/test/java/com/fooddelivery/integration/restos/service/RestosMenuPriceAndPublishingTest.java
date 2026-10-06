@@ -87,8 +87,11 @@ class RestosMenuPriceAndPublishingTest {
         when(menuItemRepository.save(any(MenuItem.class))).thenAnswer(i -> i.getArgument(0));
         when(categoryRepository.findByRestaurantIdAndExternalSourceAndExternalId(anyLong(), anyString(), any()))
                 .thenReturn(Optional.empty());
-        when(menuItemRepository.findByCategoryIdAndExternalSourceAndExternalId(any(), anyString(), any()))
-                .thenReturn(Optional.empty());
+        // The import matches across the restaurant, not within one category, so
+        // that a dish moved between categories upstream is followed rather than
+        // duplicated.
+        when(menuItemRepository.findExternalItemsAnywhere(anyLong(), anyString(), any()))
+                .thenReturn(List.of());
         when(menuItemRepository.findByCategoryIdAndActiveOrderBySortOrderAsc(any(), anyBoolean()))
                 .thenReturn(List.of());
         when(menuItemRepository.findActiveExternalItems(anyLong(), anyString())).thenReturn(List.of());
@@ -160,8 +163,8 @@ class RestosMenuPriceAndPublishingTest {
                     .price(new BigDecimal("15000"))
                     .priceWithMargin(new BigDecimal("16500"))
                     .externalId(88L).externalSource(SOURCE).active(true).build();
-            when(menuItemRepository.findByCategoryIdAndExternalSourceAndExternalId(any(), anyString(), any()))
-                    .thenReturn(Optional.of(stale));
+            when(menuItemRepository.findExternalItemsAnywhere(anyLong(), anyString(), any()))
+                    .thenReturn(List.of(stale));
 
             sync(List.of(category(RestosProduct.builder()
                     .id(88L).name("Americano").price(new BigDecimal("15000"))
